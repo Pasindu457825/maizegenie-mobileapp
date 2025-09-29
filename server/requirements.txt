@@ -1,0 +1,13 @@
+fastapi==0.112.2
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+pydantic-settings==2.6.1
+python-multipart==0.0.9
+Pillow==10.4.0
+numpy==2.1.1
+firebase-admin==6.6.0
+google-cloud-storage==2.18.2   # only if you’ll upload to Storage
+
+# add your ML runtimes if needed:
+# torch==2.3.1
+# onnxruntime==1.19.2
