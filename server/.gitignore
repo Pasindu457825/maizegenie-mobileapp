@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+
+# SQLite / uploads
+app.db
+*.sqlite*
+uploads/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
