@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* optional design tokens */
+:root {
+  --color-brand: #16a34a;
+  --color-brand-dark: #166534;
+}
