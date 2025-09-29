@@ -1,0 +1,44 @@
+# Node / Expo
+node_modules/
+.expo/
+.expo-shared/
+.mexpo/
+.macro-cache/
+.metero-cache/
+.meteor/
+.metal-cache/
+.metro-cache/
+dist/
+web-build/
+.cache/
+*.pack
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+
+# Typescript / tests
+coverage/
+*.tsbuildinfo
+
+# Images / assets you don’t want tracked (optional)
+# assets/*.psd
+# assets/*.ai
+
+# If you ever create native projects locally and don’t want them:
+# android/
+# ios/
