@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import HomeScreen from "../screens/HomeScreen";
 import PriceForecastStack from "./PriceForecastStack";
+import PredictYieldStack from "./PredictYieldStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
@@ -11,6 +12,7 @@ export type TabsParamList = {
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
   [ROUTES.TABS.FERTILIZERADVISOR]: undefined;
+  [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
 };
 
@@ -77,7 +79,17 @@ export default function BottomNavigator() {
           ),
         }}
       />
-       <Tab.Screen
+      <Tab.Screen
+        name={ROUTES.TABS.PREDICTYIELD}
+        component={PredictYieldStack}
+        options={{
+          tabBarLabel: "Yield",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="analytics-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name={ROUTES.TABS.PRICEFORECAST}
         component={PriceForecastStack}
         options={{
@@ -97,7 +109,7 @@ export default function BottomNavigator() {
           ),
         }}
       />
-    
+
     </Tab.Navigator>
   );
 }
