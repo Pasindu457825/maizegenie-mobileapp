@@ -1,6 +1,7 @@
 import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
 import { ThemeProvider } from "./src/context/ThemeProvider";
 import { AppProvider } from "./src/context/AppContext";
+import 'react-native-gesture-handler';
 import RootNavigator from "./src/navigation";
 import "./global.css";
 
