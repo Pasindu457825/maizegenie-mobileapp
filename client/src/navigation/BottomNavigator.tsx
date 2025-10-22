@@ -5,6 +5,7 @@ import HomeScreen from "../screens/HomeScreen";
 import PriceForecastStack from "./PriceForecastStack";
 import PredictYieldStack from "./PredictYieldStack";
 import { ROUTES } from "../constants";
+import PestIdentifyStack from "./PestIdentifyStack";
 
 export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
@@ -51,7 +52,7 @@ export default function BottomNavigator() {
       />
       <Tab.Screen
         name={ROUTES.TABS.PESTIDENTIFIER}
-        component={HomeScreen}
+        component={PestIdentifyStack}
         options={{
           tabBarLabel: "Pests",
           tabBarIcon: ({ color, size }) => (
