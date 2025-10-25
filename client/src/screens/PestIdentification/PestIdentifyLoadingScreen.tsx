@@ -3,10 +3,13 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
+  Image,
+  ActivityIndicator,
   Animated,
   Dimensions,
   ScrollView,
+  Platform,
+  StyleSheet,
 } from "react-native";
 import {
   Bug,
@@ -16,94 +19,102 @@ import {
   CloudSun,
   MapPin,
   AlertCircle,
-  Leaf,
-  Sprout,
+  X,
+  CheckCircle,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import * as ImagePicker from 'expo-image-picker';
+import axios from "axios";
 
 const { width } = Dimensions.get("window");
 
 type Language = "si" | "en";
-type Content = {
-  [key in Language]: {
-    title: string;
-    subtitle: string;
-    mainText: string;
-    description: string;
-    loading: string;
-    cameraOption: string;
-    uploadOption: string;
-    orText: string;
-  };
-};
+
+interface Prediction {
+  class_id: number;
+  class_name: string;
+  confidence: number;
+}
 
 type RootStackParamList = {
-  PestCameraScreen: undefined;
-  PestUploadScreen: undefined;
+  PestIdentificationScreen: undefined;
 };
 
 type NavProp = StackNavigationProp<RootStackParamList>;
 
-const PestIdentificationLoadingScreen = () => {
+// Dynamic API URL based on platform
+const getApiUrl = () => {
+  if (Platform.OS === 'android') {
+    // For REAL Android device
+    return "http://192.168.8.125:8000";
+    // For Android emulator, use: "http://10.0.2.2:8000"
+  } else if (Platform.OS === 'ios') {
+    return "http://localhost:8000";
+  } else {
+    return "http://localhost:8000"; // Web
+  }
+};
+
+const API_URL = getApiUrl();
+
+const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
   const [language, setLanguage] = useState<Language>("si");
-  const [progress, setProgress] = useState(0);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [result, setResult] = useState<Prediction[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [leafAnim] = useState(new Animated.Value(0));
-  const [buttonFadeAnim] = useState(new Animated.Value(0));
 
-  const content: Content = {
+  const content = {
     si: {
       title: "🐛 පළිබෝධ හඳුනාගැනීම",
       subtitle: "ස්මාර්ට් ගොවිතැන",
-      mainText: "ඔබේ වගාවට",
-      description: "පළිබෝධ හඳුනා ගැනීම සහ විසඳුම්",
-      loading: "සූදානම් වෙමින්",
+      headerTitle: "පළිබෝධ හඳුනාගැනීම",
+      headerSubtitle: "ඡායාරූපයකින් පළිබෝධ හඳුනා ගන්න",
       cameraOption: "කැමරාව භාවිතා කරන්න",
       uploadOption: "ඡායාරූපයක් උඩුගත කරන්න",
+      detectButton: "පළිබෝධ හඳුනා ගන්න",
+      analyzing: "විශ්ලේෂණය කරමින්...",
+      resultTitle: "හඳුනාගත් පළිබෝධ",
+      noPests: "පළිබෝධ හමු නොවීය",
+      tryAgain: "නැවත උත්සාහ කරන්න",
+      pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
     },
     en: {
       title: "🐛 Pest Identification",
       subtitle: "Smart Farming",
-      mainText: "Protect Your Crops",
-      description: "Identify pests and get solutions",
-      loading: "Getting Ready",
+      headerTitle: "Pest Identification",
+      headerSubtitle: "Identify pests from photos",
       cameraOption: "Use Camera",
       uploadOption: "Upload Photo",
+      detectButton: "Detect Pest",
+      analyzing: "Analyzing...",
+      resultTitle: "Detected Pests",
+      noPests: "No pests detected",
+      tryAgain: "Try Again",
+      pickImage: "Pick an Image",
       orText: "OR",
     },
   };
 
-  const headerContent = {
-    si: {
-      title: "පළිබෝධ හඳුනාගැනීම",
-      subtitle: "ඡායාරූපයකින් පළිබෝධ හඳුනා ගන්න",
-    },
-    en: {
-      title: "Pest Identification",
-      subtitle: "Identify pests from photos",
-    },
-  };
-
   useEffect(() => {
-    // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
     }).start();
 
-    // Scale animation
     Animated.spring(scaleAnim, {
       toValue: 1,
       friction: 4,
       useNativeDriver: true,
     }).start();
 
-    // Floating leaf animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(leafAnim, {
@@ -118,43 +129,138 @@ const PestIdentificationLoadingScreen = () => {
         }),
       ])
     ).start();
-
-    // Progress animation
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return prev + 3;
-      });
-    }, 80);
-
-    return () => clearInterval(interval);
   }, [fadeAnim, scaleAnim, leafAnim]);
-
-  // Animate button when progress reaches 100
-  useEffect(() => {
-    if (progress === 100) {
-      Animated.timing(buttonFadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [progress, buttonFadeAnim]);
 
   const leafTranslate = leafAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -20],
   });
 
-  const handleCamera = () => {
-    navigation.navigate("PestCameraScreen");
+  const pickImageFromGallery = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      alert(language === 'si' 
+        ? 'කරුණාකර ගැලරි ප්‍රවේශය ලබා දෙන්න!' 
+        : 'Sorry, we need gallery permissions!');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+      setError(null);
+      setResult(null);
+    }
   };
 
-  const handleUpload = () => {
-    navigation.navigate("PestUploadScreen");
+  const pickImageFromCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    
+    if (status !== 'granted') {
+      alert(language === 'si' 
+        ? 'කරුණාකර කැමරා ප්‍රවේශය ලබා දෙන්න!' 
+        : 'Sorry, we need camera permissions!');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+      setError(null);
+      setResult(null);
+    }
+  };
+
+  const uploadAndDetect = async () => {
+    if (!imageUri) {
+      alert(language === 'si' 
+        ? "කරුණාකර පළමුව ඡායාරූපයක් තෝරන්න" 
+        : "Please select an image first");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Connecting to:", `${API_URL}/api/pest/identify`);
+      console.log("Image URI:", imageUri);
+
+      let formData = new FormData();
+      
+      if (Platform.OS === 'web') {
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        formData.append("file", blob, "pest.jpg");
+      } else {
+        formData.append("file", {
+          uri: imageUri,
+          name: "pest.jpg",
+          type: "image/jpeg",
+        } as any);
+      }
+      
+      const res = await axios.post(
+        `${API_URL}/api/pest/identify?conf=0.4&return_image=false`,
+        formData,
+        { 
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 30000
+        }
+      );
+
+      console.log("Response:", res.data);
+
+      if (res.data.success) {
+        setResult(res.data.predictions);
+        if (!res.data.predictions || res.data.predictions.length === 0) {
+          setError(language === 'si' 
+            ? "ඡායාරූපයේ පළිබෝධ හමු නොවීය" 
+            : "No pests detected in the image");
+        }
+      } else {
+        setError(language === 'si' ? "හඳුනාගැනීම අසාර්ථකයි" : "Detection failed");
+      }
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      console.error("Error response:", err.response?.data);
+      
+      let errorMsg = language === 'si' 
+        ? "සර්වරය සමඟ සම්බන්ධ විය නොහැක!" 
+        : "Failed to connect to server!";
+      
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          errorMsg = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMsg = err.response.data.detail;
+        }
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      
+      setError(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetScreen = () => {
+    setImageUri(null);
+    setResult(null);
+    setError(null);
   };
 
   return (
@@ -163,10 +269,10 @@ const PestIdentificationLoadingScreen = () => {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitle}>
-            {headerContent[language].title}
+            {content[language].headerTitle}
           </Text>
           <Text style={styles.headerSubtitle}>
-            {headerContent[language].subtitle}
+            {content[language].headerSubtitle}
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -178,7 +284,6 @@ const PestIdentificationLoadingScreen = () => {
             <CloudSun color="#DC2626" size={20} />
           </TouchableOpacity>
 
-          {/* Language Toggle in Header */}
           <TouchableOpacity
             style={styles.langButtonHeader}
             onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
@@ -191,7 +296,7 @@ const PestIdentificationLoadingScreen = () => {
         </View>
       </View>
 
-      {/* Sub-header with Location */}
+      {/* Sub-header */}
       <View style={styles.subHeader}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
@@ -204,12 +309,12 @@ const PestIdentificationLoadingScreen = () => {
                 {language === "si" ? "මොණරාගල" : "Monaragala"}
               </Text>
             </View>
-            <Text style={styles.logoTemp}>23°C</Text>
+            <Text style={styles.apiText}>API: Connected</Text>
           </View>
         </View>
       </View>
 
-      {/* Gradient Background Effect */}
+      {/* Gradient Background */}
       <View pointerEvents="none" style={styles.gradientTop} />
       <View pointerEvents="none" style={styles.gradientBottom} />
 
@@ -238,7 +343,6 @@ const PestIdentificationLoadingScreen = () => {
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollBody}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
       >
         <Animated.View
           style={[
@@ -254,30 +358,25 @@ const PestIdentificationLoadingScreen = () => {
             <View style={styles.pulseRing} />
           </View>
 
-          {/* Title Section */}
           <Text style={styles.subtitle}>{content[language].subtitle}</Text>
-          <Text style={styles.mainText}>{content[language].mainText}</Text>
           <Text style={styles.title}>{content[language].title}</Text>
-          <Text style={styles.description}>{content[language].description}</Text>
 
-          {/* Simple Progress Bar */}
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          {/* Image Preview */}
+          {imageUri && (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
+              <TouchableOpacity style={styles.removeImageButton} onPress={resetScreen}>
+                <X color="#FFFFFF" size={20} />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.progressText}>{progress}%</Text>
-          </View>
-
-          {/* Loading Text */}
-          <Text style={styles.loadingText}>{content[language].loading}...</Text>
+          )}
 
           {/* Action Buttons */}
-          {progress === 100 && (
-            <Animated.View style={[styles.buttonsContainer, { opacity: buttonFadeAnim }]}>
-              {/* Camera Button */}
+          {!imageUri && (
+            <View style={styles.buttonsContainer}>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={handleCamera}
+                onPress={pickImageFromCamera}
                 activeOpacity={0.85}
               >
                 <Camera color="#FFFFFF" size={24} />
@@ -286,13 +385,11 @@ const PestIdentificationLoadingScreen = () => {
                 </Text>
               </TouchableOpacity>
 
-              {/* OR Text */}
               <Text style={styles.orText}>{content[language].orText}</Text>
 
-              {/* Upload Button */}
               <TouchableOpacity
                 style={styles.actionButtonSecondary}
-                onPress={handleUpload}
+                onPress={pickImageFromGallery}
                 activeOpacity={0.85}
               >
                 <Upload color="#DC2626" size={24} />
@@ -300,7 +397,76 @@ const PestIdentificationLoadingScreen = () => {
                   {content[language].uploadOption}
                 </Text>
               </TouchableOpacity>
-            </Animated.View>
+            </View>
+          )}
+
+          {/* Detect Button */}
+          {imageUri && !loading && !result && (
+            <TouchableOpacity
+              style={styles.detectButton}
+              onPress={uploadAndDetect}
+              activeOpacity={0.85}
+            >
+              <Bug color="#FFFFFF" size={24} />
+              <Text style={styles.detectButtonText}>
+                {content[language].detectButton}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#DC2626" />
+              <Text style={styles.loadingText}>{content[language].analyzing}</Text>
+            </View>
+          )}
+
+          {/* Error */}
+          {error && (
+            <View style={styles.errorContainer}>
+              <AlertCircle color="#DC2626" size={24} />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={resetScreen}>
+                <Text style={styles.retryButtonText}>{content[language].tryAgain}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Results */}
+          {result && result.length > 0 && (
+            <View style={styles.resultContainer}>
+              <View style={styles.resultHeader}>
+                <CheckCircle color="#16A34A" size={28} />
+                <Text style={styles.resultTitle}>{content[language].resultTitle}</Text>
+              </View>
+              {result.map((p, i) => (
+                <View key={i} style={styles.resultItem}>
+                  <View style={styles.resultItemLeft}>
+                    <Bug color="#DC2626" size={20} />
+                    <Text style={styles.resultName}>{p.class_name}</Text>
+                  </View>
+                  <View style={styles.confidenceBadge}>
+                    <Text style={styles.confidenceText}>
+                      {Math.round(p.confidence * 100)}%
+                    </Text>
+                  </View>
+                </View>
+              ))}
+              <TouchableOpacity style={styles.tryAgainButton} onPress={resetScreen}>
+                <Text style={styles.tryAgainButtonText}>{content[language].tryAgain}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {result && result.length === 0 && (
+            <View style={styles.noPestsContainer}>
+              <CheckCircle color="#16A34A" size={48} />
+              <Text style={styles.noPestsText}>{content[language].noPests}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={resetScreen}>
+                <Text style={styles.retryButtonText}>{content[language].tryAgain}</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </Animated.View>
       </ScrollView>
@@ -424,10 +590,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#991B1B",
   },
-  logoTemp: {
-    fontSize: 15,
-    fontWeight: "bold",
-    color: "#DC2626",
+  apiText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#16A34A",
   },
   gradientTop: {
     position: "absolute",
@@ -509,60 +675,55 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
   },
-  mainText: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#7F1D1D",
-    marginBottom: 6,
-    textAlign: "center",
-  },
   title: {
     fontSize: 22,
     fontWeight: "700",
     color: "#DC2626",
-    marginBottom: 10,
+    marginBottom: 20,
     textAlign: "center",
   },
-  description: {
-    fontSize: 16,
-    color: "#991B1B",
-    marginBottom: 30,
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  progressContainer: {
-    width: "85%",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  progressBar: {
-    width: "100%",
-    height: 12,
-    backgroundColor: "#FECACA",
+  imagePreviewContainer: {
+    width: width - 80,
+    height: width - 80,
+    maxWidth: 350,
+    maxHeight: 350,
     borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: "#DC2626",
-    borderRadius: 20,
-  },
-  progressText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#B91C1C",
-  },
-  loadingText: {
-    fontSize: 15,
-    color: "#991B1B",
-    fontWeight: "600",
     marginBottom: 20,
+    position: "relative",
+    borderWidth: 3,
+    borderColor: "#DC2626",
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#DC2626",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
   buttonsContainer: {
     width: "100%",
     alignItems: "center",
     gap: 12,
+    marginTop: 10,
   },
   actionButton: {
     flexDirection: "row",
@@ -614,6 +775,160 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
   },
+  detectButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    backgroundColor: "#16A34A",
+    paddingHorizontal: 40,
+    paddingVertical: 18,
+    borderRadius: 50,
+    width: "90%",
+    shadowColor: "#16A34A",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+    marginTop: 10,
+  },
+  detectButtonText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 30,
+    gap: 15,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#991B1B",
+    fontWeight: "600",
+  },
+  errorContainer: {
+    backgroundColor: "#FEE2E2",
+    padding: 20,
+    borderRadius: 16,
+    alignItems: "center",
+    gap: 12,
+    width: "90%",
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: "#FCA5A5",
+  },
+  errorText: {
+    fontSize: 15,
+    color: "#991B1B",
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  retryButton: {
+    backgroundColor: "#DC2626",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 25,
+    marginTop: 8,
+  },
+  retryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  resultContainer: {
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    borderRadius: 20,
+    width: "95%",
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+    shadowColor: "#16A34A",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  resultHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "#D1FAE5",
+  },
+  resultTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#166534",
+  },
+  resultItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  resultItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  resultName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1F2937",
+    flex: 1,
+  },
+  confidenceBadge: {
+    backgroundColor: "#16A34A",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  confidenceText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  tryAgainButton: {
+    backgroundColor: "#DC2626",
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  tryAgainButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  noPestsContainer: {
+    backgroundColor: "#F0FDF4",
+    padding: 30,
+    borderRadius: 20,
+    alignItems: "center",
+    gap: 16,
+    width: "90%",
+    marginTop: 20,
+    borderWidth: 2,
+    borderColor: "#BBF7D0",
+  },
+  noPestsText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#166534",
+    textAlign: "center",
+  },
 });
 
-export default PestIdentificationLoadingScreen;
+export default PestIdentificationScreen;
