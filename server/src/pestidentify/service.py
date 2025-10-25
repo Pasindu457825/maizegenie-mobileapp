@@ -8,7 +8,7 @@ from PIL import Image
 from .model import get_model
 
 # Set confidence threshold
-CONFIDENCE_THRESHOLD = 0.7
+CONFIDENCE_THRESHOLD = 0.8
 
 def _read_image_bytes(image_bytes: bytes) -> np.ndarray:
     """Read uploaded bytes → RGB numpy array."""
