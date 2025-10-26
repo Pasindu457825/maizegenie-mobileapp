@@ -13,7 +13,7 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 
 - 🌱 **Yield Prediction & Fertilizer Advisory**  
   Role-based outputs (Farmer & Agri Officer) with localized soil baselines and CIC fertilizer protocols.  
-  Safe Urea/MOP dose recommendations with Sinhala/English TTS and calendar reminders.  
+  Safe Urea/MOP dose recommendations with Sinhala/English TTS and calendar reminders.
 
 - 🐛 **Pest Identification**  
   Offline AI-based detection of maize pests (e.g., Fall Armyworm) using YOLO models with AR life cycle visualization.  
