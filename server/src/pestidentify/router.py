@@ -1,36 +1,29 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Query
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, UploadFile, File, HTTPException, Query
 from fastapi.responses import JSONResponse
-from typing import Optional
+from .service import predict_pest
 
-from src.pestidentify.service import predict_pest
+router = APIRouter(prefix="/api/pest", tags=["Pest Detection"])
 
-app = FastAPI(title="Maize Pest Identify API", version="1.0")
-
-# CORS (adjust origins as needed)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # set your frontend domain in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
-
-@app.post("/api/pest/identify")
+@router.post("/identify")
 async def identify_pest(
     file: UploadFile = File(...),
     conf: float = Query(0.4, ge=0.0, le=1.0),
     return_image: bool = Query(False, description="Return annotated image as base64")
 ):
+    """
+    Endpoint to identify pest from uploaded image.
+    """
     try:
+        # Read the uploaded image bytes
         content = await file.read()
         if not content:
             raise HTTPException(status_code=400, detail="Empty upload")
+
+        # Call the pest prediction service
         result = predict_pest(content, conf=conf, return_image=return_image)
+
+        # Return JSON response
         return JSONResponse(content={"success": True, **result})
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
