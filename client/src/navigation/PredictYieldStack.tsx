@@ -5,6 +5,7 @@ import PredictYieldScreen from "../screens/PredictYield/PredictYieldScreen";
 import { ROUTES } from "../constants";
 
 type PredictYieldStackParamList = {
+    [ROUTES.TABS.PREDICTYIELD]: undefined;
     PredictYieldLoading: undefined;
     PredictYieldFormScreen: undefined;
     PredictYieldScreen: undefined;

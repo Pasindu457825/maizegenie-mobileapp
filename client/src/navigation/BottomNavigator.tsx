@@ -7,6 +7,7 @@ import PriceForecastStack from "./PriceForecastStack";
 import PredictYieldStack from "./PredictYieldStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
+import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
@@ -78,10 +79,10 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 🧪 Fertilizer (placeholder for now) */}
+      {/* 🧪 Fertilizer */}
       <Tab.Screen
         name={ROUTES.TABS.FERTILIZERADVISOR}
-        component={HomeScreen}
+        component={FertilizerAdvisorStack}
         options={{
           tabBarLabel: "Fertilizer",
           tabBarIcon: ({ color, size }) => (
