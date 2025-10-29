@@ -1,41 +1,31 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { Card, Title, Paragraph, Button } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
-import { Leaf, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react-native';
+import { Leaf, CheckCircle, AlertCircle } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
-export default function PredictYieldScreen() {
+export default function FertilizerAdvisorResultsScreen() {
     const navigation = useNavigation();
-    // In a real app, you'd get prediction results from route params or API
 
     const mockResults = {
-        predictedYield: '2,450 kg',
-        confidence: 85,
-        factors: [
-            { name: 'Weather conditions', impact: 'High' },
-            { name: 'Soil quality', impact: 'Medium' },
-            { name: 'Irrigation', impact: 'High' }
+        recommendation: 'Apply 200kg of NPK fertilizer per acre',
+        nutrients: [
+            { name: 'Nitrogen', amount: '100kg', purpose: 'Promotes leaf growth' },
+            { name: 'Phosphorus', amount: '50kg', purpose: 'Supports root development' },
+            { name: 'Potassium', amount: '50kg', purpose: 'Enhances disease resistance' }
         ],
-        recommendations: [
-            'Monitor soil moisture regularly',
-            'Apply fertilizer at recommended intervals',
-            'Consider pest control measures'
+        timing: 'Apply 2 weeks after planting and again at flowering stage',
+        warnings: [
+            'Avoid application during heavy rain',
+            'Wear protective equipment when handling'
         ]
-    };
-
-    const getImpactColor = (impact: string) => {
-        switch (impact) {
-            case 'High': return '#EF4444';
-            case 'Medium': return '#F59E0B';
-            default: return '#10B981';
-        }
     };
 
     return (
         <View style={styles.container}>
-            {/* Header with decorative elements */}
+            {/* Header decoration */}
             <View style={styles.headerDecoration} />
             
             <ScrollView 
@@ -52,59 +42,53 @@ export default function PredictYieldScreen() {
                         <View style={styles.pulseRing} />
                     </View>
 
-                    <Text style={styles.title}>Yield Prediction</Text>
+                    <Text style={styles.title}>Fertilizer Recommendation</Text>
                     <Text style={styles.subtitle}>Smart Farming</Text>
 
-                    <Card style={styles.resultCard}>
+                    <View style={styles.resultCard}>
                         <View style={styles.resultHeader}>
-                            <TrendingUp color="#16A34A" size={24} />
-                            <Text style={styles.resultTitle}>Prediction Results</Text>
+                            <CheckCircle color="#16A34A" size={24} />
+                            <Text style={styles.resultTitle}>Your Recommendation</Text>
                         </View>
 
-                        <View style={styles.resultItem}>
-                            <Text style={styles.resultLabel}>Predicted Yield</Text>
-                            <Text style={styles.resultValue}>{mockResults.predictedYield}</Text>
-                        </View>
-
-                        <View style={styles.resultItem}>
-                            <Text style={styles.resultLabel}>Confidence Level</Text>
-                            <View style={styles.confidenceContainer}>
-                                <View style={[styles.confidenceBar, { width: `${mockResults.confidence}%` }]} />
-                                <Text style={styles.confidenceText}>{mockResults.confidence}%</Text>
-                            </View>
+                        <View style={styles.recommendationContainer}>
+                            <Text style={styles.recommendationText}>{mockResults.recommendation}</Text>
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Key Factors</Text>
-                            {mockResults.factors.map((factor, index) => (
-                                <View key={index} style={styles.factorItem}>
-                                    <Text style={styles.factorName}>{factor.name}</Text>
-                                    <View style={[styles.impactBadge, { backgroundColor: getImpactColor(factor.impact) }]}> 
-                                        <Text style={styles.impactText}>{factor.impact}</Text>
-                                    </View>
+                            <Text style={styles.sectionTitle}>Nutrient Breakdown</Text>
+                            {mockResults.nutrients.map((nutrient, index) => (
+                                <View key={index} style={styles.nutrientItem}>
+                                    <Text style={styles.nutrientName}>{nutrient.name}</Text>
+                                    <Text style={styles.nutrientAmount}>{nutrient.amount}</Text>
                                 </View>
                             ))}
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.sectionTitle}>Recommendations</Text>
-                            {mockResults.recommendations.map((rec, index) => (
-                                <View key={index} style={styles.recommendationItem}>
-                                    <CheckCircle color="#16A34A" size={16} />
-                                    <Text style={styles.recommendationText}>{rec}</Text>
+                            <Text style={styles.sectionTitle}>Application Timing</Text>
+                            <Text style={styles.timingText}>{mockResults.timing}</Text>
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.sectionTitle}>Important Warnings</Text>
+                            {mockResults.warnings.map((warning, index) => (
+                                <View key={index} style={styles.warningItem}>
+                                    <AlertCircle color="#F59E0B" size={16} />
+                                    <Text style={styles.warningText}>{warning}</Text>
                                 </View>
                             ))}
                         </View>
 
                         <Button
                             mode="contained"
-                            onPress={() => navigation.navigate('PredictYieldForm' as never)}
+                            onPress={() => navigation.navigate('FertilizerAdvisor' as never)}
                             style={styles.button}
                             labelStyle={styles.buttonText}
                         >
-                            New Prediction
+                            New Recommendation
                         </Button>
-                    </Card>
+                    </View>
                 </View>
             </ScrollView>
         </View>
@@ -189,9 +173,9 @@ const styles = StyleSheet.create({
     },
     resultCard: {
         width: '100%',
+        backgroundColor: '#FFFFFF',
         borderRadius: 20,
         padding: 20,
-        backgroundColor: '#FFFFFF',
         shadowColor: '#16A34A',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
@@ -214,48 +198,19 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#166534',
     },
-    resultItem: {
-        marginBottom: 20,
-        padding: 16,
+    recommendationContainer: {
         backgroundColor: '#F0FDF4',
+        padding: 16,
         borderRadius: 16,
         borderWidth: 1,
         borderColor: '#BBF7D0',
+        marginBottom: 20,
     },
-    resultLabel: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#334155',
-        marginBottom: 8,
-    },
-    resultValue: {
-        fontSize: 20,
+    recommendationText: {
+        fontSize: 18,
         fontWeight: 'bold',
         color: '#16A34A',
-    },
-    confidenceContainer: {
-        height: 24,
-        backgroundColor: '#E2E8F0',
-        borderRadius: 12,
-        overflow: 'hidden',
-        position: 'relative',
-    },
-    confidenceBar: {
-        height: '100%',
-        backgroundColor: '#16A34A',
-        borderRadius: 12,
-    },
-    confidenceText: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
         textAlign: 'center',
-        lineHeight: 24,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        fontSize: 12,
     },
     section: {
         marginTop: 20,
@@ -267,7 +222,7 @@ const styles = StyleSheet.create({
         color: '#166534',
         marginBottom: 12,
     },
-    factorItem: {
+    nutrientItem: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -275,28 +230,32 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#E2E8F0',
     },
-    factorName: {
+    nutrientName: {
         fontSize: 16,
         color: '#334155',
-        flex: 1,
     },
-    impactBadge: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    impactText: {
-        color: '#FFFFFF',
-        fontSize: 12,
+    nutrientAmount: {
+        fontSize: 16,
         fontWeight: 'bold',
+        color: '#16A34A',
     },
-    recommendationItem: {
+    timingText: {
+        fontSize: 16,
+        color: '#334155',
+        lineHeight: 24,
+        backgroundColor: '#F0FDF4',
+        padding: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#BBF7D0',
+    },
+    warningItem: {
         flexDirection: 'row',
         alignItems: 'flex-start',
         gap: 12,
         marginBottom: 12,
     },
-    recommendationText: {
+    warningText: {
         flex: 1,
         fontSize: 14,
         color: '#334155',

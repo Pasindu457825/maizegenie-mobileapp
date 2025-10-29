@@ -1,38 +1,37 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Alert } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';
-import { Leaf, MapPin, Calendar, Droplets } from 'lucide-react-native';
+import { Leaf, Sprout, Scale, Calendar } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 interface FormData {
-    district: string;
-    season: string;
-    variety: string;
+    soilType: string;
+    cropStage: string;
     areaAcres: string;
-    plantDate: string;
-    irrigation: string;
+    lastFertilized: string;
+    fertilizerType: string;
 }
 
-export default function PredictYieldFormScreen() {
+export default function FertilizerAdvisorScreen() {
     const navigation = useNavigation();
     const [formData, setFormData] = useState<FormData>({
-        district: '',
-        season: '',
-        variety: '',
+        soilType: '',
+        cropStage: '',
         areaAcres: '',
-        plantDate: '',
-        irrigation: ''
+        lastFertilized: '',
+        fertilizerType: ''
     });
 
     const handleSubmit = () => {
-        if (!formData.district || !formData.season || !formData.variety) {
+        if (!formData.soilType || !formData.cropStage || !formData.areaAcres) {
             Alert.alert('Error', 'Please fill in all required fields');
             return;
         }
-        navigation.navigate('PredictYieldLoading' as never);
+        // In a real app, this would navigate to a results screen
+        navigation.navigate('FertilizerAdvisorResults' as never);
     };
 
     return (
@@ -54,65 +53,28 @@ export default function PredictYieldFormScreen() {
                         <View style={styles.pulseRing} />
                     </View>
 
-                    <Text style={styles.title}>Predict Yield</Text>
-                    <Text style={styles.subtitle}>Enter your farm details</Text>
+                    <Text style={styles.title}>Fertilizer Advisor</Text>
+                    <Text style={styles.subtitle}>Smart Farming</Text>
 
                     <View style={styles.formCard}>
                         <View style={styles.inputGroup}>
                             <View style={styles.inputLabelContainer}>
-                                <MapPin color="#16A34A" size={16} />
-                                <Text style={styles.inputLabel}>District</Text>
+                                <Sprout color="#16A34A" size={16} />
+                                <Text style={styles.inputLabel}>Soil Type</Text>
                             </View>
                             <View style={styles.pickerContainer}>
                                 <Picker
-                                    selectedValue={formData.district}
-                                    onValueChange={(itemValue) => setFormData({ ...formData, district: itemValue })}
+                                    selectedValue={formData.soilType}
+                                    onValueChange={(itemValue) => setFormData({ ...formData, soilType: itemValue })}
                                     style={styles.picker}
                                 >
-                                    <Picker.Item label="Select District" value="" />
-                                    <Picker.Item label="Ampara" value="Ampara" />
-                                    <Picker.Item label="Anuradhapura" value="Anuradhapura" />
-                                    <Picker.Item label="Badulla" value="Badulla" />
-                                    <Picker.Item label="Batticaloa" value="Batticaloa" />
-                                    <Picker.Item label="Colombo" value="Colombo" />
-                                    <Picker.Item label="Galle" value="Galle" />
-                                    <Picker.Item label="Gampaha" value="Gampaha" />
-                                    <Picker.Item label="Hambantota" value="Hambantota" />
-                                    <Picker.Item label="Jaffna" value="Jaffna" />
-                                    <Picker.Item label="Kalutara" value="Kalutara" />
-                                    <Picker.Item label="Kandy" value="Kandy" />
-                                    <Picker.Item label="Kegalle" value="Kegalle" />
-                                    <Picker.Item label="Kilinochchi" value="Kilinochchi" />
-                                    <Picker.Item label="Kurunegala" value="Kurunegala" />
-                                    <Picker.Item label="Mannar" value="Mannar" />
-                                    <Picker.Item label="Matale" value="Matale" />
-                                    <Picker.Item label="Matara" value="Matara" />
-                                    <Picker.Item label="Monaragala" value="Monaragala" />
-                                    <Picker.Item label="Mullaitivu" value="Mullaitivu" />
-                                    <Picker.Item label="Nuwara Eliya" value="Nuwara Eliya" />
-                                    <Picker.Item label="Polonnaruwa" value="Polonnaruwa" />
-                                    <Picker.Item label="Puttalam" value="Puttalam" />
-                                    <Picker.Item label="Ratnapura" value="Ratnapura" />
-                                    <Picker.Item label="Trincomalee" value="Trincomalee" />
-                                    <Picker.Item label="Vavuniya" value="Vavuniya" />
-                                </Picker>
-                            </View>
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <View style={styles.inputLabelContainer}>
-                                <Calendar color="#16A34A" size={16} />
-                                <Text style={styles.inputLabel}>Season</Text>
-                            </View>
-                            <View style={styles.pickerContainer}>
-                                <Picker
-                                    selectedValue={formData.season}
-                                    onValueChange={(itemValue) => setFormData({ ...formData, season: itemValue })}
-                                    style={styles.picker}
-                                >
-                                    <Picker.Item label="Select Season" value="" />
-                                    <Picker.Item label="Yala" value="Yala" />
-                                    <Picker.Item label="Maha" value="Maha" />
+                                    <Picker.Item label="Select Soil Type" value="" />
+                                    <Picker.Item label="Clay" value="clay" />
+                                    <Picker.Item label="Sandy" value="sandy" />
+                                    <Picker.Item label="Loamy" value="loamy" />
+                                    <Picker.Item label="Silty" value="silty" />
+                                    <Picker.Item label="Peaty" value="peaty" />
+                                    <Picker.Item label="Chalky" value="chalky" />
                                 </Picker>
                             </View>
                         </View>
@@ -120,26 +82,26 @@ export default function PredictYieldFormScreen() {
                         <View style={styles.inputGroup}>
                             <View style={styles.inputLabelContainer}>
                                 <Leaf color="#16A34A" size={16} />
-                                <Text style={styles.inputLabel}>Variety</Text>
+                                <Text style={styles.inputLabel}>Crop Growth Stage</Text>
                             </View>
                             <View style={styles.pickerContainer}>
                                 <Picker
-                                    selectedValue={formData.variety}
-                                    onValueChange={(itemValue) => setFormData({ ...formData, variety: itemValue })}
+                                    selectedValue={formData.cropStage}
+                                    onValueChange={(itemValue) => setFormData({ ...formData, cropStage: itemValue })}
                                     style={styles.picker}
                                 >
-                                    <Picker.Item label="Select Variety" value="" />
-                                    <Picker.Item label="Assupini" value="Assupini" />
-                                    <Picker.Item label="SC 627" value="SC 627" />
-                                    <Picker.Item label="Pacific 999" value="Pacific 999" />
-                                    <Picker.Item label="Hybrid" value="Hybrid" />
+                                    <Picker.Item label="Select Growth Stage" value="" />
+                                    <Picker.Item label="Germination" value="germination" />
+                                    <Picker.Item label="Vegetative" value="vegetative" />
+                                    <Picker.Item label="Reproductive" value="reproductive" />
+                                    <Picker.Item label="Maturity" value="maturity" />
                                 </Picker>
                             </View>
                         </View>
 
                         <View style={styles.inputGroup}>
                             <View style={styles.inputLabelContainer}>
-                                <Droplets color="#16A34A" size={16} />
+                                <Scale color="#16A34A" size={16} />
                                 <Text style={styles.inputLabel}>Area (Acres)</Text>
                             </View>
                             <TextInput
@@ -149,17 +111,18 @@ export default function PredictYieldFormScreen() {
                                 style={styles.input}
                                 mode="outlined"
                                 outlineStyle={styles.inputOutline}
+                                placeholder="Enter area in acres"
                             />
                         </View>
 
                         <View style={styles.inputGroup}>
                             <View style={styles.inputLabelContainer}>
                                 <Calendar color="#16A34A" size={16} />
-                                <Text style={styles.inputLabel}>Plant Date</Text>
+                                <Text style={styles.inputLabel}>Last Fertilized</Text>
                             </View>
                             <TextInput
-                                value={formData.plantDate}
-                                onChangeText={(text) => setFormData({ ...formData, plantDate: text })}
+                                value={formData.lastFertilized}
+                                onChangeText={(text) => setFormData({ ...formData, lastFertilized: text })}
                                 style={styles.input}
                                 mode="outlined"
                                 outlineStyle={styles.inputOutline}
@@ -169,19 +132,21 @@ export default function PredictYieldFormScreen() {
 
                         <View style={styles.inputGroup}>
                             <View style={styles.inputLabelContainer}>
-                                <Droplets color="#16A34A" size={16} />
-                                <Text style={styles.inputLabel}>Irrigation Method</Text>
+                                <Leaf color="#16A34A" size={16} />
+                                <Text style={styles.inputLabel}>Current Fertilizer Type</Text>
                             </View>
                             <View style={styles.pickerContainer}>
                                 <Picker
-                                    selectedValue={formData.irrigation}
-                                    onValueChange={(itemValue) => setFormData({ ...formData, irrigation: itemValue })}
+                                    selectedValue={formData.fertilizerType}
+                                    onValueChange={(itemValue) => setFormData({ ...formData, fertilizerType: itemValue })}
                                     style={styles.picker}
                                 >
-                                    <Picker.Item label="Select Irrigation" value="" />
-                                    <Picker.Item label="Rainfed" value="Rainfed" />
-                                    <Picker.Item label="Irrigated" value="Irrigated" />
-                                    <Picker.Item label="Mixed" value="Mixed" />
+                                    <Picker.Item label="Select Fertilizer Type" value="" />
+                                    <Picker.Item label="NPK" value="npk" />
+                                    <Picker.Item label="Urea" value="urea" />
+                                    <Picker.Item label="DAP" value="dap" />
+                                    <Picker.Item label="MOP" value="mop" />
+                                    <Picker.Item label="SSP" value="ssp" />
                                 </Picker>
                             </View>
                         </View>
@@ -192,8 +157,25 @@ export default function PredictYieldFormScreen() {
                             style={styles.button}
                             labelStyle={styles.buttonText}
                         >
-                            Predict Yield
+                            Get Recommendation
                         </Button>
+                    </View>
+
+                    {/* Recommendations Section */}
+                    <View style={styles.infoCard}>
+                        <Text style={styles.infoTitle}>Fertilizer Tips</Text>
+                        <View style={styles.tipItem}>
+                            <Leaf color="#16A34A" size={16} />
+                            <Text style={styles.tipText}>Apply nitrogen fertilizers during vegetative growth stage</Text>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <Leaf color="#16A34A" size={16} />
+                            <Text style={styles.tipText}>Phosphorus is crucial during reproductive stage</Text>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <Leaf color="#16A34A" size={16} />
+                            <Text style={styles.tipText}>Potassium helps in disease resistance and grain filling</Text>
+                        </View>
                     </View>
                 </View>
             </ScrollView>
@@ -289,6 +271,7 @@ const styles = StyleSheet.create({
         elevation: 6,
         borderWidth: 2,
         borderColor: '#BBF7D0',
+        marginBottom: 20,
     },
     inputGroup: {
         marginBottom: 20,
@@ -332,5 +315,37 @@ const styles = StyleSheet.create({
     buttonText: {
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    infoCard: {
+        width: '100%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        padding: 20,
+        shadowColor: '#16A34A',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 6,
+        borderWidth: 2,
+        borderColor: '#BBF7D0',
+    },
+    infoTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#166534',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    tipItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+        marginBottom: 16,
+    },
+    tipText: {
+        flex: 1,
+        fontSize: 14,
+        color: '#334155',
+        lineHeight: 20,
     },
 });
