@@ -1,307 +1,503 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
+  ScrollView,
+  TextInput,
   Switch,
-  Platform,
-} from 'react-native';
-import { Leaf, Calendar } from 'lucide-react-native';
-import { Picker } from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
+  Alert,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
+import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
+import {
+  ArrowRight,
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  Leaf,
+  DollarSign,
+  Package,
+  Bell,
+  CloudSun,
+} from "lucide-react-native";
 
-type Language = 'si' | 'en';
+type Language = "si" | "en";
+type NavProp = StackNavigationProp<
+  PriceForecastStackParamList,
+  "PriceForecastFormScreen"
+>;
 
-const PriceForcastFormScreen = () => {
-  const navigation = useNavigation();
-  const [language, setLanguage] = useState<Language>('si');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    district: 'අඹන්ගොඩ',
-    season: 'යල',
-    variety: 'අස්සුපිණ',
-    plantDate: new Date(2025, 9, 1), // October 2025
-    areaAcres: '3.0',
-    costAcre: '45,000',
-    storage: true,
-    mode: 'බසා',
-  });
+const PriceForecastFormScreen = () => {
+  const navigation = useNavigation<NavProp>();
+  const [language, setLanguage] = useState<Language>("si");
 
+  // Auto-captured data (System)
+  const [year, setYear] = useState("");
+  const [week, setWeek] = useState("");
+  const [district, setDistrict] = useState("");
+  const [season, setSeason] = useState("");
+  const [weather, setWeather] = useState("");
+  const [fuelPrice, setFuelPrice] = useState("");
+  const [cornImportTax, setCornImportTax] = useState("");
+  const [farmGatePrice, setFarmGatePrice] = useState("");
+
+  // User inputs (Required)
+  const [seedVariety, setSeedVariety] = useState("");
+  const [expectedYield, setExpectedYield] = useState("");
+  const [farmArea, setFarmArea] = useState("");
+  const [seedCost, setSeedCost] = useState("");
+  const [fertilizerCost, setFertilizerCost] = useState("");
+  const [labourCost, setLabourCost] = useState("");
+  const [otherCosts, setOtherCosts] = useState("");
+  const [hasStorage, setHasStorage] = useState(false);
+
+  // Content translations
   const content = {
     si: {
-      title: 'ගොවිපල විස්තර ඇතුළත් කරන්න',
-      subtitle: 'මිල හා වගා උපදේශකය',
-      district: 'දිස්ත්‍රික්කය',
-      selectDistrict: 'දිස්ත්‍රික්කය තෝරන්න',
-      season: 'වාරය',
-      plantDate: 'වගා දිනය',
-      selectDate: 'දිනය තෝරන්න',
-      variety: 'ප්‍රභේදය',
-      areaAcres: 'ප්‍රමාණය (අක්කර)',
-      costAcre: 'අක්කරයකට වියදම',
-      storage: 'ගබඩාව',
-      mode: 'ප්‍රවේශය',
-      predictPrice: 'මිල පුරෝකථනය',
-      districts: [
-        'අඹන්ගොඩ', 'අනුරාධපුර', 'බදුල්ල', 'බත්තිකලෝ', 'කොළඹ', 
-        'ගාල්ල', 'ගම්පහ', 'හම්බන්තොට', 'යාපනය', 'කළුතර', 
-        'කැන්ඩි', 'කෑගල්ල', 'කිලිනොච්චි', 'කුරුණෑගල', 'මන්නාරම',
-        'මාතලේ', 'මාතර', 'මොණරාගල', 'මුලතිව්', 'නුවරඑළිය',
-        'පොලොන්නරුව', 'පුත්තලම', 'රත්නපුර', 'ත්‍රිකුණාමලය', 'වවුනියාව'
-      ],
-      seasons: ['යල', 'මහ'],
-      varieties: ['අස්සුපිණ', 'SC 627', 'පැසිෆික් 999', 'හයිබ්‍රිඩ්'],
-      modes: ['බසා', 'ජලාශ්‍රිත', 'මිශ්‍ර']
+      title: "ඉරිඟු මිල පුරෝකථනය",
+      subtitle: "තොරතුරු පුරවන්න",
+      autoData: "ස්වයංක්‍රීය දත්ත",
+      userInputs: "ඔබේ තොරතුරු",
+      year: "වර්ෂය",
+      week: "සතිය",
+      district: "දිස්ත්‍රික්කය",
+      season: "වගා කන්නය",
+      weather: "කාලගුණය",
+      fuelPrice: "ඉන්ධන මිල",
+      importTax: "ආනයන බද්ද",
+      currentPrice: "වත්මන් මිල",
+      seedVariety: "බීජ වර්ගය",
+      expectedYield: "අපේක්ෂිත අස්වැන්න (kg/අක්කරය)",
+      farmArea: "ගොවිපල ප්‍රමාණය (අක්කර)",
+      seedCost: "බීජ පිරිවැය (රු)",
+      fertilizerCost: "පොහොර පිරිවැය (රු)",
+      labourCost: "ශ්‍රමික පිරිවැය (රු)",
+      otherCosts: "අනෙකුත් පිරිවැය (රු)",
+      hasStorage: "ගබඩා පහසුකම් තිබේද?",
+      yes: "ඔව්",
+      no: "නැත",
+      submit: "පුරෝකථනය ලබා ගන්න",
+      back: "ආපසු",
+      detecting: "හඳුනාගනිමින්...",
+      loading: "පූරණය වෙමින්...",
     },
     en: {
-      title: 'Enter Farm Details',
-      subtitle: 'Price & Cultivation Advisor',
-      district: 'District',
-      selectDistrict: 'Select District',
-      season: 'Season',
-      plantDate: 'Plant Date',
-      selectDate: 'Select Date',
-      variety: 'Variety',
-      areaAcres: 'Area (Acres)',
-      costAcre: 'Cost/Acre',
-      storage: 'Storage',
-      mode: 'Mode',
-      predictPrice: 'Predict Price',
-      districts: [
-        'Ampara', 'Anuradhapura', 'Badulla', 'Batticaloa', 'Colombo',
-        'Galle', 'Gampaha', 'Hambantota', 'Jaffna', 'Kalutara',
-        'Kandy', 'Kegalle', 'Kilinochchi', 'Kurunegala', 'Mannar',
-        'Matale', 'Matara', 'Monaragala', 'Mullaitivu', 'NuwaraEliya',
-        'Polonnaruwa', 'Puttalam', 'Ratnapura', 'Trincomalee', 'Vavuniya'
-      ],
-      seasons: ['Yala', 'Maha'],
-      varieties: ['Asuupina', 'SC 627', 'Pacific 999', 'Hybrid'],
-      modes: ['Rainfed', 'Irrigated', 'Mixed']
+      title: "Corn Price Forecast",
+      subtitle: "Enter Information",
+      autoData: "Auto-Captured Data",
+      userInputs: "Your Inputs",
+      year: "Year",
+      week: "Week",
+      district: "District",
+      season: "Season",
+      weather: "Weather",
+      fuelPrice: "Fuel Price",
+      importTax: "Import Tax",
+      currentPrice: "Current Price",
+      seedVariety: "Seed Variety",
+      expectedYield: "Expected Yield (kg/acre)",
+      farmArea: "Farm Area (acres)",
+      seedCost: "Seed Cost (Rs)",
+      fertilizerCost: "Fertilizer Cost (Rs)",
+      labourCost: "Labour Cost (Rs)",
+      otherCosts: "Other Costs (Rs)",
+      hasStorage: "Do you have storage?",
+      yes: "Yes",
+      no: "No",
+      submit: "Get Forecast",
+      back: "Back",
+      detecting: "Detecting...",
+      loading: "Loading...",
+    },
+  };
+
+  // Auto-capture data on mount
+  useEffect(() => {
+    captureSystemData();
+  }, []);
+
+  const captureSystemData = async () => {
+    try {
+      // Get current date (Asia/Colombo timezone)
+      const now = new Date();
+      const currentYear = now.getFullYear().toString();
+      setYear(currentYear);
+
+      // Calculate ISO week number
+      const weekNumber = getISOWeek(now).toString();
+      setWeek(weekNumber);
+
+      // Auto-detect district (GPS/Profile fallback)
+      await detectDistrict();
+
+      // Determine season based on date
+      const currentSeason = determineSeason(now);
+      setSeason(currentSeason);
+
+      // Fetch weather data
+      await fetchWeather();
+
+      // Fetch fuel price
+      await fetchFuelPrice();
+
+      // Fetch import tax
+      await fetchImportTax();
+
+      // Fetch current farm-gate price
+      await fetchFarmGatePrice();
+    } catch (error) {
+      console.error("Error capturing system data:", error);
+      Alert.alert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si"
+          ? "දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය"
+          : "Error capturing data"
+      );
     }
   };
 
-  const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  // Calculate ISO week number
+  const getISOWeek = (date: Date): number => {
+    const target = new Date(date.valueOf());
+    const dayNr = (date.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const jan4 = new Date(target.getFullYear(), 0, 4);
+    const dayDiff = (target.getTime() - jan4.getTime()) / 86400000;
+    return 1 + Math.ceil(dayDiff / 7);
   };
 
-  const handleDateChange = (event: any, selectedDate?: Date) => {
-    setShowDatePicker(false);
-    if (selectedDate) {
-      updateField('plantDate', selectedDate);
+  // Determine season based on date
+  const determineSeason = (date: Date): string => {
+    const month = date.getMonth() + 1; // 1-12
+    // Maha: Oct-Mar (10,11,12,1,2,3)
+    // Yala: Apr-Sep (4,5,6,7,8,9)
+    if (month >= 10 || month <= 3) {
+      return language === "si" ? "මහ" : "Maha";
+    } else {
+      return language === "si" ? "යල" : "Yala";
     }
   };
 
-  const formatDate = (date: Date) => {
-    return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+  // Detect district (GPS or profile)
+  const detectDistrict = async () => {
+    // TODO: Implement GPS detection or profile fallback
+    // Placeholder
+    setDistrict(language === "si" ? "මොණරාගල" : "Monaragala");
+  };
+
+  // Fetch weather data
+  const fetchWeather = async () => {
+    // TODO: Implement weather API call
+    // Placeholder
+    setWeather(language === "si" ? "අව අව වැසි" : "Partly Cloudy");
+  };
+
+  // Fetch fuel price
+  const fetchFuelPrice = async () => {
+    // TODO: Implement fuel price API/cache
+    // Placeholder
+    setFuelPrice("රු. 380.00");
+  };
+
+  // Fetch import tax
+  const fetchImportTax = async () => {
+    // TODO: Implement policy table lookup
+    // Placeholder
+    setCornImportTax("25%");
+  };
+
+  // Fetch farm-gate price
+  const fetchFarmGatePrice = async () => {
+    // TODO: Implement HARTI/market data API
+    // Placeholder
+    setFarmGatePrice("රු. 115.00/kg");
   };
 
   const handleSubmit = () => {
-    const payload = {
-      fullName: "A. Perera",
-      phone: "0712345678",
-      language: language,
-      district: formData.district,
-      dsDivision: "Bibile",
-      village: "Pelwatta",
-      farmSizeAcre: parseFloat(formData.areaAcres),
-      irrigation: formData.mode,
-      variety: formData.variety,
-      plantingMonth: formData.plantDate.toISOString().slice(0, 7),
-      cropDurationDays: 105,
-      costSeed: 6000,
-      costFertilizer: 18000,
-      costLabour: 22000,
-      costTransport: 5000,
-      costOther: 3000,
-      expectedYieldKg: 1800,
-      nearestMarket: "Monaragala",
-      buyerType: "Collector",
-      hasStorage: formData.storage,
-      storageCapacityKg: 1500,
-      storageMaxDays: 30,
-      notify: "Push",
-      consent: true
+    // Validation
+    if (
+      !seedVariety ||
+      !expectedYield ||
+      !farmArea ||
+      !seedCost ||
+      !fertilizerCost ||
+      !labourCost
+    ) {
+      Alert.alert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si"
+          ? "කරුණාකර සියලු අනිවාර්ය තොරතුරු පුරවන්න"
+          : "Please fill all required fields"
+      );
+      return;
+    }
+
+    // Calculate production cost per kg
+    const totalCost =
+      parseFloat(seedCost) +
+      parseFloat(fertilizerCost) +
+      parseFloat(labourCost) +
+      (otherCosts ? parseFloat(otherCosts) : 0);
+    const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
+    const productionCostPerKg = totalCost / totalYield;
+
+    // Prepare forecast data
+    const forecastData = {
+      // Auto-captured
+      year,
+      week,
+      district,
+      season,
+      weather,
+      fuelPrice,
+      cornImportTax,
+      farmGatePrice,
+      // User inputs
+      seedVariety,
+      expectedYield: parseFloat(expectedYield),
+      farmArea: parseFloat(farmArea),
+      totalCost,
+      productionCostPerKg,
+      hasStorage,
+      language,
     };
-    
-    console.log('Form submitted:', payload);
-    // Navigate to results or next screen
-    // navigation.navigate('PriceForecastResults', { data: payload });
+
+    // Navigate to forecast screen with data
+    navigation.navigate("PriceForecastScreen", { data: forecastData } as any);
+  };
+
+  const handleGoBack = () => {
+    navigation.goBack();
   };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View style={styles.logoContainer}>
-            <Leaf color="#FFFFFF" size={20} />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>{content[language].subtitle}</Text>
-          </View>
-        </View>
-        <TouchableOpacity
-          style={styles.languageButton}
-          onPress={() => setLanguage(prev => (prev === 'si' ? 'en' : 'si'))}
-        >
-          <Text style={styles.languageButtonText}>
-            {language === 'si' ? 'EN' : 'සිං'}
-          </Text>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+          <ArrowLeft color="#047857" size={24} />
         </TouchableOpacity>
-      </View>
-
-      {/* Form */}
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>{content[language].title}</Text>
-
-          {/* District and Season Row */}
-          <View style={styles.row}>
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].district}</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.district}
-                  onValueChange={(value) => updateField('district', value)}
-                  style={styles.picker}
-                >
-                  {content[language].districts.map((dist, idx) => (
-                    <Picker.Item key={idx} label={dist} value={dist} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].season}</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.season}
-                  onValueChange={(value) => updateField('season', value)}
-                  style={styles.picker}
-                >
-                  {content[language].seasons.map((season, idx) => (
-                    <Picker.Item key={idx} label={season} value={season} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-          </View>
-
-          {/* Variety and Plant Date Row */}
-          <View style={styles.row}>
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].variety}</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.variety}
-                  onValueChange={(value) => updateField('variety', value)}
-                  style={styles.picker}
-                >
-                  {content[language].varieties.map((variety, idx) => (
-                    <Picker.Item key={idx} label={variety} value={variety} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].plantDate}</Text>
-              <TouchableOpacity
-                style={styles.dateButton}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Calendar color="#059669" size={18} />
-                <Text style={styles.dateText}>{formatDate(formData.plantDate)}</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Area and Cost Row */}
-          <View style={styles.row}>
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].areaAcres}</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.areaAcres}
-                onChangeText={(text) => updateField('areaAcres', text)}
-                keyboardType="decimal-pad"
-                placeholder="3.0"
-              />
-            </View>
-
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].costAcre}</Text>
-              <TextInput
-                style={styles.input}
-                value={formData.costAcre}
-                onChangeText={(text) => updateField('costAcre', text)}
-                keyboardType="numeric"
-                placeholder="45,000"
-              />
-            </View>
-          </View>
-
-          {/* Storage and Mode Row */}
-          <View style={styles.row}>
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].storage}</Text>
-              <View style={styles.switchContainer}>
-                <Switch
-                  value={formData.storage}
-                  onValueChange={(value) => updateField('storage', value)}
-                  trackColor={{ false: '#D1D5DB', true: '#6EE7B7' }}
-                  thumbColor={formData.storage ? '#059669' : '#F3F4F6'}
-                />
-                <Leaf color="#059669" size={20} style={{ marginLeft: 8 }} />
-              </View>
-            </View>
-
-            <View style={styles.halfColumn}>
-              <Text style={styles.label}>{content[language].mode}</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={formData.mode}
-                  onValueChange={(value) => updateField('mode', value)}
-                  style={styles.picker}
-                >
-                  {content[language].modes.map((mode, idx) => (
-                    <Picker.Item key={idx} label={mode} value={mode} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-          </View>
-
-          {/* Submit Button */}
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{content[language].title}</Text>
+          <Text style={styles.headerSubtitle}>
+            {content[language].subtitle}
+          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Bell color="#10B981" size={20} />
+          </TouchableOpacity>
           <TouchableOpacity
-            style={styles.submitButton}
-            onPress={handleSubmit}
-            activeOpacity={0.8}
+            style={styles.langButton}
+            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
           >
-            <Text style={styles.submitButtonText}>
-              {content[language].predictPrice} • {language === 'si' ? 'බිත් පුරෝකථනය' : 'Rice Forecast'}
+            <Text style={styles.langText}>
+              {language === "si" ? "EN" : "සිං"}
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
+      </View>
 
-      {/* Date Picker Modal */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={formData.plantDate}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          onChange={handleDateChange}
-          minimumDate={new Date()}
-        />
-      )}
+      {/* Sub-header */}
+      <View style={styles.subHeader}>
+        <View style={styles.locationRow}>
+          <MapPin color="#047857" size={16} />
+          <Text style={styles.locationText}>{district}</Text>
+        </View>
+        <View style={styles.weatherRow}>
+          <CloudSun color="#10B981" size={16} />
+          <Text style={styles.weatherText}>{weather}</Text>
+        </View>
+      </View>
+
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Auto-Captured Data Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            📊 {content[language].autoData}
+          </Text>
+
+          <View style={styles.autoDataGrid}>
+            <View style={styles.autoDataCard}>
+              <Calendar color="#10B981" size={20} />
+              <Text style={styles.autoDataLabel}>
+                {content[language].year}
+              </Text>
+              <Text style={styles.autoDataValue}>{year}</Text>
+            </View>
+
+            <View style={styles.autoDataCard}>
+              <Calendar color="#10B981" size={20} />
+              <Text style={styles.autoDataLabel}>
+                {content[language].week}
+              </Text>
+              <Text style={styles.autoDataValue}>{week}</Text>
+            </View>
+
+            <View style={styles.autoDataCard}>
+              <Leaf color="#10B981" size={20} />
+              <Text style={styles.autoDataLabel}>
+                {content[language].season}
+              </Text>
+              <Text style={styles.autoDataValue}>{season}</Text>
+            </View>
+
+            <View style={styles.autoDataCard}>
+              <DollarSign color="#10B981" size={20} />
+              <Text style={styles.autoDataLabel}>
+                {content[language].fuelPrice}
+              </Text>
+              <Text style={styles.autoDataValue}>{fuelPrice}</Text>
+            </View>
+
+            <View style={styles.autoDataCard}>
+              <Package color="#10B981" size={20} />
+              <Text style={styles.autoDataLabel}>
+                {content[language].importTax}
+              </Text>
+              <Text style={styles.autoDataValue}>{cornImportTax}</Text>
+            </View>
+
+            <View style={styles.autoDataCard}>
+              <DollarSign color="#10B981" size={20} />
+              <Text style={styles.autoDataLabel}>
+                {content[language].currentPrice}
+              </Text>
+              <Text style={styles.autoDataValue}>{farmGatePrice}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* User Inputs Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            ✍️ {content[language].userInputs}
+          </Text>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].seedVariety} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={
+                language === "si" ? "උදා: පැසිෆික් 999" : "e.g., Pacific 999"
+              }
+              value={seedVariety}
+              onChangeText={setSeedVariety}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formRow}>
+            <View style={[styles.formGroup, styles.formGroupHalf]}>
+              <Text style={styles.label}>
+                {content[language].expectedYield} *
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="1000"
+                value={expectedYield}
+                onChangeText={setExpectedYield}
+                keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            <View style={[styles.formGroup, styles.formGroupHalf]}>
+              <Text style={styles.label}>{content[language].farmArea} *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="2.5"
+                value={farmArea}
+                onChangeText={setFarmArea}
+                keyboardType="numeric"
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].seedCost} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="25000"
+              value={seedCost}
+              onChangeText={setSeedCost}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>
+              {content[language].fertilizerCost} *
+            </Text>
+            <TextInput
+              style={styles.input}
+              placeholder="35000"
+              value={fertilizerCost}
+              onChangeText={setFertilizerCost}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].labourCost} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="40000"
+              value={labourCost}
+              onChangeText={setLabourCost}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].otherCosts}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="5000"
+              value={otherCosts}
+              onChangeText={setOtherCosts}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.switchGroup}>
+            <View style={styles.switchLabelContainer}>
+              <Package color="#047857" size={20} />
+              <Text style={styles.switchLabel}>
+                {content[language].hasStorage}
+              </Text>
+            </View>
+            <Switch
+              value={hasStorage}
+              onValueChange={setHasStorage}
+              trackColor={{ false: "#D1D5DB", true: "#10B981" }}
+              thumbColor={hasStorage ? "#FFFFFF" : "#F3F4F6"}
+            />
+          </View>
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <Text style={styles.submitButtonText}>
+            {content[language].submit}
+          </Text>
+          <ArrowRight color="#FFFFFF" size={20} />
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </View>
   );
 };
@@ -309,137 +505,207 @@ const PriceForcastFormScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: '#059669',
-    paddingHorizontal: 20,
+    backgroundColor: "#FFFFFF",
     paddingTop: 50,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingBottom: 12,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  logoContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 50,
-    padding: 8,
+  headerCenter: {
+    flex: 1,
+    marginLeft: 12,
   },
   headerTitle: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1F2937",
   },
-  languageButton: {
-    backgroundColor: '#FFFFFF',
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: "row",
+    gap: 10,
+    alignItems: "center",
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
   },
-  languageButtonText: {
-    color: '#059669',
+  langButton: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#10B981",
+  },
+  langText: {
+    color: "#10B981",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  subHeader: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  locationText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
+    color: "#047857",
   },
-  scrollView: {
+  weatherRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  weatherText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+  scrollContainer: {
     flex: 1,
   },
-  formContainer: {
+  scrollContent: {
     padding: 20,
   },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
+  section: {
     marginBottom: 24,
   },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 16,
   },
-  halfColumn: {
+  autoDataGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  autoDataCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    width: "48%",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    alignItems: "center",
+  },
+  autoDataLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  autoDataValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#047857",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  formGroupHalf: {
     flex: 1,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#047857",
     marginBottom: 8,
   },
-  pickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 50,
-  },
   input: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    padding: 14,
     fontSize: 15,
-    color: '#1F2937',
+    color: "#1F2937",
   },
-  dateButton: {
-    backgroundColor: '#FFFFFF',
+  switchGroup: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+    marginTop: 8,
+  },
+  switchLabelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
   },
-  dateText: {
+  switchLabel: {
     fontSize: 15,
-    color: '#1F2937',
-  },
-  switchContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
+    fontWeight: "600",
+    color: "#047857",
   },
   submitButton: {
-    backgroundColor: '#059669',
-    borderRadius: 30,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+    backgroundColor: "#10B981",
     paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 40,
-    shadowColor: '#059669',
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
   },
   submitButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });
 
-export default PriceForcastFormScreen;
+export default PriceForecastFormScreen;

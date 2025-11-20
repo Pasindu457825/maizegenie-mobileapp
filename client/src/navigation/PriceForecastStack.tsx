@@ -1,24 +1,40 @@
-import React from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import PriceForecastFormScreen from "../screens/PriceForecast/PriceForecastFormScreen";
-import PriceForecastLoadingScreen from "../screens/PriceForecast/PriceForecastLoadingScreen";
-import PriceForecastScreen from "../screens/PriceForecast/PriceForecastScreen";
-import { ROUTES } from "../constants";
+import React from 'react';
+import { createStackNavigator } from '@react-navigation/stack';
+import PriceForecastLoadingScreen from '../screens/PriceForecast/PriceForecastLoadingScreen';
+import PriceForecastFormScreen from '../screens/PriceForecast/PriceForecastFormScreen';
+import PriceForecastScreen from '../screens/PriceForecast/PriceForecastScreen';
 
-type PriceStackParamList = {
-    PriceForecastLoading: undefined;
-    PriceForecastFormScreen: undefined;
-    PriceForecastResults: undefined;
+export type PriceForecastStackParamList = {
+  PriceForecastLoadingScreen: undefined;
+  PriceForecastFormScreen: undefined;
+  PriceForecastScreen: undefined;
 };
 
-const Stack = createNativeStackNavigator<PriceStackParamList>();
+const Stack = createStackNavigator<PriceForecastStackParamList>();
 
-export default function PriceForecastStack() {
-    return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="PriceForecastLoading" component={PriceForecastLoadingScreen} />
-            <Stack.Screen name="PriceForecastFormScreen" component={PriceForecastFormScreen} />
-            <Stack.Screen name="PriceForecastResults" component={PriceForecastScreen} />
-        </Stack.Navigator>
-    );
-}
+const PriceForecastStack = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName="PriceForecastLoadingScreen"
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: '#F0FDF4' },
+      }}
+    >
+      <Stack.Screen 
+        name="PriceForecastLoadingScreen" 
+        component={PriceForecastLoadingScreen} 
+      />
+      <Stack.Screen 
+        name="PriceForecastFormScreen" 
+        component={PriceForecastFormScreen} 
+      />
+      <Stack.Screen 
+        name="PriceForecastScreen" 
+        component={PriceForecastScreen} 
+      />
+    </Stack.Navigator>
+  );
+};
+
+export default PriceForecastStack;
