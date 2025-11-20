@@ -1,8 +1,12 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+
 import HomeScreen from "../screens/HomeScreen";
 import PriceForecastStack from "./PriceForecastStack";
+import PredictYieldStack from "./PredictYieldStack";
+import PestIdentifyStack from "./PestIdentifyStack";
+import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
@@ -11,6 +15,7 @@ export type TabsParamList = {
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
   [ROUTES.TABS.FERTILIZERADVISOR]: undefined;
+  [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
 };
 
@@ -21,8 +26,8 @@ export default function BottomNavigator() {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#22c55e", // Green active color
-        tabBarInactiveTintColor: "#64748b", // Gray inactive color
+        tabBarActiveTintColor: "#22c55e",
+        tabBarInactiveTintColor: "#64748b",
         tabBarStyle: {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
@@ -37,6 +42,7 @@ export default function BottomNavigator() {
         },
       }}
     >
+      {/* 🏠 Home */}
       <Tab.Screen
         name={ROUTES.TABS.HOME}
         component={HomeScreen}
@@ -47,9 +53,11 @@ export default function BottomNavigator() {
           ),
         }}
       />
+
+      {/* 🐛 Pest */}
       <Tab.Screen
         name={ROUTES.TABS.PESTIDENTIFIER}
-        component={HomeScreen}
+        component={PestIdentifyStack}
         options={{
           tabBarLabel: "Pests",
           tabBarIcon: ({ color, size }) => (
@@ -57,9 +65,11 @@ export default function BottomNavigator() {
           ),
         }}
       />
+
+      {/* 🌿 Disease */}
       <Tab.Screen
         name={ROUTES.TABS.DISEASEIDENTIFIER}
-        component={HomeScreen}
+        component={DiseaseIdentifyStack}
         options={{
           tabBarLabel: "Disease",
           tabBarIcon: ({ color, size }) => (
@@ -67,6 +77,8 @@ export default function BottomNavigator() {
           ),
         }}
       />
+
+      {/* 🧪 Fertilizer (placeholder for now) */}
       <Tab.Screen
         name={ROUTES.TABS.FERTILIZERADVISOR}
         component={HomeScreen}
@@ -77,7 +89,21 @@ export default function BottomNavigator() {
           ),
         }}
       />
-       <Tab.Screen
+
+      {/* 🌾 Yield */}
+      <Tab.Screen
+        name={ROUTES.TABS.PREDICTYIELD}
+        component={PredictYieldStack}
+        options={{
+          tabBarLabel: "Yield",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="analytics-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* 💹 Price */}
+      <Tab.Screen
         name={ROUTES.TABS.PRICEFORECAST}
         component={PriceForecastStack}
         options={{
@@ -87,6 +113,8 @@ export default function BottomNavigator() {
           ),
         }}
       />
+
+      {/* 👤 Profile */}
       <Tab.Screen
         name={ROUTES.TABS.USERPROFILE}
         component={HomeScreen}
@@ -97,7 +125,6 @@ export default function BottomNavigator() {
           ),
         }}
       />
-    
     </Tab.Navigator>
   );
 }

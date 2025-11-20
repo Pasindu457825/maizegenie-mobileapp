@@ -6,6 +6,7 @@ export const ROUTES = {
     PESTIDENTIFIER: "PestIdentifier",
     DISEASEIDENTIFIER: "DiseaseIdentifier",
     FERTILIZERADVISOR: "FertilizerAdvisor",
+    PREDICTYIELD: "PredictYield",
     USERPROFILE: "UserProfile",
   },
 } as const;
