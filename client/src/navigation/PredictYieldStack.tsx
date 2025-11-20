@@ -1,13 +1,13 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import PredictYieldFormScreen from "../screens/PredictYield/PredictYieldFormScreen";
+import EnhancedPredictYieldFormWizard from "../screens/PredictYield/EnhancedPredictYieldFormWizard";
 import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadingScreen";
-import PredictYieldScreen from "../screens/PredictYield/PredictYieldScreen";
+import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
 import { ROUTES } from "../constants";
 
 type PredictYieldStackParamList = {
     [ROUTES.TABS.PREDICTYIELD]: undefined;
     PredictYieldLoading: undefined;
-    PredictYieldFormScreen: undefined;
+    PredictYieldFormWizard: undefined;
     PredictYieldScreen: undefined;
 };
 
@@ -16,9 +16,9 @@ const Stack = createNativeStackNavigator<PredictYieldStackParamList>();
 export default function PredictYieldStack() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="PredictYieldFormWizard" component={EnhancedPredictYieldFormWizard} />
             <Stack.Screen name="PredictYieldLoading" component={PredictYieldLoadingScreen} />
-            <Stack.Screen name="PredictYieldFormScreen" component={PredictYieldFormScreen} />
-            <Stack.Screen name="PredictYieldScreen" component={PredictYieldScreen} />
+            <Stack.Screen name="PredictYieldScreen" component={PredictYieldResultsScreen} />
         </Stack.Navigator>
     );
 }
