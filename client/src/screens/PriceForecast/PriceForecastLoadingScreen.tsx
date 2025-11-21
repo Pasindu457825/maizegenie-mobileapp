@@ -16,8 +16,18 @@ import {
   CloudSun,
   MapPin,
 } from "lucide-react-native";
+import {
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudDrizzle,
+  CloudLightning,
+  CloudFog,
+} from "lucide-react-native";
+
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import useUniversalLocation from "../../utils/useUniversalLocation";
 
 const { width } = Dimensions.get("window");
 
@@ -50,6 +60,13 @@ const PriceForecastLoadingScreen = () => {
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [leafAnim] = useState(new Animated.Value(0));
   const [buttonFadeAnim] = useState(new Animated.Value(0));
+  const {
+    locationName,
+    temperature,
+    weatherCondition,
+    weatherIcon,
+    isLoading,
+  } = useUniversalLocation(language);
 
   const content: Content = {
     si: {
@@ -146,6 +163,74 @@ const PriceForecastLoadingScreen = () => {
     navigation.navigate("PriceForecastFormScreen");
   };
 
+  const getWeatherIcon = (condition: string | null) => {
+    if (!condition) return <Cloud size={20} color="#10B981" />;
+
+    const c = condition.toLowerCase();
+
+    if (c.includes("clear")) return <Sun size={20} color="#f59e0b" />;
+
+    if (c.includes("shower") || c.includes("light rain"))
+      return <CloudDrizzle size={20} color="#0ea5e9" />;
+
+    // light rain BEFORE general rain
+    if (c.includes("light rain"))
+      return <CloudDrizzle size={20} color="#0ea5e9" />;
+
+    if (c.includes("rain")) return <CloudRain size={20} color="#0284c7" />;
+
+    if (c.includes("thunder"))
+      return <CloudLightning size={20} color="#dc2626" />;
+
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
+      return <CloudFog size={20} color="#6b7280" />;
+
+    if (c.includes("cloud")) return <Cloud size={20} color="#10B981" />;
+
+    return <Cloud size={20} color="#10B981" />;
+  };
+  // Weather translation for Loading Screen
+  const getWeatherTranslation = (
+    condition: string | null,
+    lang: Language
+  ): string => {
+    if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
+
+    const c = condition.toLowerCase();
+
+    // RAIN
+    if (c.includes("shower rain") || c.includes("light intensity shower"))
+      return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
+    if (c.includes("light rain"))
+      return lang === "si" ? "සැහැල්ලු වැසි" : "Light Rain";
+    if (c.includes("moderate rain"))
+      return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
+    if (c.includes("heavy") && c.includes("rain"))
+      return lang === "si" ? "බර වැසි" : "Heavy Rain";
+
+    // CLOUDS
+    if (c.includes("clear"))
+      return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
+    if (c.includes("few clouds"))
+      return lang === "si" ? "සුළු වලාකුළු" : "Few Clouds";
+    if (c.includes("scattered"))
+      return lang === "si" ? "විසිරුණු වලාකුළු" : "Scattered Clouds";
+    if (c.includes("broken"))
+      return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
+    if (c.includes("overcast"))
+      return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
+
+    // THUNDER
+    if (c.includes("thunder"))
+      return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
+
+    // MIST / FOG
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
+      return lang === "si" ? "මීදුම" : "Mist";
+
+    return lang === "si" ? "කාලගුණය" : condition;
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -164,7 +249,7 @@ const PriceForecastLoadingScreen = () => {
             <View style={styles.notificationDot} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton}>
-            <CloudSun color="#10B981" size={20} />
+            {getWeatherIcon(weatherCondition)}
           </TouchableOpacity>
 
           {/* Language Toggle in Header */}
@@ -189,11 +274,27 @@ const PriceForecastLoadingScreen = () => {
           <View>
             <View style={styles.locationRow}>
               <MapPin color="#047857" size={14} />
-              <Text style={styles.locationText}>
-                {language === "si" ? "මොණරාගල" : "Monaragala"}
+              <Text style={styles.locationText}>{locationName}</Text>
+            </View>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            >
+              {getWeatherIcon(weatherCondition)}
+
+              <Text style={styles.logoTemp}>
+                {temperature !== null
+                  ? `${Math.round(temperature)}°C`
+                  : language === "si"
+                  ? "උෂ්ණත්වය..."
+                  : "Loading..."}
               </Text>
             </View>
-            <Text style={styles.logoTemp}>23°C</Text>
+
+            <Text style={[styles.logoTemp, { fontSize: 13 }]}>
+              {weatherCondition
+                ? getWeatherTranslation(weatherCondition, language)
+                : ""}
+            </Text>
           </View>
         </View>
       </View>
@@ -247,7 +348,9 @@ const PriceForecastLoadingScreen = () => {
           <Text style={styles.subtitle}>{content[language].subtitle}</Text>
           <Text style={styles.mainText}>{content[language].mainText}</Text>
           <Text style={styles.title}>{content[language].title}</Text>
-          <Text style={styles.description}>{content[language].description}</Text>
+          <Text style={styles.description}>
+            {content[language].description}
+          </Text>
 
           {/* Simple Progress Bar */}
           <View style={styles.progressContainer}>
