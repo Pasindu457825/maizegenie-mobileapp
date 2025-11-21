@@ -25,7 +25,15 @@ import {
   MapPin,
   CloudSun,
   RefreshCw,
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudDrizzle,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
 } from "lucide-react-native";
+import useUniversalLocation from "../../utils/useUniversalLocation";
 
 const { width } = Dimensions.get("window");
 
@@ -59,6 +67,17 @@ const PriceForecastScreen = () => {
   const [language, setLanguage] = useState<Language>("si");
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
+  const {
+    locationName,
+    temperature,
+    weatherCondition,
+    weatherIcon,
+    isLoading,
+  } = useUniversalLocation(language);
+
+  // State for district and weather display
+  const [district, setDistrict] = useState("");
+  const [weather, setWeather] = useState("");
 
   // Get data from route params (from form)
   const formData = (route.params as any)?.data as ForecastData | undefined;
@@ -105,6 +124,10 @@ const PriceForecastScreen = () => {
       newForecast: "අලුත් පුරෝකථනයක්",
       backToForm: "ආපසු යන්න",
       kg: "කි.ග්‍රෑ",
+      detecting: "හඳුනාගනිමින්...",
+      loading: "පූරණය වෙමින්...",
+      locationDetecting: "ස්ථානය හඳුනාගනිමින්...",
+      weatherLoading: "කාලගුණය පූරණය වෙමින්...",
     },
     en: {
       title: "Price Forecast",
@@ -141,7 +164,85 @@ const PriceForecastScreen = () => {
       newForecast: "New Forecast",
       backToForm: "Back to Form",
       kg: "kg",
+      detecting: "Detecting...",
+      loading: "Loading...",
+      locationDetecting: "Detecting location...",
+      weatherLoading: "Loading weather...",
     },
+  };
+
+  // Enhanced weather translation mapping
+  const getWeatherTranslation = (condition: string, lang: Language): string => {
+    if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
+
+    const c = condition.toLowerCase();
+
+    // ---- RAIN ----
+    if (c.includes("shower rain") || c.includes("light intensity shower")) {
+      return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
+    }
+    if (c.includes("light rain")) {
+      return lang === "si" ? "සැහැල්ලු වැසි" : "Light Rain";
+    }
+    if (c.includes("moderate rain")) {
+      return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
+    }
+    if (c.includes("heavy") && c.includes("rain")) {
+      return lang === "si" ? "බර වැසි" : "Heavy Rain";
+    }
+
+    // ---- CLOUDS ----
+    if (c.includes("clear")) {
+      return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
+    }
+    if (c.includes("few clouds")) {
+      return lang === "si" ? "සුළු වලාකුළු" : "Few Clouds";
+    }
+    if (c.includes("scattered")) {
+      return lang === "si" ? "විසිරුණු වලාකුළු" : "Scattered Clouds";
+    }
+    if (c.includes("broken")) {
+      return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
+    }
+    if (c.includes("overcast")) {
+      return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
+    }
+
+    // ---- THUNDER ----
+    if (c.includes("thunder")) {
+      return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
+    }
+
+    // ---- MIST / FOG ----
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze")) {
+      return lang === "si" ? "මීදුම" : "Mist";
+    }
+
+    // DEFAULT
+    return lang === "si" ? "කාලගුණය" : condition;
+  };
+
+  const getWeatherIcon = (condition: string | null) => {
+    if (!condition) return <Cloud size={18} color="#10B981" />;
+
+    const c = condition.toLowerCase();
+
+    if (c.includes("clear")) return <Sun size={18} color="#f59e0b" />;
+
+    if (c.includes("rain") && c.includes("light"))
+      return <CloudDrizzle size={18} color="#0ea5e9" />;
+
+    if (c.includes("rain")) return <CloudRain size={18} color="#0284c7" />;
+
+    if (c.includes("thunder"))
+      return <CloudLightning size={18} color="#e11d48" />;
+
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
+      return <CloudFog size={18} color="#6b7280" />;
+
+    if (c.includes("cloud")) return <Cloud size={18} color="#10b981" />;
+
+    return <Cloud size={18} color="#10b981" />;
   };
 
   useEffect(() => {
@@ -167,6 +268,33 @@ const PriceForecastScreen = () => {
     // Generate forecast (mock - replace with API call)
     generateForecast();
   }, []);
+
+  // Update district and weather when location data changes
+  useEffect(() => {
+    // Update district
+    if (isLoading) {
+      setDistrict(content[language].locationDetecting);
+    } else if (locationName && locationName !== "Loading...") {
+      setDistrict(locationName);
+    } else {
+      setDistrict(language === "si" ? "ස්ථානය නොමැත" : "Location unavailable");
+    }
+
+    // Update weather
+    if (isLoading) {
+      setWeather(content[language].weatherLoading);
+    } else if (temperature !== null && weatherCondition) {
+      const translatedCondition = getWeatherTranslation(
+        weatherCondition,
+        language
+      );
+      setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
+    } else {
+      setWeather(
+        language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
+      );
+    }
+  }, [locationName, temperature, weatherCondition, isLoading, language]);
 
   const generateForecast = () => {
     // TODO: Call ML API with formData
@@ -258,13 +386,24 @@ const PriceForecastScreen = () => {
 
       {/* Sub-header */}
       <View style={styles.subHeader}>
-        <View style={styles.locationRow}>
-          <MapPin color="#047857" size={16} />
-          <Text style={styles.locationText}>{formData?.district || "Monaragala"}</Text>
+        <View style={styles.infoCard}>
+          {getWeatherIcon(weatherCondition)}
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>
+              {language === "si" ? "ස්ථානය" : "Location"}
+            </Text>
+            <Text style={styles.infoValue}>{district}</Text>
+          </View>
         </View>
-        <View style={styles.weatherRow}>
-          <CloudSun color="#10B981" size={16} />
-          <Text style={styles.weatherText}>{formData?.weather || "Partly Cloudy"}</Text>
+        <View style={styles.divider} />
+        <View style={styles.infoCard}>
+          <CloudSun color="#10B981" size={18} />
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>
+              {language === "si" ? "කාලගුණය" : "Weather"}
+            </Text>
+            <Text style={styles.infoValue}>{weather}</Text>
+          </View>
         </View>
       </View>
 
@@ -603,33 +742,38 @@ const styles = StyleSheet.create({
   },
   subHeader: {
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  locationRow: {
+  infoCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+    flex: 1,
   },
-  locationText: {
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginBottom: 2,
+  },
+  infoValue: {
     fontSize: 13,
     fontWeight: "600",
     color: "#047857",
   },
-  weatherRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  weatherText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#10B981",
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 12,
   },
   scrollContainer: {
     flex: 1,

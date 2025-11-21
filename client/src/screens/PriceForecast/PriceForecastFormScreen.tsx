@@ -9,6 +9,16 @@ import {
   Switch,
   Alert,
 } from "react-native";
+import {
+  Sun,
+  Cloud,
+  CloudRain,
+  CloudDrizzle,
+  CloudSnow,
+  CloudLightning,
+  CloudFog,
+} from "lucide-react-native";
+
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
@@ -22,7 +32,10 @@ import {
   Package,
   Bell,
   CloudSun,
+  Droplets,
+  Wind,
 } from "lucide-react-native";
+import useUniversalLocation from "../../utils/useUniversalLocation";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -33,6 +46,13 @@ type NavProp = StackNavigationProp<
 const PriceForecastFormScreen = () => {
   const navigation = useNavigation<NavProp>();
   const [language, setLanguage] = useState<Language>("si");
+  const {
+    locationName,
+    temperature,
+    weatherCondition,
+    weatherIcon,
+    isLoading,
+  } = useUniversalLocation(language);
 
   // Auto-captured data (System)
   const [year, setYear] = useState("");
@@ -83,6 +103,8 @@ const PriceForecastFormScreen = () => {
       back: "ආපසු",
       detecting: "හඳුනාගනිමින්...",
       loading: "පූරණය වෙමින්...",
+      locationDetecting: "ස්ථානය හඳුනාගනිමින්...",
+      weatherLoading: "කාලගුණය පූරණය වෙමින්...",
     },
     en: {
       title: "Corn Price Forecast",
@@ -111,7 +133,82 @@ const PriceForecastFormScreen = () => {
       back: "Back",
       detecting: "Detecting...",
       loading: "Loading...",
+      locationDetecting: "Detecting location...",
+      weatherLoading: "Loading weather...",
     },
+  };
+
+  // Enhanced weather translation mapping
+  const getWeatherTranslation = (condition: string, lang: Language): string => {
+    if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
+
+    const c = condition.toLowerCase();
+
+    // ---- RAIN ----
+    if (c.includes("shower rain") || c.includes("light intensity shower")) {
+      return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
+    }
+    if (c.includes("light rain")) {
+      return lang === "si" ? "සැහැල්ලු වැසි" : "Light Rain";
+    }
+    if (c.includes("moderate rain")) {
+      return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
+    }
+    if (c.includes("heavy") && c.includes("rain")) {
+      return lang === "si" ? "බර වැසි" : "Heavy Rain";
+    }
+
+    // ---- CLOUDS ----
+    if (c.includes("clear")) {
+      return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
+    }
+    if (c.includes("few clouds")) {
+      return lang === "si" ? "සුළු වලාකුළු" : "Few Clouds";
+    }
+    if (c.includes("scattered")) {
+      return lang === "si" ? "විසිරුණු වලාකුළු" : "Scattered Clouds";
+    }
+    if (c.includes("broken")) {
+      return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
+    }
+    if (c.includes("overcast")) {
+      return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
+    }
+
+    // ---- THUNDER ----
+    if (c.includes("thunder")) {
+      return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
+    }
+
+    // ---- MIST / FOG ----
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze")) {
+      return lang === "si" ? "මීදුම" : "Mist";
+    }
+
+    // DEFAULT
+    return lang === "si" ? "කාලගුණය" : condition;
+  };
+  const getWeatherIcon = (condition: string | null) => {
+    if (!condition) return <Cloud size={18} color="#10B981" />;
+
+    const c = condition.toLowerCase();
+
+    if (c.includes("clear")) return <Sun size={18} color="#f59e0b" />;
+
+    if (c.includes("rain") && c.includes("light"))
+      return <CloudDrizzle size={18} color="#0ea5e9" />;
+
+    if (c.includes("rain")) return <CloudRain size={18} color="#0284c7" />;
+
+    if (c.includes("thunder"))
+      return <CloudLightning size={18} color="#e11d48" />;
+
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
+      return <CloudFog size={18} color="#6b7280" />;
+
+    if (c.includes("cloud")) return <Cloud size={18} color="#10b981" />;
+
+    return <Cloud size={18} color="#10b981" />;
   };
 
   // Auto-capture data on mount
@@ -130,15 +227,9 @@ const PriceForecastFormScreen = () => {
       const weekNumber = getISOWeek(now).toString();
       setWeek(weekNumber);
 
-      // Auto-detect district (GPS/Profile fallback)
-      await detectDistrict();
-
       // Determine season based on date
       const currentSeason = determineSeason(now);
       setSeason(currentSeason);
-
-      // Fetch weather data
-      await fetchWeather();
 
       // Fetch fuel price
       await fetchFuelPrice();
@@ -159,6 +250,33 @@ const PriceForecastFormScreen = () => {
     }
   };
 
+  // Update district and weather when location data changes
+  useEffect(() => {
+    // Update district
+    if (isLoading) {
+      setDistrict(content[language].locationDetecting);
+    } else if (locationName && locationName !== "Loading...") {
+      setDistrict(locationName);
+    } else {
+      setDistrict(language === "si" ? "ස්ථානය නොමැත" : "Location unavailable");
+    }
+
+    // Update weather
+    if (isLoading) {
+      setWeather(content[language].weatherLoading);
+    } else if (temperature !== null && weatherCondition) {
+      const translatedCondition = getWeatherTranslation(
+        weatherCondition,
+        language
+      );
+      setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
+    } else {
+      setWeather(
+        language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
+      );
+    }
+  }, [locationName, temperature, weatherCondition, isLoading, language]);
+
   // Calculate ISO week number
   const getISOWeek = (date: Date): number => {
     const target = new Date(date.valueOf());
@@ -175,45 +293,28 @@ const PriceForecastFormScreen = () => {
     // Maha: Oct-Mar (10,11,12,1,2,3)
     // Yala: Apr-Sep (4,5,6,7,8,9)
     if (month >= 10 || month <= 3) {
-      return language === "si" ? "මහ" : "Maha";
+      return language === "si" ? "මහ කන්නය" : "Maha Season";
     } else {
-      return language === "si" ? "යල" : "Yala";
+      return language === "si" ? "යල කන්නය" : "Yala Season";
     }
-  };
-
-  // Detect district (GPS or profile)
-  const detectDistrict = async () => {
-    // TODO: Implement GPS detection or profile fallback
-    // Placeholder
-    setDistrict(language === "si" ? "මොණරාගල" : "Monaragala");
-  };
-
-  // Fetch weather data
-  const fetchWeather = async () => {
-    // TODO: Implement weather API call
-    // Placeholder
-    setWeather(language === "si" ? "අව අව වැසි" : "Partly Cloudy");
   };
 
   // Fetch fuel price
   const fetchFuelPrice = async () => {
     // TODO: Implement fuel price API/cache
-    // Placeholder
-    setFuelPrice("රු. 380.00");
+    setFuelPrice(language === "si" ? "රු. 380.00" : "Rs. 380.00");
   };
 
   // Fetch import tax
   const fetchImportTax = async () => {
     // TODO: Implement policy table lookup
-    // Placeholder
     setCornImportTax("25%");
   };
 
   // Fetch farm-gate price
   const fetchFarmGatePrice = async () => {
     // TODO: Implement HARTI/market data API
-    // Placeholder
-    setFarmGatePrice("රු. 115.00/kg");
+    setFarmGatePrice(language === "si" ? "රු. 115.00/kg" : "Rs. 115.00/kg");
   };
 
   const handleSubmit = () => {
@@ -301,15 +402,27 @@ const PriceForecastFormScreen = () => {
         </View>
       </View>
 
-      {/* Sub-header */}
+      {/* Enhanced Sub-header with better styling */}
       <View style={styles.subHeader}>
-        <View style={styles.locationRow}>
-          <MapPin color="#047857" size={16} />
-          <Text style={styles.locationText}>{district}</Text>
+        <View style={styles.infoCard}>
+          {getWeatherIcon(weatherCondition)}
+
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>
+              {language === "si" ? "ස්ථානය" : "Location"}
+            </Text>
+            <Text style={styles.infoValue}>{district}</Text>
+          </View>
         </View>
-        <View style={styles.weatherRow}>
-          <CloudSun color="#10B981" size={16} />
-          <Text style={styles.weatherText}>{weather}</Text>
+        <View style={styles.divider} />
+        <View style={styles.infoCard}>
+          <CloudSun color="#10B981" size={18} />
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>
+              {language === "si" ? "කාලගුණය" : "Weather"}
+            </Text>
+            <Text style={styles.infoValue}>{weather}</Text>
+          </View>
         </View>
       </View>
 
@@ -320,29 +433,36 @@ const PriceForecastFormScreen = () => {
       >
         {/* Auto-Captured Data Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            📊 {content[language].autoData}
-          </Text>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconContainer}>
+              <Droplets color="#10B981" size={20} />
+            </View>
+            <Text style={styles.sectionTitle}>
+              {content[language].autoData}
+            </Text>
+          </View>
 
           <View style={styles.autoDataGrid}>
             <View style={styles.autoDataCard}>
-              <Calendar color="#10B981" size={20} />
-              <Text style={styles.autoDataLabel}>
-                {content[language].year}
-              </Text>
+              <View style={styles.cardIconContainer}>
+                <Calendar color="#10B981" size={22} />
+              </View>
+              <Text style={styles.autoDataLabel}>{content[language].year}</Text>
               <Text style={styles.autoDataValue}>{year}</Text>
             </View>
 
             <View style={styles.autoDataCard}>
-              <Calendar color="#10B981" size={20} />
-              <Text style={styles.autoDataLabel}>
-                {content[language].week}
-              </Text>
+              <View style={styles.cardIconContainer}>
+                <Calendar color="#10B981" size={22} />
+              </View>
+              <Text style={styles.autoDataLabel}>{content[language].week}</Text>
               <Text style={styles.autoDataValue}>{week}</Text>
             </View>
 
             <View style={styles.autoDataCard}>
-              <Leaf color="#10B981" size={20} />
+              <View style={styles.cardIconContainer}>
+                <Leaf color="#10B981" size={22} />
+              </View>
               <Text style={styles.autoDataLabel}>
                 {content[language].season}
               </Text>
@@ -350,7 +470,9 @@ const PriceForecastFormScreen = () => {
             </View>
 
             <View style={styles.autoDataCard}>
-              <DollarSign color="#10B981" size={20} />
+              <View style={styles.cardIconContainer}>
+                <DollarSign color="#10B981" size={22} />
+              </View>
               <Text style={styles.autoDataLabel}>
                 {content[language].fuelPrice}
               </Text>
@@ -358,7 +480,9 @@ const PriceForecastFormScreen = () => {
             </View>
 
             <View style={styles.autoDataCard}>
-              <Package color="#10B981" size={20} />
+              <View style={styles.cardIconContainer}>
+                <Package color="#10B981" size={22} />
+              </View>
               <Text style={styles.autoDataLabel}>
                 {content[language].importTax}
               </Text>
@@ -366,7 +490,9 @@ const PriceForecastFormScreen = () => {
             </View>
 
             <View style={styles.autoDataCard}>
-              <DollarSign color="#10B981" size={20} />
+              <View style={styles.cardIconContainer}>
+                <DollarSign color="#10B981" size={22} />
+              </View>
               <Text style={styles.autoDataLabel}>
                 {content[language].currentPrice}
               </Text>
@@ -377,9 +503,14 @@ const PriceForecastFormScreen = () => {
 
         {/* User Inputs Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
-            ✍️ {content[language].userInputs}
-          </Text>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconContainer}>
+              <Leaf color="#10B981" size={20} />
+            </View>
+            <Text style={styles.sectionTitle}>
+              {content[language].userInputs}
+            </Text>
+          </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
@@ -474,7 +605,9 @@ const PriceForecastFormScreen = () => {
 
           <View style={styles.switchGroup}>
             <View style={styles.switchLabelContainer}>
-              <Package color="#047857" size={20} />
+              <View style={styles.switchIconContainer}>
+                <Package color="#047857" size={22} />
+              </View>
               <Text style={styles.switchLabel}>
                 {content[language].hasStorage}
               </Text>
@@ -493,7 +626,7 @@ const PriceForecastFormScreen = () => {
           <Text style={styles.submitButtonText}>
             {content[language].submit}
           </Text>
-          <ArrowRight color="#FFFFFF" size={20} />
+          <ArrowRight color="#FFFFFF" size={22} />
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -510,33 +643,40 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FFFFFF",
     paddingTop: 50,
-    paddingBottom: 12,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
   },
   headerCenter: {
     flex: 1,
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "bold",
     color: "#1F2937",
   },
   headerSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#6B7280",
     marginTop: 2,
   },
@@ -546,9 +686,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
@@ -557,46 +697,51 @@ const styles = StyleSheet.create({
   },
   langButton: {
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: "#10B981",
   },
   langText: {
     color: "#10B981",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "bold",
   },
   subHeader: {
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-  locationRow: {
+  infoCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+    flex: 1,
   },
-  locationText: {
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginBottom: 2,
+  },
+  infoValue: {
     fontSize: 13,
     fontWeight: "600",
     color: "#047857",
   },
-  weatherRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  weatherText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#10B981",
+  divider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 12,
   },
   scrollContainer: {
     flex: 1,
@@ -605,13 +750,26 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 28,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
+    gap: 10,
+  },
+  sectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#D1FAE5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#065F46",
-    marginBottom: 16,
   },
   autoDataGrid: {
     flexDirection: "row",
@@ -620,28 +778,42 @@ const styles = StyleSheet.create({
   },
   autoDataCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 18,
     width: "48%",
     borderWidth: 1,
     borderColor: "#D1FAE5",
     alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
   },
   autoDataLabel: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#6B7280",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  autoDataValue: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#047857",
     marginTop: 4,
     textAlign: "center",
   },
+  autoDataValue: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#047857",
+    marginTop: 6,
+    textAlign: "center",
+  },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   formRow: {
     flexDirection: "row",
@@ -654,37 +826,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#047857",
-    marginBottom: 8,
+    marginBottom: 10,
   },
   input: {
     backgroundColor: "#FFFFFF",
     borderWidth: 2,
     borderColor: "#D1FAE5",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 14,
+    padding: 16,
     fontSize: 15,
     color: "#1F2937",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   switchGroup: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 18,
     borderWidth: 2,
     borderColor: "#D1FAE5",
-    marginTop: 8,
+    marginTop: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   switchLabelContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
+    flex: 1,
+  },
+  switchIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
   },
   switchLabel: {
     fontSize: 15,
     fontWeight: "600",
     color: "#047857",
+    flex: 1,
   },
   submitButton: {
     flexDirection: "row",
@@ -692,14 +884,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 12,
     backgroundColor: "#10B981",
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 8,
+    paddingVertical: 18,
+    borderRadius: 14,
+    marginTop: 12,
     shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 10,
   },
   submitButtonText: {
     color: "#FFFFFF",
