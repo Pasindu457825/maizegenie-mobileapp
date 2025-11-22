@@ -337,6 +337,12 @@ const PriceForecastFormScreen = () => {
       fetchPriceDataFromAPI();
     }, [])
   );
+  
+  useEffect(() => {
+    const now = new Date();
+    const updatedSeason = determineSeason(now);
+    setSeason(updatedSeason);
+  }, [language]);
 
   const handleSubmit = () => {
     // Validation
