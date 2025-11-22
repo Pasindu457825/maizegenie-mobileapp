@@ -7,16 +7,18 @@ import PriceForecastStack from "./PriceForecastStack";
 import PredictYieldStack from "./PredictYieldStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
+import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
-  [ROUTES.TABS.PRICEFORECAST]: undefined;
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
   [ROUTES.TABS.FERTILIZERADVISOR]: undefined;
   [ROUTES.TABS.PREDICTYIELD]: undefined;
+  [ROUTES.TABS.PRICEFORECAST]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
+  [ROUTES.TABS.ADMINPANEL]: undefined; // <-- NEW
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -42,6 +44,7 @@ export default function BottomNavigator() {
         },
       }}
     >
+
       {/* 🏠 Home */}
       <Tab.Screen
         name={ROUTES.TABS.HOME}
@@ -78,7 +81,7 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 🧪 Fertilizer (placeholder for now) */}
+      {/* 🧪 Fertilizer */}
       <Tab.Screen
         name={ROUTES.TABS.FERTILIZERADVISOR}
         component={HomeScreen}
@@ -125,6 +128,19 @@ export default function BottomNavigator() {
           ),
         }}
       />
+
+      {/* 🛠 Admin Panel */}
+      <Tab.Screen
+        name={ROUTES.TABS.ADMINPANEL}
+        component={AdminPanelScreen}
+        options={{
+          tabBarLabel: "Admin",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="shield-checkmark-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
     </Tab.Navigator>
   );
 }
