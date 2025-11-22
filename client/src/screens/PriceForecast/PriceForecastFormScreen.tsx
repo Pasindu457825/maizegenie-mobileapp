@@ -63,6 +63,7 @@ const PriceForecastFormScreen = () => {
   const [fuelPrice, setFuelPrice] = useState("");
   const [cornImportTax, setCornImportTax] = useState("");
   const [farmGatePrice, setFarmGatePrice] = useState("");
+  const [isFestivalWeek, setIsFestivalWeek] = useState(false);
 
   // User inputs (Required)
   const [seedVariety, setSeedVariety] = useState("");
@@ -214,6 +215,9 @@ const PriceForecastFormScreen = () => {
   // Auto-capture data on mount
   useEffect(() => {
     captureSystemData();
+  }, []);
+  useEffect(() => {
+    fetchFestivalWeek();
   }, []);
 
   const captureSystemData = async () => {
@@ -373,6 +377,38 @@ const PriceForecastFormScreen = () => {
   const handleGoBack = () => {
     navigation.goBack();
   };
+  const fetchFestivalWeek = async () => {
+    try {
+      const today = new Date();
+      const year = today.getFullYear();
+
+      const holidaysRes = await fetch(
+        `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3&country=LK&year=${year}&type=public`
+      );
+
+      const json = await holidaysRes.json();
+
+      // Calendarific correct response object:
+      const holidays = json?.response?.holidays || [];
+
+      let festivalDetected = false;
+
+      holidays.forEach((h: any) => {
+        const hd = new Date(h.date.iso);
+        const diffDays =
+          Math.abs(today.getTime() - hd.getTime()) / (1000 * 60 * 60 * 24);
+
+        // +- 3 days rule for "festival week"
+        if (diffDays <= 3) {
+          festivalDetected = true;
+        }
+      });
+
+      setIsFestivalWeek(festivalDetected);
+    } catch (err) {
+      console.log("Festival week detect error:", err);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -498,6 +534,23 @@ const PriceForecastFormScreen = () => {
               </Text>
               <Text style={styles.autoDataValue}>{farmGatePrice}</Text>
             </View>
+          </View>
+          <View style={styles.autoDataCard}>
+            <View style={styles.cardIconContainer}>
+              <Calendar color="#10B981" size={22} />
+            </View>
+            <Text style={styles.autoDataLabel}>
+              {language === "si" ? "උත්සව සතිය" : "Festival Week"}
+            </Text>
+            <Text style={styles.autoDataValue}>
+              {isFestivalWeek
+                ? language === "si"
+                  ? "ඔව්"
+                  : "Yes"
+                : language === "si"
+                ? "නැත"
+                : "No"}
+            </Text>
           </View>
         </View>
 
