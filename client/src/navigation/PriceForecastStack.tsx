@@ -3,11 +3,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import PriceForecastLoadingScreen from '../screens/PriceForecast/PriceForecastLoadingScreen';
 import PriceForecastFormScreen from '../screens/PriceForecast/PriceForecastFormScreen';
 import PriceForecastScreen from '../screens/PriceForecast/PriceForecastScreen';
+import AdminPanelScreen from '../screens/AdminPanel/PriceForecast/AdminPanelScreen';
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
   PriceForecastFormScreen: undefined;
   PriceForecastScreen: undefined;
+   AdminPanelScreen: undefined;
 };
 
 const Stack = createStackNavigator<PriceForecastStackParamList>();
@@ -33,6 +35,12 @@ const PriceForecastStack = () => {
         name="PriceForecastScreen" 
         component={PriceForecastScreen} 
       />
+      <Stack.Screen
+  name="AdminPanelScreen"
+  component={AdminPanelScreen}
+  options={{ headerShown: false }}
+/>
+
     </Stack.Navigator>
   );
 };

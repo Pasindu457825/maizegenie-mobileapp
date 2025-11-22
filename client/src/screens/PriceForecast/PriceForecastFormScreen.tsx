@@ -36,12 +36,20 @@ import {
   Wind,
 } from "lucide-react-native";
 import useUniversalLocation from "../../utils/useUniversalLocation";
+import { Platform } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
   "PriceForecastFormScreen"
 >;
+
+const API_URL =
+  Platform.OS === "web"
+    ? "http://localhost:8000" // Expo Web
+    : "http://192.168.8.181:8000"; // Real device Expo Go
 
 const PriceForecastFormScreen = () => {
   const navigation = useNavigation<NavProp>();
@@ -189,6 +197,7 @@ const PriceForecastFormScreen = () => {
     // DEFAULT
     return lang === "si" ? "කාලගුණය" : condition;
   };
+
   const getWeatherIcon = (condition: string | null) => {
     if (!condition) return <Cloud size={18} color="#10B981" />;
 
@@ -216,9 +225,36 @@ const PriceForecastFormScreen = () => {
   useEffect(() => {
     captureSystemData();
   }, []);
+
   useEffect(() => {
     fetchFestivalWeek();
   }, []);
+
+  // 🔥 NEW: Fetch price data from API
+  const fetchPriceDataFromAPI = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/price-data`);
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setFuelPrice(
+          language === "si"
+            ? `රු. ${data.data.fuelPrice.toFixed(2)}`
+            : `Rs. ${data.data.fuelPrice.toFixed(2)}`
+        );
+
+        setCornImportTax(`${data.data.importTax}%`);
+
+        setFarmGatePrice(
+          language === "si"
+            ? `රු. ${data.data.farmGatePrice.toFixed(2)}/kg`
+            : `Rs. ${data.data.farmGatePrice.toFixed(2)}/kg`
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching price data:", error);
+    }
+  };
 
   const captureSystemData = async () => {
     try {
@@ -235,14 +271,8 @@ const PriceForecastFormScreen = () => {
       const currentSeason = determineSeason(now);
       setSeason(currentSeason);
 
-      // Fetch fuel price
-      await fetchFuelPrice();
-
-      // Fetch import tax
-      await fetchImportTax();
-
-      // Fetch current farm-gate price
-      await fetchFarmGatePrice();
+      // 🔥 UPDATED: Fetch price data from API
+      await fetchPriceDataFromAPI();
     } catch (error) {
       console.error("Error capturing system data:", error);
       Alert.alert(
@@ -302,24 +332,11 @@ const PriceForecastFormScreen = () => {
       return language === "si" ? "යල කන්නය" : "Yala Season";
     }
   };
-
-  // Fetch fuel price
-  const fetchFuelPrice = async () => {
-    // TODO: Implement fuel price API/cache
-    setFuelPrice(language === "si" ? "රු. 380.00" : "Rs. 380.00");
-  };
-
-  // Fetch import tax
-  const fetchImportTax = async () => {
-    // TODO: Implement policy table lookup
-    setCornImportTax("25%");
-  };
-
-  // Fetch farm-gate price
-  const fetchFarmGatePrice = async () => {
-    // TODO: Implement HARTI/market data API
-    setFarmGatePrice(language === "si" ? "රු. 115.00/kg" : "Rs. 115.00/kg");
-  };
+  useFocusEffect(
+    useCallback(() => {
+      fetchPriceDataFromAPI();
+    }, [])
+  );
 
   const handleSubmit = () => {
     // Validation
@@ -360,6 +377,7 @@ const PriceForecastFormScreen = () => {
       fuelPrice,
       cornImportTax,
       farmGatePrice,
+      isFestivalWeek,
       // User inputs
       seedVariety,
       expectedYield: parseFloat(expectedYield),
@@ -377,6 +395,7 @@ const PriceForecastFormScreen = () => {
   const handleGoBack = () => {
     navigation.goBack();
   };
+
   const fetchFestivalWeek = async () => {
     try {
       const today = new Date();
@@ -949,6 +968,26 @@ const styles = StyleSheet.create({
   submitButtonText: {
     color: "#FFFFFF",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  adminButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginTop: 20,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+
+  adminButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
     fontWeight: "bold",
   },
 });
