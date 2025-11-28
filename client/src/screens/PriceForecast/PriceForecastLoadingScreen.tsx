@@ -15,6 +15,9 @@ import {
   Bell,
   CloudSun,
   MapPin,
+  Droplets,
+  Wind,
+  Thermometer,
 } from "lucide-react-native";
 import {
   Sun,
@@ -28,8 +31,14 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import useUniversalLocation from "../../utils/useUniversalLocation";
+import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
 
 const { width } = Dimensions.get("window");
+
+type RootStackParamList = {
+  PriceForecastFormScreen: undefined;
+  WeatherForecastScreen: undefined;
+};
 
 type Language = "si" | "en";
 type Content = {
@@ -39,12 +48,13 @@ type Content = {
     mainText: string;
     description: string;
     loading: string;
-    getStarted: string;
+    priceButton: string;
+    weatherButton: string;
+    priceTitle: string;
+    weatherTitle: string;
+    priceDesc: string;
+    weatherDesc: string;
   };
-};
-
-type RootStackParamList = {
-  PriceForecastFormScreen: undefined;
 };
 
 type NavProp = StackNavigationProp<
@@ -60,6 +70,7 @@ const PriceForecastLoadingScreen = () => {
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [leafAnim] = useState(new Animated.Value(0));
   const [buttonFadeAnim] = useState(new Animated.Value(0));
+  const [pulseAnim] = useState(new Animated.Value(1));
   const {
     locationName,
     temperature,
@@ -70,50 +81,57 @@ const PriceForecastLoadingScreen = () => {
 
   const content: Content = {
     si: {
-      title: "🌽 ඉරිඟු මිල පුරෝකථනය",
-      subtitle: "ස්මාර්ට් ගොවිතැන",
+      title: "🌾 බිම ගොවිතැන",
+      subtitle: "ස්මාර්ට් කෘෂි තාක්ෂණය",
       mainText: "ඔබේ ගොවිතැනට",
-      description: "හොඳම මිල හා වගා උපදෙස්",
-      loading: "සූදානම් වෙමින්",
-      getStarted: "පටන් ගන්න",
+      description: "නවීන තාක්ෂණික සහාය",
+      loading: "පද්ධතිය සූදානම් වෙමින්",
+      priceButton: "මිල පුරෝකථනය",
+      weatherButton: "කාලගුණය",
+      priceTitle: "🌽 ඉරිඟු මිල",
+      weatherTitle: "🌦️ කාලගුණය",
+      priceDesc: "හොඳම මිල දැන ගන්න",
+      weatherDesc: "7 දින පුරෝකථනය",
     },
     en: {
-      title: "🌽 Corn Price Forecast",
-      subtitle: "Smart Farming",
-      mainText: "Better Prices",
-      description: "For Your Harvest",
-      loading: "Getting Ready",
-      getStarted: "Start Now",
+      title: "🌾 Smart Farming",
+      subtitle: "Agricultural Technology",
+      mainText: "For Your Farm",
+      description: "Modern Tech Support",
+      loading: "System Preparing",
+      priceButton: "Price Forecast",
+      weatherButton: "Weather",
+      priceTitle: "🌽 Corn Prices",
+      weatherTitle: "🌦️ Weather",
+      priceDesc: "Get Best Prices",
+      weatherDesc: "7-Day Forecast",
     },
   };
 
   const headerContent = {
     si: {
-      title: "මිල සහ වගා උපදේශක",
-      subtitle: "ඔබ ගොවි කරන විදිය සැලසුම් කරන්න",
+      title: "බිම ගොවිතැන",
+      subtitle: "ස්මාර්ට් කෘෂි උපදේශක",
     },
     en: {
-      title: "Price & Cultivation Advisor",
-      subtitle: "Plan your crop, track prices",
+      title: "Smart Farming",
+      subtitle: "Agricultural Advisor",
     },
   };
 
   useEffect(() => {
-    // Fade in animation
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
     }).start();
 
-    // Scale animation
     Animated.spring(scaleAnim, {
       toValue: 1,
       friction: 4,
       useNativeDriver: true,
     }).start();
 
-    // Floating leaf animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(leafAnim, {
@@ -129,7 +147,22 @@ const PriceForecastLoadingScreen = () => {
       ])
     ).start();
 
-    // Progress animation
+    // Pulse animation for main circle
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
@@ -141,9 +174,8 @@ const PriceForecastLoadingScreen = () => {
     }, 80);
 
     return () => clearInterval(interval);
-  }, [fadeAnim, scaleAnim, leafAnim]);
+  }, [fadeAnim, scaleAnim, leafAnim, pulseAnim]);
 
-  // Animate button when progress reaches 100
   useEffect(() => {
     if (progress === 100) {
       Animated.timing(buttonFadeAnim, {
@@ -163,33 +195,36 @@ const PriceForecastLoadingScreen = () => {
     navigation.navigate("PriceForecastFormScreen");
   };
 
-  const getWeatherIcon = (condition: string | null) => {
-    if (!condition) return <Cloud size={20} color="#10B981" />;
+  const handleWeatherForecast = () => {
+    navigation.navigate("WeatherForecastScreen");
+  };
+
+  const getWeatherIcon = (condition: string | null, size: number = 20) => {
+    if (!condition) return <Cloud size={size} color="#10B981" />;
 
     const c = condition.toLowerCase();
 
-    if (c.includes("clear")) return <Sun size={20} color="#f59e0b" />;
+    if (c.includes("clear")) return <Sun size={size} color="#f59e0b" />;
 
     if (c.includes("shower") || c.includes("light rain"))
-      return <CloudDrizzle size={20} color="#0ea5e9" />;
+      return <CloudDrizzle size={size} color="#0ea5e9" />;
 
-    // light rain BEFORE general rain
     if (c.includes("light rain"))
-      return <CloudDrizzle size={20} color="#0ea5e9" />;
+      return <CloudDrizzle size={size} color="#0ea5e9" />;
 
-    if (c.includes("rain")) return <CloudRain size={20} color="#0284c7" />;
+    if (c.includes("rain")) return <CloudRain size={size} color="#0284c7" />;
 
     if (c.includes("thunder"))
-      return <CloudLightning size={20} color="#dc2626" />;
+      return <CloudLightning size={size} color="#dc2626" />;
 
     if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
-      return <CloudFog size={20} color="#6b7280" />;
+      return <CloudFog size={size} color="#6b7280" />;
 
-    if (c.includes("cloud")) return <Cloud size={20} color="#10B981" />;
+    if (c.includes("cloud")) return <Cloud size={size} color="#10B981" />;
 
-    return <Cloud size={20} color="#10B981" />;
+    return <Cloud size={size} color="#10B981" />;
   };
-  // Weather translation for Loading Screen
+
   const getWeatherTranslation = (
     condition: string | null,
     lang: Language
@@ -198,7 +233,6 @@ const PriceForecastLoadingScreen = () => {
 
     const c = condition.toLowerCase();
 
-    // RAIN
     if (c.includes("shower rain") || c.includes("light intensity shower"))
       return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
     if (c.includes("light rain"))
@@ -208,7 +242,6 @@ const PriceForecastLoadingScreen = () => {
     if (c.includes("heavy") && c.includes("rain"))
       return lang === "si" ? "බර වැසි" : "Heavy Rain";
 
-    // CLOUDS
     if (c.includes("clear"))
       return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
     if (c.includes("few clouds"))
@@ -220,11 +253,9 @@ const PriceForecastLoadingScreen = () => {
     if (c.includes("overcast"))
       return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
 
-    // THUNDER
     if (c.includes("thunder"))
       return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
 
-    // MIST / FOG
     if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
       return lang === "si" ? "මීදුම" : "Mist";
 
@@ -248,11 +279,6 @@ const PriceForecastLoadingScreen = () => {
             <Bell color="#10B981" size={20} />
             <View style={styles.notificationDot} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconButton}>
-            {getWeatherIcon(weatherCondition)}
-          </TouchableOpacity>
-
-          {/* Language Toggle in Header */}
           <TouchableOpacity
             style={styles.langButtonHeader}
             onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
@@ -265,36 +291,28 @@ const PriceForecastLoadingScreen = () => {
         </View>
       </View>
 
-      {/* Sub-header with Location */}
+      {/* Sub-header with Location & Weather */}
       <View style={styles.subHeader}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>🌾</Text>
           </View>
-          <View>
+          <View style={styles.locationInfo}>
             <View style={styles.locationRow}>
               <MapPin color="#047857" size={14} />
               <Text style={styles.locationText}>{locationName}</Text>
             </View>
-            <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
-            >
-              {getWeatherIcon(weatherCondition)}
-
-              <Text style={styles.logoTemp}>
-                {temperature !== null
-                  ? `${Math.round(temperature)}°C`
-                  : language === "si"
-                  ? "උෂ්ණත්වය..."
-                  : "Loading..."}
+            <View style={styles.weatherRow}>
+              {getWeatherIcon(weatherCondition, 16)}
+              <Text style={styles.tempText}>
+                {temperature !== null ? `${Math.round(temperature)}°C` : "..."}
+              </Text>
+              <Text style={styles.conditionText}>
+                {weatherCondition
+                  ? getWeatherTranslation(weatherCondition, language)
+                  : ""}
               </Text>
             </View>
-
-            <Text style={[styles.logoTemp, { fontSize: 13 }]}>
-              {weatherCondition
-                ? getWeatherTranslation(weatherCondition, language)
-                : ""}
-            </Text>
           </View>
         </View>
       </View>
@@ -336,13 +354,15 @@ const PriceForecastLoadingScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* Icon Circle */}
-          <View style={styles.iconCircle}>
-            <View style={styles.iconInner}>
-              <Text style={styles.cornEmoji}>🌽</Text>
+          {/* Icon Circle with Pulse */}
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <View style={styles.iconCircle}>
+              <View style={styles.iconInner}>
+                <Text style={styles.cornEmoji}>🌾</Text>
+              </View>
+              <View style={styles.pulseRing} />
             </View>
-            <View style={styles.pulseRing} />
-          </View>
+          </Animated.View>
 
           {/* Title Section */}
           <Text style={styles.subtitle}>{content[language].subtitle}</Text>
@@ -352,29 +372,80 @@ const PriceForecastLoadingScreen = () => {
             {content[language].description}
           </Text>
 
-          {/* Simple Progress Bar */}
+          {/* Enhanced Progress Bar */}
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              <Animated.View
+                style={[
+                  styles.progressFill,
+                  {
+                    width: `${progress}%`,
+                  },
+                ]}
+              />
+              <View style={styles.progressShine} />
             </View>
-            <Text style={styles.progressText}>{progress}%</Text>
+            <View style={styles.progressTextContainer}>
+              <Text style={styles.progressText}>{progress}%</Text>
+              <Text style={styles.progressLabel}>
+                {content[language].loading}
+              </Text>
+            </View>
           </View>
 
-          {/* Loading Text */}
-          <Text style={styles.loadingText}>{content[language].loading}...</Text>
-
-          {/* Get Started Button */}
+          {/* Feature Cards - Shows when ready */}
           {progress === 100 && (
-            <Animated.View style={{ opacity: buttonFadeAnim }}>
+            <Animated.View
+              style={[styles.cardsContainer, { opacity: buttonFadeAnim }]}
+            >
+              {/* Price Forecast Card */}
               <TouchableOpacity
-                style={styles.startButton}
+                style={[styles.featureCard, styles.priceCard]}
                 onPress={handleGetStarted}
-                activeOpacity={0.85}
+                activeOpacity={0.9}
               >
-                <Text style={styles.startButtonText}>
-                  {content[language].getStarted}
-                </Text>
-                <TrendingUp color="#FFFFFF" size={20} />
+                <View style={styles.cardIconContainer}>
+                  <View style={styles.cardIconCircle}>
+                    <TrendingUp color="#10B981" size={28} />
+                  </View>
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>
+                    {content[language].priceTitle}
+                  </Text>
+                  <Text style={styles.cardDescription}>
+                    {content[language].priceDesc}
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Text style={styles.arrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Weather Forecast Card */}
+              <TouchableOpacity
+                style={[styles.featureCard, styles.weatherCard]}
+                onPress={handleWeatherForecast}
+                activeOpacity={0.9}
+              >
+                <View style={styles.cardIconContainer}>
+                  <View
+                    style={[styles.cardIconCircle, styles.weatherIconCircle]}
+                  >
+                    <CloudSun color="#0EA5E9" size={28} />
+                  </View>
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>
+                    {content[language].weatherTitle}
+                  </Text>
+                  <Text style={styles.cardDescription}>
+                    {content[language].weatherDesc}
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Text style={styles.arrowText}>→</Text>
+                </View>
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -394,7 +465,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollBody: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 40,
     flexGrow: 1,
@@ -415,13 +486,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#1F2937",
-    lineHeight: 20,
+    lineHeight: 22,
   },
   headerSubtitle: {
-    fontSize: 11,
+    fontSize: 12,
     color: "#6B7280",
     marginTop: 2,
   },
@@ -466,7 +537,7 @@ const styles = StyleSheet.create({
   subHeader: {
     backgroundColor: "#FFFFFF",
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
     zIndex: 99,
@@ -474,12 +545,12 @@ const styles = StyleSheet.create({
   logoContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
   logoCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "#D1FAE5",
     justifyContent: "center",
     alignItems: "center",
@@ -487,23 +558,37 @@ const styles = StyleSheet.create({
     borderColor: "#10B981",
   },
   logoText: {
-    fontSize: 20,
+    fontSize: 24,
+  },
+  locationInfo: {
+    flex: 1,
   },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   locationText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
     color: "#047857",
   },
-  logoTemp: {
-    fontSize: 15,
+  weatherRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  tempText: {
+    fontSize: 14,
     fontWeight: "bold",
     color: "#10B981",
+  },
+  conditionText: {
+    fontSize: 13,
+    color: "#059669",
+    fontWeight: "500",
   },
   gradientTop: {
     position: "absolute",
@@ -538,7 +623,7 @@ const styles = StyleSheet.create({
   content: {
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     zIndex: 10,
     paddingVertical: 20,
   },
@@ -549,7 +634,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#10B981",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
@@ -578,7 +663,7 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#059669",
     fontWeight: "600",
     marginBottom: 8,
@@ -586,72 +671,133 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   mainText: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#065F46",
     marginBottom: 6,
     textAlign: "center",
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: "#10B981",
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: "center",
   },
   description: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#047857",
-    marginBottom: 30,
+    marginBottom: 32,
     textAlign: "center",
     fontWeight: "500",
   },
   progressContainer: {
-    width: "85%",
+    width: "90%",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 24,
   },
   progressBar: {
     width: "100%",
-    height: 12,
+    height: 14,
     backgroundColor: "#D1FAE5",
     borderRadius: 20,
     overflow: "hidden",
     marginBottom: 8,
+    position: "relative",
   },
   progressFill: {
     height: "100%",
     backgroundColor: "#10B981",
     borderRadius: 20,
   },
+  progressShine: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "50%",
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  progressTextContainer: {
+    alignItems: "center",
+  },
   progressText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#059669",
   },
-  loadingText: {
-    fontSize: 15,
+  progressLabel: {
+    fontSize: 13,
     color: "#047857",
-    fontWeight: "600",
-    marginBottom: 20,
+    fontWeight: "500",
+    marginTop: 2,
   },
-  startButton: {
+  cardsContainer: {
+    width: "100%",
+    gap: 16,
+    marginTop: 8,
+  },
+  featureCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    backgroundColor: "#10B981",
-    paddingHorizontal: 36,
-    paddingVertical: 14,
-    borderRadius: 50,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 12,
-    elevation: 10,
+    elevation: 6,
+    borderWidth: 2,
   },
-  startButtonText: {
-    color: "#FFFFFF",
+  priceCard: {
+    borderColor: "#D1FAE5",
+  },
+  weatherCard: {
+    borderColor: "#E0F2FE",
+  },
+  cardIconContainer: {
+    marginRight: 16,
+  },
+  cardIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+  weatherIconCircle: {
+    backgroundColor: "#F0F9FF",
+    borderColor: "#E0F2FE",
+  },
+  cardContent: {
+    flex: 1,
+  },
+  cardTitle: {
     fontSize: 18,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  cardDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  cardArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  arrowText: {
+    fontSize: 20,
+    color: "#10B981",
     fontWeight: "bold",
   },
 });
