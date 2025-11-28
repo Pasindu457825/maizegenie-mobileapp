@@ -38,6 +38,7 @@ const { width } = Dimensions.get("window");
 type RootStackParamList = {
   PriceForecastFormScreen: undefined;
   WeatherForecastScreen: undefined;
+  PriceAdvisorScreen: { formData: any } | undefined;
 };
 
 type Language = "si" | "en";
@@ -198,6 +199,17 @@ const PriceForecastLoadingScreen = () => {
   const handleWeatherForecast = () => {
     navigation.navigate("WeatherForecastScreen");
   };
+
+  const handleAdvisor = () => {
+  navigation.navigate("PriceAdvisorScreen", {
+    formData: {
+      cropDuration: 14,
+      cost: 45000,
+      yieldKg: 1750,
+    },
+  });
+};
+
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
     if (!condition) return <Cloud size={size} color="#10B981" />;
@@ -441,6 +453,31 @@ const PriceForecastLoadingScreen = () => {
                   </Text>
                   <Text style={styles.cardDescription}>
                     {content[language].weatherDesc}
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Text style={styles.arrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+              {/* Cultivation Advisor Card */}
+              <TouchableOpacity
+                style={[styles.featureCard, styles.priceCard]}
+                onPress={handleAdvisor}
+                activeOpacity={0.9}
+              >
+                <View style={styles.cardIconContainer}>
+                  <View style={styles.cardIconCircle}>
+                    <Leaf color="#059669" size={28} />
+                  </View>
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>
+                    {language === "si" ? "වගා උපදෙස්" : "Cultivation Advisor"}
+                  </Text>
+                  <Text style={styles.cardDescription}>
+                    {language === "si"
+                      ? "හොඳම වගා සතිය"
+                      : "Find best planting week"}
                   </Text>
                 </View>
                 <View style={styles.cardArrow}>

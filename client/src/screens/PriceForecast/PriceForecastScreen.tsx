@@ -80,7 +80,7 @@ const PriceForecastScreen = () => {
   const [weather, setWeather] = useState("");
 
   // Get data from route params (from form)
-  const formData = (route.params as any)?.data as ForecastData | undefined;
+ const { data: formData } = route.params as { data: ForecastData };
 
   // Forecast results (mock data - replace with ML prediction)
   const [predictedPrice, setPredictedPrice] = useState(125.5);
@@ -302,7 +302,7 @@ const PriceForecastScreen = () => {
     const basePrice = 115;
     const randomChange = Math.random() * 20 - 5;
     setPredictedPrice(basePrice + randomChange);
-    setPriceChange(((randomChange / basePrice) * 100));
+    setPriceChange((randomChange / basePrice) * 100);
     setConfidenceScore(Math.floor(Math.random() * 15) + 75);
 
     // Recommendation logic
@@ -337,7 +337,10 @@ const PriceForecastScreen = () => {
   };
 
   const getRecommendationColor = () => {
-    if (recommendation === "sell_now" || recommendation === "sell_immediately") {
+    if (
+      recommendation === "sell_now" ||
+      recommendation === "sell_immediately"
+    ) {
       return "#10B981";
     } else if (recommendation === "storage") {
       return "#3B82F6";
@@ -426,15 +429,16 @@ const PriceForecastScreen = () => {
             <Text style={styles.priceLabel}>
               {content[language].predictedPrice}
             </Text>
-            <Text style={styles.priceValue}>රු. {predictedPrice.toFixed(2)}</Text>
+            <Text style={styles.priceValue}>
+              රු. {predictedPrice.toFixed(2)}
+            </Text>
             <Text style={styles.priceUnit}>{content[language].perKg}</Text>
 
             <View
               style={[
                 styles.trendBadge,
                 {
-                  backgroundColor:
-                    priceChange >= 0 ? "#D1FAE5" : "#FEE2E2",
+                  backgroundColor: priceChange >= 0 ? "#D1FAE5" : "#FEE2E2",
                 },
               ]}
             >
@@ -532,9 +536,7 @@ const PriceForecastScreen = () => {
                 <Text style={styles.profitLabel}>
                   {content[language].totalRevenue}
                 </Text>
-                <Text style={styles.profitValue}>
-                  රු. {revenue.toFixed(0)}
-                </Text>
+                <Text style={styles.profitValue}>රු. {revenue.toFixed(0)}</Text>
               </View>
 
               <View style={styles.profitCard}>
@@ -645,6 +647,156 @@ const PriceForecastScreen = () => {
                 </View>
               </View>
             </View>
+          </View>
+
+          {/* ----------------------------- */}
+          {/* 🌾 Cultivation Advisor Section */}
+          {/* ----------------------------- */}
+
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>
+              🌾 {language === "si" ? "වගා උපදෙස්" : "Cultivation Advisor"}
+            </Text>
+
+            {/* Calculate values */}
+            {(() => {
+              const varietyDurations: any = {
+                "Jet 999": 95,
+                "GT 709": 100,
+                "808": 90,
+                "Pacific 999": 95,
+                Unknown: 95,
+              };
+
+              const durationDays =
+                varietyDurations[formData?.seedVariety] ||
+                varietyDurations["Unknown"];
+              const durationWeeks = Math.round(durationDays / 7);
+
+              const plantingWeek = Number(formData?.week);
+              const harvestWeek = plantingWeek + durationWeeks;
+
+              const harvestDate = new Date();
+              harvestDate.setDate(harvestDate.getDate() + durationDays);
+              const harvestDateStr = harvestDate.toDateString();
+
+              const production = formData.expectedYield * formData.farmArea;
+              const revenue = production * predictedPrice;
+              const profit = revenue - formData.totalCost;
+
+              let signalColor = "#EF4444";
+              let signalText =
+                language === "si"
+                  ? "මෙම සතිය වගා කිරීමට සුදුසු නොවේ"
+                  : "Not suitable for cultivation this week";
+
+              if (profit > formData.totalCost * 0.5) {
+                signalColor = "#10B981";
+                signalText =
+                  language === "si"
+                    ? "මෙම සතිය වගා කිරීමට ඉතා හොඳයි"
+                    : "Excellent week for cultivation";
+              } else if (profit > 0) {
+                signalColor = "#F59E0B";
+                signalText =
+                  language === "si"
+                    ? "මධ්‍යම ලෙස ලාභදායී සතියක්"
+                    : "Moderately profitable week";
+              }
+
+              let weatherAlert =
+                language === "si"
+                  ? "කාලගුණය ස්ථාවරයි"
+                  : "Weather conditions are stable";
+
+              const wc = (weatherCondition || "").toLowerCase();
+
+              if (wc.includes("heavy rain")) {
+                weatherAlert =
+                  language === "si"
+                    ? "බර වැසි - දින 2–3ක් ප්‍රමාද කරන්න"
+                    : "Heavy rain — delay 2–3 days";
+              }
+              if (wc.includes("thunder")) {
+                weatherAlert =
+                  language === "si"
+                    ? "අකුණු සහිත වැසි - අද වගා නොකරන්න"
+                    : "Thunderstorm — avoid planting today";
+              }
+
+              return (
+                <>
+                  {/* Signal Card */}
+                  <View
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      borderLeftWidth: 5,
+                      borderLeftColor: signalColor,
+                      padding: 16,
+                      borderRadius: 12,
+                      marginBottom: 16,
+                      elevation: 3,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: signalColor,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {signalText}
+                    </Text>
+
+                    <Text style={{ color: "#374151", fontSize: 14 }}>
+                      {language === "si"
+                        ? `ප්රතිඵල: රු. ${profit.toFixed(0)} ලාභය`
+                        : `Profit: Rs. ${profit.toFixed(0)}`}
+                    </Text>
+                  </View>
+
+                  {/* Advisor Summary */}
+                  <View
+                    style={{
+                      backgroundColor: "#FFFFFF",
+                      padding: 18,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: "#D1FAE5",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <Text style={styles.detailItem}>
+                      {language === "si" ? "වගා සතිය" : "Planting Week"}:{" "}
+                      {plantingWeek}
+                    </Text>
+
+                    <Text style={styles.detailItem}>
+                      {language === "si" ? "අස්වැන්න සතිය" : "Harvest Week"}:{" "}
+                      {harvestWeek}
+                    </Text>
+
+                    <Text style={styles.detailItem}>
+                      {language === "si" ? "අස්වැන්න දිනය" : "Harvest Date"}:{" "}
+                      {harvestDateStr}
+                    </Text>
+
+                    <Text style={styles.detailItem}>
+                      {language === "si" ? "මුළු අස්වැන්න" : "Total Yield"}:{" "}
+                      {production.toFixed(0)} kg
+                    </Text>
+
+                    <Text style={styles.detailItem}>
+                      {language === "si"
+                        ? "වাতාවරණ අතුරුදහන්"
+                        : "Weather Alert"}
+                      : {weatherAlert}
+                    </Text>
+                  </View>
+                </>
+              );
+            })()}
           </View>
 
           {/* Action Buttons */}
@@ -1043,6 +1195,12 @@ const styles = StyleSheet.create({
     color: "#059669",
     fontSize: 16,
     fontWeight: "600",
+  },
+  detailItem: {
+    fontSize: 14,
+    color: "#374151",
+    marginBottom: 6,
+    fontWeight: "500",
   },
 });
 
