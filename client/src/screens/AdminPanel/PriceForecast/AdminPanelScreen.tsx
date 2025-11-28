@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Save,
   RefreshCw,
+  CheckCircle,
+  Calendar,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Platform } from "react-native";
@@ -41,38 +43,50 @@ const AdminPanelScreen = () => {
 
   const content = {
     si: {
-      title: "පරිපාලක පුවරුව",
-      subtitle: "මිල දත්ත කළමනාකරණය",
-      fuelPrice: "ඉන්ධන මිල (රු)",
-      importTax: "ආනයන බද්ද (%)",
-      farmGatePrice: "ගොවි මිල (රු/kg)",
+      title: "පරිපාලන මධ්‍යස්ථානය",
+      subtitle: "🌾 MaizeGenie මිල කළමනාකරණය",
+      welcome: "ස්වාගතයි",
+      description: "වත්මන් වෙළඳපොළ මිල සහ බද්ද යාවත්කාලීන කරන්න",
+      fuelPrice: "ඉන්ධන මිල",
+      fuelPriceUnit: "රුපියල් (ලීටරයකට)",
+      importTax: "ආනයන බද්ද",
+      importTaxUnit: "ප්‍රතිශතය (%)",
+      farmGatePrice: "ගොවි මිල",
+      farmGatePriceUnit: "රුපියල් (කිලෝග්‍රෑමයකට)",
       lastUpdated: "අවසන් යාවත්කාලීනය",
       save: "සුරකින්න",
       refresh: "නැවුම් කරන්න",
-      back: "ආපසු",
-      saveSuccess: "දත්ත සාර්ථකව සුරකින ලදී",
-      saveError: "දත්ත සුරැකීමේදී දෝෂයක්",
-      loadError: "දත්ත පූරණයේදී දෝෂයක්",
-      fillAll: "කරුණාකර සියලු තොරතුරු පුරවන්න",
+      back: "ආපසු යන්න",
+      saveSuccess: "දත්ත සාර්ථකව යාවත්කාලීන විය!",
+      saveError: "දත්ත සුරැකීමේදී දෝෂයක් ඇතිවිය",
+      loadError: "දත්ත පූරණයේදී දෝෂයක් ඇතිවිය",
+      fillAll: "කරුණාකර සියලු තොරතුරු නිවැරදිව පුරවන්න",
       loading: "පූරණය වෙමින්...",
       saving: "සුරකිමින්...",
+      noData: "දත්ත තවම නැත",
     },
     en: {
-      title: "Admin Panel",
-      subtitle: "Price Data Management",
-      fuelPrice: "Fuel Price (Rs)",
-      importTax: "Import Tax (%)",
-      farmGatePrice: "Farm Gate Price (Rs/kg)",
+      title: "Admin Dashboard",
+      subtitle: "🌾 MaizeGenie Price Management",
+      welcome: "Welcome",
+      description: "Update current market prices and taxes",
+      fuelPrice: "Fuel Price",
+      fuelPriceUnit: "Rupees (per liter)",
+      importTax: "Import Tax",
+      importTaxUnit: "Percentage (%)",
+      farmGatePrice: "Farm Gate Price",
+      farmGatePriceUnit: "Rupees (per kg)",
       lastUpdated: "Last Updated",
       save: "Save Changes",
       refresh: "Refresh Data",
-      back: "Back",
-      saveSuccess: "Data saved successfully",
-      saveError: "Error saving data",
-      loadError: "Error loading data",
-      fillAll: "Please fill all fields",
+      back: "Go Back",
+      saveSuccess: "Data updated successfully!",
+      saveError: "Error occurred while saving data",
+      loadError: "Error occurred while loading data",
+      fillAll: "Please fill all fields correctly",
       loading: "Loading...",
       saving: "Saving...",
+      noData: "No data available yet",
     },
   };
 
@@ -107,7 +121,7 @@ const AdminPanelScreen = () => {
     // Validation
     if (!fuelPrice || !importTax || !farmGatePrice) {
       Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si" ? "අවශ්‍යයි" : "Required",
         content[language].fillAll
       );
       return;
@@ -131,7 +145,7 @@ const AdminPanelScreen = () => {
 
       if (response.ok && data.success) {
         Alert.alert(
-          language === "si" ? "සාර්ථකයි" : "Success",
+          language === "si" ? "සාර්ථකයි ✓" : "Success ✓",
           content[language].saveSuccess
         );
         fetchCurrentData(); // Refresh data
@@ -153,26 +167,31 @@ const AdminPanelScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <ArrowLeft color="#047857" size={24} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <ArrowLeft color="#FFFFFF" size={22} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.langButton}
+            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
+          >
+            <Text style={styles.langText}>
+              {language === "si" ? "EN" : "සිං"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>
             {content[language].subtitle}
           </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
+          <Text style={styles.headerDescription}>
+            {content[language].description}
           </Text>
-        </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -187,110 +206,146 @@ const AdminPanelScreen = () => {
           </View>
         ) : (
           <>
-            {/* Last Updated Info */}
-            {lastUpdated && (
-              <View style={styles.infoCard}>
-                <Text style={styles.infoLabel}>
-                  {content[language].lastUpdated}
-                </Text>
-                <Text style={styles.infoValue}>
-                  {new Date(lastUpdated).toLocaleString(
-                    language === "si" ? "si-LK" : "en-US"
-                  )}
+            {/* Last Updated Banner */}
+            {lastUpdated ? (
+              <View style={styles.updateBanner}>
+                <View style={styles.updateIcon}>
+                  <Calendar color="#059669" size={20} />
+                </View>
+                <View style={styles.updateTextContainer}>
+                  <Text style={styles.updateLabel}>
+                    {content[language].lastUpdated}
+                  </Text>
+                  <Text style={styles.updateValue}>
+                    {new Date(lastUpdated).toLocaleString(
+                      language === "si" ? "si-LK" : "en-US",
+                      {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      }
+                    )}
+                  </Text>
+                </View>
+                <CheckCircle color="#059669" size={24} />
+              </View>
+            ) : (
+              <View style={[styles.updateBanner, styles.noDataBanner]}>
+                <Text style={styles.noDataText}>
+                  {content[language].noData}
                 </Text>
               </View>
             )}
 
-            {/* Fuel Price */}
-            <View style={styles.formCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.iconContainer}>
-                  <DollarSign color="#10B981" size={24} />
+            {/* Fuel Price Card */}
+            <View style={styles.inputCard}>
+              <View style={styles.cardLabelRow}>
+                <View style={styles.iconWrapper}>
+                  <DollarSign color="#10B981" size={22} />
                 </View>
-                <Text style={styles.cardTitle}>
-                  {content[language].fuelPrice}
-                </Text>
+                <View style={styles.labelContainer}>
+                  <Text style={styles.cardLabel}>
+                    {content[language].fuelPrice}
+                  </Text>
+                  <Text style={styles.cardSubLabel}>
+                    {content[language].fuelPriceUnit}
+                  </Text>
+                </View>
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="380.00"
-                value={fuelPrice}
-                onChangeText={setFuelPrice}
-                keyboardType="decimal-pad"
-                placeholderTextColor="#9CA3AF"
-              />
+              <View style={styles.inputWrapper}>
+                <Text style={styles.currencySymbol}>රු</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="380.00"
+                  value={fuelPrice}
+                  onChangeText={setFuelPrice}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
             </View>
 
-            {/* Import Tax */}
-            <View style={styles.formCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.iconContainer}>
-                  <Package color="#10B981" size={24} />
+            {/* Import Tax Card */}
+            <View style={styles.inputCard}>
+              <View style={styles.cardLabelRow}>
+                <View style={[styles.iconWrapper, styles.iconWrapperPurple]}>
+                  <Package color="#8B5CF6" size={22} />
                 </View>
-                <Text style={styles.cardTitle}>
-                  {content[language].importTax}
-                </Text>
+                <View style={styles.labelContainer}>
+                  <Text style={styles.cardLabel}>
+                    {content[language].importTax}
+                  </Text>
+                  <Text style={styles.cardSubLabel}>
+                    {content[language].importTaxUnit}
+                  </Text>
+                </View>
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="25"
-                value={importTax}
-                onChangeText={setImportTax}
-                keyboardType="decimal-pad"
-                placeholderTextColor="#9CA3AF"
-              />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="25"
+                  value={importTax}
+                  onChangeText={setImportTax}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor="#9CA3AF"
+                />
+                <Text style={styles.percentSymbol}>%</Text>
+              </View>
             </View>
 
-            {/* Farm Gate Price */}
-            <View style={styles.formCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.iconContainer}>
-                  <TrendingUp color="#10B981" size={24} />
+            {/* Farm Gate Price Card */}
+            <View style={styles.inputCard}>
+              <View style={styles.cardLabelRow}>
+                <View style={[styles.iconWrapper, styles.iconWrapperGreen]}>
+                  <TrendingUp color="#10B981" size={22} />
                 </View>
-                <Text style={styles.cardTitle}>
-                  {content[language].farmGatePrice}
-                </Text>
+                <View style={styles.labelContainer}>
+                  <Text style={styles.cardLabel}>
+                    {content[language].farmGatePrice}
+                  </Text>
+                  <Text style={styles.cardSubLabel}>
+                    {content[language].farmGatePriceUnit}
+                  </Text>
+                </View>
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="115.00"
-                value={farmGatePrice}
-                onChangeText={setFarmGatePrice}
-                keyboardType="decimal-pad"
-                placeholderTextColor="#9CA3AF"
-              />
+              <View style={styles.inputWrapper}>
+                <Text style={styles.currencySymbol}>රු</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="115.00"
+                  value={farmGatePrice}
+                  onChangeText={setFarmGatePrice}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
             </View>
 
             {/* Action Buttons */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={[styles.button, styles.refreshButton]}
+                style={styles.refreshButton}
                 onPress={fetchCurrentData}
                 disabled={loading}
               >
-                <RefreshCw color="#047857" size={22} />
+                <RefreshCw color="#6B7280" size={20} />
                 <Text style={styles.refreshButtonText}>
                   {content[language].refresh}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.button, styles.saveButton]}
+                style={styles.saveButton}
                 onPress={handleSave}
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color="#FFFFFF" size="small" />
                 ) : (
-                  <>
-                    <Save color="#FFFFFF" size={22} />
-                    <Text style={styles.saveButtonText}>
-                      {saving
-                        ? content[language].saving
-                        : content[language].save}
-                    </Text>
-                  </>
+                  <Save color="#FFFFFF" size={20} />
                 )}
+                <Text style={styles.saveButtonText}>
+                  {saving ? content[language].saving : content[language].save}
+                </Text>
               </TouchableOpacity>
             </View>
           </>
@@ -303,172 +358,244 @@ const AdminPanelScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#F9FAFB",
   },
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#10B981",
     paddingTop: 50,
-    paddingBottom: 16,
+    paddingBottom: 24,
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
+    marginBottom: 16,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F0FDF4",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1FAE5",
-  },
-  headerCenter: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  headerTitle: {
-    fontSize: 19,
-    fontWeight: "bold",
-    color: "#1F2937",
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 2,
   },
   langButton: {
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: "#10B981",
+    borderColor: "#FFFFFF",
   },
   langText: {
     color: "#10B981",
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "bold",
+  },
+  headerContent: {
+    marginTop: 8,
+  },
+  headerTitle: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 15,
+    color: "#FEF3C7",
+    marginBottom: 8,
+    fontWeight: "600",
+  },
+  headerDescription: {
+    fontSize: 13,
+    color: "#FDE68A",
+    lineHeight: 18,
   },
   scrollContainer: {
     flex: 1,
   },
   scrollContent: {
     padding: 20,
+    paddingTop: 24,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingVertical: 60,
+    paddingVertical: 80,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 14,
+    marginTop: 16,
+    fontSize: 15,
     color: "#6B7280",
+    fontWeight: "500",
   },
-  infoCard: {
-    backgroundColor: "#DBEAFE",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#93C5FD",
-  },
-  infoLabel: {
-    fontSize: 12,
-    color: "#1E40AF",
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1E3A8A",
-  },
-  formCard: {
-    backgroundColor: "#FFFFFF",
+  updateBanner: {
+    backgroundColor: "#D1FAE5",
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#D1FAE5",
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  cardHeader: {
+    padding: 16,
+    marginBottom: 24,
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#6EE7B7",
     gap: 12,
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F0FDF4",
+  noDataBanner: {
+    backgroundColor: "#FEF3C7",
+    borderColor: "#FCD34D",
+    justifyContent: "center",
+  },
+  updateIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
   },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#047857",
+  updateTextContainer: {
     flex: 1,
   },
-  input: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 2,
-    borderColor: "#D1FAE5",
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: "#1F2937",
+  updateLabel: {
+    fontSize: 11,
+    color: "#047857",
+    marginBottom: 2,
+    textTransform: "uppercase",
     fontWeight: "600",
   },
-  buttonContainer: {
-    marginTop: 20,
+  updateValue: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#065F46",
+  },
+  noDataText: {
+    fontSize: 14,
+    color: "#92400E",
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  inputCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
     gap: 12,
   },
-  button: {
+  iconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FEF3C7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  iconWrapperPurple: {
+    backgroundColor: "#EDE9FE",
+  },
+  iconWrapperGreen: {
+    backgroundColor: "#D1FAE5",
+  },
+  labelContainer: {
+    flex: 1,
+  },
+  cardLabel: {
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 2,
+  },
+  cardSubLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    overflow: "hidden",
+  },
+  currencySymbol: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#6B7280",
+    marginRight: 8,
+  },
+  percentSymbol: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#6B7280",
+    marginLeft: 8,
+  },
+  input: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1F2937",
+    paddingVertical: 16,
+  },
+  buttonContainer: {
+    marginTop: 8,
+    gap: 12,
+  },
+  refreshButton: {
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
-    paddingVertical: 18,
-    borderRadius: 14,
-  },
-  refreshButton: {
-    backgroundColor: "#F0FDF4",
+    paddingVertical: 16,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: "#10B981",
+    borderColor: "#E5E7EB",
   },
   refreshButtonText: {
-    color: "#047857",
+    color: "#4B5563",
     fontSize: 16,
     fontWeight: "bold",
   },
   saveButton: {
     backgroundColor: "#10B981",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 18,
+    borderRadius: 16,
     shadowColor: "#10B981",
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   saveButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "bold",
   },
 });
