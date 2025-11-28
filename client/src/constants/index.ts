@@ -8,6 +8,7 @@ export const ROUTES = {
     FERTILIZERADVISOR: "FertilizerAdvisor",
     PREDICTYIELD: "PredictYield",
     USERPROFILE: "UserProfile",
+    ADMINPANEL: "AdminPanel",
   },
 } as const;
 
