@@ -4,12 +4,14 @@ import PriceForecastLoadingScreen from '../screens/PriceForecast/PriceForecastLo
 import PriceForecastFormScreen from '../screens/PriceForecast/PriceForecastFormScreen';
 import PriceForecastScreen from '../screens/PriceForecast/PriceForecastScreen';
 import AdminPanelScreen from '../screens/AdminPanel/PriceForecast/AdminPanelScreen';
+import WeatherForecastScreen from '../screens/PriceForecast/WeatherForecastScreen';
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
   PriceForecastFormScreen: undefined;
   PriceForecastScreen: undefined;
    AdminPanelScreen: undefined;
+    WeatherForecastScreen: undefined;
 };
 
 const Stack = createStackNavigator<PriceForecastStackParamList>();
@@ -38,6 +40,11 @@ const PriceForecastStack = () => {
       <Stack.Screen
   name="AdminPanelScreen"
   component={AdminPanelScreen}
+  options={{ headerShown: false }}
+/>
+<Stack.Screen 
+  name="WeatherForecastScreen" 
+  component={WeatherForecastScreen}
   options={{ headerShown: false }}
 />
 
