@@ -1,13 +1,19 @@
+import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import EnhancedPredictYieldFormWizard from "../screens/PredictYield/EnhancedPredictYieldFormWizard";
+import { YieldFormProvider } from "../contexts/YieldFormContext";
+import { LocationFieldScreen } from "../screens/YieldPrediction/LocationFieldScreen";
+import { CropInformationScreen } from "../screens/YieldPrediction/CropInformationScreen";
+import { WeatherConditionScreen } from "../screens/YieldPrediction/WeatherConditionScreen";
 import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadingScreen";
 import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
 import { ROUTES } from "../constants";
 
 type PredictYieldStackParamList = {
     [ROUTES.TABS.PREDICTYIELD]: undefined;
+    LocationField: undefined;
+    CropInformation: undefined;
+    WeatherCondition: undefined;
     PredictYieldLoading: undefined;
-    PredictYieldFormWizard: undefined;
     PredictYieldScreen: undefined;
 };
 
@@ -15,10 +21,17 @@ const Stack = createNativeStackNavigator<PredictYieldStackParamList>();
 
 export default function PredictYieldStack() {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="PredictYieldFormWizard" component={EnhancedPredictYieldFormWizard} />
-            <Stack.Screen name="PredictYieldLoading" component={PredictYieldLoadingScreen} />
-            <Stack.Screen name="PredictYieldScreen" component={PredictYieldResultsScreen} />
-        </Stack.Navigator>
+        <YieldFormProvider>
+            <Stack.Navigator 
+                initialRouteName="LocationField"
+                screenOptions={{ headerShown: false }}
+            >
+                <Stack.Screen name="LocationField" component={LocationFieldScreen} />
+                <Stack.Screen name="CropInformation" component={CropInformationScreen} />
+                <Stack.Screen name="WeatherCondition" component={WeatherConditionScreen} />
+                <Stack.Screen name="PredictYieldLoading" component={PredictYieldLoadingScreen} />
+                <Stack.Screen name="PredictYieldScreen" component={PredictYieldResultsScreen} />
+            </Stack.Navigator>
+        </YieldFormProvider>
     );
 }
