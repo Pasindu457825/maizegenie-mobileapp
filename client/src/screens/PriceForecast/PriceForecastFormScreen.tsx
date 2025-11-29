@@ -35,6 +35,19 @@ import {
   Droplets,
   Wind,
 } from "lucide-react-native";
+// 🔥 NEW IMPORTS
+import {
+  saveFormData,
+  getFormData,
+  saveAutoData,
+  getAutoData,
+  saveLocationData,
+  getLocationData,
+  saveWeatherData,
+  getWeatherData,
+  savePriceData,
+  getPriceData,
+} from "../../utils/storage";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
@@ -230,6 +243,79 @@ const PriceForecastFormScreen = () => {
     fetchFestivalWeek();
   }, []);
 
+  useEffect(() => {
+    loadSavedData();
+  }, []);
+  // Auto-save form data whenever user types
+  useEffect(() => {
+    if (
+      seedVariety ||
+      expectedYield ||
+      farmArea ||
+      seedCost ||
+      fertilizerCost ||
+      labourCost
+    ) {
+      saveFormData({
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
+    }
+  }, [
+    seedVariety,
+    expectedYield,
+    farmArea,
+    seedCost,
+    fertilizerCost,
+    labourCost,
+    otherCosts,
+    hasStorage,
+  ]);
+
+  const [isLoadingSavedData, setIsLoadingSavedData] = useState(true);
+
+  const loadSavedData = async () => {
+    setIsLoadingSavedData(true);
+    try {
+      const savedForm = await getFormData();
+      const savedAuto = await getAutoData();
+      const savedPrice = await getPriceData();
+
+      if (savedForm) {
+        setSeedVariety(savedForm.seedVariety || "");
+        setExpectedYield(savedForm.expectedYield || "");
+        setFarmArea(savedForm.farmArea || "");
+        setSeedCost(savedForm.seedCost || "");
+        setFertilizerCost(savedForm.fertilizerCost || "");
+        setLabourCost(savedForm.labourCost || "");
+        setOtherCosts(savedForm.otherCosts || "");
+        setHasStorage(savedForm.hasStorage || false);
+      }
+
+      if (savedAuto) {
+        setYear(savedAuto.year);
+        setWeek(savedAuto.week);
+        setSeason(savedAuto.season);
+      }
+
+      if (savedPrice) {
+        setFuelPrice(savedPrice.fuelPrice);
+        setCornImportTax(savedPrice.cornImportTax);
+        setFarmGatePrice(savedPrice.farmGatePrice);
+      }
+    } catch (error) {
+      console.log("Load saved failed:", error);
+    } finally {
+      setIsLoadingSavedData(false);
+    }
+  };
+
   // 🔥 NEW: Fetch price data from API
   const fetchPriceDataFromAPI = async () => {
     try {
@@ -237,19 +323,26 @@ const PriceForecastFormScreen = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setFuelPrice(
+        const fuelPriceFormatted =
           language === "si"
             ? `රු. ${data.data.fuelPrice.toFixed(2)}`
-            : `Rs. ${data.data.fuelPrice.toFixed(2)}`
-        );
+            : `Rs. ${data.data.fuelPrice.toFixed(2)}`;
 
-        setCornImportTax(`${data.data.importTax}%`);
-
-        setFarmGatePrice(
+        const farmGatePriceFormatted =
           language === "si"
             ? `රු. ${data.data.farmGatePrice.toFixed(2)}/kg`
-            : `Rs. ${data.data.farmGatePrice.toFixed(2)}/kg`
-        );
+            : `Rs. ${data.data.farmGatePrice.toFixed(2)}/kg`;
+
+        setFuelPrice(fuelPriceFormatted);
+        setCornImportTax(`${data.data.importTax}%`);
+        setFarmGatePrice(farmGatePriceFormatted);
+
+        // 🔥 SAVE TO STORAGE
+        await savePriceData({
+          fuelPrice: fuelPriceFormatted,
+          cornImportTax: `${data.data.importTax}%`,
+          farmGatePrice: farmGatePriceFormatted,
+        });
       }
     } catch (error) {
       console.error("Error fetching price data:", error);
@@ -270,6 +363,11 @@ const PriceForecastFormScreen = () => {
       // Determine season based on date
       const currentSeason = determineSeason(now);
       setSeason(currentSeason);
+      await saveAutoData({
+        year: currentYear,
+        week: weekNumber,
+        season: currentSeason,
+      });
 
       // 🔥 UPDATED: Fetch price data from API
       await fetchPriceDataFromAPI();
@@ -291,6 +389,7 @@ const PriceForecastFormScreen = () => {
       setDistrict(content[language].locationDetecting);
     } else if (locationName && locationName !== "Loading...") {
       setDistrict(locationName);
+      saveLocationData({ district: locationName });
     } else {
       setDistrict(language === "si" ? "ස්ථානය නොමැත" : "Location unavailable");
     }
@@ -304,6 +403,9 @@ const PriceForecastFormScreen = () => {
         language
       );
       setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
+      saveWeatherData({
+        weather: `${Math.round(temperature)}°C • ${translatedCondition}`,
+      });
     } else {
       setWeather(
         language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
@@ -337,65 +439,122 @@ const PriceForecastFormScreen = () => {
       fetchPriceDataFromAPI();
     }, [])
   );
-  
+
   useEffect(() => {
     const now = new Date();
     const updatedSeason = determineSeason(now);
     setSeason(updatedSeason);
   }, [language]);
 
-  const handleSubmit = () => {
-    // Validation
+  // Add console.logs to see what's being saved
+ /* useEffect(() => {
     if (
-      !seedVariety ||
-      !expectedYield ||
-      !farmArea ||
-      !seedCost ||
-      !fertilizerCost ||
-      !labourCost
+      seedVariety ||
+      expectedYield ||
+      farmArea ||
+      seedCost ||
+      fertilizerCost ||
+      labourCost
     ) {
-      Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
-        language === "si"
-          ? "කරුණාකර සියලු අනිවාර්ය තොරතුරු පුරවන්න"
-          : "Please fill all required fields"
-      );
-      return;
+      console.log("💾 Saving form data:", {
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
+
+      saveFormData({
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
     }
+  }, [
+    seedVariety,
+    expectedYield,
+    farmArea,
+    seedCost,
+    fertilizerCost,
+    labourCost,
+    otherCosts,
+    hasStorage,
+  ]);*/
 
-    // Calculate production cost per kg
-    const totalCost =
-      parseFloat(seedCost) +
-      parseFloat(fertilizerCost) +
-      parseFloat(labourCost) +
-      (otherCosts ? parseFloat(otherCosts) : 0);
-    const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
-    const productionCostPerKg = totalCost / totalYield;
+  const handleSubmit = async () => {
+    try {
+      // Validation
+      if (
+        !seedVariety ||
+        !expectedYield ||
+        !farmArea ||
+        !seedCost ||
+        !fertilizerCost ||
+        !labourCost
+      ) {
+        Alert.alert(
+          language === "si" ? "දෝෂයකි" : "Error",
+          language === "si"
+            ? "කරුණාකර සියලු අනිවාර්ය තොරතුරු පුරවන්න"
+            : "Please fill all required fields"
+        );
+        return;
+      }
 
-    // Prepare forecast data
-    const forecastData = {
-      // Auto-captured
-      year,
-      week,
-      district,
-      season,
-      weather,
-      fuelPrice,
-      cornImportTax,
-      farmGatePrice,
-      isFestivalWeek,
-      // User inputs
-      seedVariety,
-      expectedYield: parseFloat(expectedYield),
-      farmArea: parseFloat(farmArea),
-      totalCost,
-      productionCostPerKg,
-      hasStorage,
-      language,
-    };
+      // Calculate production cost per kg
+      const totalCost =
+        parseFloat(seedCost) +
+        parseFloat(fertilizerCost) +
+        parseFloat(labourCost) +
+        (otherCosts ? parseFloat(otherCosts) : 0);
+      const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
+      const productionCostPerKg = totalCost / totalYield;
 
-    // Navigate to forecast screen with data
-    navigation.navigate("PriceForecastScreen", { data: forecastData } as any);
+      // Save Form Data Locally 🔥
+      await saveFormData({
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
+
+      // Prepare forecast data
+      const forecastData = {
+        year,
+        week,
+        district,
+        season,
+        weather,
+        fuelPrice,
+        cornImportTax,
+        farmGatePrice,
+        isFestivalWeek,
+        seedVariety,
+        expectedYield: parseFloat(expectedYield),
+        farmArea: parseFloat(farmArea),
+        totalCost,
+        productionCostPerKg,
+        hasStorage,
+        language,
+      };
+
+      // Navigate to next page
+      navigation.navigate("PriceForecastScreen", { data: forecastData });
+    } catch (error) {
+      console.log("Submit Error:", error);
+    }
   };
 
   const handleGoBack = () => {

@@ -10,7 +10,7 @@ import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
   PriceForecastFormScreen: undefined;
-  PriceForecastScreen: undefined;
+  PriceForecastScreen: { data: any };
   AdminPanelScreen: undefined;
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen:  { formData: any };

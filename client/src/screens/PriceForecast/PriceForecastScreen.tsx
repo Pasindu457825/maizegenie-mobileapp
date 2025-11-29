@@ -33,6 +33,13 @@ import {
   CloudLightning,
   CloudFog,
 } from "lucide-react-native";
+import {
+  getFormData,
+  getAutoData,
+  getPriceData,
+  getLocationData,
+  getWeatherData,
+} from "../../utils/storage";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 
 const { width } = Dimensions.get("window");
@@ -75,6 +82,44 @@ const PriceForecastScreen = () => {
     isLoading,
   } = useUniversalLocation(language);
 
+   const loadSavedDataFromStorage = async () => {
+    try {
+      const form = await getFormData();
+      const auto = await getAutoData();
+      const price = await getPriceData();
+      const loc = await getLocationData();
+      const wea = await getWeatherData();
+
+      setSavedForm(form);
+      setSavedAuto(auto);
+      setSavedPrice(price);
+      setSavedLocation(loc);
+      setSavedWeather(wea);
+    } catch (error) {
+      console.log("Storage load error:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedDataFromStorage();
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    generateForecast();
+  }, []);
+
+
   // State for district and weather display
   const [district, setDistrict] = useState("");
   const [weather, setWeather] = useState("");
@@ -87,6 +132,13 @@ const PriceForecastScreen = () => {
   const [priceChange, setPriceChange] = useState(15.2);
   const [confidenceScore, setConfidenceScore] = useState(87);
   const [recommendation, setRecommendation] = useState("sell_now");
+
+  
+  const [savedForm, setSavedForm] = useState<any>(null);
+  const [savedAuto, setSavedAuto] = useState<any>(null);
+  const [savedPrice, setSavedPrice] = useState<any>(null);
+  const [savedLocation, setSavedLocation] = useState<any>(null);
+  const [savedWeather, setSavedWeather] = useState<any>(null);
 
   const content = {
     si: {
@@ -409,6 +461,16 @@ const PriceForecastScreen = () => {
           </View>
         </View>
       </View>
+      <Text style={styles.savedTitle}>
+          {language === "si" ? "සුරැකි දත්ත" : "Saved Data"}
+        </Text>
+
+        <Text style={styles.savedItem}>🌾 Variety: {savedForm?.seedVariety}</Text>
+        <Text style={styles.savedItem}>📅 Year: {savedAuto?.year}</Text>
+        <Text style={styles.savedItem}>🗓 Week: {savedAuto?.week}</Text>
+        <Text style={styles.savedItem}>🛢 Fuel: {savedPrice?.fuelPrice}</Text>
+        <Text style={styles.savedItem}>📍 District: {savedLocation?.district}</Text>
+        <Text style={styles.savedItem}>☀ Weather: {savedWeather?.weather}</Text>
 
       <ScrollView
         style={styles.scrollContainer}
@@ -1201,6 +1263,13 @@ const styles = StyleSheet.create({
     color: "#374151",
     marginBottom: 6,
     fontWeight: "500",
+  },
+   savedItem: { fontSize: 12, color: "#374151", marginBottom: 4 },
+    savedTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 10,
   },
 });
 
