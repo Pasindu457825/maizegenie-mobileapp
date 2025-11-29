@@ -6,7 +6,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { MapPin, ChevronRight } from 'lucide-react-native';
+import { MapPin, ChevronRight, Plus, Minus } from 'lucide-react-native';
 import { useYieldForm } from '../../contexts/YieldFormContext';
 import { CustomDropdown } from '../../components/forms/CustomDropdown';
 import { CustomDatePicker } from '../../components/forms/CustomDatePicker';
@@ -16,7 +16,6 @@ import {
   DISTRICTS,
   SOIL_CONDITIONS,
   IRRIGATION_TYPES,
-  LAND_UNITS,
   District,
   SoilCondition,
   IrrigationType,
@@ -78,8 +77,10 @@ export const LocationFieldScreen: React.FC = () => {
       newErrors.irrigation_type = 'Please select irrigation type.';
     }
 
-    // Validate land size if entered
-    if (formData.land_size_value) {
+    // Validate land size (mandatory)
+    if (!formData.land_size_value || formData.land_size_value.trim() === '') {
+      newErrors.land_size_value = 'Please enter land size in acres.';
+    } else {
       const landSize = parseFloat(formData.land_size_value);
       if (isNaN(landSize) || landSize <= 0) {
         newErrors.land_size_value = 'Land size must be a positive number.';
@@ -167,8 +168,24 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Land Size */}
           <View style={styles.landSizeContainer}>
-            <Text style={styles.fieldLabel}>Land Size (Optional)</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.fieldLabel}>Land Size</Text>
+              <Text style={styles.mandatory}>*</Text>
+            </View>
             <View style={styles.landSizeRow}>
+              {/* Decrement Button */}
+              <TouchableOpacity 
+                style={styles.incrementButton}
+                onPress={() => {
+                  const current = parseFloat(formData.land_size_value) || 0;
+                  const newValue = Math.max(0, current - 0.5);
+                  updateFormData({ land_size_value: newValue.toString() });
+                }}
+              >
+                <Minus size={20} color="#16A34A" />
+              </TouchableOpacity>
+
+              {/* Value Input */}
               <TextInput
                 value={formData.land_size_value}
                 onChangeText={(text) => updateFormData({ land_size_value: text })}
@@ -177,20 +194,24 @@ export const LocationFieldScreen: React.FC = () => {
                 style={styles.landSizeInput}
                 mode="outlined"
                 error={!!errors.land_size_value}
+                dense
               />
+
+              {/* Increment Button */}
+              <TouchableOpacity 
+                style={styles.incrementButton}
+                onPress={() => {
+                  const current = parseFloat(formData.land_size_value) || 0;
+                  const newValue = current + 0.5;
+                  updateFormData({ land_size_value: newValue.toString() });
+                }}
+              >
+                <Plus size={20} color="#16A34A" />
+              </TouchableOpacity>
               
-              <View style={styles.unitPicker}>
-                <CustomDropdown
-                  label=""
-                  value={formData.land_size_unit}
-                  options={LAND_UNITS}
-                  onChange={(unit) => {
-                    // Only update if a valid unit is selected
-                    if (unit) {
-                      updateFormData({ land_size_unit: unit });
-                    }
-                  }}
-                />
+              {/* Fixed Unit Label */}
+              <View style={styles.unitLabel}>
+                <Text style={styles.unitText}>Acres</Text>
               </View>
             </View>
             {errors.land_size_value && (
@@ -309,22 +330,55 @@ const styles = StyleSheet.create({
   landSizeContainer: {
     marginBottom: 20,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   fieldLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 8,
+  },
+  mandatory: {
+    fontSize: 16,
+    color: '#EF4444',
+    marginLeft: 4,
   },
   landSizeRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  incrementButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#16A34A',
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   landSizeInput: {
-    flex: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  unitPicker: {
     flex: 1,
+    height: 40,
+    backgroundColor: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  unitLabel: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  unitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   errorText: {
     fontSize: 14,

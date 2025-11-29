@@ -146,8 +146,8 @@ export interface YieldPredictionRequest {
   gps_lng: number | null;
   season: Season;
   planting_date: string; // ISO date string
-  land_size_value: number | null;
-  land_size_unit: LandUnit | null;
+  land_size_value: number; // Mandatory field
+  land_size_unit: 'Acres'; // Fixed unit - always Acres
   soil_condition: SoilCondition;
   irrigation_type: IrrigationType;
   variety: MaizeVariety;
