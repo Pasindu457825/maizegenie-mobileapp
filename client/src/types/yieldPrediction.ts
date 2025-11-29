@@ -156,24 +156,25 @@ export interface YieldPredictionRequest {
 
 /**
  * API Response for Yield Prediction
- * (Structure to be finalized when backend is implemented)
+ * Matches backend response format from /api/yield/predict
  */
 export interface YieldPredictionResponse {
-  prediction_id: string;
-  predicted_yield: number;
-  unit: string;
-  confidence_score: number;
+  yield_prediction_t_ha: number;
+  confidence: 'High' | 'Medium' | 'Low';
+  harvest_window: {
+    start: string;
+    end: string;
+    target: string;
+  };
+  calendar_event: {
+    title: string;
+    date: string;
+  };
   factors: {
     name: string;
     impact: 'High' | 'Medium' | 'Low';
     value: number;
   }[];
-  recommendations: {
-    title: string;
-    description: string;
-    priority: 'High' | 'Medium' | 'Low';
-  }[];
-  created_at: string;
 }
 
 // ==================== Utility Types ====================

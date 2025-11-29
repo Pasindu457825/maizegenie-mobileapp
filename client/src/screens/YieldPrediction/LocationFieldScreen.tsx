@@ -55,6 +55,10 @@ export const LocationFieldScreen: React.FC = () => {
       newErrors.district = 'Please select your district.';
     }
 
+    if (!formData.location) {
+      newErrors.location = 'Please select your location or use GPS.';
+    }
+
     if (!formData.planting_date) {
       newErrors.planting_date = 'Please enter a valid planting date.';
     } else {
