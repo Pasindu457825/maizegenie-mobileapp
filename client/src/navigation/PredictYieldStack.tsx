@@ -7,14 +7,21 @@ import { WeatherConditionScreen } from "../screens/YieldPrediction/WeatherCondit
 import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadingScreen";
 import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
 import { ROUTES } from "../constants";
+import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from "../types/yieldPrediction";
 
 type PredictYieldStackParamList = {
     [ROUTES.TABS.PREDICTYIELD]: undefined;
     LocationField: undefined;
     CropInformation: undefined;
     WeatherCondition: undefined;
-    PredictYieldLoading: undefined;
-    PredictYieldScreen: undefined;
+    PredictYieldLoading: {
+        payload: YieldPredictionRequest;
+        formData: YieldPredictionFormData;
+    };
+    PredictYieldScreen: {
+        result: YieldPredictionResponse;
+        formData: YieldPredictionFormData;
+    };
 };
 
 const Stack = createNativeStackNavigator<PredictYieldStackParamList>();

@@ -107,29 +107,12 @@ export const WeatherConditionScreen: React.FC = () => {
       
       console.log('Yield Prediction Payload:', JSON.stringify(payload, null, 2));
 
-      // TODO: Replace with actual API call
-      // const response = await apiClient.post('/yield-prediction', payload);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      Alert.alert(
-        'Success',
-        'Yield prediction request submitted successfully!',
-        [
-          {
-            text: 'View Results',
-            onPress: () => {
-              // TODO: Navigate to results screen with response data
-              // navigation.navigate('YieldResults', { data: response.data });
-              
-              // For now, reset form and go back to start
-              resetForm();
-              navigation.navigate('LocationField' as never);
-            },
-          },
-        ]
-      );
+      // Navigate to loading screen with the payload
+      // The loading screen will handle the API call and show results
+      (navigation as any).navigate('PredictYieldLoading', { 
+        payload,
+        formData 
+      });
 
     } catch (error) {
       console.error('Submission error:', error);
