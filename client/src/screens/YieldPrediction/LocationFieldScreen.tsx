@@ -1,0 +1,360 @@
+/**
+ * Screen A: Location & Field Information
+ * First screen of yield prediction flow
+ */
+
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { MapPin, ChevronRight } from 'lucide-react-native';
+import { useYieldForm } from '../../contexts/YieldFormContext';
+import { CustomDropdown } from '../../components/forms/CustomDropdown';
+import { CustomDatePicker } from '../../components/forms/CustomDatePicker';
+import { CustomRadioGroup } from '../../components/forms/CustomRadioGroup';
+import { LocationPicker } from '../../components/forms/LocationPicker';
+import {
+  DISTRICTS,
+  SOIL_CONDITIONS,
+  IRRIGATION_TYPES,
+  LAND_UNITS,
+  District,
+  SoilCondition,
+  IrrigationType,
+  Season,
+} from '../../types/yieldPrediction';
+import { TextInput } from 'react-native-paper';
+
+export const LocationFieldScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const { formData, updateFormData, errors, setErrors } = useYieldForm();
+
+  // Auto-detect season from planting date
+  useEffect(() => {
+    if (formData.planting_date) {
+      const month = formData.planting_date.getMonth() + 1; // 1-12
+      
+      // Maha: Sep-Jan (months 9,10,11,12,1)
+      // Yala: Apr-Aug (months 4,5,6,7,8)
+      let detectedSeason: Season | '' = '';
+      
+      if ([9, 10, 11, 12, 1].includes(month)) {
+        detectedSeason = 'Maha';
+      } else if ([4, 5, 6, 7, 8].includes(month)) {
+        detectedSeason = 'Yala';
+      }
+      
+      if (detectedSeason && detectedSeason !== formData.season) {
+        updateFormData({ season: detectedSeason });
+      }
+    }
+  }, [formData.planting_date]);
+
+  const validateScreen = (): boolean => {
+    const newErrors: any = {};
+
+    if (!formData.district) {
+      newErrors.district = 'Please select your district.';
+    }
+
+    if (!formData.planting_date) {
+      newErrors.planting_date = 'Please enter a valid planting date.';
+    } else {
+      const today = new Date();
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+      if (formData.planting_date > today) {
+        newErrors.planting_date = 'Planting date cannot be in the future.';
+      } else if (formData.planting_date < sixMonthsAgo) {
+        newErrors.planting_date = 'Planting date cannot be older than 6 months.';
+      }
+    }
+
+    if (!formData.soil_condition) {
+      newErrors.soil_condition = 'Select soil condition based on your field.';
+    }
+
+    if (!formData.irrigation_type) {
+      newErrors.irrigation_type = 'Please select irrigation type.';
+    }
+
+    // Validate land size if entered
+    if (formData.land_size_value) {
+      const landSize = parseFloat(formData.land_size_value);
+      if (isNaN(landSize) || landSize <= 0) {
+        newErrors.land_size_value = 'Land size must be a positive number.';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateScreen()) {
+      navigation.navigate('CropInformation' as never);
+    }
+  };
+
+  // Get min/max dates for planting date
+  const today = new Date();
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerIcon}>
+          <MapPin size={28} color="#16A34A" />
+        </View>
+        <View>
+          <Text style={styles.headerTitle}>Location & Field</Text>
+          <Text style={styles.headerSubtitle}>Step 1 of 3</Text>
+        </View>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.card}>
+          {/* District */}
+          <CustomDropdown
+            label="District"
+            value={formData.district}
+            options={DISTRICTS}
+            onChange={(value) => updateFormData({ district: value as District, location: '' })}
+            error={errors.district}
+            mandatory
+          />
+
+          {/* Location Picker with GPS */}
+          <LocationPicker
+            district={formData.district}
+            selectedLocation={formData.location}
+            gpsEnabled={formData.gps_enabled}
+            gpsLat={formData.gps_lat}
+            gpsLng={formData.gps_lng}
+            onLocationChange={(location) => updateFormData({ location })}
+            onGPSToggle={(enabled, lat, lng) => 
+              updateFormData({ gps_enabled: enabled, gps_lat: lat, gps_lng: lng })
+            }
+            error={errors.location}
+          />
+
+          {/* Planting Date */}
+          <CustomDatePicker
+            label="Planting Date"
+            value={formData.planting_date}
+            onChange={(date) => updateFormData({ planting_date: date })}
+            error={errors.planting_date}
+            mandatory
+            minimumDate={sixMonthsAgo}
+            maximumDate={today}
+          />
+
+          {/* Season (Auto-detected) */}
+          <View style={styles.readOnlyField}>
+            <Text style={styles.readOnlyLabel}>Season (Auto-detected)</Text>
+            <View style={styles.seasonBadge}>
+              <Text style={styles.seasonText}>
+                {formData.season || 'Select planting date first'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Land Size */}
+          <View style={styles.landSizeContainer}>
+            <Text style={styles.fieldLabel}>Land Size (Optional)</Text>
+            <View style={styles.landSizeRow}>
+              <TextInput
+                value={formData.land_size_value}
+                onChangeText={(text) => updateFormData({ land_size_value: text })}
+                keyboardType="decimal-pad"
+                placeholder="0.0"
+                style={styles.landSizeInput}
+                mode="outlined"
+                error={!!errors.land_size_value}
+              />
+              
+              <View style={styles.unitPicker}>
+                <CustomDropdown
+                  label=""
+                  value={formData.land_size_unit}
+                  options={LAND_UNITS}
+                  onChange={(unit) => {
+                    // Only update if a valid unit is selected
+                    if (unit) {
+                      updateFormData({ land_size_unit: unit });
+                    }
+                  }}
+                />
+              </View>
+            </View>
+            {errors.land_size_value && (
+              <Text style={styles.errorText}>{errors.land_size_value}</Text>
+            )}
+          </View>
+
+          {/* Soil Condition */}
+          <CustomDropdown
+            label="Soil Condition"
+            value={formData.soil_condition}
+            options={SOIL_CONDITIONS}
+            onChange={(value) => updateFormData({ soil_condition: value as SoilCondition })}
+            error={errors.soil_condition}
+            mandatory
+          />
+
+          {/* Irrigation Type */}
+          <CustomRadioGroup
+            label="Irrigation Type"
+            value={formData.irrigation_type}
+            options={[
+              { value: 'Rainfed', label: 'Rainfed', description: 'Depends only on rainfall' },
+              { value: 'Irrigated', label: 'Irrigated', description: 'Has irrigation system' },
+            ]}
+            onChange={(value) => updateFormData({ irrigation_type: value as IrrigationType })}
+            error={errors.irrigation_type}
+            mandatory
+          />
+        </View>
+      </ScrollView>
+
+      {/* Next Button */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+          <Text style={styles.nextButtonText}>Next</Text>
+          <ChevronRight size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    gap: 12,
+  },
+  headerIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  readOnlyField: {
+    marginBottom: 20,
+  },
+  readOnlyLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  seasonBadge: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#16A34A',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  seasonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#16A34A',
+    textAlign: 'center',
+  },
+  landSizeContainer: {
+    marginBottom: 20,
+  },
+  fieldLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  landSizeRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  landSizeInput: {
+    flex: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  unitPicker: {
+    flex: 1,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#EF4444',
+    marginTop: 6,
+    paddingHorizontal: 4,
+  },
+  footer: {
+    padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  nextButton: {
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: '#16A34A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  nextButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+});
