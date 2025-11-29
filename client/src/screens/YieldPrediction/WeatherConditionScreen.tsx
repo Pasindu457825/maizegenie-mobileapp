@@ -86,8 +86,8 @@ export const WeatherConditionScreen: React.FC = () => {
       gps_lng: formData.gps_lng,
       season: formData.season as any,
       planting_date: formData.planting_date?.toISOString().split('T')[0] || '',
-      land_size_value: formData.land_size_value ? parseFloat(formData.land_size_value) : null,
-      land_size_unit: formData.land_size_value ? formData.land_size_unit : null,
+      land_size_value: parseFloat(formData.land_size_value),
+      land_size_unit: 'Acres', // Fixed unit - always Acres
       soil_condition: formData.soil_condition as any,
       irrigation_type: formData.irrigation_type as any,
       variety: formData.variety as any,
@@ -220,6 +220,12 @@ export const WeatherConditionScreen: React.FC = () => {
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Season:</Text>
               <Text style={styles.summaryValue}>{formData.season || '-'}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Land Size:</Text>
+              <Text style={styles.summaryValue}>
+                {formData.land_size_value ? `${formData.land_size_value} Acres` : '-'}
+              </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Variety:</Text>
