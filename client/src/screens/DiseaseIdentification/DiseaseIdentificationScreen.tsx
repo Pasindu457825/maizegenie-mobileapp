@@ -88,16 +88,16 @@ const PestIdentificationScreen = () => {
 
   const content = {
     si: {
-      title: "🐛 පළිබෝධ හඳුනාගැනීම",
+      title: "🍃 කොළ රෝග හඳුනාගැනීම",
       subtitle: "ස්මාර්ට් ගොවිතැන",
-      headerTitle: "පළිබෝධ හඳුනාගැනීම",
-      headerSubtitle: "ඡායාරූපයකින් පළිබෝධ හඳුනා ගන්න",
+      headerTitle: "කොළ රෝග හඳුනාගැනීම",
+      headerSubtitle: "ඡායාරූපයකින් කොළ රෝග හඳුනා ගන්න",
       cameraOption: "කැමරාව භාවිතා කරන්න",
       uploadOption: "ඡායාරූපයක් උඩුගත කරන්න",
-      detectButton: "පළිබෝධ හඳුනා ගන්න",
+      detectButton: "රෝග හඳුනා ගන්න",
       analyzing: "රූපය විශ්ලේෂණය කරමින්...",
-      resultTitle: "හඳුනාගත් පළිබෝධ",
-      noPests: "පළිබෝධ හමු නොවීය! 🎉",
+      resultTitle: "හඳුනාගත් රෝග",
+      noPests: "රෝග හමු නොවීය! 🎉",
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
@@ -107,16 +107,16 @@ const PestIdentificationScreen = () => {
       serverError: "සේවාදායකයට සම්බන්ධ විය නොහැක",
     },
     en: {
-      title: "🐛 Pest Identification",
+      title: "🍃 Leaf Disease Detection",
       subtitle: "Smart Farming",
-      headerTitle: "Pest Identification",
-      headerSubtitle: "Identify pests from photos",
+      headerTitle: "Leaf Disease Detection",
+      headerSubtitle: "Identify leaf diseases from photos",
       cameraOption: "Use Camera",
       uploadOption: "Upload Photo",
-      detectButton: "Detect Pest",
+      detectButton: "Detect Disease",
       analyzing: "Analyzing image...",
-      resultTitle: "Detected Pests",
-      noPests: "No pests detected! 🎉",
+      resultTitle: "Detected Diseases",
+      noPests: "No diseases detected! 🎉",
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
       orText: "OR",
@@ -318,9 +318,9 @@ const PestIdentificationScreen = () => {
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return "#EF4444"; // High - Red
-    if (confidence >= 0.6) return "#F59E0B"; // Medium - Amber
-    return "#10B981"; // Low - Green
+    if (confidence >= 0.8) return "#1E88E5"; // High - Blue
+    if (confidence >= 0.6) return "#42A5F5"; // Medium - Light Blue
+    return "#90CAF9"; // Low - Lightest Blue
   };
 
   const getConfidenceLevel = (confidence: number) => {
@@ -343,11 +343,11 @@ const PestIdentificationScreen = () => {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.headerIconButton}>
-            <Bell color="#DC2626" size={20} />
+            <Bell color="#1565C0" size={20} />
             <View style={styles.notificationDot} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton}>
-            <CloudSun color="#DC2626" size={20} />
+            <CloudSun color="#1565C0" size={20} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -366,11 +366,11 @@ const PestIdentificationScreen = () => {
       <View style={styles.subHeader}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <Leaf color="#DC2626" size={20} />
+            <Leaf color="#1565C0" size={20} />
           </View>
           <View>
             <View style={styles.locationRow}>
-              <MapPin color="#991B1B" size={14} />
+              <MapPin color="#0D47A1" size={14} />
               <Text style={styles.locationText}>
                 {language === "si" ? "මොණරාගල" : "Monaragala"}
               </Text>
@@ -390,7 +390,7 @@ const PestIdentificationScreen = () => {
           { transform: [{ translateY: leafTranslate }] },
         ]}
       >
-        <Bug color="#DC2626" size={44} opacity={0.2} />
+        <Leaf color="#42A5F5" size={44} opacity={0.2} />
       </Animated.View>
       <Animated.View
         pointerEvents="none"
@@ -399,7 +399,7 @@ const PestIdentificationScreen = () => {
           { transform: [{ translateY: leafTranslate }] },
         ]}
       >
-        <Leaf color="#16A34A" size={38} opacity={0.2} />
+        <Leaf color="#90CAF9" size={38} opacity={0.2} />
       </Animated.View>
 
       {/* Main Content */}
@@ -420,7 +420,7 @@ const PestIdentificationScreen = () => {
           {/* Animated Icon */}
           <View style={styles.iconCircle}>
             <View style={styles.iconInner}>
-              <Text style={styles.pestEmoji}>🐛</Text>
+              <Text style={styles.pestEmoji}>🍃</Text>
             </View>
             <View style={styles.pulseRing} />
           </View>
@@ -475,7 +475,7 @@ const PestIdentificationScreen = () => {
                 onPress={pickImageFromGallery}
                 activeOpacity={0.85}
               >
-                <Upload color="#DC2626" size={24} />
+                <Upload color="#1565C0" size={24} />
                 <Text style={styles.actionButtonTextSecondary}>
                   {content[language].uploadOption}
                 </Text>
@@ -491,7 +491,7 @@ const PestIdentificationScreen = () => {
               activeOpacity={0.85}
               disabled={loading}
             >
-              <Bug color="#FFFFFF" size={24} />
+              <Leaf color="#FFFFFF" size={24} />
               <Text style={styles.detectButtonText}>
                 {content[language].detectButton}
               </Text>
@@ -501,7 +501,7 @@ const PestIdentificationScreen = () => {
           {/* Loading State */}
           {loading && (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#DC2626" />
+              <ActivityIndicator size="large" color="#1565C0" />
               <Text style={styles.loadingText}>
                 {content[language].analyzing}
               </Text>
@@ -516,7 +516,7 @@ const PestIdentificationScreen = () => {
           {/* Error State */}
           {error && !result && (
             <View style={styles.errorContainer}>
-              <AlertCircle color="#DC2626" size={32} />
+              <AlertCircle color="#1565C0" size={32} />
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -538,7 +538,7 @@ const PestIdentificationScreen = () => {
               ]}
             >
               <View style={styles.resultHeader}>
-                <CheckCircle color="#16A34A" size={28} />
+                <CheckCircle color="#4CAF50" size={28} />
                 <Text style={styles.resultTitle}>
                   {content[language].resultTitle}
                 </Text>
@@ -553,7 +553,7 @@ const PestIdentificationScreen = () => {
                   style={styles.resultItem}
                 >
                   <View style={styles.resultItemLeft}>
-                    <Bug color="#DC2626" size={20} />
+                    <Leaf color="#1565C0" size={20} />
                     <View style={styles.resultTextContainer}>
                       <Text style={styles.resultName}>
                         {prediction.class_name}
@@ -595,14 +595,14 @@ const PestIdentificationScreen = () => {
           {/* No Pests Found */}
           {result && result.length === 0 && (
             <View style={styles.noPestsContainer}>
-              <CheckCircle color="#16A34A" size={48} />
+              <CheckCircle color="#4CAF50" size={48} />
               <Text style={styles.noPestsText}>
                 {content[language].noPests}
               </Text>
               <Text style={styles.noPestsSubtext}>
                 {language === "si"
-                  ? "ඔබේ බෝගය පළිබෝධ තර්ජනයකින් තොරව සෞඛ්‍ය සම්පන්නයි!"
-                  : "Your crop is healthy and free from pest threats!"}
+                  ? "ඔබේ බෝගය රෝග තර්ජනයකින් තොරව සෞඛ්‍ය සම්පන්නයි!"
+                  : "Your crop is healthy and free from disease threats!"}
               </Text>
               <TouchableOpacity
                 style={styles.retryButton}
@@ -623,7 +623,7 @@ const PestIdentificationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#F8FBFE",
     position: "relative",
   },
   scrollContainer: {
@@ -675,11 +675,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#E3F2FD",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1.5,
-    borderColor: "#FECACA",
+    borderColor: "#BBDEFB",
     position: "relative",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#EF4444",
+    backgroundColor: "#1565C0",
     borderWidth: 1.5,
     borderColor: "#FFFFFF",
   },
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: "#DC2626",
+    borderColor: "#1565C0",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -712,7 +712,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   langText: {
-    color: "#DC2626",
+    color: "#1565C0",
     fontSize: 14,
     fontWeight: "bold",
   },
@@ -733,11 +733,11 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FECACA",
+    backgroundColor: "#E3F2FD",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#DC2626",
+    borderColor: "#1565C0",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -753,12 +753,12 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#991B1B",
+    color: "#0D47A1",
   },
   apiText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#16A34A",
+    color: "#4CAF50",
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
   },
   floatingLeaf1: {
@@ -784,11 +784,11 @@ const styles = StyleSheet.create({
     width: 130,
     height: 130,
     borderRadius: 65,
-    backgroundColor: "#DC2626",
+    backgroundColor: "#1565C0",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
-    shadowColor: "#DC2626",
+    shadowColor: "#1565C0",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.4,
     shadowRadius: 20,
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
     width: 106,
     height: 106,
     borderRadius: 53,
-    backgroundColor: "#B91C1C",
+    backgroundColor: "#0D47A1",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -817,12 +817,12 @@ const styles = StyleSheet.create({
     height: 150,
     borderRadius: 75,
     borderWidth: 3,
-    borderColor: "#DC2626",
+    borderColor: "#1565C0",
     opacity: 0.3,
   },
   subtitle: {
     fontSize: 16,
-    color: "#B91C1C",
+    color: "#0D47A1",
     fontWeight: "700",
     marginBottom: 8,
     letterSpacing: 1,
@@ -831,10 +831,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: "800",
-    color: "#DC2626",
+    color: "#1565C0",
     marginBottom: 30,
     textAlign: "center",
-    textShadowColor: "rgba(220, 38, 38, 0.2)",
+    textShadowColor: "rgba(21, 101, 192, 0.2)",
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 3,
   },
@@ -848,8 +848,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     position: "relative",
     borderWidth: 4,
-    borderColor: "#DC2626",
-    shadowColor: "#DC2626",
+    borderColor: "#1565C0",
+    shadowColor: "#1565C0",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(220, 38, 38, 0.9)",
+    backgroundColor: "rgba(21, 101, 192, 0.9)",
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -886,13 +886,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#DC2626",
+    backgroundColor: "#1565C0",
     paddingHorizontal: 32,
     paddingVertical: 18,
     borderRadius: 50,
     width: "100%",
     maxWidth: 280,
-    shadowColor: "#DC2626",
+    shadowColor: "#1565C0",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 15,
@@ -913,15 +913,15 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 2,
-    backgroundColor: "#FECACA",
+    backgroundColor: "#BBDEFB",
     borderRadius: 1,
   },
   orText: {
     fontSize: 14,
-    color: "#991B1B",
+    color: "#0D47A1",
     fontWeight: "700",
     marginHorizontal: 16,
-    backgroundColor: "#FEF2F2",
+    backgroundColor: "#F8FBFE",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -938,15 +938,15 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 280,
     borderWidth: 3,
-    borderColor: "#DC2626",
-    shadowColor: "#DC2626",
+    borderColor: "#1565C0",
+    shadowColor: "#1565C0",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 8,
   },
   actionButtonTextSecondary: {
-    color: "#DC2626",
+    color: "#1565C0",
     fontSize: 18,
     fontWeight: "700",
   },
@@ -955,13 +955,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
-    backgroundColor: "#16A34A",
+    backgroundColor: "#1565C0",
     paddingHorizontal: 36,
     paddingVertical: 18,
     borderRadius: 50,
     width: "100%",
     maxWidth: 280,
-    shadowColor: "#16A34A",
+    shadowColor: "#1565C0",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.4,
     shadowRadius: 15,
@@ -982,18 +982,18 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 18,
-    color: "#991B1B",
+    color: "#0D47A1",
     fontWeight: "700",
     textAlign: "center",
   },
   loadingSubtext: {
     fontSize: 14,
-    color: "#B45309",
+    color: "#1565C0",
     fontWeight: "500",
     textAlign: "center",
   },
   errorContainer: {
-    backgroundColor: "#FEE2E2",
+    backgroundColor: "#E3F2FD",
     padding: 24,
     borderRadius: 20,
     alignItems: "center",
@@ -1002,7 +1002,7 @@ const styles = StyleSheet.create({
     maxWidth: 320,
     marginTop: 20,
     borderWidth: 3,
-    borderColor: "#FCA5A5",
+    borderColor: "#BBDEFB",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -1011,13 +1011,13 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: "#991B1B",
+    color: "#0D47A1",
     textAlign: "center",
     fontWeight: "600",
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: "#DC2626",
+    backgroundColor: "#1565C0",
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 25,
@@ -1041,8 +1041,8 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     marginTop: 20,
     borderWidth: 3,
-    borderColor: "#D1FAE5",
-    shadowColor: "#16A34A",
+    borderColor: "#E3F2FD",
+    shadowColor: "#1565C0",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
@@ -1054,17 +1054,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 16,
     borderBottomWidth: 3,
-    borderBottomColor: "#D1FAE5",
+    borderBottomColor: "#E3F2FD",
   },
   resultTitle: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#166534",
+    color: "#0D47A1",
     textAlign: "center",
   },
   successSubtitle: {
     fontSize: 14,
-    color: "#059669",
+    color: "#1565C0",
     fontWeight: "600",
     textAlign: "center",
   },
@@ -1074,11 +1074,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#F8FBFE",
     borderRadius: 16,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: "#F1F5F9",
+    borderColor: "#E3F2FD",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -1123,7 +1123,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   tryAgainButton: {
-    backgroundColor: "#DC2626",
+    backgroundColor: "#1565C0",
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: "center",
@@ -1150,7 +1150,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderWidth: 3,
     borderColor: "#BBF7D0",
-    shadowColor: "#16A34A",
+    shadowColor: "#4CAF50",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.2,
     shadowRadius: 15,
