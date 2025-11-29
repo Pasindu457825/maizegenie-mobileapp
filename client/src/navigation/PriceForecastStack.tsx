@@ -7,8 +7,8 @@ import { ROUTES } from "../constants";
 
 type PriceStackParamList = {
     PriceForecastLoading: undefined;
-    PriceForecastFormScreen: undefined;
-    PriceForecastResults: undefined;
+    PriceForecastForm: undefined;
+    PriceForecastScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<PriceStackParamList>();
@@ -17,8 +17,8 @@ export default function PriceForecastStack() {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="PriceForecastLoading" component={PriceForecastLoadingScreen} />
-            <Stack.Screen name="PriceForecastFormScreen" component={PriceForecastFormScreen} />
-            <Stack.Screen name="PriceForecastResults" component={PriceForecastScreen} />
+            <Stack.Screen name="PriceForecastForm" component={PriceForecastFormScreen} />
+            <Stack.Screen name="PriceForecastScreen" component={PriceForecastScreen} />
         </Stack.Navigator>
     );
 }
