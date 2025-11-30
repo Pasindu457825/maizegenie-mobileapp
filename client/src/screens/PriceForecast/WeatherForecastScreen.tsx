@@ -1,5 +1,6 @@
 // client/src/screens/PriceForecast/WeatherForecastScreen.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+
 import {
   View,
   Text,
@@ -7,9 +8,9 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Dimensions,
-  Animated,
   RefreshControl,
+  Animated,
+  Dimensions,
 } from "react-native";
 import {
   Cloud,
@@ -23,15 +24,62 @@ import {
   RefreshCw,
   Droplets,
   Wind,
-  Eye,
   AlertCircle,
+  CloudDrizzle,
+  Sprout,
+  AlertTriangle,
   CheckCircle,
+  Info,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import useUniversalLocation from "../../utils/useUniversalLocation";
-//import { LinearGradient } from "expo-linear-gradient"; // Optional: install if needed
+import { LineChart, BarChart } from "react-native-chart-kit";
+import { useFocusEffect } from "@react-navigation/native";
 
-const { width } = Dimensions.get("window");
+const getTranslatedLocation = (rawName: string | null, lang: "si" | "en") => {
+  if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+
+  if (lang === "en") return rawName;
+
+  let enName = rawName.trim();
+
+  enName = enName
+    .replace(/District/i, "")
+    .replace(/Province/i, "")
+    .trim();
+
+  const districtMap: Record<string, string> = {
+    Colombo: "කොළඹ",
+    Gampaha: "ගම්පහ",
+    Kalutara: "කළුතර",
+    Kandy: "මහනුවර",
+    Matale: "මාතලේ",
+    "Nuwara Eliya": "නුවර එලිය",
+    Galle: "ගාල්ල",
+    Matara: "මාතර",
+    Hambantota: "හම්බන්තොට",
+    Jaffna: "යාපනය",
+    Kilinochchi: "කිලිනොච්චි",
+    Mannar: "මන්නාරම",
+    Vavuniya: "වවුනියාව",
+    Mullaitivu: "මුලතිව්",
+    Batticaloa: "බතිකලාව",
+    Ampara: "අම්පාර",
+    Trincomalee: "ත්‍රිකුණාමලය",
+    Kurunegala: "කුරුණෑගල",
+    Puttalam: "පුත්තලම",
+    Anuradhapura: "අනුරාධපුර",
+    Polonnaruwa: "පොලොන්නරුව",
+    Badulla: "බදුල්ල",
+    Monaragala: "මොණරාගල",
+    Ratnapura: "රත්නපුර",
+    Kegalle: "කෑගල්ල",
+  };
+
+  if (districtMap[enName]) return districtMap[enName];
+
+  return rawName;
+};
 
 type Language = "si" | "en";
 
@@ -41,6 +89,13 @@ interface WeatherDay {
   temperature: number;
   temperature_min: number;
   temperature_max: number;
+  humidity_mean?: number;
+  cloud_cover?: number;
+  uv_index?: number;
+  rain_probability?: number;
+  rain_mm?: number;
+  windspeed?: number;
+  wind_dir?: number;
 }
 
 interface WeatherPrediction {
@@ -48,13 +103,36 @@ interface WeatherPrediction {
   city: string;
   predictions: WeatherDay[];
   last_actual_temp: number;
-  last_date: string;
   advice: Array<{ si: string; en: string }>;
-  model_accuracy?: string;
 }
+
+interface FarmingAdvice {
+  type: "good" | "warning" | "alert";
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+const DEFAULT_LAT = 6.9271;
+const DEFAULT_LON = 79.8612;
+const screenWidth = Dimensions.get("window").width;
 
 const WeatherForecastScreen = () => {
   const navigation = useNavigation();
+
+  const locationHook: any = useUniversalLocation("si");
+  const {
+    locationName,
+    temperature,
+    latitude,
+    longitude,
+  }: {
+    locationName?: string;
+    temperature?: number;
+    latitude?: number;
+    longitude?: number;
+  } = locationHook || {};
+
   const [language, setLanguage] = useState<Language>("si");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,54 +140,333 @@ const WeatherForecastScreen = () => {
     null
   );
   const [error, setError] = useState<string | null>(null);
-  const { locationName, temperature } = useUniversalLocation(language);
 
-  // Animation values
+  // 🔥 FIX: Screen re-focus refresh
+  useFocusEffect(
+    useCallback(() => {
+      console.log("Screen focused...");
+
+      if (latitude == null || longitude == null) {
+        console.log("GPS not ready → skipping fetch");
+        return;
+      }
+
+      setLoading(true);
+      setWeatherData(null);
+
+      fetchWeatherData(latitude, longitude);
+    }, [latitude, longitude])
+  );
+
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const slideAnim = useState(new Animated.Value(50))[0];
+  const slideAnim = useState(new Animated.Value(30))[0];
 
   const content = {
     si: {
       title: "කාලගුණ පුරෝකථනය",
-      subtitle: "ඉදිරි 7 දින",
-      today: "අද",
-      loading: "කාලගුණ දත්ත ලබා ගනිමින්...",
+      subtitle: "බඩ ඉරිඟු වගාව සඳහා",
+      loading: "දත්ත ගෙනෙමින්...",
       error: "දත්ත ලබා ගැනීමට නොහැකි විය",
       retry: "නැවත උත්සාහ කරන්න",
-      minTemp: "අවම",
-      maxTemp: "උච්ච",
-      avgTemp: "සාමාන්‍ය",
-      advice: "ගොවිතැන් උපදෙස්",
-      lastUpdate: "අවසන් යාවත්කාලීනය",
-      modelAccuracy: "Model නිරවද්‍යතාව",
-      tempRange: "උෂ්ණත්ව පරාසය",
-      forecast: "පුරෝකථනය",
-      current: "වර්තමාන",
-      pullToRefresh: "යාවත්කාල කිරීමට අදින්න",
+
+      farmingAdvice: "වගා උපදෙස්",
+      goodDays: "හොඳ දින",
+      concernDays: "අවධානය යොමු කළ යුතු",
+
+      tempTrend: "උෂ්ණත්ව ප්‍රවණතාව",
+      rainTrend: "වර්ෂාපතන ප්‍රවණතාව",
+      weeklyOverview: "සතිපතා දළ විශ්ලේෂණය",
+
+      humidity: "ආර්ද්‍රතාව",
+      rainfall: "වර්ෂාව",
+      wind: "සුළං",
+      uvIndex: "UV මට්ටම",
+
+      goodForPlanting: "රෝපණයට සුදුසුයි",
+      goodForHarvesting: "අස්වනු නෙළීමට සුදුසුයි",
+      heavyRainWarning: "අධික වර්ෂාව - අවධානය",
+      dryCondition: "වියළි තත්ත්වය - වාරිමාර්ග කරන්න",
+      idealConditions: "වගාවට සුදුසු තත්ත්වයක්",
+      highTemp: "අධික උෂ්ණත්වය",
+      moderateConditions: "සාමාන්‍ය තත්ත්වය",
+
+      dayLabel: "දින",
+      today: "අද",
     },
     en: {
       title: "Weather Forecast",
-      subtitle: "Next 7 Days",
-      today: "Today",
-      loading: "Loading weather data...",
-      error: "Failed to load data",
+      subtitle: "For Corn Farming",
+      loading: "Loading weather...",
+      error: "Failed to load weather",
       retry: "Retry",
-      minTemp: "Min",
-      maxTemp: "Max",
-      avgTemp: "Avg",
-      advice: "Farming Advice",
-      lastUpdate: "Last Updated",
-      modelAccuracy: "Model Accuracy",
-      tempRange: "Temperature Range",
-      forecast: "Forecast",
-      current: "Current",
-      pullToRefresh: "Pull to refresh",
+
+      farmingAdvice: "Farming Advice",
+      goodDays: "Favorable Days",
+      concernDays: "Days Requiring Attention",
+
+      tempTrend: "Temperature Trend",
+      rainTrend: "Rainfall Pattern",
+      weeklyOverview: "Weekly Overview",
+
+      humidity: "Humidity",
+      rainfall: "Rainfall",
+      wind: "Wind",
+      uvIndex: "UV Index",
+
+      goodForPlanting: "Good for Planting",
+      goodForHarvesting: "Good for Harvesting",
+      heavyRainWarning: "Heavy Rain - Caution",
+      dryCondition: "Dry Conditions - Irrigate",
+      idealConditions: "Ideal Farming Conditions",
+      highTemp: "High Temperature",
+      moderateConditions: "Moderate Conditions",
+
+      dayLabel: "Day",
+      today: "Today",
     },
   };
 
+  const formatDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const monthsEn = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const monthsSi = [
+      "ජන",
+      "පෙබ",
+      "මාර්",
+      "අප්‍රි",
+      "මැයි",
+      "ජූනි",
+      "ජූලි",
+      "අගෝ",
+      "සැප්",
+      "ඔක්",
+      "නොවැ",
+      "දැසැ",
+    ];
+    const months = language === "si" ? monthsSi : monthsEn;
+    return `${months[(m || 1) - 1]} ${d || 1}`;
+  };
+
+  const getShortDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    return `${d}/${m}`;
+  };
+
+  const getDayName = (dateStr: string, short = false) => {
+    const date = new Date(dateStr + "T00:00:00");
+    const si = short
+      ? ["ඉරි", "සඳු", "අඟ", "බදා", "බ්‍රහ", "සිකු", "සෙන"]
+      : [
+          "ඉරිදා",
+          "සඳුදා",
+          "අඟහරුවා",
+          "බදාදා",
+          "බ්‍රහස්පතින්දා",
+          "සිකුරාදා",
+          "සෙනසුරාදා",
+        ];
+    const en = short
+      ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+      : [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+    return language === "si" ? si[date.getDay()] : en[date.getDay()];
+  };
+
+  // 🌾 FARMING ADVICE LOGIC FOR CORN
+  const getFarmingAdvice = (predictions: WeatherDay[]): FarmingAdvice[] => {
+    const advice: FarmingAdvice[] = [];
+
+    predictions.forEach((day, idx) => {
+      const rain = day.rain_mm || 0;
+      const temp = day.temperature;
+      const humidity = day.humidity_mean || 0;
+
+      // Heavy rain warning (>25mm)
+      if (rain > 25) {
+        advice.push({
+          type: "alert",
+          title: `${getDayName(day.date, true)} - ${
+            content[language].heavyRainWarning
+          }`,
+          description: `${rain.toFixed(1)}mm ${
+            language === "si" ? "වර්ෂාව අපේක්ෂිතයි" : "rainfall expected"
+          }`,
+          icon: <CloudRain size={20} color="#ef4444" />,
+        });
+      }
+      // Moderate rain (5-25mm) - Good for corn
+      else if (rain >= 5 && rain <= 25 && temp >= 20 && temp <= 30) {
+        advice.push({
+          type: "good",
+          title: `${getDayName(day.date, true)} - ${
+            content[language].idealConditions
+          }`,
+          description: `${rain.toFixed(1)}mm ${
+            language === "si" ? "වර්ෂාව, උෂ්ණත්වය" : "rain, temp"
+          } ${Math.round(temp)}°C`,
+          icon: <CheckCircle size={20} color="#10B981" />,
+        });
+      }
+      // Dry conditions (no rain + low humidity)
+      else if (rain < 2 && humidity < 50) {
+        advice.push({
+          type: "warning",
+          title: `${getDayName(day.date, true)} - ${
+            content[language].dryCondition
+          }`,
+          description: `${
+            language === "si" ? "ආර්ද්‍රතාව" : "Humidity"
+          } ${Math.round(humidity)}%`,
+          icon: <AlertTriangle size={20} color="#f59e0b" />,
+        });
+      }
+      // High temperature warning (>33°C)
+      else if (temp > 33) {
+        advice.push({
+          type: "warning",
+          title: `${getDayName(day.date, true)} - ${
+            content[language].highTemp
+          }`,
+          description: `${Math.round(temp)}°C - ${
+            language === "si"
+              ? "අමතර වාරිමාර්ග අවශ්‍යයි"
+              : "Extra irrigation needed"
+          }`,
+          icon: <Sun size={20} color="#f59e0b" />,
+        });
+      }
+    });
+
+    return advice;
+  };
+
+  // 🌈 Traffic Light Color Logic
+  const getTrafficColor = (day: WeatherDay) => {
+    const rain = day.rain_mm || 0;
+    const temp = day.temperature;
+    const humidity = day.humidity_mean || 0;
+
+    // 🔴 High risk
+    if (rain > 25 || temp > 33) return "red";
+
+    // 🟡 Medium risk
+    if ((rain < 2 && humidity < 50) || (rain >= 2 && rain < 5)) return "yellow";
+
+    // 🟢 Best farming conditions
+    if (rain >= 5 && rain <= 25 && temp >= 20 && temp <= 30) return "green";
+
+    return "yellow";
+  };
+
+  // 🔘 Circle indicator
+  const TrafficDot = ({ color }: { color: "red" | "yellow" | "green" }) => {
+    const bg =
+      color === "red" ? "#ef4444" : color === "yellow" ? "#facc15" : "#22c55e";
+
+    return (
+      <View
+        style={{
+          width: 16,
+          height: 16,
+          borderRadius: 16,
+          backgroundColor: bg,
+        }}
+      />
+    );
+  };
+
+  const fetchWeatherData = async (
+    lat: number,
+    lon: number,
+    isRefresh = false
+  ) => {
+    try {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
+
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_min,temperature_2m_max,relative_humidity_2m_mean,cloudcover_mean,uv_index_max,precipitation_probability_max,precipitation_sum,wind_speed_10m_max,wind_direction_10m_dominant&forecast_days=8&timezone=Asia/Colombo`;
+
+      const res = await fetch(url);
+      const data = await res.json();
+      const d = data.daily;
+
+      if (!d || !Array.isArray(d.time) || d.time.length === 0) {
+        throw new Error("Invalid weather data");
+      }
+
+      const predictions: WeatherDay[] = d.time
+        .slice(1)
+        .map((date: string, idx: number) => {
+          const realIndex = idx + 1;
+          const tMin = d.temperature_2m_min[realIndex];
+          const tMax = d.temperature_2m_max[realIndex];
+          const tAvg = (tMin + tMax) / 2;
+
+          return {
+            day: realIndex,
+            date,
+            temperature_min: tMin,
+            temperature_max: tMax,
+            temperature: tAvg,
+            humidity_mean: d.relative_humidity_2m_mean[realIndex],
+            cloud_cover: d.cloudcover_mean[realIndex],
+            uv_index: d.uv_index_max[realIndex],
+            rain_probability: d.precipitation_probability_max[realIndex],
+            rain_mm: d.precipitation_sum[realIndex],
+            windspeed: d.wind_speed_10m_max[realIndex],
+            wind_dir: d.wind_direction_10m_dominant[realIndex],
+          };
+        });
+
+      setWeatherData({
+        success: true,
+        city: locationName || "Sri Lanka",
+
+        predictions,
+        last_actual_temp: temperature ?? predictions[0]?.temperature ?? 26,
+        advice: [],
+      });
+    } catch (e) {
+      console.log("Weather error:", e);
+      setError("Invalid weather data");
+      setWeatherData(null);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const latToUse = latitude ?? DEFAULT_LAT;
+  const lonToUse = longitude ?? DEFAULT_LON;
+
+  // 🔥 REFRESH WEATHER WHEN GPS LOADED
   useEffect(() => {
-    fetchWeatherData();
-  }, []);
+    if (latitude != null && longitude != null) {
+      console.log("Fetching with GPS:", latitude, longitude);
+      fetchWeatherData(latitude, longitude);
+    }
+  }, [latitude, longitude]);
 
   useEffect(() => {
     if (!loading && weatherData) {
@@ -121,190 +478,92 @@ const WeatherForecastScreen = () => {
         }),
         Animated.spring(slideAnim, {
           toValue: 0,
-          tension: 50,
-          friction: 7,
+          friction: 6,
           useNativeDriver: true,
         }),
       ]).start();
     }
   }, [loading, weatherData]);
 
-  const fetchWeatherData = async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    try {
-      const response = await fetch(
-        "http://192.168.8.181:8000/api/admin/weather/predict",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            city: locationName || "Colombo",
-          }),
-        }
-      );
-
-      const data = await response.json();
-      console.log("🔥 WEATHER RESPONSE:", data);
-
-      if (data.success) {
-        setWeatherData(data);
-        setError(null);
-      } else {
-        setError(data.error || "Unknown error");
-      }
-    } catch (err) {
-      console.error("Weather fetch error:", err);
-      setError(err instanceof Error ? err.message : "Network error");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  const getDayName = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const days =
-      language === "si"
-        ? ["ඉරිදා", "සඳුදා", "අඟහරුවාදා", "බදාදා", "බ්‍රහස්", "සිකු", "සෙනසු"]
-        : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    return days[date.getDay()];
-  };
-
-  const getWeatherIcon = (temp: number, size = 32) => {
-    if (temp > 32) return <Sun size={size} color="#f59e0b" />;
-    if (temp > 28) return <Cloud size={size} color="#10B981" />;
-    return <CloudRain size={size} color="#0ea5e9" />;
-  };
-
-  const getTempColor = (temp: number) => {
-    if (temp > 32) return "#ef4444";
-    if (temp > 28) return "#f59e0b";
-    if (temp > 24) return "#10B981";
-    return "#0ea5e9";
-  };
-
-  const getWeatherCondition = (temp: number) => {
-    if (temp > 32) return language === "si" ? "ඉතා උණුසුම්" : "Very Hot";
-    if (temp > 28) return language === "si" ? "උණුසුම්" : "Hot";
-    if (temp > 24) return language === "si" ? "සුවපහසු" : "Pleasant";
-    return language === "si" ? "සිසිල්" : "Cool";
-  };
-
-  // Calculate statistics
-  const calculateStats = () => {
-    if (!weatherData?.predictions || weatherData.predictions.length === 0) {
-      return { avgTemp: 0, minTemp: 0, maxTemp: 0, tempRange: 0 };
-    }
-
-    const temps = weatherData.predictions.map((d) => d.temperature);
-    const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
-    const minTemp = Math.min(...temps);
-    const maxTemp = Math.max(...temps);
-    const tempRange = maxTemp - minTemp;
-
-    return { avgTemp, minTemp, maxTemp, tempRange };
-  };
-
-  const stats = calculateStats();
-
-  // Fallback data
-  const fallbackDays = Array.from({ length: 7 }, (_, i) => {
-    const base = weatherData?.last_actual_temp ?? temperature ?? 25;
-    return {
-      day: i + 1,
-      date: new Date(Date.now() + (i + 1) * 86400000).toISOString(),
-      temperature: base + (Math.random() * 2 - 1),
-      temperature_min: base - 2,
-      temperature_max: base + 2,
-    };
-  });
-
-  const daysToShow =
-    weatherData?.predictions && weatherData.predictions.length > 0
-      ? weatherData.predictions
-      : fallbackDays;
-
-  // Loading state
-  if (loading) {
+  if (!latitude || !longitude || locationName === "Loading...") {
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color="#047857" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#10B981" />
-          <Text style={styles.loadingText}>{content[language].loading}</Text>
-        </View>
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingTxt}>GPS සකස් වෙමින්...</Text>
       </View>
     );
   }
 
-  // Error state
-  if (error && !weatherData) {
+  if (error || !weatherData)
     return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color="#047857" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <View style={styles.errorContainer}>
-          <AlertCircle size={64} color="#ef4444" />
-          <Text style={styles.errorText}>{content[language].error}</Text>
-          <Text style={styles.errorDetail}>{error}</Text>
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => fetchWeatherData()}
-          >
-            <RefreshCw size={20} color="#FFFFFF" />
-            <Text style={styles.retryText}>{content[language].retry}</Text>
-          </TouchableOpacity>
-        </View>
+      <View style={styles.centered}>
+        <AlertCircle size={64} color="#ef4444" />
+        <Text style={styles.errorText}>{content[language].error}</Text>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={() => fetchWeatherData(latToUse, lonToUse)}
+        >
+          <RefreshCw size={20} color="#fff" />
+          <Text style={styles.retryTxt}>{content[language].retry}</Text>
+        </TouchableOpacity>
       </View>
     );
-  }
+
+  const predictions = weatherData.predictions;
+  const farmingAdvice = getFarmingAdvice(predictions);
+
+  // Chart data
+  const rainChartData = {
+    labels: predictions.map((d) => getDayName(d.date, true)),
+    datasets: [
+      {
+        data: predictions.map((d) => d.rain_mm || 0),
+      },
+    ],
+  };
+
+  const chartConfig = {
+    backgroundColor: "#ffffff",
+    backgroundGradientFrom: "#ffffff",
+    backgroundGradientTo: "#f8fafc",
+    decimalPlaces: 1,
+    color: (opacity = 1) => `rgba(14, 165, 233, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(75, 85, 99, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    barPercentage: 0.7,
+    propsForBackgroundLines: {
+      strokeDasharray: "",
+      stroke: "#e5e7eb",
+      strokeWidth: 1,
+    },
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backButton}
+          style={styles.backBtn}
         >
-          <ArrowLeft size={24} color="#047857" />
+          <ArrowLeft size={22} color="#047857" />
         </TouchableOpacity>
 
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
+          <View style={styles.headerTitleRow}>
+            <Sprout size={20} color="#047857" />
+            <Text style={styles.headerTitle}>{content[language].title}</Text>
+          </View>
           <Text style={styles.headerSubtitle}>
             {content[language].subtitle}
           </Text>
         </View>
 
         <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
+          onPress={() => setLanguage(language === "si" ? "en" : "si")}
+          style={styles.langBtn}
         >
           <Text style={styles.langText}>
             {language === "si" ? "EN" : "සිං"}
@@ -313,488 +572,418 @@ const WeatherForecastScreen = () => {
       </View>
 
       <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => fetchWeatherData(true)}
-            colors={["#10B981"]}
-            tintColor="#10B981"
+            onRefresh={() => fetchWeatherData(latToUse, lonToUse, true)}
           />
         }
       >
+        {/* LOCATION & CURRENT WEATHER CARD */}
         <Animated.View
-          style={{
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          }}
+          style={[styles.currentWeatherCard, { opacity: fadeAnim }]}
         >
-          {/* Current Weather Card */}
-          <View style={styles.currentCard}>
-            <View style={styles.locationHeader}>
-              <MapPin size={20} color="#047857" />
-              <Text style={styles.locationName}>
-                {locationName && locationName !== "city"
-                  ? locationName
-                  : weatherData?.city || "Colombo"}
-              </Text>
-            </View>
-
-            <View style={styles.currentWeatherMain}>
-              {getWeatherIcon(
-                weatherData?.last_actual_temp || temperature || 25,
-                64
-              )}
-              <Text style={styles.currentTemp}>
-                {Math.round(weatherData?.last_actual_temp || temperature || 25)}
-                °C
-              </Text>
-            </View>
-
-            <Text style={styles.weatherCondition}>
-              {getWeatherCondition(
-                weatherData?.last_actual_temp || temperature || 25
-              )}
+          <View style={styles.locationRow}>
+            <MapPin size={18} color="#047857" />
+            <Text style={styles.locationText}>
+              {getTranslatedLocation(locationName ?? null, language)}
             </Text>
-
-            {/* Stats Row */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <TrendingDown size={16} color="#0ea5e9" />
-                <Text style={styles.statValue}>
-                  {Math.round(stats.minTemp)}°
-                </Text>
-                <Text style={styles.statLabel}>
-                  {content[language].minTemp}
-                </Text>
-              </View>
-              <View style={[styles.statItem, styles.statItemMiddle]}>
-                <Sun size={16} color="#f59e0b" />
-                <Text style={styles.statValue}>
-                  {Math.round(stats.avgTemp)}°
-                </Text>
-                <Text style={styles.statLabel}>
-                  {content[language].avgTemp}
-                </Text>
-              </View>
-              <View style={styles.statItem}>
-                <TrendingUp size={16} color="#ef4444" />
-                <Text style={styles.statValue}>
-                  {Math.round(stats.maxTemp)}°
-                </Text>
-                <Text style={styles.statLabel}>
-                  {content[language].maxTemp}
-                </Text>
-              </View>
-            </View>
-
-            {/* Model Accuracy Badge */}
-            {weatherData?.model_accuracy && (
-              <View style={styles.accuracyBadge}>
-                <CheckCircle size={14} color="#10B981" />
-                <Text style={styles.accuracyText}>
-                  {content[language].modelAccuracy}:{" "}
-                  {weatherData.model_accuracy}
-                </Text>
-              </View>
-            )}
           </View>
 
-          {/* 7 Day Forecast */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                {content[language].forecast}
+          <View style={styles.currentTempRow}>
+            {temperature ? (
+              <>
+                <Sun size={48} color="#f59e0b" />
+                <View>
+                  <Text style={styles.currentTemp}>
+                    {Math.round(temperature)}°C
+                  </Text>
+                  <Text style={styles.currentLabel}>
+                    {language === "si"
+                      ? "දැන් තියෙන උෂ්ණත්වය"
+                      : "Current Temperature"}
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <Text style={styles.noTempText}>
+                {language === "si" ? "තාප මාන දත්ත නැත" : "No temperature data"}
               </Text>
-              <Calendar size={18} color="#047857" />
+            )}
+          </View>
+        </Animated.View>
+
+        {/* FARMING ADVICE SECTION */}
+        {farmingAdvice.length > 0 && (
+          <Animated.View style={[styles.adviceSection, { opacity: fadeAnim }]}>
+            <View style={styles.adviceHeader}>
+              <Info size={20} color="#047857" />
+              <Text style={styles.adviceTitle}>
+                {content[language].farmingAdvice}
+              </Text>
             </View>
 
-            {daysToShow.map((day, index) => (
-              <View key={index} style={styles.dayCard}>
-                <View style={styles.dayHeader}>
-                  <View style={styles.dayInfo}>
-                    <Text style={styles.dayName}>{getDayName(day.date)}</Text>
-                    <Text style={styles.dayDate}>
-                      {new Date(day.date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </Text>
-                  </View>
-
-                  <View style={styles.dayWeatherIcon}>
-                    {getWeatherIcon(day.temperature, 36)}
-                  </View>
-                </View>
-
-                {/* Temperature Bar */}
-                <View style={styles.tempBar}>
-                  <Text style={styles.tempBarMin}>
-                    {Math.round(day.temperature_min)}°
-                  </Text>
-                  <View style={styles.tempBarTrack}>
-                    <View
-                      style={[
-                        styles.tempBarFill,
-                        {
-                          backgroundColor: getTempColor(day.temperature),
-                          width: "70%",
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.tempBarMax}>
-                    {Math.round(day.temperature_max)}°
-                  </Text>
-                  <Text style={styles.tempBarAvg}>
-                    {Math.round(day.temperature)}°
-                  </Text>
+            {farmingAdvice.map((item, idx) => (
+              <View
+                key={idx}
+                style={[
+                  styles.adviceCard,
+                  item.type === "good" && styles.adviceGood,
+                  item.type === "warning" && styles.adviceWarning,
+                  item.type === "alert" && styles.adviceAlert,
+                ]}
+              >
+                {item.icon}
+                <View style={styles.adviceContent}>
+                  <Text style={styles.adviceCardTitle}>{item.title}</Text>
+                  <Text style={styles.adviceCardDesc}>{item.description}</Text>
                 </View>
               </View>
             ))}
+          </Animated.View>
+        )}
+
+        {/* RAINFALL CHART */}
+        <Animated.View style={[styles.chartCard, { opacity: fadeAnim }]}>
+          <View style={styles.chartHeader}>
+            <CloudRain size={20} color="#0ea5e9" />
+            <Text style={styles.chartTitle}>{content[language].rainTrend}</Text>
           </View>
+          <BarChart
+            data={rainChartData}
+            width={screenWidth - 40}
+            height={220}
+            chartConfig={chartConfig}
+            style={styles.chart}
+            showValuesOnTopOfBars={true}
+            fromZero={true}
+            yAxisSuffix=" mm"
+            yAxisLabel=""
+          />
+          <Text style={styles.chartNote}>
+            {language === "si"
+              ? "* 5-25mm වර්ෂාව බඩ ඉරිඟු වගාවට හිතකරයි"
+              : "* 5-25mm rainfall is ideal for corn farming"}
+          </Text>
+        </Animated.View>
 
-          {/* Farming Advice */}
-          {(weatherData?.advice?.length ?? 0) > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
-                  {content[language].advice}
-                </Text>
-                <Eye size={18} color="#047857" />
-              </View>
-
-              {weatherData!.advice.map((item, index) => (
-                <View key={index} style={styles.adviceCard}>
-                  <View style={styles.adviceHeader}>
-                    <AlertCircle size={20} color="#10B981" />
-                    <Text style={styles.adviceTitle}>
-                      {language === "si" ? "උපදෙස්" : "Advice"} {index + 1}
-                    </Text>
-                  </View>
-                  <Text style={styles.adviceText}>{item[language]}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Last Update */}
-          <View style={styles.updateInfo}>
-            <Calendar size={14} color="#6B7280" />
-            <Text style={styles.updateText}>
-              {content[language].lastUpdate}:{" "}
-              {new Date().toLocaleString(
-                language === "si" ? "si-LK" : "en-US",
-                {
-                  dateStyle: "short",
-                  timeStyle: "short",
-                }
-              )}
+        {/* WEEKLY OVERVIEW */}
+        <View style={styles.sectionHeader}>
+          <Calendar size={18} color="#047857" />
+          <Text style={styles.sectionTitle}>
+            {content[language].weeklyOverview}
+          </Text>
+        </View>
+        {/* TRAFFIC LIGHT LEGEND */}
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginTop: 10,
+            marginBottom: 10,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-around",
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TrafficDot color="green" />
+            <Text style={{ color: "#047857", fontSize: 12, fontWeight: "600" }}>
+              {language === "si" ? "හොඳ" : "Good"}
             </Text>
           </View>
 
-          <View style={{ height: 40 }} />
-        </Animated.View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TrafficDot color="yellow" />
+            <Text style={{ color: "#CA8A04", fontSize: 12, fontWeight: "600" }}>
+              {language === "si" ? "අවධානයෙන්" : "Moderate"}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <TrafficDot color="red" />
+            <Text style={{ color: "#DC2626", fontSize: 12, fontWeight: "600" }}>
+              {language === "si" ? "අවදානම්" : "Risky"}
+            </Text>
+          </View>
+        </View>
+
+        {/* DAILY CARDS - COMPACT FOR FARMERS */}
+        {predictions.map((d, idx) => {
+          const isGoodDay =
+            (d.rain_mm ?? 0) >= 5 &&
+            (d.rain_mm ?? 0) <= 25 &&
+            d.temperature >= 20 &&
+            d.temperature <= 30;
+          const needsAttention =
+            (d.rain_mm ?? 0) > 25 ||
+            d.temperature > 33 ||
+            ((d.rain_mm ?? 0) < 2 && (d.humidity_mean ?? 0) < 50);
+
+          return (
+            <Animated.View
+              key={d.day}
+              style={[
+                styles.dayCard,
+                isGoodDay && styles.dayCardGood,
+                needsAttention && styles.dayCardWarning,
+                { transform: [{ translateY: slideAnim }] },
+              ]}
+            >
+              <View style={styles.dayHeader}>
+                <View>
+                  <Text style={styles.dayName}>{getDayName(d.date)}</Text>
+                  <Text style={styles.dateTxt}>{formatDate(d.date)}</Text>
+                </View>
+
+                {/* Traffic Light */}
+                <TrafficDot color={getTrafficColor(d)} />
+
+                {/* Existing Icons */}
+                {isGoodDay && <CheckCircle size={24} color="#10B981" />}
+                {needsAttention && <AlertTriangle size={24} color="#f59e0b" />}
+              </View>
+
+              {/* KEY METRICS FOR FARMERS */}
+              <View style={styles.metricsGrid}>
+                <View style={styles.metricBox}>
+                  <Sun size={18} color="#f59e0b" />
+                  <Text style={styles.metricLabel}>
+                    {Math.round(d.temperature_min)}-
+                    {Math.round(d.temperature_max)}°C
+                  </Text>
+                </View>
+
+                <View style={styles.metricBox}>
+                  <CloudRain size={18} color="#0ea5e9" />
+                  <Text style={styles.metricLabel}>
+                    {d.rain_mm?.toFixed(1) || 0} mm
+                  </Text>
+                </View>
+
+                <View style={styles.metricBox}>
+                  <Droplets size={18} color="#06b6d4" />
+                  <Text style={styles.metricLabel}>
+                    {Math.round(d.humidity_mean || 0)}%
+                  </Text>
+                </View>
+
+                <View style={styles.metricBox}>
+                  <Wind size={18} color="#047857" />
+                  <Text style={styles.metricLabel}>
+                    {Math.round(d.windspeed || 0)} km/h
+                  </Text>
+                </View>
+              </View>
+            </Animated.View>
+          );
+        })}
+
+        <View style={{ height: 30 }} />
       </ScrollView>
     </View>
   );
 };
 
+export default WeatherForecastScreen;
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0FDF4" },
-  header: {
-    backgroundColor: "#FFFFFF",
-    paddingTop: 50,
-    paddingBottom: 16,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F0FDF4",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  headerCenter: { flex: 1, alignItems: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#047857" },
-  headerSubtitle: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  langButton: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#10B981",
-  },
-  langText: { color: "#10B981", fontSize: 13, fontWeight: "bold" },
-  scrollView: { flex: 1 },
-
-  // Loading & Error
-  loadingContainer: {
+  centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: 16,
+    gap: 14,
   },
-  loadingText: { fontSize: 16, color: "#6B7280", marginTop: 12 },
-  errorContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 32,
-    gap: 16,
-  },
-  errorText: { fontSize: 20, fontWeight: "700", color: "#1F2937" },
-  errorDetail: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    marginTop: 8,
-  },
-  retryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
+  loadingTxt: { fontSize: 16, color: "#6B7280", marginTop: 10 },
+  errorText: { color: "#ef4444", fontSize: 17, marginTop: 10 },
+  retryBtn: {
     backgroundColor: "#10B981",
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 28,
-    marginTop: 16,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  retryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-
-  // Current Weather Card
-  currentCard: {
-    backgroundColor: "#FFFFFF",
-    margin: 20,
-    padding: 24,
-    borderRadius: 24,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  locationHeader: {
+    padding: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginBottom: 20,
+    marginTop: 10,
   },
-  locationName: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#047857",
-  },
-  currentWeatherMain: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    marginBottom: 12,
-  },
-  currentTemp: {
-    fontSize: 64,
-    fontWeight: "bold",
-    color: "#10B981",
-  },
-  weatherCondition: {
-    fontSize: 18,
-    color: "#6B7280",
-    marginBottom: 20,
-    fontWeight: "500",
-  },
-  statsRow: {
-    flexDirection: "row",
-    width: "100%",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    paddingTop: 16,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-    gap: 6,
-  },
-  statItemMiddle: {
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1F2937",
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  accuracyBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 16,
-  },
-  accuracyText: {
-    fontSize: 12,
-    color: "#047857",
-    fontWeight: "600",
-  },
+  retryTxt: { color: "#fff", fontWeight: "600" },
 
-  // Sections
-  section: { paddingHorizontal: 20, marginBottom: 24 },
-  sectionHeader: {
+  header: {
+    paddingTop: 50,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    backgroundColor: "#fff",
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 20,
+  backBtn: { padding: 10, backgroundColor: "#E7F9ED", borderRadius: 20 },
+  headerCenter: { flex: 1, marginLeft: 12 },
+  headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerTitle: { fontSize: 20, fontWeight: "bold", color: "#047857" },
+  headerSubtitle: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  langBtn: {
+    borderWidth: 2,
+    borderColor: "#10B981",
+    paddingVertical: 5,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+  },
+  langText: { color: "#10B981", fontWeight: "bold" },
+
+  currentWeatherCard: {
+    marginHorizontal: 20,
+    marginTop: 15,
+    marginBottom: 10,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  locationText: { fontSize: 15, fontWeight: "600", color: "#047857" },
+  currentTempRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    paddingVertical: 8,
+  },
+  currentTemp: {
+    fontSize: 42,
     fontWeight: "bold",
     color: "#047857",
   },
+  currentLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  noTempText: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+  },
 
-  // Day Cards
-  dayCard: {
-    backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 16,
+  adviceSection: {
+    marginHorizontal: 20,
+    marginBottom: 15,
+  },
+  adviceHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+  },
+  adviceTitle: { fontSize: 18, fontWeight: "700", color: "#047857" },
+  adviceCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    elevation: 2,
+    borderLeftWidth: 4,
+  },
+  adviceGood: { borderLeftColor: "#10B981", backgroundColor: "#F0FDF4" },
+  adviceWarning: { borderLeftColor: "#f59e0b", backgroundColor: "#FFFBEB" },
+  adviceAlert: { borderLeftColor: "#ef4444", backgroundColor: "#FEF2F2" },
+  adviceContent: { flex: 1 },
+  adviceCardTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 2,
+  },
+  adviceCardDesc: { fontSize: 12, color: "#6B7280" },
+
+  chartCard: {
+    marginHorizontal: 20,
+    marginVertical: 10,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     elevation: 3,
+  },
+
+  chartHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  chartTitle: { fontSize: 16, fontWeight: "700", color: "#047857" },
+  chart: { borderRadius: 12, marginVertical: 8 },
+  chartNote: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontStyle: "italic",
+    marginTop: 8,
+  },
+
+  sectionHeader: {
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#047857" },
+
+  dayCard: {
+    backgroundColor: "#fff",
+    marginHorizontal: 20,
+    marginVertical: 6,
+    padding: 14,
+    borderRadius: 14,
+    elevation: 2,
+  },
+  dayCardGood: {
+    backgroundColor: "#F0FDF4",
+    borderWidth: 2,
+    borderColor: "#10B981",
+  },
+  dayCardWarning: {
+    backgroundColor: "#FFFBEB",
+    borderWidth: 2,
+    borderColor: "#f59e0b",
   },
   dayHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-  },
-  dayInfo: { flex: 1 },
-  dayName: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1F2937",
-  },
-  dayDate: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 4,
-    fontWeight: "500",
-  },
-  dayWeatherIcon: {
-    width: 48,
-    height: 48,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // Temperature Bar
-  tempBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
-  tempBarMin: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0ea5e9",
-    width: 35,
-  },
-  tempBarTrack: {
-    flex: 1,
-    height: 6,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  tempBarFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  tempBarMax: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#ef4444",
-    width: 35,
-    textAlign: "right",
-  },
-  tempBarAvg: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1F2937",
-    marginLeft: 8,
-    width: 40,
-    textAlign: "center",
-  },
-
-  // Advice Cards
-  adviceCard: {
-    backgroundColor: "#ECFDF5",
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: "#10B981",
-  },
-  adviceHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
     marginBottom: 10,
   },
-  adviceTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#047857",
-  },
-  adviceText: {
-    fontSize: 14,
-    color: "#047857",
-    lineHeight: 22,
-    fontWeight: "500",
-  },
+  dayName: { fontSize: 16, fontWeight: "700", color: "#1F2937" },
+  dateTxt: { fontSize: 12, color: "#6B7280", marginTop: 2 },
 
-  // Update Info
-  updateInfo: {
+  metricsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  metricBox: {
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 10,
+    padding: 10,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: 8,
-    paddingVertical: 16,
   },
-  updateText: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
+  metricLabel: { fontSize: 13, fontWeight: "600", color: "#374151" },
 });
-
-export default WeatherForecastScreen;

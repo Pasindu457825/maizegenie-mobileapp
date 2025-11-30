@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Platform } from "react-native";
-// @ts-ignore
-import * as ExpoLocation from "expo-location";
+import * as Location from "expo-location";
 
 type Result = {
   locationName: string;
+  latitude: number | null;
+  longitude: number | null;
   temperature: number | null;
   weatherCondition: string | null;
   weatherIcon: string | null;
@@ -14,6 +15,9 @@ type Result = {
 
 export default function useUniversalLocation(language: "si" | "en"): Result {
   const [locationName, setLocationName] = useState("Loading...");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+
   const [temperature, setTemperature] = useState<number | null>(null);
   const [weatherCondition, setWeatherCondition] = useState<string | null>(null);
   const [weatherIcon, setWeatherIcon] = useState<string | null>(null);
@@ -39,8 +43,8 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
         }
 
         if (json?.weather?.length > 0) {
-          setWeatherCondition(json.weather[0].description); // e.g "light rain"
-          setWeatherIcon(json.weather[0].icon); // e.g "09n"
+          setWeatherCondition(json.weather[0].description);
+          setWeatherIcon(json.weather[0].icon);
         }
       } catch (e) {
         console.log("Weather fetch error", e);
@@ -52,12 +56,16 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
       setError(null);
 
       try {
+        // --------------------
+        // WEB PLATFORM
+        // --------------------
         if (Platform.OS === "web") {
           navigator.geolocation.getCurrentPosition(
             async (pos) => {
               const { latitude, longitude } = pos.coords;
+              setLatitude(latitude);
+              setLongitude(longitude);
 
-              // Reverse geocode
               try {
                 const res = await fetch(
                   `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
@@ -67,7 +75,8 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
                 const district =
                   json.address?.county ||
                   json.address?.city ||
-                  json.address?.state ||
+                  json.address?.town ||
+                  json.address?.suburb ||
                   "Unknown";
 
                 setLocationName(district);
@@ -84,12 +93,14 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
               setIsLoading(false);
             }
           );
+
           return;
         }
 
-        // MOBILE
-        const { status } =
-          await ExpoLocation.requestForegroundPermissionsAsync();
+        // --------------------
+        // MOBILE PLATFORM
+        // --------------------
+        const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status !== "granted") {
           setLocationName("Permission Denied");
@@ -97,16 +108,21 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
           return;
         }
 
-        const loc = await ExpoLocation.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = loc.coords;
 
-        const geo = await ExpoLocation.reverseGeocodeAsync({
+        setLatitude(latitude);
+        setLongitude(longitude);
+
+        const geo = await Location.reverseGeocodeAsync({
           latitude,
           longitude,
         });
 
+        const g = geo[0];
+
         const district =
-          geo[0]?.district || geo[0]?.city || geo[0]?.region || "Unknown";
+          g?.district || g?.subregion || g?.city || g?.region || "Unknown";
 
         setLocationName(district);
 
@@ -126,6 +142,8 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
 
   return {
     locationName,
+    latitude,
+    longitude,
     temperature,
     weatherCondition,
     weatherIcon,
