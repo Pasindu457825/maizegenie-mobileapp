@@ -1,10 +1,11 @@
 /**
  * Custom Date Picker Component
  * Reusable date picker with validation
+ * SUPPORTS: iOS, Android, and Web platforms
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, TextInput } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Calendar } from 'lucide-react-native';
 
@@ -31,6 +32,7 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
 }) => {
   const [showPicker, setShowPicker] = useState(false);
 
+  // Handle date change for native date pickers (iOS/Android)
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       setShowPicker(false);
@@ -43,6 +45,16 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     }
   };
 
+  // Handle date change for web input
+  const handleWebDateChange = (dateString: string) => {
+    if (dateString) {
+      const date = new Date(dateString);
+      onChange(date);
+    } else {
+      onChange(null);
+    }
+  };
+
   const formatDate = (date: Date | null): string => {
     if (!date) return 'Select date';
     return date.toLocaleDateString('en-GB', {
@@ -52,6 +64,60 @@ export const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
     });
   };
 
+  // Format date for HTML input (YYYY-MM-DD)
+  const formatDateForInput = (date: Date | null): string => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Format minimum/maximum dates for HTML input
+  const formatMinMax = (date?: Date): string | undefined => {
+    return date ? formatDateForInput(date) : undefined;
+  };
+
+  // Render web-compatible date input
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.labelContainer}>
+          <Text style={styles.label}>{label}</Text>
+          {mandatory && <Text style={styles.mandatory}>*</Text>}
+        </View>
+
+        <View style={[
+          styles.dateButton,
+          error && styles.dateButtonError,
+          disabled && styles.disabled,
+        ]}>
+          <View style={styles.dateContent}>
+            <Calendar size={20} color={value ? '#16A34A' : '#9CA3AF'} />
+            <TextInput
+              style={styles.webDateInput}
+              value={formatDateForInput(value)}
+              onChange={(e: any) => handleWebDateChange(e.target.value)}
+              placeholder="Select date"
+              editable={!disabled}
+              // @ts-ignore - Web-specific props
+              type="date"
+              min={formatMinMax(minimumDate)}
+              max={formatMinMax(maximumDate)}
+            />
+          </View>
+        </View>
+
+        {error && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // Render native date picker for iOS/Android
   return (
     <View style={styles.container}>
       <View style={styles.labelContainer}>
@@ -143,6 +209,16 @@ const styles = StyleSheet.create({
   placeholderText: {
     color: '#9CA3AF',
   },
+  webDateInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+    fontWeight: '500',
+    backgroundColor: 'transparent',
+    // @ts-ignore - Web-specific styles
+    border: 'none',
+    outline: 'none',
+  } as any,
   errorContainer: {
     marginTop: 6,
     paddingHorizontal: 4,

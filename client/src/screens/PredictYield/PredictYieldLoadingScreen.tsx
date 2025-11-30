@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Dimensions, Animated, Alert } from 'react-nativ
 import { Leaf, Droplets, Sun, Wind, CheckCircle, MapPin } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from '../../types/yieldPrediction';
-import { API_BASE } from '../../constants';
+import { API_BASE } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -89,7 +89,12 @@ export default function PredictYieldLoadingScreen() {
                     setTimeout(async () => {
                         try {
                             console.log('🚀 Calling yield prediction API...');
+                            console.log('🌐 API URL:', `${API_BASE}/api/yield/predict`);
                             console.log('Payload:', JSON.stringify(payload, null, 2));
+                            
+                            // Add timeout to prevent hanging
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
                             
                             const response = await fetch(`${API_BASE}/api/yield/predict`, {
                                 method: 'POST',
@@ -97,7 +102,10 @@ export default function PredictYieldLoadingScreen() {
                                     'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify(payload),
+                                signal: controller.signal,
                             });
+                            
+                            clearTimeout(timeoutId);
 
                             if (!response.ok) {
                                 const errorText = await response.text();
