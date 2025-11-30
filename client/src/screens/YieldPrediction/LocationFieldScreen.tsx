@@ -59,9 +59,9 @@ export const LocationFieldScreen: React.FC = () => {
       newErrors.location = 'Please select your location or use GPS.';
     }
 
-    if (!formData.planting_date) {
-      newErrors.planting_date = 'Please enter a valid planting date.';
-    } else {
+    // Planting date is now OPTIONAL
+    // Only validate if user has entered a date
+    if (formData.planting_date) {
       const today = new Date();
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -149,13 +149,12 @@ export const LocationFieldScreen: React.FC = () => {
             error={errors.location}
           />
 
-          {/* Planting Date */}
+          {/* Planting Date - Now Optional */}
           <CustomDatePicker
-            label="Planting Date"
+            label="Planting Date (Optional)"
             value={formData.planting_date}
             onChange={(date) => updateFormData({ planting_date: date })}
             error={errors.planting_date}
-            mandatory
             minimumDate={sixMonthsAgo}
             maximumDate={today}
           />
@@ -165,7 +164,7 @@ export const LocationFieldScreen: React.FC = () => {
             <Text style={styles.readOnlyLabel}>Season (Auto-detected)</Text>
             <View style={styles.seasonBadge}>
               <Text style={styles.seasonText}>
-                {formData.season || 'Select planting date first'}
+                {formData.season || 'Not detected (optional)'}
               </Text>
             </View>
           </View>
