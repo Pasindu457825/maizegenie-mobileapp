@@ -52,6 +52,42 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import { NotificationDropdown } from "../../components/NotificationDropdown";
+
+// 🔥 ADD THIS HERE (top of file, after imports)
+
+const VARIETIES = [
+  "Ruhunu 1",
+  "Ruhunu 2",
+  "Sampath",
+  "Sudu Maize",
+  "BW Hybrid",
+  "Jet 999",
+  "GT 709",
+  "GT 722",
+  "CIC Hybrid 808",
+  "CIC Hybrid 989",
+  "CIC Premium Gold",
+  "Imported Hybrid",
+  "Local Hybrid",
+  "Unknown Variety",
+];
+
+const LOCATION_TRANSLATIONS = {
+  Colombo: "කොළඹ",
+  Gampaha: "ගම්පහ",
+  Kandy: "මහනුවර",
+  Matara: "මාතර",
+  Hambantota: "හම්බන්තොට",
+  Monaragala: "මොණරාගල",
+  Anuradhapura: "අනුරාධපුර",
+  Polonnaruwa: "පොලොන්නරුව",
+  Jaffna: "යාපනය",
+  Kurunegala: "කුරුණෑගල",
+  Puttalam: "පුත්තලම",
+  Badulla: "බදුල්ල",
+  "Nuwara Eliya": "නුවර එලිය",
+};
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -65,6 +101,8 @@ const API_URL =
     : "http://192.168.8.181:8000"; // Real device Expo Go
 
 const PriceForecastFormScreen = () => {
+  const [notifVisible, setNotifVisible] = useState(false);
+  const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const navigation = useNavigation<NavProp>();
   const [language, setLanguage] = useState<Language>("si");
   const {
@@ -95,6 +133,8 @@ const PriceForecastFormScreen = () => {
   const [labourCost, setLabourCost] = useState("");
   const [otherCosts, setOtherCosts] = useState("");
   const [hasStorage, setHasStorage] = useState(false);
+  // Dropdown state
+  const [showVarietyPopup, setShowVarietyPopup] = useState(false);
 
   // Content translations
   const content = {
@@ -158,6 +198,68 @@ const PriceForecastFormScreen = () => {
       locationDetecting: "Detecting location...",
       weatherLoading: "Loading weather...",
     },
+  };
+  type LocationKey = keyof typeof LOCATION_TRANSLATIONS;
+  const getTranslatedLocation = (rawName: string | null, lang: Language) => {
+    if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+    if (lang === "en") return rawName;
+
+    let enName = rawName.trim();
+
+    // Remove unwanted words
+    enName = enName
+      .replace(/District/i, "")
+      .replace(/Province/i, "")
+      .trim();
+
+    // Province mapping
+    const provinceMap: Record<string, string> = {
+      Western: "බස්නාහිර",
+      Southern: "දකුණු",
+      Central: "මධ්‍යම",
+      Northern: "උතුරු",
+      Eastern: "නැගෙනහිර",
+      NorthWestern: "වයඹ",
+      NorthCentral: "උතුරු මැද",
+      Uva: "ඌව",
+      Sabaragamuwa: "සබරගමුව",
+    };
+
+    if (provinceMap[enName]) return provinceMap[enName] + " පළාත";
+
+    // District mapping
+    const districtMap: Record<string, string> = {
+      Colombo: "කොළඹ",
+      Gampaha: "ගම්පහ",
+      Kalutara: "කළුතර",
+      Kandy: "මහනුවර",
+      Matale: "මාතලේ",
+      NuwaraEliya: "නුවර එලිය",
+      Galle: "ගාල්ල",
+      Matara: "මාතර",
+      Hambantota: "හම්බන්තොට",
+      Jaffna: "යාපනය",
+      Kilinochchi: "කිලිනොච්චි",
+      Mannar: "මන්නාරම",
+      Vavuniya: "වවුනියාව",
+      Mullaitivu: "මුලතිව්",
+      Batticaloa: "බතිකලාව",
+      Ampara: "අම්පාර",
+      Trincomalee: "ත්‍රිකුණාමලය",
+      Kurunegala: "කුරුණෑගල",
+      Puttalam: "පුත්තලම",
+      Anuradhapura: "අනුරාධපුර",
+      Polonnaruwa: "පොලොන්නරුව",
+      Badulla: "බදුල්ල",
+      Monaragala: "මොණරාගල",
+      Ratnapura: "රත්නපුර",
+      Kegalle: "කෑගල්ල",
+    };
+
+    if (districtMap[enName]) return districtMap[enName];
+
+    // Fallback for towns/villages → Keep English
+    return rawName;
   };
 
   // Enhanced weather translation mapping
@@ -446,8 +548,11 @@ const PriceForecastFormScreen = () => {
     setSeason(updatedSeason);
   }, [language]);
 
+
+
+
   // Add console.logs to see what's being saved
- /* useEffect(() => {
+  /* useEffect(() => {
     if (
       seedVariety ||
       expectedYield ||
@@ -608,9 +713,13 @@ const PriceForecastFormScreen = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setNotifVisible(true)}
+          >
             <Bell color="#10B981" size={20} />
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.langButton}
             onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
@@ -631,7 +740,9 @@ const PriceForecastFormScreen = () => {
             <Text style={styles.infoLabel}>
               {language === "si" ? "ස්ථානය" : "Location"}
             </Text>
-            <Text style={styles.infoValue}>{district}</Text>
+            <Text style={styles.infoValue}>
+              {getTranslatedLocation(district, language)}
+            </Text>
           </View>
         </View>
         <View style={styles.divider} />
@@ -751,15 +862,20 @@ const PriceForecastFormScreen = () => {
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
-            <TextInput
+
+            <TouchableOpacity
               style={styles.input}
-              placeholder={
-                language === "si" ? "උදා: පැසිෆික් 999" : "e.g., Pacific 999"
-              }
-              value={seedVariety}
-              onChangeText={setSeedVariety}
-              placeholderTextColor="#9CA3AF"
-            />
+              onPress={() => setShowVarietyPopup(true)}
+            >
+              <Text
+                style={{
+                  color: seedVariety ? "#1F2937" : "#9CA3AF",
+                  fontSize: 15,
+                }}
+              >
+                {seedVariety || (language === "si" ? "තෝරන්න" : "Select")}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.formRow}>
@@ -867,7 +983,45 @@ const PriceForecastFormScreen = () => {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
+        {showVarietyPopup && (
+          <View style={styles.popupContainer}>
+            <View style={styles.popupBox}>
+              <ScrollView>
+                {VARIETIES.map((v) => (
+                  <TouchableOpacity
+                    key={v}
+                    style={styles.popupItem}
+                    onPress={() => {
+                      setSeedVariety(v);
+                      setShowVarietyPopup(false);
+                    }}
+                  >
+                    <Text style={styles.popupText}>{v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.popupCancel}
+                onPress={() => setShowVarietyPopup(false)}
+              >
+                <Text style={styles.popupCancelText}>
+                  {language === "si" ? "අවලංගු" : "Cancel"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
+      <NotificationDropdown
+        visible={notifVisible}
+        onClose={() => setNotifVisible(false)}
+        messages={
+          notifMessages.length > 0
+            ? notifMessages
+            : [language === "si" ? "නව දැනුම්දීමක් නොමැත" : "No notifications"]
+        }
+      />
     </View>
   );
 };
@@ -1153,6 +1307,51 @@ const styles = StyleSheet.create({
   adminButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  popupContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+
+  popupBox: {
+    backgroundColor: "#fff",
+    width: "80%",
+    maxHeight: "60%",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+
+  popupItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+
+  popupText: {
+    fontSize: 16,
+    color: "#047857",
+  },
+
+  popupCancel: {
+    marginTop: 10,
+    paddingVertical: 12,
+    backgroundColor: "#FEE2E2",
+    borderRadius: 10,
+  },
+
+  popupCancelText: {
+    textAlign: "center",
+    color: "#B91C1C",
     fontWeight: "bold",
   },
 });
