@@ -32,6 +32,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
+import { NotificationDropdown } from "../../components/NotificationDropdown";
 
 const { width } = Dimensions.get("window");
 const LOCATION_TRANSLATIONS = {
@@ -80,6 +81,8 @@ type NavProp = StackNavigationProp<
 >;
 
 const PriceForecastLoadingScreen = () => {
+  const [notifVisible, setNotifVisible] = useState(false);
+  const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const navigation = useNavigation<NavProp>();
   const [language, setLanguage] = useState<Language>("si");
   const [progress, setProgress] = useState(0);
@@ -364,10 +367,16 @@ const PriceForecastLoadingScreen = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconButton}>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => setNotifVisible(true)}
+          >
             <Bell color="#10B981" size={20} />
-            <View style={styles.notificationDot} />
+            {notifMessages.length > 0 && (
+              <View style={styles.notificationDot} />
+            )}
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.langButtonHeader}
             onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
@@ -567,6 +576,15 @@ const PriceForecastLoadingScreen = () => {
           )}
         </Animated.View>
       </ScrollView>
+      <NotificationDropdown
+        visible={notifVisible}
+        onClose={() => setNotifVisible(false)}
+        messages={
+          notifMessages.length > 0
+            ? notifMessages
+            : [language === "si" ? "නව දැනුම්දීමක් නොමැත" : "No notifications"]
+        }
+      />
     </View>
   );
 };
