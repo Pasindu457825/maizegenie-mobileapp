@@ -79,13 +79,30 @@ export const WeatherConditionScreen: React.FC = () => {
   };
 
   const buildRequestPayload = (): YieldPredictionRequest => {
+    // Safely handle planting date - use current date if not provided
+    let plantingDateStr = '';
+    try {
+      if (formData.planting_date && formData.planting_date instanceof Date && !isNaN(formData.planting_date.getTime())) {
+        plantingDateStr = formData.planting_date.toISOString().split('T')[0];
+      } else {
+        // Use current date as fallback
+        plantingDateStr = new Date().toISOString().split('T')[0];
+      }
+    } catch (error) {
+      console.warn('Invalid planting date, using current date:', error);
+      plantingDateStr = new Date().toISOString().split('T')[0];
+    }
+
+    // Use detected season or default to Maha if not available
+    const season = formData.season || 'Maha';
+
     return {
       district: formData.district as any,
       location: formData.location,
       gps_lat: formData.gps_lat,
       gps_lng: formData.gps_lng,
-      season: formData.season as any,
-      planting_date: formData.planting_date?.toISOString().split('T')[0] || '',
+      season: season as any,
+      planting_date: plantingDateStr,
       land_size_value: parseFloat(formData.land_size_value),
       land_size_unit: 'Acres', // Fixed unit - always Acres
       soil_condition: formData.soil_condition as any,
