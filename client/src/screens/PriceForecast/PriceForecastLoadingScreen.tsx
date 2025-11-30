@@ -34,6 +34,22 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
 
 const { width } = Dimensions.get("window");
+const LOCATION_TRANSLATIONS = {
+  Colombo: "කොළඹ",
+  Gampaha: "ගම්පහ",
+  Kandy: "මහනුවර",
+  Matara: "මාතර",
+  Hambantota: "හම්බන්තොට",
+  Monaragala: "මොණරාගල",
+  Anuradhapura: "අනුරාධපුර",
+  Polonnaruwa: "පොලොන්නරුව",
+  Jaffna: "යාපනය",
+  Kurunegala: "කුරුණෑගල",
+  Puttalam: "පුත්තලම",
+  Badulla: "බදුල්ල",
+  "Nuwara Eliya": "නුවර එලිය",
+};
+type LocationKey = keyof typeof LOCATION_TRANSLATIONS;
 
 type RootStackParamList = {
   PriceForecastFormScreen: undefined;
@@ -120,6 +136,68 @@ const PriceForecastLoadingScreen = () => {
     },
   };
 
+  const getTranslatedLocation = (rawName: string | null, lang: Language) => {
+    if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+    if (lang === "en") return rawName;
+
+    let enName = rawName.trim();
+
+    // Remove words like "District", "Province"
+    enName = enName
+      .replace(/District/i, "")
+      .replace(/Province/i, "")
+      .trim();
+
+    // Province translations
+    const provinceMap: Record<string, string> = {
+      Western: "බස්නාහිර",
+      Southern: "දකුණු",
+      Central: "මධ්‍යම",
+      Northern: "උතුරු",
+      Eastern: "නැගෙනහිර",
+      NorthWestern: "වයඹ",
+      NorthCentral: "උතුරු මැද",
+      Uva: "ඌව",
+      Sabaragamuwa: "සබරගමුව",
+    };
+
+    if (provinceMap[enName]) return provinceMap[enName] + " පළාත";
+
+    // District translations
+    const districtMap: Record<string, string> = {
+      Colombo: "කොළඹ",
+      Gampaha: "ගම්පහ",
+      Kalutara: "කළුතර",
+      Kandy: "මහනුවර",
+      Matale: "මාතලේ",
+      NuwaraEliya: "නුවර එලිය",
+      Galle: "ගාල්ල",
+      Matara: "මාතර",
+      Hambantota: "හම්බන්තොට",
+      Jaffna: "යාපනය",
+      Kilinochchi: "කිලිනොච්චි",
+      Mannar: "මන්නාරම",
+      Vavuniya: "වවුනියාව",
+      Mullaitivu: "මුලතිව්",
+      Batticaloa: "බතිකලාව",
+      Ampara: "අම්පාර",
+      Trincomalee: "ත්‍රිකුණාමලය",
+      Kurunegala: "කුරුණෑගල",
+      Puttalam: "පුත්තලම",
+      Anuradhapura: "අනුරාධපුර",
+      Polonnaruwa: "පොලොන්නරුව",
+      Badulla: "බදුල්ල",
+      Monaragala: "මොණරාගල",
+      Ratnapura: "රත්නපුර",
+      Kegalle: "කෑගල්ල",
+    };
+
+    if (districtMap[enName]) return districtMap[enName];
+
+    // If town/village not detected, show English name
+    return rawName;
+  };
+
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -201,15 +279,14 @@ const PriceForecastLoadingScreen = () => {
   };
 
   const handleAdvisor = () => {
-  navigation.navigate("PriceAdvisorScreen", {
-    formData: {
-      cropDuration: 14,
-      cost: 45000,
-      yieldKg: 1750,
-    },
-  });
-};
-
+    navigation.navigate("PriceAdvisorScreen", {
+      formData: {
+        cropDuration: 14,
+        cost: 45000,
+        yieldKg: 1750,
+      },
+    });
+  };
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
     if (!condition) return <Cloud size={size} color="#10B981" />;
@@ -312,7 +389,9 @@ const PriceForecastLoadingScreen = () => {
           <View style={styles.locationInfo}>
             <View style={styles.locationRow}>
               <MapPin color="#047857" size={14} />
-              <Text style={styles.locationText}>{locationName}</Text>
+              <Text style={styles.locationText}>
+                {getTranslatedLocation(locationName, language)}
+              </Text>
             </View>
             <View style={styles.weatherRow}>
               {getWeatherIcon(weatherCondition, 16)}
