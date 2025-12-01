@@ -5,7 +5,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity, CalendarPlus } from 'lucide-react-native';
 import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/yieldPrediction';
 import { useYieldForm } from '../../contexts/YieldFormContext';
-import { translations } from '../../translations/yieldPrediction';
+import { translations } from '../../translations/translationYieldPrediction';
 import * as ExpoCalendar from 'expo-calendar';
 
 const { width } = Dimensions.get('window');
