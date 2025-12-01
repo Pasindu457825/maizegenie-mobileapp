@@ -11,7 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { PredictYieldStackParamList } from '../../navigation/PredictYieldStack';
-import { Leaf, Globe, ChevronRight } from 'lucide-react-native';
+import { Leaf, Globe, ChevronRight, User, UserCog } from 'lucide-react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,6 +22,8 @@ export default function LanguageSelectionScreen() {
     const [fadeAnim] = useState(new Animated.Value(0));
     const [scaleAnim] = useState(new Animated.Value(0.8));
     const [slideAnim] = useState(new Animated.Value(50));
+    const [selectedLanguage, setSelectedLanguage] = useState<'si' | 'en' | null>(null);
+    const [showRoleSelection, setShowRoleSelection] = useState(false);
 
     useEffect(() => {
         // Entrance animations
@@ -46,8 +48,25 @@ export default function LanguageSelectionScreen() {
     }, []);
 
     const handleLanguageSelect = (language: 'si' | 'en') => {
-        // Navigate to LocationField with language parameter
-        navigation.navigate('LocationField', { language });
+        setSelectedLanguage(language);
+        setShowRoleSelection(true);
+    };
+
+    const handleRoleSelect = (role: 'farmer' | 'officer') => {
+        if (!selectedLanguage) return;
+        
+        if (role === 'farmer') {
+            // Navigate to Farmer flow
+            navigation.navigate('LocationField', { language: selectedLanguage });
+        } else {
+            // Navigate to Officer flow
+            navigation.navigate('OfficerSoilProfile', { language: selectedLanguage });
+        }
+    };
+
+    const handleBackToLanguage = () => {
+        setShowRoleSelection(false);
+        setSelectedLanguage(null);
     };
 
     return (
@@ -92,58 +111,131 @@ export default function LanguageSelectionScreen() {
                     <Text style={styles.subtitle}>අස්වැන්න පුරෝකථනය</Text>
                 </Animated.View>
 
-                {/* Language Selection Cards */}
-                <Animated.View
-                    style={[
-                        styles.languageContainer,
-                        {
-                            opacity: fadeAnim,
-                            transform: [{ translateY: slideAnim }]
-                        }
-                    ]}
-                >
-                    <View style={styles.languageHeader}>
-                        <Globe color="#10B981" size={24} />
-                        <Text style={styles.languageHeaderText}>Choose Your Language</Text>
-                        <Text style={styles.languageHeaderTextSi}>ඔබේ භාෂාව තෝරන්න</Text>
-                    </View>
-
-                    {/* Sinhala Option */}
-                    <TouchableOpacity
-                        style={styles.languageCard}
-                        onPress={() => handleLanguageSelect('si')}
-                        activeOpacity={0.7}
+                {/* Language or Role Selection */}
+                {!showRoleSelection ? (
+                    <Animated.View
+                        style={[
+                            styles.languageContainer,
+                            {
+                                opacity: fadeAnim,
+                                transform: [{ translateY: slideAnim }]
+                            }
+                        ]}
                     >
-                        <View style={styles.languageCardContent}>
-                            <View style={styles.languageIcon}>
-                                <Text style={styles.languageEmoji}>🇱🇰</Text>
-                            </View>
-                            <View style={styles.languageTextContainer}>
-                                <Text style={styles.languageTitle}>සිංහල</Text>
-                                <Text style={styles.languageSubtitle}>Sinhala Language</Text>
-                            </View>
-                            <ChevronRight color="#10B981" size={24} />
+                        <View style={styles.languageHeader}>
+                            <Globe color="#10B981" size={24} />
+                            <Text style={styles.languageHeaderText}>Choose Your Language</Text>
+                            <Text style={styles.languageHeaderTextSi}>ඔබේ භාෂාව තෝරන්න</Text>
                         </View>
-                    </TouchableOpacity>
 
-                    {/* English Option */}
-                    <TouchableOpacity
-                        style={styles.languageCard}
-                        onPress={() => handleLanguageSelect('en')}
-                        activeOpacity={0.7}
+                        {/* Sinhala Option */}
+                        <TouchableOpacity
+                            style={styles.languageCard}
+                            onPress={() => handleLanguageSelect('si')}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.languageCardContent}>
+                                <View style={styles.languageIcon}>
+                                    <Text style={styles.languageEmoji}>🇱🇰</Text>
+                                </View>
+                                <View style={styles.languageTextContainer}>
+                                    <Text style={styles.languageTitle}>සිංහල</Text>
+                                    <Text style={styles.languageSubtitle}>Sinhala Language</Text>
+                                </View>
+                                <ChevronRight color="#10B981" size={24} />
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* English Option */}
+                        <TouchableOpacity
+                            style={styles.languageCard}
+                            onPress={() => handleLanguageSelect('en')}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.languageCardContent}>
+                                <View style={styles.languageIcon}>
+                                    <Text style={styles.languageEmoji}>🇬🇧</Text>
+                                </View>
+                                <View style={styles.languageTextContainer}>
+                                    <Text style={styles.languageTitle}>English</Text>
+                                    <Text style={styles.languageSubtitle}>English Language</Text>
+                                </View>
+                                <ChevronRight color="#10B981" size={24} />
+                            </View>
+                        </TouchableOpacity>
+                    </Animated.View>
+                ) : (
+                    <Animated.View
+                        style={[
+                            styles.languageContainer,
+                            {
+                                opacity: fadeAnim,
+                                transform: [{ translateY: slideAnim }]
+                            }
+                        ]}
                     >
-                        <View style={styles.languageCardContent}>
-                            <View style={styles.languageIcon}>
-                                <Text style={styles.languageEmoji}>🇬🇧</Text>
-                            </View>
-                            <View style={styles.languageTextContainer}>
-                                <Text style={styles.languageTitle}>English</Text>
-                                <Text style={styles.languageSubtitle}>English Language</Text>
-                            </View>
-                            <ChevronRight color="#10B981" size={24} />
+                        <View style={styles.languageHeader}>
+                            <User color="#10B981" size={24} />
+                            <Text style={styles.languageHeaderText}>Select Your Role</Text>
+                            <Text style={styles.languageHeaderTextSi}>ඔබේ භූමිකාව තෝරන්න</Text>
                         </View>
-                    </TouchableOpacity>
-                </Animated.View>
+
+                        {/* Farmer Option */}
+                        <TouchableOpacity
+                            style={styles.languageCard}
+                            onPress={() => handleRoleSelect('farmer')}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.languageCardContent}>
+                                <View style={styles.languageIcon}>
+                                    <User size={32} color="#10B981" />
+                                </View>
+                                <View style={styles.languageTextContainer}>
+                                    <Text style={styles.languageTitle}>
+                                        {selectedLanguage === 'si' ? 'ගොවියා' : 'Farmer'}
+                                    </Text>
+                                    <Text style={styles.languageSubtitle}>
+                                        {selectedLanguage === 'si' ? 'සරල අස්වැන්න පුරෝකථනය' : 'Simple yield prediction'}
+                                    </Text>
+                                </View>
+                                <ChevronRight color="#10B981" size={24} />
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* Officer Option */}
+                        <TouchableOpacity
+                            style={styles.languageCard}
+                            onPress={() => handleRoleSelect('officer')}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.languageCardContent}>
+                                <View style={styles.languageIcon}>
+                                    <UserCog size={32} color="#10B981" />
+                                </View>
+                                <View style={styles.languageTextContainer}>
+                                    <Text style={styles.languageTitle}>
+                                        {selectedLanguage === 'si' ? 'කෘෂිකර්ම නිලධාරී' : 'AgriOfficer'}
+                                    </Text>
+                                    <Text style={styles.languageSubtitle}>
+                                        {selectedLanguage === 'si' ? 'උසස් පස් විශ්ලේෂණය සහිත' : 'Advanced soil analysis'}
+                                    </Text>
+                                </View>
+                                <ChevronRight color="#10B981" size={24} />
+                            </View>
+                        </TouchableOpacity>
+
+                        {/* Back Button */}
+                        <TouchableOpacity
+                            style={styles.backButton}
+                            onPress={handleBackToLanguage}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.backButtonText}>
+                                {selectedLanguage === 'si' ? '← භාෂාව වෙනස් කරන්න' : '← Change Language'}
+                            </Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
             </Animated.View>
         </View>
     );
@@ -353,5 +445,20 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#10B981',
         fontWeight: '500',
+    },
+    backButton: {
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderColor: '#10B981',
+        borderRadius: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        marginTop: 16,
+        alignItems: 'center',
+    },
+    backButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#047857',
     },
 });
