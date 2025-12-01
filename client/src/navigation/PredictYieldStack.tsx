@@ -6,12 +6,14 @@ import { CropInformationScreen } from "../screens/YieldPrediction/CropInformatio
 import { WeatherConditionScreen } from "../screens/YieldPrediction/WeatherConditionScreen";
 import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadingScreen";
 import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
+import LanguageSelectionScreen from "../screens/PredictYield/LanguageSelectionScreen";
 import { ROUTES } from "../constants";
 import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from "../types/yieldPrediction";
 
-type PredictYieldStackParamList = {
+export type PredictYieldStackParamList = {
     [ROUTES.TABS.PREDICTYIELD]: undefined;
-    LocationField: undefined;
+    LanguageSelection: undefined;
+    LocationField: { language?: 'si' | 'en' };
     CropInformation: undefined;
     WeatherCondition: undefined;
     PredictYieldLoading: {
@@ -30,9 +32,10 @@ export default function PredictYieldStack() {
     return (
         <YieldFormProvider>
             <Stack.Navigator 
-                initialRouteName="LocationField"
+                initialRouteName="LanguageSelection"
                 screenOptions={{ headerShown: false }}
             >
+                <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
                 <Stack.Screen name="LocationField" component={LocationFieldScreen} />
                 <Stack.Screen name="CropInformation" component={CropInformationScreen} />
                 <Stack.Screen name="WeatherCondition" component={WeatherConditionScreen} />

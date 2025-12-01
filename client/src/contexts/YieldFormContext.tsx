@@ -13,10 +13,12 @@ import {
 interface YieldFormContextType {
   formData: YieldPredictionFormData;
   errors: ValidationErrors;
+  language: 'si' | 'en';
   updateFormData: (data: Partial<YieldPredictionFormData>) => void;
   setErrors: (errors: ValidationErrors) => void;
   clearErrors: () => void;
   resetForm: () => void;
+  setLanguage: (lang: 'si' | 'en') => void;
 }
 
 const YieldFormContext = createContext<YieldFormContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ interface YieldFormProviderProps {
 export const YieldFormProvider: React.FC<YieldFormProviderProps> = ({ children }) => {
   const [formData, setFormData] = useState<YieldPredictionFormData>(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [language, setLanguage] = useState<'si' | 'en'>('en');
 
   const updateFormData = (data: Partial<YieldPredictionFormData>) => {
     setFormData(prev => ({ ...prev, ...data }));
@@ -59,10 +62,12 @@ export const YieldFormProvider: React.FC<YieldFormProviderProps> = ({ children }
       value={{
         formData,
         errors,
+        language,
         updateFormData,
         setErrors,
         clearErrors,
         resetForm,
+        setLanguage,
       }}
     >
       {children}
