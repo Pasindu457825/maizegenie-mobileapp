@@ -1,9 +1,9 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { YieldFormProvider } from "../contexts/YieldFormContext";
-import { LocationFieldScreen } from "../screens/YieldPrediction/LocationFieldScreen";
-import { CropInformationScreen } from "../screens/YieldPrediction/CropInformationScreen";
-import { WeatherConditionScreen } from "../screens/YieldPrediction/WeatherConditionScreen";
+import { LocationFieldScreen } from "../screens/YieldPrediction/FamerUI/LocationFieldScreen";
+import { CropInformationScreen } from "../screens/YieldPrediction/FamerUI/CropInformationScreen";
+import { WeatherConditionScreen } from "../screens/YieldPrediction/FamerUI/WeatherConditionScreen";
 import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadingScreen";
 import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
 import LanguageSelectionScreen from "../screens/PredictYield/LanguageSelectionScreen";

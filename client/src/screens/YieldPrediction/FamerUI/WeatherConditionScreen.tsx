@@ -7,14 +7,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CloudRain, ChevronLeft, Send, Cloud } from 'lucide-react-native';
-import { useYieldForm } from '../../contexts/YieldFormContext';
-import { CustomDropdown } from '../../components/forms/CustomDropdown';
+import { useYieldForm } from '../../../contexts/YieldFormContext';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
 import {
   RAINFALL_CONDITIONS,
   RainfallCondition,
   YieldPredictionRequest,
-} from '../../types/yieldPrediction';
-import { translations, translateOption } from '../../translations/yieldPrediction';
+} from '../../../types/yieldPrediction';
+import { translations, translateOption } from '../../../translations/yieldPrediction';
 
 export const WeatherConditionScreen: React.FC = () => {
   const navigation = useNavigation();

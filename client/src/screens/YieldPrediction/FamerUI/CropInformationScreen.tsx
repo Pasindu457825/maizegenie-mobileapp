@@ -7,10 +7,10 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Leaf, ChevronLeft, ChevronRight } from 'lucide-react-native';
-import { useYieldForm } from '../../contexts/YieldFormContext';
-import { VarietySelector } from '../../components/forms/VarietySelector';
-import { MaizeVariety } from '../../types/yieldPrediction';
-import { translations } from '../../translations/yieldPrediction';
+import { useYieldForm } from '../../../contexts/YieldFormContext';
+import { VarietySelector } from '../../../components/forms/VarietySelector';
+import { MaizeVariety } from '../../../types/yieldPrediction';
+import { translations } from '../../../translations/yieldPrediction';
 
 export const CropInformationScreen: React.FC = () => {
   const navigation = useNavigation();
