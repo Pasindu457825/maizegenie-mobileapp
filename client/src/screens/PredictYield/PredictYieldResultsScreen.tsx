@@ -1,11 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Animated, Alert, Platform, TouchableOpacity } from 'react-native';
 import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity } from 'lucide-react-native';
+import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity, CalendarPlus } from 'lucide-react-native';
 import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/yieldPrediction';
 import { useYieldForm } from '../../contexts/YieldFormContext';
 import { translations } from '../../translations/yieldPrediction';
+import * as ExpoCalendar from 'expo-calendar';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +34,7 @@ export default function PredictYieldScreen() {
     const navigation = useNavigation();
     const route = useRoute<RouteProp<RouteParams, 'PredictYieldScreen'>>();
     const { language } = useYieldForm();
+    const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
 
     // Get translations
     const t = translations.results[language];
@@ -89,6 +91,96 @@ export default function PredictYieldScreen() {
         }
     };
 
+    // One-Tap Add to Calendar Function
+    const addHarvestToCalendar = async () => {
+        if (!displayResults.harvestWindow) {
+            Alert.alert(
+                language === 'si' ? 'දෝෂයකි' : 'Error',
+                language === 'si' ? 'අස්වැන්න නෙලීමේ කාලය නොමැත' : 'No harvest window available'
+            );
+            return;
+        }
+
+        setIsAddingToCalendar(true);
+
+        try {
+            // Request calendar permissions
+            const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
+            
+            if (status !== 'granted') {
+                Alert.alert(
+                    language === 'si' ? 'අවසරය අවශ්‍යයි' : 'Permission Required',
+                    t.permissionDenied
+                );
+                setIsAddingToCalendar(false);
+                return;
+            }
+
+            // Get default calendar
+            const calendars = await ExpoCalendar.getCalendarsAsync(ExpoCalendar.EntityTypes.EVENT);
+            const defaultCalendar = calendars.find(cal => cal.allowsModifications) || calendars[0];
+
+            if (!defaultCalendar) {
+                throw new Error('No calendar available');
+            }
+
+            // Parse dates
+            const startDate = new Date(displayResults.harvestWindow.start);
+            const targetDate = new Date(displayResults.harvestWindow.target);
+            const endDate = new Date(displayResults.harvestWindow.end);
+
+            // Create event title and notes
+            const eventTitle = language === 'si' 
+                ? `🌾 ${formData?.variety || 'ඉරිඟු'} අස්වැන්න නෙලීම`
+                : `🌾 ${formData?.variety || 'Maize'} Harvest`;
+
+            const eventNotes = language === 'si'
+                ? `අපේක්ෂිත අස්වැන්න: ${displayResults.predictedYield}\nදිස්ත්‍රික්කය: ${formData?.district || '-'}\nඉඩමේ ප්‍රමාණය: ${formData?.land_size_value || '-'} අක්කර\n\nඅස්වැන්න නෙලීමේ කාලය:\n• ආරම්භය: ${startDate.toLocaleDateString()}\n• ඉලක්කය: ${targetDate.toLocaleDateString()}\n• අවසානය: ${endDate.toLocaleDateString()}`
+                : `Predicted Yield: ${displayResults.predictedYield}\nDistrict: ${formData?.district || '-'}\nLand Size: ${formData?.land_size_value || '-'} Acres\n\nHarvest Window:\n• Start: ${startDate.toLocaleDateString()}\n• Target: ${targetDate.toLocaleDateString()}\n• End: ${endDate.toLocaleDateString()}`;
+
+            // Create calendar event (all-day event spanning the harvest window)
+            const eventId = await ExpoCalendar.createEventAsync(defaultCalendar.id, {
+                title: eventTitle,
+                startDate: startDate,
+                endDate: endDate,
+                allDay: true,
+                notes: eventNotes,
+                alarms: [
+                    { relativeOffset: -7 * 24 * 60 }, // 7 days before (in minutes)
+                    { relativeOffset: -1 * 24 * 60 }, // 1 day before (in minutes)
+                ],
+            });
+
+            console.log('✅ Calendar event created:', eventId);
+
+            // Enhanced success alert with detailed information
+            const successMessage = language === 'si'
+                ? `දින දර්ශනයට සාර්ථකව එකතු කරන ලදී!\n\n📅 සිදුවීම: ${eventTitle}\n📆 දිනය: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}\n\n🔔 සිහිකැඳවීම්:\n• ${new Date(targetDate.getTime() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} (දින 7කට පෙර)\n• ${new Date(targetDate.getTime() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString()} (දිනකට පෙර)\n\nඔබේ දින දර්ශනය පරීක්ෂා කරන්න!`
+                : `Successfully added to calendar!\n\n📅 Event: ${eventTitle}\n📆 Date: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}\n\n🔔 Reminders set:\n• ${new Date(targetDate.getTime() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} (7 days before)\n• ${new Date(targetDate.getTime() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString()} (1 day before)\n\nCheck your calendar app!`;
+
+            Alert.alert(
+                language === 'si' ? '✅ සාර්ථකයි!' : '✅ Success!',
+                successMessage,
+                [
+                    { 
+                        text: language === 'si' ? 'හරි' : 'OK',
+                        style: 'default'
+                    }
+                ]
+            );
+
+        } catch (error) {
+            console.error('❌ Calendar error:', error);
+            Alert.alert(
+                language === 'si' ? 'දෝෂයකි' : 'Error',
+                t.calendarError,
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setIsAddingToCalendar(false);
+        }
+    };
+
     const HarvestWindowCard = () => {
         if (!displayResults.harvestWindow) return null;
 
@@ -123,6 +215,20 @@ export default function PredictYieldScreen() {
                         <Text style={styles.reminderText}>{displayResults.calendarEvent.title}</Text>
                     </View>
                 )}
+
+                {/* Add to Calendar Button */}
+                <TouchableOpacity 
+                    style={styles.calendarButton}
+                    onPress={addHarvestToCalendar}
+                    disabled={isAddingToCalendar}
+                >
+                    <CalendarPlus size={20} color="#FFFFFF" />
+                    <Text style={styles.calendarButtonText}>
+                        {isAddingToCalendar 
+                            ? (language === 'si' ? 'එකතු කරමින්...' : 'Adding...') 
+                            : t.addToCalendar}
+                    </Text>
+                </TouchableOpacity>
             </View>
         );
     };
@@ -450,6 +556,27 @@ const styles = StyleSheet.create({
         color: '#92400E',
         fontWeight: '500',
         flex: 1,
+    },
+    calendarButton: {
+        backgroundColor: '#16A34A',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        marginTop: 16,
+        shadowColor: '#16A34A',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    calendarButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
     factorContainer: {
         width: '100%',
