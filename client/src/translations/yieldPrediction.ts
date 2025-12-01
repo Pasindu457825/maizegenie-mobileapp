@@ -87,7 +87,7 @@ export const translations = {
       autoDetect: 'ස්වයංක්‍රීයව හඳුනාගන්න',
       manualSelect: 'අතින් තෝරන්න',
       summary: 'සාරාංශය',
-      predictYield: 'අස්වැන්න පුරෝකථනය කරන්න',
+      predictYield: 'පුරෝකථනය කරන්න',
       backButton: 'ආපසු',
       errorRainfall: 'කරුණාකර වර්ෂාපතන තත්ත්වය තෝරන්න.',
       // Summary fields
@@ -158,6 +158,13 @@ export const translations = {
       impactFactors: 'බලපෑම් සාධක',
       newPrediction: 'නව පුරෝකථනයක්',
       backToHome: 'මුල් පිටුවට',
+      // Calendar
+      addToCalendar: 'දින දර්ශනයට එක් කරන්න',
+      calendarAdded: 'දින දර්ශනයට එකතු කරන ලදී!',
+      calendarError: 'දින දර්ශනයට එක් කිරීම අසාර්ථක විය. කරුණාකර නැවත උත්සාහ කරන්න.',
+      permissionDenied: 'දින දර්ශන අවසරය අවශ්‍යයි. කරුණාකර සැකසීම් වලින් අවසර ලබා දෙන්න.',
+      harvestReminder: 'අස්වැන්න නෙලීමේ සිහිකැඳවීම',
+      checkCalendar: 'ඔබේ දින දර්ශනය පරීක්ෂා කරන්න!',
       // Impact levels
       high: 'ඉහළ',
       medium: 'මධ්‍යම',
@@ -175,6 +182,13 @@ export const translations = {
       impactFactors: 'Impact Factors',
       newPrediction: 'New Prediction',
       backToHome: 'Back to Home',
+      // Calendar
+      addToCalendar: 'Add to Calendar',
+      calendarAdded: 'Added to Calendar!',
+      calendarError: 'Failed to add to calendar. Please try again.',
+      permissionDenied: 'Calendar permission required. Please enable it in settings.',
+      harvestReminder: 'Harvest Reminder',
+      checkCalendar: 'Check your calendar app!',
       // Impact levels
       high: 'High',
       medium: 'Medium',
