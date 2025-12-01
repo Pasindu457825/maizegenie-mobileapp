@@ -5,7 +5,7 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { MapPin, ChevronRight, Plus, Minus } from 'lucide-react-native';
 import { useYieldForm } from '../../contexts/YieldFormContext';
 import { CustomDropdown } from '../../components/forms/CustomDropdown';
@@ -22,10 +22,23 @@ import {
   Season,
 } from '../../types/yieldPrediction';
 import { TextInput } from 'react-native-paper';
+import { translations, translateOption } from '../../translations/yieldPrediction';
 
 export const LocationFieldScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { formData, updateFormData, errors, setErrors } = useYieldForm();
+  const route = useRoute();
+  const { formData, updateFormData, errors, setErrors, language, setLanguage } = useYieldForm();
+
+  // Get language from route params and set in context
+  useEffect(() => {
+    const params = route.params as { language?: 'si' | 'en' };
+    if (params?.language) {
+      setLanguage(params.language);
+    }
+  }, [route.params]);
+
+  // Get translations
+  const t = translations.locationField[language];
 
   // Auto-detect season from planting date
   useEffect(() => {
@@ -52,11 +65,11 @@ export const LocationFieldScreen: React.FC = () => {
     const newErrors: any = {};
 
     if (!formData.district) {
-      newErrors.district = 'Please select your district.';
+      newErrors.district = t.errorDistrict;
     }
 
     if (!formData.location) {
-      newErrors.location = 'Please select your location or use GPS.';
+      newErrors.location = t.errorLocation;
     }
 
     // Planting date is now OPTIONAL
@@ -67,27 +80,27 @@ export const LocationFieldScreen: React.FC = () => {
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
       if (formData.planting_date > today) {
-        newErrors.planting_date = 'Planting date cannot be in the future.';
+        newErrors.planting_date = t.errorPlantingDateFuture;
       } else if (formData.planting_date < sixMonthsAgo) {
-        newErrors.planting_date = 'Planting date cannot be older than 6 months.';
+        newErrors.planting_date = t.errorPlantingDateOld;
       }
     }
 
     if (!formData.soil_condition) {
-      newErrors.soil_condition = 'Select soil condition based on your field.';
+      newErrors.soil_condition = t.errorSoilCondition;
     }
 
     if (!formData.irrigation_type) {
-      newErrors.irrigation_type = 'Please select irrigation type.';
+      newErrors.irrigation_type = t.errorIrrigation;
     }
 
     // Validate land size (mandatory)
     if (!formData.land_size_value || formData.land_size_value.trim() === '') {
-      newErrors.land_size_value = 'Please enter land size in acres.';
+      newErrors.land_size_value = t.errorLandSize;
     } else {
       const landSize = parseFloat(formData.land_size_value);
       if (isNaN(landSize) || landSize <= 0) {
-        newErrors.land_size_value = 'Land size must be a positive number.';
+        newErrors.land_size_value = t.errorLandSizePositive;
       }
     }
 
@@ -114,8 +127,8 @@ export const LocationFieldScreen: React.FC = () => {
           <MapPin size={28} color="#16A34A" />
         </View>
         <View>
-          <Text style={styles.headerTitle}>Location & Field</Text>
-          <Text style={styles.headerSubtitle}>Step 1 of 3</Text>
+          <Text style={styles.headerTitle}>{t.title}</Text>
+          <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
         </View>
       </View>
 
@@ -127,7 +140,7 @@ export const LocationFieldScreen: React.FC = () => {
         <View style={styles.card}>
           {/* District */}
           <CustomDropdown
-            label="District"
+            label={t.district}
             value={formData.district}
             options={DISTRICTS}
             onChange={(value) => updateFormData({ district: value as District, location: '' })}
@@ -151,7 +164,7 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Planting Date - Now Optional */}
           <CustomDatePicker
-            label="Planting Date (Optional)"
+            label={t.plantingDate}
             value={formData.planting_date}
             onChange={(date) => updateFormData({ planting_date: date })}
             error={errors.planting_date}
@@ -161,10 +174,10 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Season (Auto-detected) */}
           <View style={styles.readOnlyField}>
-            <Text style={styles.readOnlyLabel}>Season (Auto-detected)</Text>
+            <Text style={styles.readOnlyLabel}>{t.season}</Text>
             <View style={styles.seasonBadge}>
               <Text style={styles.seasonText}>
-                {formData.season || 'Not detected (optional)'}
+                {formData.season ? translateOption('seasons', formData.season, language) : t.seasonNotDetected}
               </Text>
             </View>
           </View>
@@ -172,7 +185,7 @@ export const LocationFieldScreen: React.FC = () => {
           {/* Land Size */}
           <View style={styles.landSizeContainer}>
             <View style={styles.labelRow}>
-              <Text style={styles.fieldLabel}>Land Size</Text>
+              <Text style={styles.fieldLabel}>{t.landSize}</Text>
               <Text style={styles.mandatory}>*</Text>
             </View>
             <View style={styles.landSizeRow}>
@@ -214,7 +227,7 @@ export const LocationFieldScreen: React.FC = () => {
               
               {/* Fixed Unit Label */}
               <View style={styles.unitLabel}>
-                <Text style={styles.unitText}>Acres</Text>
+                <Text style={styles.unitText}>{t.acres}</Text>
               </View>
             </View>
             {errors.land_size_value && (
@@ -224,9 +237,12 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Soil Condition */}
           <CustomDropdown
-            label="Soil Condition"
+            label={t.soilCondition}
             value={formData.soil_condition}
-            options={SOIL_CONDITIONS}
+            options={SOIL_CONDITIONS.map(value => ({
+              value,
+              label: translateOption('soilConditions', value, language)
+            }))}
             onChange={(value) => updateFormData({ soil_condition: value as SoilCondition })}
             error={errors.soil_condition}
             mandatory
@@ -234,12 +250,13 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Irrigation Type */}
           <CustomRadioGroup
-            label="Irrigation Type"
+            label={t.irrigationType}
             value={formData.irrigation_type}
-            options={[
-              { value: 'Rainfed', label: 'Rainfed', description: 'Depends only on rainfall' },
-              { value: 'Irrigated', label: 'Irrigated', description: 'Has irrigation system' },
-            ]}
+            options={IRRIGATION_TYPES.map(value => ({
+              value,
+              label: translateOption('irrigationTypes', value, language),
+              description: ''
+            }))}
             onChange={(value) => updateFormData({ irrigation_type: value as IrrigationType })}
             error={errors.irrigation_type}
             mandatory
@@ -250,7 +267,7 @@ export const LocationFieldScreen: React.FC = () => {
       {/* Next Button */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next</Text>
+          <Text style={styles.nextButtonText}>{t.nextButton}</Text>
           <ChevronRight size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>

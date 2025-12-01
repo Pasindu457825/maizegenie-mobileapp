@@ -11,7 +11,7 @@ import { ChevronDown } from 'lucide-react-native';
 interface CustomDropdownProps<T extends string> {
   label: string;
   value: T | '' | undefined;
-  options: readonly T[] | T[];
+  options: readonly T[] | T[] | { value: T; label: string }[];
   onChange: (value: T | '') => void;
   error?: string;
   placeholder?: string;
@@ -44,9 +44,14 @@ export function CustomDropdown<T extends string>({
           enabled={!disabled}
         >
           <Picker.Item label={placeholder} value="" color="#9CA3AF" />
-          {options.map((option) => (
-            <Picker.Item key={option} label={option} value={option} />
-          ))}
+          {options.map((option) => {
+            const isObject = typeof option === 'object';
+            const optionValue = isObject ? option.value : option;
+            const optionLabel = isObject ? option.label : option;
+            return (
+              <Picker.Item key={optionValue} label={optionLabel} value={optionValue} />
+            );
+          })}
         </Picker>
         <View style={styles.iconContainer}>
           <ChevronDown size={20} color="#6B7280" />

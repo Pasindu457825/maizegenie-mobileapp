@@ -4,6 +4,8 @@ import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity } from 'lucide-react-native';
 import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/yieldPrediction';
+import { useYieldForm } from '../../contexts/YieldFormContext';
+import { translations } from '../../translations/yieldPrediction';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +32,10 @@ type RouteParams = {
 export default function PredictYieldScreen() {
     const navigation = useNavigation();
     const route = useRoute<RouteProp<RouteParams, 'PredictYieldScreen'>>();
+    const { language } = useYieldForm();
+
+    // Get translations
+    const t = translations.results[language];
 
     // Get real data from backend API response
     const { result, formData } = route.params || {};
@@ -95,19 +101,19 @@ export default function PredictYieldScreen() {
             <View style={styles.harvestContainer}>
                 <View style={styles.harvestHeader}>
                     <Calendar color="#16A34A" size={20} />
-                    <Text style={styles.harvestTitle}>Harvest Window</Text>
+                    <Text style={styles.harvestTitle}>{t.harvestWindow}</Text>
                 </View>
                 <View style={styles.harvestContent}>
                     <View style={styles.harvestDateRow}>
-                        <Text style={styles.harvestLabel}>Start Date:</Text>
+                        <Text style={styles.harvestLabel}>{t.startDate}:</Text>
                         <Text style={styles.harvestDate}>{formatDate(displayResults.harvestWindow.start)}</Text>
                     </View>
                     <View style={styles.harvestDateRow}>
-                        <Text style={styles.harvestLabel}>Target Date:</Text>
+                        <Text style={styles.harvestLabel}>{t.targetDate}:</Text>
                         <Text style={[styles.harvestDate, styles.harvestTarget]}>{formatDate(displayResults.harvestWindow.target)}</Text>
                     </View>
                     <View style={styles.harvestDateRow}>
-                        <Text style={styles.harvestLabel}>End Date:</Text>
+                        <Text style={styles.harvestLabel}>{t.endDate}:</Text>
                         <Text style={styles.harvestDate}>{formatDate(displayResults.harvestWindow.end)}</Text>
                     </View>
                 </View>
@@ -126,7 +132,7 @@ export default function PredictYieldScreen() {
             <View style={styles.factorContainer}>
                 <View style={styles.factorHeader}>
                     <Activity color="#16A34A" size={20} />
-                    <Text style={styles.factorTitle}>Impact Factors</Text>
+                    <Text style={styles.factorTitle}>{t.impactFactors}</Text>
                 </View>
                 <View style={styles.factorList}>
                     {displayResults.factors.map((factor, index) => (
@@ -177,23 +183,23 @@ export default function PredictYieldScreen() {
                         <View style={styles.pulseRing} />
                     </View>
 
-                    <Text style={styles.title}>Yield Prediction Results</Text>
-                    <Text style={styles.subtitle}>Smart Farming Analysis</Text>
+                    <Text style={styles.title}>{t.title}</Text>
+                    <Text style={styles.subtitle}>{t.subtitle}</Text>
 
                     {/* Main Result Card */}
                     <Card style={styles.resultCard}>
                         <View style={styles.resultHeader}>
                             <TrendingUp color="#16A34A" size={24} />
-                            <Text style={styles.resultTitle}>Prediction Summary</Text>
+                            <Text style={styles.resultTitle}>{t.title}</Text>
                         </View>
 
                         <View style={styles.yieldDisplay}>
-                            <Text style={styles.yieldLabel}>Predicted Yield</Text>
+                            <Text style={styles.yieldLabel}>{t.predictedYield}</Text>
                             <Text style={styles.yieldValue}>{displayResults.predictedYield}</Text>
                         </View>
 
                         <View style={styles.confidenceContainer}>
-                            <Text style={styles.confidenceLabel}>Confidence Level</Text>
+                            <Text style={styles.confidenceLabel}>{t.confidence}</Text>
                             <View style={styles.confidenceBar}>
                                 <View style={[styles.confidenceFill, { width: `${displayResults.confidence}%` }]} />
                                 <Text style={styles.confidenceText}>{displayResults.confidence}%</Text>
@@ -213,7 +219,7 @@ export default function PredictYieldScreen() {
                         labelStyle={styles.actionButtonText}
                         icon={() => <TrendingUp color="#FFFFFF" size={20} />}
                     >
-                        New Prediction
+                        {t.newPrediction}
                     </Button>
                 </View>
             </ScrollView>

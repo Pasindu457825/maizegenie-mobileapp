@@ -10,16 +10,20 @@ import { Leaf, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useYieldForm } from '../../contexts/YieldFormContext';
 import { VarietySelector } from '../../components/forms/VarietySelector';
 import { MaizeVariety } from '../../types/yieldPrediction';
+import { translations } from '../../translations/yieldPrediction';
 
 export const CropInformationScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { formData, updateFormData, errors, setErrors } = useYieldForm();
+  const { formData, updateFormData, errors, setErrors, language } = useYieldForm();
+
+  // Get translations
+  const t = translations.cropInformation[language];
 
   const validateScreen = (): boolean => {
     const newErrors: any = {};
 
     if (!formData.variety) {
-      newErrors.variety = 'Please select a maize variety.';
+      newErrors.variety = t.errorVariety;
     }
 
     setErrors(newErrors);
@@ -44,8 +48,8 @@ export const CropInformationScreen: React.FC = () => {
           <Leaf size={28} color="#16A34A" />
         </View>
         <View>
-          <Text style={styles.headerTitle}>Crop Information</Text>
-          <Text style={styles.headerSubtitle}>Step 2 of 3</Text>
+          <Text style={styles.headerTitle}>{t.title}</Text>
+          <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
         </View>
       </View>
 
@@ -55,13 +59,15 @@ export const CropInformationScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Select Maize Variety</Text>
+          <Text style={styles.sectionTitle}>{t.selectVariety}</Text>
           <Text style={styles.sectionDescription}>
-            Choose the variety you are cultivating. Different varieties have different growth patterns and yield potential.
+            {language === 'si' 
+              ? 'ඔබ වගා කරන වර්ගය තෝරන්න. විවිධ වර්ග වලට විවිධ වර්ධන රටා සහ අස්වැන්න විභවයන් ඇත.'
+              : 'Choose the variety you are cultivating. Different varieties have different growth patterns and yield potential.'}
           </Text>
 
           <VarietySelector
-            label="Maize Variety"
+            label={t.maizeVariety}
             value={formData.variety}
             onChange={(variety) => updateFormData({ variety: variety as MaizeVariety })}
             error={errors.variety}
@@ -70,12 +76,13 @@ export const CropInformationScreen: React.FC = () => {
 
           {/* Info Box */}
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>💡 Tips for Selection</Text>
+            <Text style={styles.infoTitle}>
+              {language === 'si' ? '💡 තෝරා ගැනීම සඳහා උපදෙස්' : '💡 Tips for Selection'}
+            </Text>
             <Text style={styles.infoText}>
-              • Jet 999 and Pacific 808 are popular for high yield{'\n'}
-              • GT varieties offer better disease resistance{'\n'}
-              • Commando is ideal for drought-prone areas{'\n'}
-              • Match variety to your season and location
+              {language === 'si'
+                ? '• Jet 999 සහ Pacific 808 ඉහළ අස්වැන්න සඳහා ජනප්‍රියයි\n• GT වර්ග වඩා හොඳ රෝග ප්‍රතිරෝධය ලබා දෙයි\n• Commando නියඟ බහුල ප්‍රදේශ සඳහා වඩාත් සුදුසුය\n• ඔබේ කන්නයට සහ ස්ථානයට ගැලපෙන වර්ගය තෝරන්න'
+                : '• Jet 999 and Pacific 808 are popular for high yield\n• GT varieties offer better disease resistance\n• Commando is ideal for drought-prone areas\n• Match variety to your season and location'}
             </Text>
           </View>
         </View>
@@ -85,11 +92,11 @@ export const CropInformationScreen: React.FC = () => {
       <View style={styles.footer}>
         <TouchableOpacity style={styles.backButton} onPress={handleBack}>
           <ChevronLeft size={20} color="#16A34A" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>{t.backButton}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next</Text>
+          <Text style={styles.nextButtonText}>{t.nextButton}</Text>
           <ChevronRight size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
