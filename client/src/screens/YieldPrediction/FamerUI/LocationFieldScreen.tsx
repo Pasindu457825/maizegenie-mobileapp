@@ -7,11 +7,11 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { MapPin, ChevronRight, Plus, Minus } from 'lucide-react-native';
-import { useYieldForm } from '../../contexts/YieldFormContext';
-import { CustomDropdown } from '../../components/forms/CustomDropdown';
-import { CustomDatePicker } from '../../components/forms/CustomDatePicker';
-import { CustomRadioGroup } from '../../components/forms/CustomRadioGroup';
-import { LocationPicker } from '../../components/forms/LocationPicker';
+import { useYieldForm } from '../../../contexts/YieldFormContext';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { CustomDatePicker } from '../../../components/forms/CustomDatePicker';
+import { CustomRadioGroup } from '../../../components/forms/CustomRadioGroup';
+import { LocationPicker } from '../../../components/forms/LocationPicker';
 import {
   DISTRICTS,
   SOIL_CONDITIONS,
@@ -20,9 +20,9 @@ import {
   SoilCondition,
   IrrigationType,
   Season,
-} from '../../types/yieldPrediction';
+} from '../../../types/yieldPrediction';
 import { TextInput } from 'react-native-paper';
-import { translations, translateOption } from '../../translations/yieldPrediction';
+import { translations, translateOption } from '../../../translations/yieldPrediction';
 
 export const LocationFieldScreen: React.FC = () => {
   const navigation = useNavigation();
