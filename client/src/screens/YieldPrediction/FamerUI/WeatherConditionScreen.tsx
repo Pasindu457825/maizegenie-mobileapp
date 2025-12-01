@@ -14,7 +14,7 @@ import {
   RainfallCondition,
   YieldPredictionRequest,
 } from '../../../types/yieldPrediction';
-import { translations, translateOption } from '../../../translations/yieldPrediction';
+import { translations, translateOption } from '../../../translations/translationYieldPrediction';
 
 export const WeatherConditionScreen: React.FC = () => {
   const navigation = useNavigation();

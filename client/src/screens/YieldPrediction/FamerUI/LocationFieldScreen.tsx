@@ -22,7 +22,7 @@ import {
   Season,
 } from '../../../types/yieldPrediction';
 import { TextInput } from 'react-native-paper';
-import { translations, translateOption } from '../../../translations/yieldPrediction';
+import { translations, translateOption } from '../../../translations/translationYieldPrediction';
 
 export const LocationFieldScreen: React.FC = () => {
   const navigation = useNavigation();
