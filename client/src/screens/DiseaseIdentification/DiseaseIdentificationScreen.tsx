@@ -49,27 +49,24 @@ type NavProp = StackNavigationProp<RootStackParamList>;
 // Enhanced API configuration
 const getApiConfig = () => {
   if (__DEV__) {
-    // Automatically detect your PC IP via Expo
-    const { manifest2, manifest } = Constants;
-    let devHost = "localhost";
+    // --- MANUAL FIX for Expo real device ---
+    // Replace this with your laptop's WiFi IP address
+    const LOCAL_IP = "192.168.1.28"; // ← CHANGE THIS
 
-    if (manifest2?.extra?.expoGo?.developer?.host) {
-      devHost = manifest2.extra.expoGo.developer.host.split(":")[0];
-    } else if (manifest?.debuggerHost) {
-      devHost = manifest.debuggerHost.split(":")[0];
-    }
+    const baseURL = `http://${LOCAL_IP}:8000`;
 
-    const baseURL =
-      Platform.OS === "android"
-        ? `http://${devHost}:8000`
-        : `http://${devHost}:8000`;
+    console.log("🌐 Dev API Base URL =>", baseURL);
 
-    console.log("🌐 API_BASE =>", baseURL);
-    return { baseURL, timeout: 45000 };
+    return {
+      baseURL,
+      timeout: 45000,
+    };
   }
 
-  // Production API (later, when deployed)
-  return { baseURL: "https://api.maizegenie.lk", timeout: 45000 };
+  return {
+    baseURL: "https://api.maizegenie.lk",
+    timeout: 45000,
+  };
 };
 
 const API_CONFIG = getApiConfig();
