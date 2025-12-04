@@ -214,25 +214,7 @@ def predict_disease_enhanced(
             "message": "No diseases detected"
         }]
 
-    # ---------- SUPABASE LOGGING ----------
-    try:
-        top = max(predictions, key=lambda x: x.get("confidence", 0))
-
-        log_data = {
-            "class_name": top["class_name"],
-            "confidence": top["confidence"],
-            "user_id": None,
-            "image_url": None,
-            "annotated_image_url": None,
-            "created_at": datetime.utcnow().isoformat()
-        }
-
-        asyncio.create_task(
-            supabase.table("disease_logs").insert(log_data).execute()
-        )
-
-    except Exception as e:
-        print("Supabase logging failed:", e)
+   
 
     # ---------- FINAL RETURN ----------
     return {

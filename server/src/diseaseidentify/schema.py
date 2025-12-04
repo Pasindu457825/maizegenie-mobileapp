@@ -33,15 +33,3 @@ class DiseaseResponse(BaseModel):
         description="Base64 encoded annotated image (optional)"
     )
 
-
-class DiseaseLog(BaseModel):
-    """
-    Schema used for logging into Supabase or SQL database.
-    You can use this when inserting records.
-    """
-    prediction_id: Optional[str] = None
-    class_name: str
-    confidence: float
-    user_id: Optional[str] = None
-    image_url: Optional[str] = None   # Supabase storage URL
-    created_at: Optional[str] = None
