@@ -8,6 +8,3 @@ numpy==2.1.1
 firebase-admin==6.6.0
 google-cloud-storage==2.18.2   # only if you’ll upload to Storage
 
-# add your ML runtimes if needed:
-# torch==2.3.1
-# onnxruntime==1.19.2
