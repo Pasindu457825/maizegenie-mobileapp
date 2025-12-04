@@ -1,57 +1,51 @@
-# server/run.py
 from pathlib import Path
 import sys
-
-# make "src" importable (so we can `from leafdisease import ...`)
-ROOT = Path(__file__).parent
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from config import settings
-from firebase import init_app  # ensures firebase is ready if configured
-from leafdisease.router import router as leaf_router  # <-- from src/
 
-app = FastAPI(title=settings.APP_NAME if hasattr(settings, "APP_NAME") else "API")
+# ==========================================
+# Setup Python path to include /src
+# ==========================================
+ROOT = Path(__file__).resolve().parent
+SRC = ROOT / "src"
+
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+# ==========================================
+# Now safe to import from src/*
+# ==========================================
+from core.config import settings
+from diseaseidentify.router import router as disease_router
+
+# ==========================================
+# FastAPI App
+# ==========================================
+app = FastAPI(title=settings.APP_NAME)
 
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=getattr(settings, "ALLOWED_ORIGINS", ["*"]),
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# static / uploads
-uploads_dir = ROOT / getattr(settings, "UPLOAD_DIR", "uploads")
+# Static uploads folder
+uploads_dir = ROOT / settings.UPLOAD_DIR
 uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
-static_dir = ROOT / "static"
-static_dir.mkdir(exist_ok=True)
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# init firebase lazily (safe if not configured)
-try:
-    init_app()
-except Exception:
-    pass
+# ==========================================
+# API Router
+# ==========================================
+app.include_router(disease_router, prefix="/api/disease", tags=["Disease Detection"])
 
-# mount feature routers under /api
-api = FastAPI()
-api.include_router(leaf_router, prefix="/leafdisease", tags=["leafdisease"])
-app.mount("/api", api)
-
+# ==========================================
+# Root endpoint
+# ==========================================
 @app.get("/")
 def root():
-    return {"ok": True, "message": "API running"}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("run:app",
-                host=getattr(settings, "HOST", "0.0.0.0"),
-                port=getattr(settings, "PORT", 5000),
-                reload=True)
+    return {"ok": True, "message": "MaizeGenie API running"}
