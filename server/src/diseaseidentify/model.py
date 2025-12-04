@@ -1,58 +1,50 @@
 from functools import lru_cache
 from pathlib import Path
 from ultralytics import YOLO
-import os
 
 MODEL_FILENAME = "best.pt"
+
 
 @lru_cache(maxsize=1)
 def get_model() -> YOLO:
     """
-    Loads the YOLO model once and caches it for reuse.
-    Handles model loading errors gracefully.
+    Loads the YOLO model once and caches it.
+    Searches valid model locations inside the project.
     """
     try:
-        # Get the directory containing this file
+        # Directory of this file → src/diseaseidentify/
         current_dir = Path(__file__).parent
+
+        # Main expected location
         model_path = current_dir / MODEL_FILENAME
-        
-        # Alternative paths to check
+
+        # Alternative valid locations
         possible_paths = [
             model_path,
-            current_dir.parent / MODEL_FILENAME,  # src/diseaseidentify/
-            Path.cwd() / MODEL_FILENAME,  # Current working directory
-            Path.cwd() / "models" / MODEL_FILENAME,  # models directory
+            current_dir.parent / MODEL_FILENAME,         # src/
+            Path.cwd() / MODEL_FILENAME,                 # project root
+            Path.cwd() / "models" / MODEL_FILENAME,      # /models folder
         ]
-        
-        found_path = None
-        for path in possible_paths:
-            if path.exists():
-                found_path = path
-                break
-        
-        if not found_path:
-            available_files = []
-            for path in possible_paths:
-                parent_dir = path.parent
-                if parent_dir.exists():
-                    available_files.extend([f.name for f in parent_dir.iterdir() if f.is_file()])
-            
-            raise FileNotFoundError(
-                f"Model file '{MODEL_FILENAME}' not found.\n"
-                f"Checked paths: {[str(p) for p in possible_paths]}\n"
-                f"Available files: {available_files}"
-            )
-        
-        print(f"Loading model from: {found_path}")
-        model = YOLO(str(found_path))
-        
-        # Verify model loaded correctly
-        if hasattr(model, 'names'):
-            print(f"Model loaded successfully. Classes: {list(model.names.values())}")
-        else:
-            print("Model loaded but class names not available")
-        
-        return model
-        
+
+        # Find first existing model file
+        for p in possible_paths:
+            if p.exists():
+                print(f"[YOLO] Loading model from: {p}")
+                model = YOLO(str(p))
+
+                if hasattr(model, "names"):
+                    print(f"[YOLO] Model loaded. Classes: {list(model.names.values())}")
+                else:
+                    print("[YOLO] Model loaded but classes not found")
+
+                return model
+
+        # Model NOT found → create error with details
+        searched = [str(p) for p in possible_paths]
+        raise FileNotFoundError(
+            f"YOLO model '{MODEL_FILENAME}' not found.\n"
+            f"Searched paths:\n" + "\n".join(searched)
+        )
+
     except Exception as e:
-        raise RuntimeError(f"Failed to load model: {str(e)}")
+        raise RuntimeError(f"Failed to load YOLO model: {str(e)}")
