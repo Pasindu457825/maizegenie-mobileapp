@@ -24,7 +24,7 @@ interface Prediction {
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     // Change this IP to your PC IP
-    return "http://192.168.8.125:8000";
+    return "http://192.168.8.28:8000";
   } else if (Platform.OS === "ios") {
     return "http://localhost:8000";
   } else {
