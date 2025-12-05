@@ -32,7 +32,8 @@ app.mount("/uploads", StaticFiles(directory=str(uploads_dir)), name="uploads")
 # REGISTER ROUTERS
 # -------------------------------
 app.include_router(auth_router)  # <-- VERY IMPORTANT
-app.include_router(disease_router, prefix="/api/disease", tags=["Disease Detection"])
+app.include_router(disease_router)
+
 
 @app.get("/")
 def root():

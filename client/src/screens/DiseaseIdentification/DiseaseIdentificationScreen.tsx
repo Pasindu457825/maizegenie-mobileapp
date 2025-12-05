@@ -216,7 +216,6 @@ const PestIdentificationScreen = () => {
     if (!(await requestPermissions("camera"))) return;
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -240,8 +239,14 @@ const PestIdentificationScreen = () => {
       setLoading(true);
       setError(null);
 
+      console.log(
+        "🔍 Connecting to:",
+        `${API_CONFIG.baseURL}/api/disease/identify`
+      );
+
       const formData = new FormData();
 
+      // Handle different platforms
       if (Platform.OS === "web") {
         const response = await fetch(imageUri);
         const blob = await response.blob();
@@ -266,29 +271,36 @@ const PestIdentificationScreen = () => {
         }
       );
 
-      console.log("🟢 Backend response:", response.data);
+      console.log("✅ Response received:", response.data);
 
-      // Validate response
-      if (!response.data || !response.data.predictions) {
-        throw new Error("Invalid server response");
+      if (response.data.success) {
+        const predictions = response.data.predictions || [];
+        setResult(predictions);
+
+        if (predictions.length === 0) {
+          setError(content[language].noPests);
+        }
+      } else {
+        throw new Error(response.data.message || "Detection failed");
       }
-
-      let predictions = response.data.predictions;
-
-      // Handle "No pest detected"
-      if (predictions.length === 1 && predictions[0].class_id === -1) {
-        setResult([]); // triggers No Pests UI
-        return;
-      }
-
-      setResult(predictions);
     } catch (err: any) {
       console.error("❌ Upload error:", err);
 
-      let errorMsg =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        content[language].serverError;
+      let errorMsg = content[language].serverError;
+
+      if (err.code === "ECONNABORTED") {
+        errorMsg =
+          language === "si"
+            ? "කාලය ඉක්මවී ගියේය! නැවත උත්සාහ කරන්න"
+            : "Request timeout! Please try again";
+      } else if (err.response?.data) {
+        errorMsg =
+          err.response.data.detail ||
+          err.response.data.message ||
+          JSON.stringify(err.response.data);
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
 
       setError(errorMsg);
     } finally {
@@ -578,7 +590,6 @@ const PestIdentificationScreen = () => {
           )}
 
           {/* No Pests Found */}
-          {/* No pests (class_id = -1 OR empty result array) */}
           {result && result.length === 0 && (
             <View style={styles.noPestsContainer}>
               <CheckCircle color="#4CAF50" size={48} />
