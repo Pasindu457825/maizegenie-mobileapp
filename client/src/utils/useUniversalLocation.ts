@@ -6,14 +6,47 @@ type Result = {
   locationName: string;
   latitude: number | null;
   longitude: number | null;
+
   temperature: number | null;
   weatherCondition: string | null;
   weatherIcon: string | null;
+
   isLoading: boolean;
   error: string | null;
 };
 
-export default function useUniversalLocation(language: "si" | "en"): Result {
+// ------------------------------------------------------
+// Sinhala Transliteration Map for Districts
+// ------------------------------------------------------
+const SI_DISTRICTS: Record<string, string> = {
+  Colombo: "කොළඹ",
+  Gampaha: "ගම්පහ",
+  Kalutara: "කළුතර",
+  Kandy: "මහනුවර",
+  Matale: "මාතලේ",
+  "Nuwara Eliya": "නුවර එලිය",
+  Galle: "ගාල්ල",
+  Matara: "මාතර",
+  Hambantota: "හම්බන්තොට",
+  Jaffna: "යාපනය",
+  Kilinochchi: "කිලිනොච්චි",
+  Mannar: "මන්නාරම",
+  Vavuniya: "වවුනියාව",
+  Mullaitivu: "මුලතිව්",
+  Batticaloa: "බතිකලාව",
+  Ampara: "අම්පාර",
+  Trincomalee: "ත්‍රිකුණාමලය",
+  Kurunegala: "කුරුණෑගල",
+  Puttalam: "පුත්තලම",
+  Anuradhapura: "අනුරාධපුර",
+  Polonnaruwa: "පොලොන්නරුව",
+  Badulla: "බදුල්ල",
+  Monaragala: "මොණරාගල",
+  Ratnapura: "රත්නපුර",
+  Kegalle: "කෑගල්ල",
+};
+
+export default function useUniversalLocation(lang: "si" | "en"): Result {
   const [locationName, setLocationName] = useState("Loading...");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -25,40 +58,75 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const WEATHER_API_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
+  const WEATHER_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
 
-    const fetchWeather = async (lat: number, lon: number) => {
-      if (!WEATHER_API_KEY) return;
+  // ---------------------------------------------
+  // Convert District -> Sinhala (if needed)
+  // ---------------------------------------------
+  const toSinhalaDistrict = (d: string) => {
+    return SI_DISTRICTS[d] || d;
+  };
 
-      try {
-        const res = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_API_KEY}`
-        );
+  // ---------------------------------------------
+  // Clean district names: remove extra words
+  // ---------------------------------------------
+  const cleanDistrict = (d: string | null | undefined) => {
+    if (!d) return "Unknown";
 
-        const json = await res.json();
+    return d
+      .replace(/District/i, "")
+      .replace(/Province/i, "")
+      .trim();
+  };
 
-        if (json?.main?.temp != null) {
-          setTemperature(json.main.temp);
-        }
+  // ---------------------------------------------
+  // WEATHER API FETCH
+  // ---------------------------------------------
+  const fetchWeather = async (lat: number, lon: number) => {
+    if (!WEATHER_KEY) return;
 
-        if (json?.weather?.length > 0) {
-          setWeatherCondition(json.weather[0].description);
-          setWeatherIcon(json.weather[0].icon);
-        }
-      } catch (e) {
-        console.log("Weather fetch error", e);
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_KEY}`
+      );
+      const json = await res.json();
+
+      setTemperature(json.main?.temp ?? null);
+      if (json.weather?.length > 0) {
+        setWeatherCondition(json.weather[0].description);
+        setWeatherIcon(json.weather[0].icon);
       }
-    };
+    } catch (e) {
+      console.log("Weather fetch error:", e);
+    }
+  };
 
+  // ---------------------------------------------
+  // Extract Sri Lankan District (Correct Logic)
+  // ---------------------------------------------
+  const extractDistrict_OSM = (addr: any): string => {
+    return (
+      addr?.district ||
+      addr?.city_district ||
+      addr?.county ||
+      addr?.municipality ||
+      addr?.town ||
+      addr?.city ||
+      addr?.village ||
+      "Unknown"
+    );
+  };
+
+  // ---------------------------------------------
+  // MAIN LOCATION LOADER
+  // ---------------------------------------------
+  useEffect(() => {
     const load = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // --------------------
-        // WEB PLATFORM
-        // --------------------
+        // WEB -------------------------
         if (Platform.OS === "web") {
           navigator.geolocation.getCurrentPosition(
             async (pos) => {
@@ -66,30 +134,23 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
               setLatitude(latitude);
               setLongitude(longitude);
 
-              try {
-                const res = await fetch(
-                  `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-                );
-                const json = await res.json();
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+              );
+              const data = await res.json();
 
-                const district =
-                  json.address?.county ||
-                  json.address?.city ||
-                  json.address?.town ||
-                  json.address?.suburb ||
-                  "Unknown";
+              const raw = extractDistrict_OSM(data.address);
+              const clean = cleanDistrict(raw);
 
-                setLocationName(district);
-              } catch {
-                setLocationName("Unknown");
-              }
+              setLocationName(lang === "si" ? toSinhalaDistrict(clean) : clean);
 
               await fetchWeather(latitude, longitude);
               setIsLoading(false);
             },
-            () => {
+            (err) => {
+              console.log(err);
               setLocationName("Permission Denied");
-              setError("Permission denied");
+              setError("Permission Denied");
               setIsLoading(false);
             }
           );
@@ -97,13 +158,11 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
           return;
         }
 
-        // --------------------
-        // MOBILE PLATFORM
-        // --------------------
+        // MOBILE (Expo) -------------------------
         const { status } = await Location.requestForegroundPermissionsAsync();
-
         if (status !== "granted") {
           setLocationName("Permission Denied");
+          setError("Permission Denied");
           setIsLoading(false);
           return;
         }
@@ -121,24 +180,24 @@ export default function useUniversalLocation(language: "si" | "en"): Result {
 
         const g = geo[0];
 
-        const district =
+        const raw =
           g?.district || g?.subregion || g?.city || g?.region || "Unknown";
 
-        setLocationName(district);
+        const clean = cleanDistrict(raw);
+        setLocationName(lang === "si" ? toSinhalaDistrict(clean) : clean);
 
         await fetchWeather(latitude, longitude);
-
         setIsLoading(false);
       } catch (e) {
-        console.log("Location error", e);
-        setError("Location error");
+        console.log("Location error:", e);
+        setError("Location Error");
         setLocationName("Unknown");
         setIsLoading(false);
       }
     };
 
     load();
-  }, [language]);
+  }, [lang]);
 
   return {
     locationName,
