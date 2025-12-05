@@ -192,6 +192,21 @@ const WeatherForecastScreen = () => {
 
       dayLabel: "දින",
       today: "අද",
+
+      // NEW: Daily summary & farm action
+      goodDay: "වගාවට හොඳයි",
+      riskyDay: "අවදානම් දිනක්",
+      dryDay: "වියළි - වාරිමාර්ග කරන්න",
+      goodWeek: "🌱 මෙම සතිය වගා කිරීමට හොඳයි",
+      riskyWeek: "⛔ මෙම සතිය අවදානම් – වැඩි වර්ෂාව/උෂ්ණත්වය",
+      mixedWeek: "⚠️ සමහර දින හොඳයි – සමහර දින අවධානයෙන්",
+
+      heavyRain: "🌧️ අධික වර්ෂාව",
+      excellentTemp: "🌤️ ඉතා හොඳ උෂ්ණත්වය",
+      lowHumidity: "💧 ආර්ද්‍රතාව අඩුයි",
+      dontPlantToday: "– අද වගා කරන්න එපා",
+      goodForFarming: "– වගාවට සුදුසුයි",
+      irrigateNeeded: "– වාරිමාර්ග කරන්න",
     },
     en: {
       title: "Weather Forecast",
@@ -223,7 +238,27 @@ const WeatherForecastScreen = () => {
 
       dayLabel: "Day",
       today: "Today",
+
+      // NEW: Daily summary & farm action
+      goodDay: "Good for farming",
+      riskyDay: "Risky day",
+      dryDay: "Dry - irrigate",
+      goodWeek: "🌱 Great week for farming",
+      riskyWeek: "⛔ Risky week – high rainfall/temperature",
+      mixedWeek: "⚠️ Mixed week – some good days, some caution needed",
+
+      heavyRain: "🌧️ Heavy rainfall",
+      excellentTemp: "🌤️ Excellent temperature",
+      lowHumidity: "💧 Low humidity",
+      dontPlantToday: "– Don't plant today",
+      goodForFarming: "– Good for farming",
+      irrigateNeeded: "– Irrigation needed",
     },
+  };
+
+  // ✨ FIX: Type-safe content helper (moved inside component)
+  const getContent = () => {
+    return content[language];
   };
 
   const formatDate = (dateStr: string) => {
@@ -315,7 +350,7 @@ const WeatherForecastScreen = () => {
         });
       }
       // Moderate rain (5-25mm) - Good for corn
-      else if (rain >= 5 && rain <= 25 && temp >= 20 && temp <= 30) {
+      else if (rain >= 5 && rain <= 25 && temp >= 25 && temp <= 33) {
         advice.push({
           type: "good",
           title: `${getDayName(day.date, true)} - ${
@@ -361,7 +396,7 @@ const WeatherForecastScreen = () => {
   };
 
   // 🌈 Traffic Light Color Logic
-  const getTrafficColor = (day: WeatherDay) => {
+  const getTrafficColor = (day: WeatherDay): "red" | "yellow" | "green" => {
     const rain = day.rain_mm || 0;
     const temp = day.temperature;
     const humidity = day.humidity_mean || 0;
@@ -373,9 +408,27 @@ const WeatherForecastScreen = () => {
     if ((rain < 2 && humidity < 50) || (rain >= 2 && rain < 5)) return "yellow";
 
     // 🟢 Best farming conditions
-    if (rain >= 5 && rain <= 25 && temp >= 20 && temp <= 30) return "green";
+    if (rain >= 5 && rain <= 25 && temp >= 25 && temp <= 33) return "green";
 
     return "yellow";
+  };
+
+  // 📊 Get daily summary text for each day
+  const getDailySummaryText = (day: WeatherDay): string => {
+    const rain = day.rain_mm || 0;
+    const temp = day.temperature;
+    const humidity = day.humidity_mean || 0;
+
+    if (rain > 25) {
+      return `${content[language].heavyRain} ${content[language].dontPlantToday}`;
+    } else if (rain >= 5 && rain <= 25 && temp >= 25 && temp <= 33) {
+      return `${content[language].excellentTemp} ${content[language].goodForFarming}`;
+    } else if (rain < 2 && humidity < 50) {
+      return `${content[language].lowHumidity} ${content[language].irrigateNeeded}`;
+    } else if (temp > 33) {
+      return `${content[language].highTemp} ${content[language].irrigateNeeded}`;
+    }
+    return content[language].moderateConditions;
   };
 
   // 🔘 Circle indicator
@@ -392,6 +445,419 @@ const WeatherForecastScreen = () => {
           backgroundColor: bg,
         }}
       />
+    );
+  };
+
+  // ✨ NEW: Beautiful gradient color based on traffic light
+  const getTrafficGradient = (color: "red" | "yellow" | "green") => {
+    switch (color) {
+      case "red":
+        return { start: "#fecaca", end: "#ef4444" };
+      case "yellow":
+        return { start: "#fef08a", end: "#facc15" };
+      case "green":
+        return { start: "#bbf7d0", end: "#22c55e" };
+    }
+  };
+
+  // ✨ NEW: Get weather icon based on conditions
+  const getWeatherIcon = (day: WeatherDay) => {
+    const rain = day.rain_mm || 0;
+    const temp = day.temperature;
+    const cloud = day.cloud_cover || 0;
+
+    if (rain > 25) return <CloudRain size={32} color="#ef4444" />;
+    if (rain >= 5 && rain <= 25)
+      return <CloudDrizzle size={32} color="#0ea5e9" />;
+    if (cloud > 70) return <Cloud size={32} color="#9CA3AF" />;
+    if (temp > 30) return <Sun size={32} color="#f59e0b" />;
+    return <Sun size={32} color="#fbbf24" />;
+  };
+
+  // ✨ NEW: Get animated glow effect color
+  const getGlowColor = (color: "red" | "yellow" | "green") => {
+    const glowMap = {
+      red: "rgba(239, 68, 68, 0.3)",
+      yellow: "rgba(250, 204, 21, 0.3)",
+      green: "rgba(34, 197, 94, 0.3)",
+    };
+    return glowMap[color];
+  };
+
+  // ✨ NEW: Enhanced Traffic Dot with glow effect
+  const EnhancedTrafficDot = ({
+    color,
+  }: {
+    color: "red" | "yellow" | "green";
+  }) => {
+    const bg =
+      color === "red" ? "#ef4444" : color === "yellow" ? "#facc15" : "#22c55e";
+    const glowBg = getGlowColor(color);
+
+    return (
+      <View
+        style={{
+          width: 24,
+          height: 24,
+          borderRadius: 24,
+          backgroundColor: glowBg,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: 16,
+            height: 16,
+            borderRadius: 16,
+            backgroundColor: bg,
+            shadowColor: bg,
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.8,
+            shadowRadius: 4,
+            elevation: 8,
+          }}
+        />
+      </View>
+    );
+  };
+
+  // ✨ NEW: Beautiful day card header with gradient background
+  const BeautifulDayCardHeader = ({
+    day,
+    trafficColor,
+  }: {
+    day: WeatherDay;
+    trafficColor: "red" | "yellow" | "green";
+  }) => {
+    const headerBgColor =
+      trafficColor === "red"
+        ? "#FEF2F2"
+        : trafficColor === "yellow"
+        ? "#FFFBEB"
+        : "#F0FDF4";
+
+    return (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingBottom: 12,
+          borderBottomWidth: 1,
+          borderBottomColor:
+            trafficColor === "red"
+              ? "#FECACA"
+              : trafficColor === "yellow"
+              ? "#FEF08A"
+              : "#BBFDE0",
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.dayName}>{getDayName(day.date)}</Text>
+          <Text style={styles.dateTxt}>{formatDate(day.date)}</Text>
+        </View>
+
+        {getWeatherIcon(day)}
+
+        <View style={{ marginLeft: 12, alignItems: "center", gap: 4 }}>
+          <EnhancedTrafficDot color={trafficColor} />
+        </View>
+      </View>
+    );
+  };
+
+  // ✨ NEW: Beautiful metrics display with icons
+  const BeautifulMetricsGrid = ({ day }: { day: WeatherDay }) => {
+    const metrics = [
+      {
+        icon: <Sun size={16} color="#f59e0b" />,
+        label: `${Math.round(day.temperature_min)}°-${Math.round(
+          day.temperature_max
+        )}°C`,
+        value: `Temp`,
+      },
+      {
+        icon: <CloudRain size={16} color="#0ea5e9" />,
+        label: `${day.rain_mm?.toFixed(1) || 0} mm`,
+        value: `Rain`,
+      },
+      {
+        icon: <Droplets size={16} color="#06b6d4" />,
+        label: `${Math.round(day.humidity_mean || 0)}%`,
+        value: `Humidity`,
+      },
+      {
+        icon: <Wind size={16} color="#047857" />,
+        label: `${Math.round(day.windspeed || 0)} km/h`,
+        value: `Wind`,
+      },
+    ];
+
+    return (
+      <View style={styles.metricsGrid}>
+        {metrics.map((metric, idx) => (
+          <View key={idx} style={styles.metricBox}>
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: "#F3F4F6",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+            >
+              {metric.icon}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: "#9CA3AF" }}>
+                {metric.value}
+              </Text>
+              <Text style={styles.metricLabel}>{metric.label}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  };
+
+  // ✨ NEW: Animated weekly forecast dots with tooltips
+  const AnimatedWeeklyStrip = ({
+    predictions,
+  }: {
+    predictions: WeatherDay[];
+  }) => {
+    return (
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginTop: 12,
+          marginBottom: 16,
+          backgroundColor: "#fff",
+          borderRadius: 14,
+          padding: 16,
+          elevation: 3,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "700",
+            color: "#047857",
+            marginBottom: 12,
+          }}
+        >
+          📅 Weekly Forecast
+        </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-around",
+            gap: 6,
+          }}
+        >
+          {predictions.slice(0, 7).map((day, idx) => (
+            <View key={idx} style={{ alignItems: "center" }}>
+              <EnhancedTrafficDot color={getTrafficColor(day)} />
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: "#6B7280",
+                  marginTop: 6,
+                  fontWeight: "600",
+                }}
+              >
+                {getDayName(day.date, true).substring(0, 2)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // ✨ NEW: Beautiful summary card with emoji (FIXED)
+  const EnhancedFarmActionCard = ({
+    predictions,
+  }: {
+    predictions: WeatherDay[];
+  }) => {
+    const goodDaysCount = predictions.filter(
+      (d) =>
+        (d.rain_mm ?? 0) >= 5 &&
+        (d.rain_mm ?? 0) <= 25 &&
+        d.temperature >= 25 &&
+        d.temperature <= 33
+    ).length;
+    const riskyDaysCount = predictions.filter(
+      (d) => (d.rain_mm ?? 0) > 25 || d.temperature > 33
+    ).length;
+
+    const currentContent = getContent();
+
+    let title = "";
+    let emoji = "🌱";
+    let desc = "";
+    let bgColor = "#F0FDF4";
+    let borderColor = "#10B981";
+    let textColor = "#047857";
+
+    if (goodDaysCount >= 4) {
+      title = currentContent.goodWeek;
+      emoji = "🌱";
+      desc =
+        language === "si"
+          ? `${goodDaysCount} හොඳ දින - සිටින්න!"}`
+          : `${goodDaysCount} good days - Perfect time to farm!`;
+      bgColor = "#F0FDF4";
+      borderColor = "#10B981";
+      textColor = "#047857";
+    } else if (riskyDaysCount >= 4) {
+      title = currentContent.riskyWeek;
+      emoji = "⛔";
+      desc =
+        language === "si"
+          ? `${riskyDaysCount} අවදානම් දින - අවධානයෙන්!`
+          : `${riskyDaysCount} risky days - Be careful!`;
+      bgColor = "#FEF2F2";
+      borderColor = "#ef4444";
+      textColor = "#dc2626";
+    } else {
+      title = currentContent.mixedWeek;
+      emoji = "⚠️";
+      desc =
+        language === "si"
+          ? "දිනපතා පුරෝකථනය පරීක්ෂා කරන්න"
+          : "Check daily forecasts";
+      bgColor = "#FFFBEB";
+      borderColor = "#f59e0b";
+      textColor = "#d97706";
+    }
+
+    return (
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginBottom: 16,
+          backgroundColor: bgColor,
+          borderRadius: 16,
+          padding: 16,
+          borderWidth: 2.5,
+          borderColor,
+          elevation: 4,
+        }}
+      >
+        <Text style={{ fontSize: 24, marginBottom: 8 }}>{emoji}</Text>
+        <Text
+          style={{
+            fontSize: 16,
+            fontWeight: "800",
+            color: textColor,
+            marginBottom: 6,
+          }}
+        >
+          {title}
+        </Text>
+        <Text
+          style={{
+            fontSize: 13,
+            color: textColor,
+            opacity: 0.7,
+            lineHeight: 19,
+          }}
+        >
+          {desc}
+        </Text>
+      </View>
+    );
+  };
+
+  // ✨ NEW: Beautiful header with gradient effect (FIXED)
+  const EnhancedHeader = () => {
+    const currentContent = getContent();
+
+    return (
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <ArrowLeft size={22} color="#047857" />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <View style={styles.headerTitleRow}>
+            <Sprout size={22} color="#047857" />
+            <Text style={styles.headerTitle}>{currentContent.title}</Text>
+          </View>
+          <Text style={styles.headerSubtitle}>{currentContent.subtitle}</Text>
+        </View>
+
+        <TouchableOpacity
+          onPress={() => setLanguage(language === "si" ? "en" : "si")}
+          style={[styles.langBtn, { shadowColor: "#10B981", elevation: 3 }]}
+        >
+          <Text style={styles.langText}>
+            {language === "si" ? "EN" : "සිං"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // ✨ NEW: Enhanced current weather with gradient card (FIXED)
+  const EnhancedCurrentWeatherCard = () => {
+    const currentContent = getContent();
+
+    return (
+      <Animated.View style={[styles.currentWeatherCard, { opacity: fadeAnim }]}>
+        <View style={styles.locationRow}>
+          <MapPin size={18} color="#047857" />
+          <Text style={styles.locationText}>
+            {getTranslatedLocation(locationName ?? null, language)}
+          </Text>
+        </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 16,
+            paddingVertical: 8,
+            marginTop: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 70,
+              height: 70,
+              borderRadius: 20,
+              backgroundColor: "#FEF3C7",
+              justifyContent: "center",
+              alignItems: "center",
+              shadowColor: "#f59e0b",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 5,
+            }}
+          >
+            <Sun size={48} color="#f59e0b" />
+          </View>
+          <View>
+            <Text style={styles.currentTemp}>
+              {Math.round(temperature ?? 26)}°C
+            </Text>
+            <Text style={styles.currentLabel}>
+              {language === "si"
+                ? "දැන් තියෙන උෂ්ණත්වය"
+                : "Current Temperature"}
+            </Text>
+          </View>
+        </View>
+      </Animated.View>
     );
   };
 
@@ -542,34 +1008,8 @@ const WeatherForecastScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backBtn}
-        >
-          <ArrowLeft size={22} color="#047857" />
-        </TouchableOpacity>
-
-        <View style={styles.headerCenter}>
-          <View style={styles.headerTitleRow}>
-            <Sprout size={20} color="#047857" />
-            <Text style={styles.headerTitle}>{content[language].title}</Text>
-          </View>
-          <Text style={styles.headerSubtitle}>
-            {content[language].subtitle}
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={() => setLanguage(language === "si" ? "en" : "si")}
-          style={styles.langBtn}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      {/* ENHANCED HEADER */}
+      <EnhancedHeader />
 
       <ScrollView
         refreshControl={
@@ -579,39 +1019,39 @@ const WeatherForecastScreen = () => {
           />
         }
       >
-        {/* LOCATION & CURRENT WEATHER CARD */}
-        <Animated.View
-          style={[styles.currentWeatherCard, { opacity: fadeAnim }]}
-        >
-          <View style={styles.locationRow}>
-            <MapPin size={18} color="#047857" />
-            <Text style={styles.locationText}>
-              {getTranslatedLocation(locationName ?? null, language)}
-            </Text>
-          </View>
+        {/* ENHANCED CURRENT WEATHER CARD */}
+        <EnhancedCurrentWeatherCard />
 
-          <View style={styles.currentTempRow}>
-            {temperature ? (
-              <>
-                <Sun size={48} color="#f59e0b" />
-                <View>
-                  <Text style={styles.currentTemp}>
-                    {Math.round(temperature)}°C
-                  </Text>
-                  <Text style={styles.currentLabel}>
-                    {language === "si"
-                      ? "දැන් තියෙන උෂ්ණත්වය"
-                      : "Current Temperature"}
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <Text style={styles.noTempText}>
-                {language === "si" ? "තාප මාන දත්ත නැත" : "No temperature data"}
+        {/* DAILY WEATHER SUMMARY BANNER */}
+        {predictions.length > 0 && (
+          <Animated.View
+            style={[styles.dailySummaryBanner, { opacity: fadeAnim }]}
+          >
+            <View style={styles.dailySummaryContent}>
+              <Text style={styles.dailySummaryLabel}>
+                {language === "si" ? "📍 අද කාලගුණය" : "📍 Today's Weather"}
               </Text>
-            )}
-          </View>
-        </Animated.View>
+              <Text style={styles.dailySummaryValue}>
+                {getDailySummaryText(predictions[0])}
+              </Text>
+            </View>
+            <EnhancedTrafficDot color={getTrafficColor(predictions[0])} />
+          </Animated.View>
+        )}
+
+        {/* ANIMATED WEEKLY STRIP */}
+        {predictions.length > 0 && (
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <AnimatedWeeklyStrip predictions={predictions} />
+          </Animated.View>
+        )}
+
+        {/* ENHANCED FARM ACTION CARD */}
+        {predictions.length > 0 && (
+          <Animated.View style={{ opacity: fadeAnim }}>
+            <EnhancedFarmActionCard predictions={predictions} />
+          </Animated.View>
+        )}
 
         {/* FARMING ADVICE SECTION */}
         {farmingAdvice.length > 0 && (
@@ -667,13 +1107,14 @@ const WeatherForecastScreen = () => {
           </Text>
         </Animated.View>
 
-        {/* WEEKLY OVERVIEW */}
+        {/* WEEKLY OVERVIEW SECTION */}
         <View style={styles.sectionHeader}>
           <Calendar size={18} color="#047857" />
           <Text style={styles.sectionTitle}>
             {content[language].weeklyOverview}
           </Text>
         </View>
+
         {/* TRAFFIC LIGHT LEGEND */}
         <View
           style={{
@@ -686,94 +1127,76 @@ const WeatherForecastScreen = () => {
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <TrafficDot color="green" />
+            <EnhancedTrafficDot color="green" />
             <Text style={{ color: "#047857", fontSize: 12, fontWeight: "600" }}>
               {language === "si" ? "හොඳ" : "Good"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <TrafficDot color="yellow" />
+            <EnhancedTrafficDot color="yellow" />
             <Text style={{ color: "#CA8A04", fontSize: 12, fontWeight: "600" }}>
               {language === "si" ? "අවධානයෙන්" : "Moderate"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <TrafficDot color="red" />
+            <EnhancedTrafficDot color="red" />
             <Text style={{ color: "#DC2626", fontSize: 12, fontWeight: "600" }}>
               {language === "si" ? "අවදානම්" : "Risky"}
             </Text>
           </View>
         </View>
 
-        {/* DAILY CARDS - COMPACT FOR FARMERS */}
+        {/* BEAUTIFUL DAILY CARDS */}
         {predictions.map((d, idx) => {
           const isGoodDay =
             (d.rain_mm ?? 0) >= 5 &&
             (d.rain_mm ?? 0) <= 25 &&
-            d.temperature >= 20 &&
-            d.temperature <= 30;
+            d.temperature >= 25 &&
+            d.temperature <= 33;
+
           const needsAttention =
             (d.rain_mm ?? 0) > 25 ||
             d.temperature > 33 ||
             ((d.rain_mm ?? 0) < 2 && (d.humidity_mean ?? 0) < 50);
+
+          const trafficColor = getTrafficColor(d);
+          const cardBg =
+            trafficColor === "red"
+              ? "#FEF2F2"
+              : trafficColor === "yellow"
+              ? "#FFFBEB"
+              : "#F0FDF4";
+          const cardBorder =
+            trafficColor === "red"
+              ? "#FECACA"
+              : trafficColor === "yellow"
+              ? "#FEF08A"
+              : "#BBFDE0";
 
           return (
             <Animated.View
               key={d.day}
               style={[
                 styles.dayCard,
-                isGoodDay && styles.dayCardGood,
-                needsAttention && styles.dayCardWarning,
+                {
+                  backgroundColor: cardBg,
+                  borderWidth: 2,
+                  borderColor: cardBorder,
+                },
                 { transform: [{ translateY: slideAnim }] },
               ]}
             >
-              <View style={styles.dayHeader}>
-                <View>
-                  <Text style={styles.dayName}>{getDayName(d.date)}</Text>
-                  <Text style={styles.dateTxt}>{formatDate(d.date)}</Text>
-                </View>
+              <BeautifulDayCardHeader day={d} trafficColor={trafficColor} />
 
-                {/* Traffic Light */}
-                <TrafficDot color={getTrafficColor(d)} />
+              {/* FARMER-FRIENDLY REASON TEXT */}
+              <Text style={styles.dailyReasonText}>
+                {getDailySummaryText(d)}
+              </Text>
 
-                {/* Existing Icons */}
-                {isGoodDay && <CheckCircle size={24} color="#10B981" />}
-                {needsAttention && <AlertTriangle size={24} color="#f59e0b" />}
-              </View>
-
-              {/* KEY METRICS FOR FARMERS */}
-              <View style={styles.metricsGrid}>
-                <View style={styles.metricBox}>
-                  <Sun size={18} color="#f59e0b" />
-                  <Text style={styles.metricLabel}>
-                    {Math.round(d.temperature_min)}-
-                    {Math.round(d.temperature_max)}°C
-                  </Text>
-                </View>
-
-                <View style={styles.metricBox}>
-                  <CloudRain size={18} color="#0ea5e9" />
-                  <Text style={styles.metricLabel}>
-                    {d.rain_mm?.toFixed(1) || 0} mm
-                  </Text>
-                </View>
-
-                <View style={styles.metricBox}>
-                  <Droplets size={18} color="#06b6d4" />
-                  <Text style={styles.metricLabel}>
-                    {Math.round(d.humidity_mean || 0)}%
-                  </Text>
-                </View>
-
-                <View style={styles.metricBox}>
-                  <Wind size={18} color="#047857" />
-                  <Text style={styles.metricLabel}>
-                    {Math.round(d.windspeed || 0)} km/h
-                  </Text>
-                </View>
-              </View>
+              {/* BEAUTIFUL METRICS */}
+              <BeautifulMetricsGrid day={d} />
             </Animated.View>
           );
         })}
@@ -874,6 +1297,57 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
   },
 
+  // NEW: Daily Summary Banner
+  dailySummaryBanner: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    elevation: 3,
+    borderLeftWidth: 5,
+    borderLeftColor: "#10B981",
+  },
+  dailySummaryContent: {
+    flex: 1,
+  },
+  dailySummaryLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+  dailySummaryValue: {
+    fontSize: 15,
+    color: "#1F2937",
+    fontWeight: "700",
+    marginTop: 4,
+  },
+
+  // NEW: Farm Action Card
+  farmActionCard: {
+    marginBottom: 15,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    elevation: 3,
+  },
+  farmActionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  farmActionDesc: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 18,
+  },
+
   adviceSection: {
     marginHorizontal: 20,
     marginBottom: 15,
@@ -970,20 +1444,33 @@ const styles = StyleSheet.create({
   dayName: { fontSize: 16, fontWeight: "700", color: "#1F2937" },
   dateTxt: { fontSize: 12, color: "#6B7280", marginTop: 2 },
 
+  // NEW: Daily reason text
+  dailyReasonText: {
+    fontSize: 13,
+    color: "#047857",
+    fontWeight: "600",
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#D1FAE5",
+  },
+
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 10,
   },
   metricBox: {
     flex: 1,
-    minWidth: "45%",
+    minWidth: "48%",
     backgroundColor: "#F9FAFB",
-    borderRadius: 10,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
-  metricLabel: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  metricLabel: { fontSize: 13, fontWeight: "700", color: "#1F2937" },
 });

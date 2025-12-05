@@ -116,7 +116,9 @@ const PriceForecastFormScreen = () => {
   // Auto-captured data (System)
   const [year, setYear] = useState("");
   const [week, setWeek] = useState("");
-  const [district, setDistrict] = useState("");
+  const [district, setDistrict] = useState(""); // User selection
+  const [autoDistrict, setAutoDistrict] = useState(""); // GPS location (top display ONLY)
+
   const [season, setSeason] = useState("");
   const [weather, setWeather] = useState("");
   const [fuelPrice, setFuelPrice] = useState("");
@@ -135,6 +137,7 @@ const PriceForecastFormScreen = () => {
   const [hasStorage, setHasStorage] = useState(false);
   // Dropdown state
   const [showVarietyPopup, setShowVarietyPopup] = useState(false);
+  const [showDistrictPopup, setShowDistrictPopup] = useState(false);
 
   // Content translations
   const content = {
@@ -359,6 +362,7 @@ const PriceForecastFormScreen = () => {
       labourCost
     ) {
       saveFormData({
+        district,
         seedVariety,
         expectedYield,
         farmArea,
@@ -390,6 +394,7 @@ const PriceForecastFormScreen = () => {
       const savedPrice = await getPriceData();
 
       if (savedForm) {
+        setDistrict(savedForm.district || "");
         setSeedVariety(savedForm.seedVariety || "");
         setExpectedYield(savedForm.expectedYield || "");
         setFarmArea(savedForm.farmArea || "");
@@ -484,19 +489,19 @@ const PriceForecastFormScreen = () => {
     }
   };
 
-  // Update district and weather when location data changes
   useEffect(() => {
-    // Update district
+    // GPS LOCATION → ONLY UPDATE autoDistrict
     if (isLoading) {
-      setDistrict(content[language].locationDetecting);
+      setAutoDistrict(language === "si" ? "හඳුනාගනිමින්..." : "Detecting...");
     } else if (locationName && locationName !== "Loading...") {
-      setDistrict(locationName);
-      saveLocationData({ district: locationName });
+      setAutoDistrict(locationName);
     } else {
-      setDistrict(language === "si" ? "ස්ථානය නොමැත" : "Location unavailable");
+      setAutoDistrict(
+        language === "si" ? "ස්ථානය නොමැත" : "Location unavailable"
+      );
     }
 
-    // Update weather
+    // WEATHER
     if (isLoading) {
       setWeather(content[language].weatherLoading);
     } else if (temperature !== null && weatherCondition) {
@@ -505,9 +510,6 @@ const PriceForecastFormScreen = () => {
         language
       );
       setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
-      saveWeatherData({
-        weather: `${Math.round(temperature)}°C • ${translatedCondition}`,
-      });
     } else {
       setWeather(
         language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
@@ -547,9 +549,6 @@ const PriceForecastFormScreen = () => {
     const updatedSeason = determineSeason(now);
     setSeason(updatedSeason);
   }, [language]);
-
-
-
 
   // Add console.logs to see what's being saved
   /* useEffect(() => {
@@ -598,6 +597,7 @@ const PriceForecastFormScreen = () => {
     try {
       // Validation
       if (
+        !district ||
         !seedVariety ||
         !expectedYield ||
         !farmArea ||
@@ -741,7 +741,7 @@ const PriceForecastFormScreen = () => {
               {language === "si" ? "ස්ථානය" : "Location"}
             </Text>
             <Text style={styles.infoValue}>
-              {getTranslatedLocation(district, language)}
+              {getTranslatedLocation(autoDistrict, language)}
             </Text>
           </View>
         </View>
@@ -859,6 +859,53 @@ const PriceForecastFormScreen = () => {
               {content[language].userInputs}
             </Text>
           </View>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].district} *</Text>
+
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDistrictPopup(true)}
+            >
+              <Text
+                style={{
+                  color: district ? "#1F2937" : "#9CA3AF",
+                  fontSize: 15,
+                }}
+              >
+                {district || (language === "si" ? "තෝරන්න" : "Select")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {showDistrictPopup && (
+            <View style={styles.popupContainer}>
+              <View style={styles.popupBox}>
+                <ScrollView>
+                  {["Anuradhapura", "Monaragala", "Dambulla"].map((d) => (
+                    <TouchableOpacity
+                      key={d}
+                      style={styles.popupItem}
+                      onPress={() => {
+                        setDistrict(d);
+                        setShowDistrictPopup(false);
+                      }}
+                    >
+                      <Text style={styles.popupText}>{d}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <TouchableOpacity
+                  style={styles.popupCancel}
+                  onPress={() => setShowDistrictPopup(false)}
+                >
+                  <Text style={styles.popupCancelText}>
+                    {language === "si" ? "අවලංගු" : "Cancel"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
