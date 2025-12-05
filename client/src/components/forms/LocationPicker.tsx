@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } fr
 import * as Location from 'expo-location';
 import { MapPin, Navigation } from 'lucide-react-native';
 import { CustomDropdown } from './CustomDropdown';
-import { District, LOCATIONS_BY_DISTRICT } from '../../types/yieldPrediction';
+import { District, LOCATIONS_BY_DISTRICT } from '../../types/farmerYieldPrediction';
 
 interface LocationPickerProps {
   district: District | '';

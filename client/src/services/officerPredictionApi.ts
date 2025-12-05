@@ -3,7 +3,7 @@
  * Handles enhanced predictions with fertilizer scheduling
  */
 
-import { YieldPredictionFormData } from '../types/yieldPrediction';
+import { YieldPredictionFormData } from '../types/farmerYieldPrediction';
 import { 
   OfficerPredictionRequest, 
   OfficerPredictionResponse, 

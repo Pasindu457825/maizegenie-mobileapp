@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Dimensions, Animated, Alert, Platfo
 import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity, CalendarPlus } from 'lucide-react-native';
-import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/yieldPrediction';
+import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/farmerYieldPrediction';
 import { useYieldForm } from '../../contexts/YieldFormContext';
 import { translations } from '../../translations/translationYieldPrediction';
 import * as ExpoCalendar from 'expo-calendar';

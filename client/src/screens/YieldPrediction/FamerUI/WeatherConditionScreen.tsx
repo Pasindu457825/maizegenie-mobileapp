@@ -13,7 +13,7 @@ import {
   RAINFALL_CONDITIONS,
   RainfallCondition,
   YieldPredictionRequest,
-} from '../../../types/yieldPrediction';
+} from '../../../types/farmerYieldPrediction';
 import { translations, translateOption } from '../../../translations/translationYieldPrediction';
 
 export const WeatherConditionScreen: React.FC = () => {
