@@ -1,6 +1,6 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import DiseaseDetectionScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen"; 
+import DiseaseIdentificationScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen"; 
 // 🔹 adjust the import path if your folder is different
 
 export type DiseaseIdentifyStackParamList = {
@@ -19,7 +19,7 @@ export default function DiseaseIdentifyStack() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="DiseaseDetection" component={DiseaseDetectionScreen} />
+      <Stack.Screen name="DiseaseDetection" component={DiseaseIdentificationScreen} />
       {/* Add more screens (e.g., DiseaseResult) when ready */}
     </Stack.Navigator>
   );
