@@ -11,18 +11,18 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = Field(default_factory=lambda: ["*"])
     UPLOAD_DIR: str = "uploads"
 
-    FIREBASE_CREDENTIALS_JSON: str | None = None
-    FIREBASE_STORAGE_BUCKET: str | None = None
-    FIREBASE_DATABASE_URL: str | None = None
-
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",
+        case_sensitive=False
+    )
 
 def load_settings() -> "Settings":
     s = Settings()
     yml_path = os.path.join(os.path.dirname(__file__), "config.yaml")
     if os.path.exists(yml_path):
         with open(yml_path, "r") as f:
-            data = (yaml.safe_load(f) or {})
+            data = yaml.safe_load(f) or {}
         for k, v in data.items():
             key = k.upper()
             if hasattr(s, key):
