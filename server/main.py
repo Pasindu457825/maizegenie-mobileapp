@@ -17,10 +17,14 @@ if str(SRC) not in sys.path:
 # IMPORT SETTINGS + ROUTERS
 # ----------------------------
 from core.config import settings
+
+# Routers inside src/
 from auth.router import router as auth_router
 from diseaseidentify.router import router as disease_router
 from pestidentify.router import router as pest_router
 from chat.router import router as chat_router
+from priceforecast.admin_router import router as admin_router
+from yieldprediction.router import router as yield_router
 
 # ----------------------------
 # CREATE APP
@@ -53,9 +57,12 @@ async def health():
     return {"status": "ok"}
 
 # ----------------------------
-# ROUTERS
+# ROUTER REGISTRATION
 # ----------------------------
 app.include_router(auth_router)
 app.include_router(disease_router)
 app.include_router(pest_router)
 app.include_router(chat_router)
+app.include_router(admin_router)
+app.include_router(yield_router)
+
