@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+
 import {
   Bug,
   Camera,
@@ -23,12 +24,23 @@ import {
   X,
   CheckCircle,
   Leaf,
+  MessageSquare,
 } from "lucide-react-native";
+
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import Constants from "expo-constants";
+
+import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
+
+// 👉 FIXED: Navigation type for this screen
+type NavProp = StackNavigationProp<
+  DiseaseIdentifyStackParamList,
+  "DiseaseDetection"
+>;
 
 const { width, height } = Dimensions.get("window");
 
@@ -43,8 +55,6 @@ interface Prediction {
 type RootStackParamList = {
   PestIdentificationScreen: undefined;
 };
-
-type NavProp = StackNavigationProp<RootStackParamList>;
 
 // Enhanced API configuration
 const getApiConfig = () => {
@@ -345,6 +355,13 @@ const PestIdentificationScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconButton}>
             <CloudSun color="#1565C0" size={20} />
+          </TouchableOpacity>
+          {/* CHAT BUTTON */}
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => navigation.navigate("Chat")}
+          >
+            <MessageSquare color="#1565C0" size={20} />
           </TouchableOpacity>
 
           <TouchableOpacity

@@ -1,6 +1,9 @@
+# src/chat/service.py
 from src.core.supabase_client import supabase
+from datetime import datetime
 
-# 1️⃣ Get officer in same district
+
+# Officer lookup
 def get_officer_for_district(district: str):
     response = (
         supabase.table("profiles")
@@ -11,21 +14,17 @@ def get_officer_for_district(district: str):
         .execute()
     )
 
-    if not response.data:
-        return None
-
-    return response.data[0]
+    return response.data[0] if response.data else None
 
 
-# 2️⃣ Create or get chat room
+# Create / Get chat room
 def get_or_create_chat_room(farmer_id: str, district: str):
     officer = get_officer_for_district(district)
-    if officer is None:
-        return None, "No officer available for this district"
+    if not officer:
+        return None, "No officer available for this district."
 
     officer_id = officer["id"]
 
-    # Check if room already exists
     existing = (
         supabase.table("chat_rooms")
         .select("*")
@@ -38,17 +37,47 @@ def get_or_create_chat_room(farmer_id: str, district: str):
     if existing.data:
         return existing.data[0], None
 
-    # Create new room
+    # create
     inserted = (
         supabase.table("chat_rooms")
         .insert({
             "farmer_id": farmer_id,
             "officer_id": officer_id
         })
-        .execute()   # ✔ FIXED
+        .execute()
     )
 
     if inserted.data:
         return inserted.data[0], None
 
     return None, "Failed to create chat room"
+
+
+# Save a message to DB
+def save_chat_message(room_id: str, sender_id: str, message: str):
+    timestamp = datetime.utcnow().isoformat()
+
+    row = (
+        supabase.table("chat_messages")
+        .insert({
+            "room_id": room_id,
+            "sender_id": sender_id,
+            "message": message,
+            "timestamp": timestamp,
+        })
+        .execute()
+    )
+
+    return row.data[0]
+
+
+# Get message history
+def get_chat_messages(room_id: str):
+    result = (
+        supabase.table("chat_messages")
+        .select("*")
+        .eq("room_id", room_id)
+        .order("timestamp", desc=False)
+        .execute()
+    )
+    return result.data or []

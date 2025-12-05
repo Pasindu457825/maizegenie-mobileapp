@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -8,18 +8,20 @@ import {
   StyleSheet,
 } from "react-native";
 import axios from "axios";
-import { API_BASE } from "../../services/api"; // FIXED import
+import { API_BASE } from "../../services/api";
 
 const ChatScreen = ({ route }: any) => {
   const [room, setRoom] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [message, setMessage] = useState("");
 
-  // TODO: Replace with logged-in user details
-  const farmer_id = route?.params?.userId || "REPLACE_USER_ID";
+  const ws = useRef<WebSocket | null>(null);
+
+  // Logged user data
+  const farmer_id = route?.params?.userId || "TEMP_ID";
   const farmer_district = route?.params?.district || "Monaragala";
 
-  // 1️⃣ Get or create chat room
+  /** 🔹 1. Load or create chat room */
   const loadRoom = async () => {
     try {
       const res = await axios.post(`${API_BASE}/chat/get-room`, {
@@ -30,70 +32,90 @@ const ChatScreen = ({ route }: any) => {
       if (res.data.room) {
         setRoom(res.data.room);
       } else {
-        console.log("No room:", res.data);
+        console.log("Room creation error:", res.data);
       }
     } catch (err) {
-      console.log("🔥 Error loading room:", err);
+      console.log("Chat room error", err);
     }
   };
 
-  // 2️⃣ Fetch messages for room
-  const loadMessages = useCallback(async () => {
-    if (!room) return;
-
+  /** 🔹 2. Load previous messages */
+  const loadHistory = async (room_id: string) => {
     try {
-      const res = await axios.get(`${API_BASE}/chat/messages/${room.id}`);
+      const res = await axios.get(`${API_BASE}/chat/messages/${room_id}`);
       setMessages(res.data.messages || []);
     } catch (err) {
-      console.log("🔥 Message fetch error:", err);
-    }
-  }, [room]);
-
-  // 3️⃣ Send a message
-  const sendMessage = async () => {
-    if (!message.trim() || !room) return;
-
-    try {
-      await axios.post(`${API_BASE}/chat/send`, {
-        room_id: room.id,
-        sender_id: farmer_id,
-        message,
-      });
-
-      setMessage("");
-      loadMessages(); // Refresh after sending
-    } catch (err) {
-      console.log("🔥 Send error:", err);
+      console.log("Message history error:", err);
     }
   };
 
-  // Load room on mount
+  /** 🔹 3. Connect WebSocket */
+  const connectWebSocket = (room_id: string) => {
+    const wsUrl = API_BASE.replace("http", "ws") + `/chat/ws/${room_id}`;
+
+    console.log("🔌 Connecting WebSocket:", wsUrl);
+
+    ws.current = new WebSocket(wsUrl);
+
+    ws.current.onopen = () => {
+      console.log("✅ WebSocket connected");
+    };
+
+    ws.current.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+
+      setMessages((prev) => [...prev, msg]);
+    };
+
+    ws.current.onerror = (err) => {
+      console.log("❌ WebSocket Error:", err);
+    };
+
+    ws.current.onclose = () => {
+      console.log("⚠ WebSocket closed. Reconnecting…");
+      setTimeout(() => connectWebSocket(room_id), 2000);
+    };
+  };
+
+  /** 🔹 4. Send message through WebSocket */
+  const sendMessage = () => {
+    if (!message.trim() || !ws.current) return;
+
+    ws.current.send(
+      JSON.stringify({
+        sender_id: farmer_id,
+        message,
+      })
+    );
+
+    setMessage("");
+  };
+
+  /** 🔹 5. Run on first load */
   useEffect(() => {
     loadRoom();
   }, []);
 
-  // Poll messages every 2 seconds
+  /** 🔹 6. After room loads → fetch history + connect WebSocket */
   useEffect(() => {
     if (!room) return;
 
-    loadMessages();
-    const interval = setInterval(loadMessages, 2000);
-
-    return () => clearInterval(interval);
-  }, [room, loadMessages]);
+    loadHistory(room.id);
+    connectWebSocket(room.id);
+  }, [room]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Chat With Agriculture Officer</Text>
+      <Text style={styles.header}>Chat with Agriculture Officer</Text>
 
       {!room ? (
-        <Text style={styles.loadingText}>Connecting to officer...</Text>
+        <Text style={styles.loadingText}>Connecting to officer…</Text>
       ) : (
         <>
           {/* Chat messages */}
           <FlatList
             data={messages}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={(_, index) => index.toString()}
             style={{ flex: 1 }}
             renderItem={({ item }) => (
               <View
@@ -109,13 +131,13 @@ const ChatScreen = ({ route }: any) => {
             )}
           />
 
-          {/* Message input */}
+          {/* Input */}
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}
               value={message}
               onChangeText={setMessage}
-              placeholder="Type your message..."
+              placeholder="Type message…"
             />
             <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
               <Text style={styles.sendText}>Send</Text>
@@ -134,6 +156,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 10,
     color: "#0D47A1",
+    textAlign: "center",
   },
   loadingText: { fontSize: 16, textAlign: "center", marginTop: 25 },
 
@@ -144,7 +167,7 @@ const styles = StyleSheet.create({
     maxWidth: "75%",
   },
   leftBubble: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ffffff",
     alignSelf: "flex-start",
   },
   rightBubble: {
