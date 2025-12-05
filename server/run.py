@@ -47,10 +47,13 @@ app.mount("/api", api)
 @app.get("/")
 def root():
     return {"ok": True, "message": "API running"}
+import uvicorn
+from src.core.config import settings
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("run:app",
-                host=getattr(settings, "HOST", "0.0.0.0"),
-                port=getattr(settings, "PORT", 5000),
-                reload=True)
+    uvicorn.run(
+        "main:app",
+        host=settings.HOST,
+        port=settings.PORT,
+        reload=True
+    )

@@ -1,8 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Animated, Alert, Platform, TouchableOpacity } from 'react-native';
 import { Card, Title, Paragraph, Button } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import { Leaf, TrendingUp, AlertCircle, CheckCircle, BarChart3, PieChart, Activity } from 'lucide-react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity, CalendarPlus } from 'lucide-react-native';
+import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/yieldPrediction';
+import { useYieldForm } from '../../contexts/YieldFormContext';
+import { translations } from '../../translations/translationYieldPrediction';
+import * as ExpoCalendar from 'expo-calendar';
 
 const { width } = Dimensions.get('window');
 
@@ -19,38 +23,56 @@ interface RecommendationData {
     priority: 'High' | 'Medium' | 'Low';
 }
 
+type RouteParams = {
+    PredictYieldScreen: {
+        result: YieldPredictionResponse;
+        formData: YieldPredictionFormData;
+    };
+};
+
 export default function PredictYieldScreen() {
     const navigation = useNavigation();
+    const route = useRoute<RouteProp<RouteParams, 'PredictYieldScreen'>>();
+    const { language } = useYieldForm();
+    const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
 
-    const mockResults = {
-        predictedYield: '2,450 kg',
-        confidence: 85,
-        factors: [
-            { name: 'Weather conditions', impact: 'High' as const, value: 85, color: '#EF4444' },
-            { name: 'Soil quality', impact: 'Medium' as const, value: 65, color: '#F59E0B' },
-            { name: 'Irrigation', impact: 'High' as const, value: 78, color: '#EF4444' },
-            { name: 'Seed variety', impact: 'Low' as const, value: 45, color: '#10B981' }
-        ] as FactorData[],
-        recommendations: [
-            { title: 'Monitor soil moisture', description: 'Check soil moisture levels weekly for optimal growth', priority: 'High' as const },
-            { title: 'Apply fertilizer', description: 'Use NPK fertilizer at recommended intervals', priority: 'High' as const },
-            { title: 'Pest control', description: 'Implement integrated pest management measures', priority: 'Medium' as const },
-            { title: 'Weed management', description: 'Remove weeds regularly to reduce competition', priority: 'Medium' as const }
-        ] as RecommendationData[],
-        monthlyYield: [
-            { month: 'Jan', expected: 0, actual: 0 },
-            { month: 'Feb', expected: 0, actual: 0 },
-            { month: 'Mar', expected: 200, actual: 180 },
-            { month: 'Apr', expected: 400, actual: 380 },
-            { month: 'May', expected: 600, actual: 590 },
-            { month: 'Jun', expected: 800, actual: 820 },
-            { month: 'Jul', expected: 1000, actual: 980 },
-            { month: 'Aug', expected: 1200, actual: 1150 },
-            { month: 'Sep', expected: 1400, actual: 1380 },
-            { month: 'Oct', expected: 1600, actual: 1590 },
-            { month: 'Nov', expected: 1800, actual: 1750 },
-            { month: 'Dec', expected: 2000, actual: 1950 }
-        ]
+    // Get translations
+    const t = translations.results[language];
+
+    // Get real data from backend API response
+    const { result, formData } = route.params || {};
+
+    // Debug logging
+    console.log('📊 Results Screen - Received Data:');
+    console.log('Backend Result:', JSON.stringify(result, null, 2));
+    console.log('Form Data:', JSON.stringify(formData, null, 2));
+
+    // Convert backend response to display format
+    const landSize = parseFloat(formData?.land_size_value || '1');
+    const predictedYieldKg = result?.yield_prediction_t_ha
+        ? Math.round(result.yield_prediction_t_ha * 1000 * landSize)
+        : 0;
+
+    console.log('Calculated Yield (kg):', predictedYieldKg);
+
+    const confidencePercent = result?.confidence === 'High' ? 85 :
+        result?.confidence === 'Medium' ? 70 : 50;
+
+    // Convert backend factors to display format
+    const displayFactors: FactorData[] = result?.factors?.map(factor => ({
+        name: factor.name,
+        impact: factor.impact,
+        value: Math.round(factor.value * 100), // Convert 0-1 to 0-100
+        color: factor.impact === 'High' ? '#EF4444' :
+            factor.impact === 'Medium' ? '#F59E0B' : '#10B981'
+    })) || [];
+
+    const displayResults = {
+        predictedYield: `${predictedYieldKg.toLocaleString()} kg`,
+        confidence: confidencePercent,
+        factors: displayFactors,
+        harvestWindow: result?.harvest_window,
+        calendarEvent: result?.calendar_event
     };
 
     const getPriorityColor = (priority: string) => {
@@ -69,52 +91,144 @@ export default function PredictYieldScreen() {
         }
     };
 
-    const YieldBarChart = () => {
-        const maxValue = Math.max(...mockResults.monthlyYield.map(d => d.expected));
-        
+    // One-Tap Add to Calendar Function
+    const addHarvestToCalendar = async () => {
+        if (!displayResults.harvestWindow) {
+            Alert.alert(
+                language === 'si' ? 'දෝෂයකි' : 'Error',
+                language === 'si' ? 'අස්වැන්න නෙලීමේ කාලය නොමැත' : 'No harvest window available'
+            );
+            return;
+        }
+
+        setIsAddingToCalendar(true);
+
+        try {
+            // Request calendar permissions
+            const { status } = await ExpoCalendar.requestCalendarPermissionsAsync();
+            
+            if (status !== 'granted') {
+                Alert.alert(
+                    language === 'si' ? 'අවසරය අවශ්‍යයි' : 'Permission Required',
+                    t.permissionDenied
+                );
+                setIsAddingToCalendar(false);
+                return;
+            }
+
+            // Get default calendar
+            const calendars = await ExpoCalendar.getCalendarsAsync(ExpoCalendar.EntityTypes.EVENT);
+            const defaultCalendar = calendars.find(cal => cal.allowsModifications) || calendars[0];
+
+            if (!defaultCalendar) {
+                throw new Error('No calendar available');
+            }
+
+            // Parse dates
+            const startDate = new Date(displayResults.harvestWindow.start);
+            const targetDate = new Date(displayResults.harvestWindow.target);
+            const endDate = new Date(displayResults.harvestWindow.end);
+
+            // Create event title and notes
+            const eventTitle = language === 'si' 
+                ? `🌾 ${formData?.variety || 'ඉරිඟු'} අස්වැන්න නෙලීම`
+                : `🌾 ${formData?.variety || 'Maize'} Harvest`;
+
+            const eventNotes = language === 'si'
+                ? `අපේක්ෂිත අස්වැන්න: ${displayResults.predictedYield}\nදිස්ත්‍රික්කය: ${formData?.district || '-'}\nඉඩමේ ප්‍රමාණය: ${formData?.land_size_value || '-'} අක්කර\n\nඅස්වැන්න නෙලීමේ කාලය:\n• ආරම්භය: ${startDate.toLocaleDateString()}\n• ඉලක්කය: ${targetDate.toLocaleDateString()}\n• අවසානය: ${endDate.toLocaleDateString()}`
+                : `Predicted Yield: ${displayResults.predictedYield}\nDistrict: ${formData?.district || '-'}\nLand Size: ${formData?.land_size_value || '-'} Acres\n\nHarvest Window:\n• Start: ${startDate.toLocaleDateString()}\n• Target: ${targetDate.toLocaleDateString()}\n• End: ${endDate.toLocaleDateString()}`;
+
+            // Create calendar event (all-day event spanning the harvest window)
+            const eventId = await ExpoCalendar.createEventAsync(defaultCalendar.id, {
+                title: eventTitle,
+                startDate: startDate,
+                endDate: endDate,
+                allDay: true,
+                notes: eventNotes,
+                alarms: [
+                    { relativeOffset: -7 * 24 * 60 }, // 7 days before (in minutes)
+                    { relativeOffset: -1 * 24 * 60 }, // 1 day before (in minutes)
+                ],
+            });
+
+            console.log('✅ Calendar event created:', eventId);
+
+            // Enhanced success alert with detailed information
+            const successMessage = language === 'si'
+                ? `දින දර්ශනයට සාර්ථකව එකතු කරන ලදී!\n\n📅 සිදුවීම: ${eventTitle}\n📆 දිනය: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}\n\n🔔 සිහිකැඳවීම්:\n• ${new Date(targetDate.getTime() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} (දින 7කට පෙර)\n• ${new Date(targetDate.getTime() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString()} (දිනකට පෙර)\n\nඔබේ දින දර්ශනය පරීක්ෂා කරන්න!`
+                : `Successfully added to calendar!\n\n📅 Event: ${eventTitle}\n📆 Date: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}\n\n🔔 Reminders set:\n• ${new Date(targetDate.getTime() - 7 * 24 * 60 * 60 * 1000).toLocaleDateString()} (7 days before)\n• ${new Date(targetDate.getTime() - 1 * 24 * 60 * 60 * 1000).toLocaleDateString()} (1 day before)\n\nCheck your calendar app!`;
+
+            Alert.alert(
+                language === 'si' ? '✅ සාර්ථකයි!' : '✅ Success!',
+                successMessage,
+                [
+                    { 
+                        text: language === 'si' ? 'හරි' : 'OK',
+                        style: 'default'
+                    }
+                ]
+            );
+
+        } catch (error) {
+            console.error('❌ Calendar error:', error);
+            Alert.alert(
+                language === 'si' ? 'දෝෂයකි' : 'Error',
+                t.calendarError,
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setIsAddingToCalendar(false);
+        }
+    };
+
+    const HarvestWindowCard = () => {
+        if (!displayResults.harvestWindow) return null;
+
+        const formatDate = (dateStr: string) => {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
         return (
-            <View style={styles.chartContainer}>
-                <View style={styles.chartHeader}>
-                    <BarChart3 color="#16A34A" size={20} />
-                    <Text style={styles.chartTitle}>Expected Yield Progress</Text>
+            <View style={styles.harvestContainer}>
+                <View style={styles.harvestHeader}>
+                    <Calendar color="#16A34A" size={20} />
+                    <Text style={styles.harvestTitle}>{t.harvestWindow}</Text>
                 </View>
-                <View style={styles.chart}>
-                    {mockResults.monthlyYield.map((data, index) => (
-                        <View key={index} style={styles.barContainer}>
-                            <View style={styles.barWrapper}>
-                                <View 
-                                    style={[
-                                        styles.expectedBar, 
-                                        { 
-                                            height: `${(data.expected / maxValue) * 100}%`,
-                                            backgroundColor: '#BBF7D0'
-                                        }
-                                    ]} 
-                                />
-                                <View 
-                                    style={[
-                                        styles.actualBar, 
-                                        { 
-                                            height: `${(data.actual / maxValue) * 100}%`,
-                                            backgroundColor: '#16A34A'
-                                        }
-                                    ]} 
-                                />
-                            </View>
-                            <Text style={styles.barLabel}>{data.month}</Text>
-                        </View>
-                    ))}
-                </View>
-                <View style={styles.chartLegend}>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#BBF7D0' }]} />
-                        <Text style={styles.legendText}>Expected</Text>
+                <View style={styles.harvestContent}>
+                    <View style={styles.harvestDateRow}>
+                        <Text style={styles.harvestLabel}>{t.startDate}:</Text>
+                        <Text style={styles.harvestDate}>{formatDate(displayResults.harvestWindow.start)}</Text>
                     </View>
-                    <View style={styles.legendItem}>
-                        <View style={[styles.legendDot, { backgroundColor: '#16A34A' }]} />
-                        <Text style={styles.legendText}>Actual</Text>
+                    <View style={styles.harvestDateRow}>
+                        <Text style={styles.harvestLabel}>{t.targetDate}:</Text>
+                        <Text style={[styles.harvestDate, styles.harvestTarget]}>{formatDate(displayResults.harvestWindow.target)}</Text>
+                    </View>
+                    <View style={styles.harvestDateRow}>
+                        <Text style={styles.harvestLabel}>{t.endDate}:</Text>
+                        <Text style={styles.harvestDate}>{formatDate(displayResults.harvestWindow.end)}</Text>
                     </View>
                 </View>
+                {displayResults.calendarEvent && (
+                    <View style={styles.calendarReminder}>
+                        <AlertCircle color="#F59E0B" size={16} />
+                        <Text style={styles.reminderText}>{displayResults.calendarEvent.title}</Text>
+                    </View>
+                )}
+
+                {/* Add to Calendar Button */}
+                <TouchableOpacity 
+                    style={styles.calendarButton}
+                    onPress={addHarvestToCalendar}
+                    disabled={isAddingToCalendar}
+                >
+                    <CalendarPlus size={20} color="#FFFFFF" />
+                    <Text style={styles.calendarButtonText}>
+                        {isAddingToCalendar 
+                            ? (language === 'si' ? 'එකතු කරමින්...' : 'Adding...') 
+                            : t.addToCalendar}
+                    </Text>
+                </TouchableOpacity>
             </View>
         );
     };
@@ -124,22 +238,22 @@ export default function PredictYieldScreen() {
             <View style={styles.factorContainer}>
                 <View style={styles.factorHeader}>
                     <Activity color="#16A34A" size={20} />
-                    <Text style={styles.factorTitle}>Impact Factors</Text>
+                    <Text style={styles.factorTitle}>{t.impactFactors}</Text>
                 </View>
                 <View style={styles.factorList}>
-                    {mockResults.factors.map((factor, index) => (
+                    {displayResults.factors.map((factor, index) => (
                         <View key={index} style={styles.factorItem}>
                             <View style={styles.factorInfo}>
                                 <Text style={styles.factorName}>{factor.name}</Text>
                                 <View style={styles.factorBar}>
-                                    <View 
+                                    <View
                                         style={[
-                                            styles.factorBarFill, 
-                                            { 
+                                            styles.factorBarFill,
+                                            {
                                                 width: `${factor.value}%`,
                                                 backgroundColor: factor.color
                                             }
-                                        ]} 
+                                        ]}
                                     />
                                 </View>
                             </View>
@@ -155,39 +269,13 @@ export default function PredictYieldScreen() {
         );
     };
 
-    const RecommendationsCard = () => {
-        return (
-            <View style={styles.recommendationsContainer}>
-                <View style={styles.recommendationsHeader}>
-                    <CheckCircle color="#16A34A" size={20} />
-                    <Text style={styles.recommendationsTitle}>Recommendations</Text>
-                </View>
-                {mockResults.recommendations.map((rec, index) => (
-                    <View key={index} style={styles.recommendationItem}>
-                        <View style={styles.recommendationContent}>
-                            <View style={[styles.priorityDot, { backgroundColor: getPriorityColor(rec.priority) }]} />
-                            <View style={styles.recommendationText}>
-                                <Text style={styles.recommendationTitle}>{rec.title}</Text>
-                                <Text style={styles.recommendationDescription}>{rec.description}</Text>
-                            </View>
-                        </View>
-                        <View style={[styles.priorityBadge, { backgroundColor: getPriorityBgColor(rec.priority) }]}>
-                            <Text style={[styles.priorityText, { color: getPriorityColor(rec.priority) }]}>
-                                {rec.priority}
-                            </Text>
-                        </View>
-                    </View>
-                ))}
-            </View>
-        );
-    };
 
     return (
         <View style={styles.container}>
             {/* Header with decorative elements */}
             <View style={styles.headerDecoration} />
-            
-            <ScrollView 
+
+            <ScrollView
                 style={styles.scrollContainer}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
@@ -201,34 +289,33 @@ export default function PredictYieldScreen() {
                         <View style={styles.pulseRing} />
                     </View>
 
-                    <Text style={styles.title}>Yield Prediction Results</Text>
-                    <Text style={styles.subtitle}>Smart Farming Analysis</Text>
+                    <Text style={styles.title}>{t.title}</Text>
+                    <Text style={styles.subtitle}>{t.subtitle}</Text>
 
                     {/* Main Result Card */}
                     <Card style={styles.resultCard}>
                         <View style={styles.resultHeader}>
                             <TrendingUp color="#16A34A" size={24} />
-                            <Text style={styles.resultTitle}>Prediction Summary</Text>
+                            <Text style={styles.resultTitle}>{t.title}</Text>
                         </View>
 
                         <View style={styles.yieldDisplay}>
-                            <Text style={styles.yieldLabel}>Predicted Yield</Text>
-                            <Text style={styles.yieldValue}>{mockResults.predictedYield}</Text>
+                            <Text style={styles.yieldLabel}>{t.predictedYield}</Text>
+                            <Text style={styles.yieldValue}>{displayResults.predictedYield}</Text>
                         </View>
 
                         <View style={styles.confidenceContainer}>
-                            <Text style={styles.confidenceLabel}>Confidence Level</Text>
+                            <Text style={styles.confidenceLabel}>{t.confidence}</Text>
                             <View style={styles.confidenceBar}>
-                                <View style={[styles.confidenceFill, { width: `${mockResults.confidence}%` }]} />
-                                <Text style={styles.confidenceText}>{mockResults.confidence}%</Text>
+                                <View style={[styles.confidenceFill, { width: `${displayResults.confidence}%` }]} />
+                                <Text style={styles.confidenceText}>{displayResults.confidence}%</Text>
                             </View>
                         </View>
                     </Card>
 
-                    {/* Charts Section */}
-                    <YieldBarChart />
+                    {/* Data Sections */}
+                    <HarvestWindowCard />
                     <FactorRadar />
-                    <RecommendationsCard />
 
                     {/* Action Button */}
                     <Button
@@ -238,7 +325,7 @@ export default function PredictYieldScreen() {
                         labelStyle={styles.actionButtonText}
                         icon={() => <TrendingUp color="#FFFFFF" size={20} />}
                     >
-                        New Prediction
+                        {t.newPrediction}
                     </Button>
                 </View>
             </ScrollView>
@@ -401,7 +488,7 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 12,
     },
-    chartContainer: {
+    harvestContainer: {
         width: '100%',
         backgroundColor: '#FFFFFF',
         borderRadius: 20,
@@ -415,7 +502,7 @@ const styles = StyleSheet.create({
         borderColor: '#BBF7D0',
         marginBottom: 20,
     },
-    chartHeader: {
+    harvestHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 12,
@@ -424,65 +511,72 @@ const styles = StyleSheet.create({
         borderBottomWidth: 2,
         borderBottomColor: '#BBF7D0',
     },
-    chartTitle: {
+    harvestTitle: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#166534',
     },
-    chart: {
+    harvestContent: {
+        gap: 12,
+    },
+    harvestDateRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-end',
-        height: 120,
-        marginBottom: 12,
-    },
-    barContainer: {
-        flex: 1,
         alignItems: 'center',
-        height: '100%',
+        paddingVertical: 8,
     },
-    barWrapper: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'flex-end',
-        height: '80%',
-        position: 'relative',
-    },
-    expectedBar: {
-        width: 4,
-        borderRadius: 2,
-        marginRight: 1,
-    },
-    actualBar: {
-        width: 4,
-        borderRadius: 2,
-        position: 'absolute',
-        left: '50%',
-    },
-    barLabel: {
-        fontSize: 10,
+    harvestLabel: {
+        fontSize: 14,
         color: '#64748B',
-        marginTop: 4,
+        fontWeight: '500',
     },
-    chartLegend: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 20,
+    harvestDate: {
+        fontSize: 14,
+        color: '#166534',
+        fontWeight: '600',
     },
-    legendItem: {
+    harvestTarget: {
+        color: '#16A34A',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    calendarReminder: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 8,
+        marginTop: 16,
+        padding: 12,
+        backgroundColor: '#FEF3C7',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#FCD34D',
     },
-    legendDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+    reminderText: {
+        fontSize: 13,
+        color: '#92400E',
+        fontWeight: '500',
+        flex: 1,
     },
-    legendText: {
-        fontSize: 12,
-        color: '#64748B',
+    calendarButton: {
+        backgroundColor: '#16A34A',
+        borderRadius: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        marginTop: 16,
+        shadowColor: '#16A34A',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    calendarButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
     },
     factorContainer: {
         width: '100%',
