@@ -1,932 +1,1431 @@
+// client/src/screens/PriceForecast/PriceAdvisorScreen.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
+  TouchableOpacity,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
+  Animated,
+  Dimensions,
   TextInput,
+  Modal,
+  Platform,
 } from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import {
   ArrowLeft,
+  Bell,
+  Leaf,
+  CloudSun,
+  Cloud,
+  CloudDrizzle,
   CloudRain,
-  Thermometer,
-  Wind,
-  Droplets,
+  CloudLightning,
+  CloudFog,
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+  DollarSign,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from "lucide-react-native";
-import axios from "axios";
 import useUniversalLocation from "../../utils/useUniversalLocation";
+import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 
-// Sinhala Location Translation Maps
-const provinceMap: Record<string, string> = {
-  Western: "බස්නාහිර",
-  Southern: "දකුණු",
-  Central: "මධ්‍යම",
-  Northern: "උතුරු",
-  Eastern: "නැගෙනහිර",
-  NorthWestern: "වයඹ",
-  NorthCentral: "උතුරු මැද",
-  Uva: "ඌව",
-  Sabaragamuwa: "සබරගමුව",
-};
+const { width } = Dimensions.get("window");
 
-const districtMap: Record<string, string> = {
-  Colombo: "කොළඹ",
-  Gampaha: "ගම්පහ",
-  Kalutara: "කළුතර",
-  Kandy: "මහනුවර",
-  Matale: "මාතලේ",
-  NuwaraEliya: "නුවර එලිය",
-  Galle: "ගාල්ල",
-  Matara: "මාතර",
-  Hambantota: "හම්බන්තොට",
-  Jaffna: "යාපනය",
-  Kilinochchi: "කිලිනොච්චි",
-  Mannar: "මන්නාරම",
-  Vavuniya: "වවුනියාව",
-  Mullaitivu: "මුලතිව්",
-  Batticaloa: "බතිකලාව",
-  Ampara: "අම්පාර",
-  Trincomalee: "ත්‍රිකුණාමලය",
-  Kurunegala: "කුරුණෑගල",
-  Puttalam: "පුත්තලම",
-  Anuradhapura: "අනුරාධපුර",
-  Polonnaruwa: "පොලොන්නරුව",
-  Badulla: "බදුල්ල",
-  Monaragala: "මොණරාගල",
-  Ratnapura: "රත්නපුර",
-  Kegalle: "කෑගල්ල",
-};
+type Language = "si" | "en";
 
-// ------ NEW: Variety list + default durations (dummy values for now) ------
-const VARIETY_OPTIONS = [
-  "Jet 999",
-  "808",
-  "GT 709",
-  "Pacific 998",
-  "Goldstar",
-  "Bisco Hybrid",
-  "Unknown",
-];
+type NavProp = StackNavigationProp<
+  PriceForecastStackParamList,
+  "PriceAdvisorScreen"
+>;
 
-const VARIETY_DURATION_WEEKS: Record<string, number> = {
-  "Jet 999": 13, // ~90 days
-  "808": 16, // ~110 days
-  "GT 709": 14,
-  "Pacific 998": 15,
-  Goldstar: 14,
-  "Bisco Hybrid": 15,
-  Unknown: 14,
-};
-
-// API Configuration
-const API_BASE_URL = "http://192.168.8.181:8000";
-
-interface WeatherRecommendation {
-  success: boolean;
-  condition: string;
-  confidence: number;
-  weather_data: {
-    temperature: number;
-    rainfall: number;
-    windspeed: number;
-  };
-  recommendation: {
-    status: string;
-    action: string;
-    irrigation: string;
-    fertilizer: string;
-    activities: string[];
-    risk_level: string;
-    color: string;
+interface RouteParams {
+  formData?: {
+    cropDuration?: number;
+    cost?: number;
+    yieldKg?: number;
   };
 }
 
-const translateLocation = (raw: string | null, lang: "si" | "en") => {
-  if (!raw) return lang === "si" ? "ස්ථානය" : "Location";
-  if (lang === "en") return raw;
+interface AdvisorFormData {
+  district: string;
+  plantingDate: string;
+  seedVariety: string;
+  area: string;
+  totalCost: string;
+  expectedYield: string;
+}
 
-  let name = raw
-    .replace(/District/i, "")
-    .replace(/Province/i, "")
-    .trim();
+type QuestionKey =
+  | "plant_now"
+  | "delay_planting"
+  | "weather_ok"
+  | "profit_now"
+  | "best_harvest_time";
 
-  if (provinceMap[name]) return provinceMap[name] + " පළාත";
-  if (districtMap[name]) return districtMap[name];
-
-  return raw;
+const VARIETY_DURATION_WEEKS: Record<string, number> = {
+  "Jet 999": 13,
+  "GT 709": 14,
+  "808": 16,
+  "Pacific 999": 15,
+  Unknown: 14,
 };
 
-const PriceAdvisorScreen = ({ route, navigation }: any) => {
+const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
+
+const PriceAdvisorScreen: React.FC = () => {
+  const navigation = useNavigation<NavProp>();
+  const route = useRoute();
+  const params = (route.params as RouteParams) || {};
+
+  const [language, setLanguage] = useState<Language>("si");
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0.95));
+
+  const [showForm, setShowForm] = useState(true);
+  const [formSlideAnim] = useState(new Animated.Value(0));
+  const [formOpacityAnim] = useState(new Animated.Value(1));
+
+  // Calendar & Variety Picker Modals
   const [showCalendar, setShowCalendar] = useState(false);
-  const [plantingDate, setPlantingDate] = useState(new Date());
-
-  const formData = route?.params?.formData || {};
-
-  const [language, setLanguage] = useState<"si" | "en">("si");
+  const [showVarietyPicker, setShowVarietyPicker] = useState(false);
+  const [calendarDate, setCalendarDate] = useState(new Date());
 
   const {
     locationName,
-    latitude,
-    longitude,
-    temperature: currentTemp,
-    weatherCondition: currentCondition,
-    weatherIcon,
-    isLoading: locLoading,
+    temperature,
+    weatherCondition,
+    isLoading: isWeatherLoading,
   } = useUniversalLocation(language);
-  console.log("GPS DEBUG →", {
-    locationName,
-    latitude,
-    longitude,
-    locLoading,
-  });
 
-  const [loading, setLoading] = useState(true);
-  const [weatherRec, setWeatherRec] = useState<WeatherRecommendation | null>(
-    null
-  );
-
-  // --------------------------
-  // PRICE FORECAST DATA (dummy for now)
-  // --------------------------
-  const dummyPriceWeeks = [
-    { week: 1, price: 32 },
-    { week: 2, price: 36 },
-    { week: 3, price: 41 },
-    { week: 4, price: 45 },
-    { week: 5, price: 47 },
-    { week: 6, price: 52 },
-  ];
-
-  // ----------------------
-  // USER INPUT FORM STATES (NEW)
-  // ----------------------
-  const [plantingDateStr, setPlantingDateStr] = useState<string>(
-    formData.plantingDate || ""
-  );
-  const [selectedVariety, setSelectedVariety] = useState<string>(
-    formData.variety || "Jet 999"
-  );
-  const [durationWeeks, setDurationWeeks] = useState<string>(
-    String(
-      formData.cropDuration ||
-        VARIETY_DURATION_WEEKS[formData.variety || "Jet 999"] ||
-        14
-    )
-  );
-  const [yieldKgInput, setYieldKgInput] = useState<string>(
-    formData.yieldKg ? String(formData.yieldKg) : "1500"
-  );
-  const [costInput, setCostInput] = useState<string>(
-    formData.cost ? String(formData.cost) : "45000"
-  );
-  const [showVarietyDropdown, setShowVarietyDropdown] = useState(false);
-
-  // Auto-update duration when variety changes (can still override manually)
-  useEffect(() => {
-    const vWeeks = VARIETY_DURATION_WEEKS[selectedVariety];
-    if (vWeeks) {
-      setDurationWeeks(String(vWeeks));
-    }
-  }, [selectedVariety]);
-
-  // ----------------------
-  // REAL WEATHER (GPS)
-  // ----------------------
-  const fetchRealWeather = async (lat: number, lon: number) => {
-    try {
-      const res = await axios.get(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,rain&hourly=temperature_2m,rain,windspeed_10m&timezone=auto`
-      );
-
-      const current = res.data.current || {};
-      const hourly = res.data.hourly || {};
-
-      // Find correct hour index
-      const nowISO = current.time;
-      const index = hourly.time.indexOf(nowISO);
-
-      return {
-        temperature:
-          current.temperature_2m ?? hourly.temperature_2m?.[index] ?? 0,
-        temperature_max: Math.max(
-          ...(hourly.temperature_2m || [current.temperature_2m])
-        ),
-        temperature_min: Math.min(
-          ...(hourly.temperature_2m || [current.temperature_2m])
-        ),
-        rainfall: current.rain ?? hourly.rain?.[index] ?? 0,
-        windspeed: current.wind_speed_10m ?? hourly.windspeed_10m?.[index] ?? 0,
-        radiation: hourly.shortwave_radiation?.[index] ?? 200,
-      };
-    } catch (e) {
-      console.log("Real weather error:", e);
-      return null;
-    }
-  };
-
-  const lat = Number(latitude ?? 0);
-  const lon = Number(longitude ?? 0);
-
-  // -------------------------------------
-  // Weather Advisor Loader (unchanged)
-  // -------------------------------------
-  const loadRealWeatherAdvisor = async () => {
-    setLoading(true);
-
-    try {
-      if (isNaN(lat) || isNaN(lon) || lat === 0 || lon === 0) {
-        console.log("GPS still invalid →", { lat, lon });
-        setLoading(false);
-        return;
-      }
-
-      const safeLat = latitude ?? 0;
-      const safeLon = longitude ?? 0;
-
-      const w = await fetchRealWeather(Number(safeLat), Number(safeLon));
-
-      if (!w) {
-        Alert.alert("Weather Error", "Could not get GPS weather.");
-        setLoading(false);
-        return;
-      }
-
-      const payload = {
-        temperature: Number(w.temperature ?? 0),
-        temperature_max: Number(w.temperature_max ?? w.temperature ?? 0),
-        temperature_min: Number(w.temperature_min ?? w.temperature ?? 0),
-        rainfall: Number(w.rainfall ?? 0),
-        windspeed: Number(w.windspeed ?? 0),
-        radiation: Number(w.radiation ?? 200),
-        language,
-      };
-
-      console.log("PAYLOAD →", payload);
-
-      const response = await axios.post(
-        `${API_BASE_URL}/api/weather/recommend`,
-        payload
-      );
-
-      setWeatherRec(response.data);
-    } catch (err) {
-      console.log("Advisor error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // -------------------------------------
-  // useEffect – load advisor once GPS ready
-  // -------------------------------------
-  useEffect(() => {
-    if (locLoading) return; // GPS still detecting
-
-    console.log("GPS CHECK →", { lat, lon });
-
-    if (!isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
-      loadRealWeatherAdvisor();
-    } else {
-      console.log("⛔ GPS NOT READY YET");
-    }
-  }, [locLoading, latitude, longitude, language]);
-
-  // -------------------------------------
-  // PRICE CALCULATIONS – now using FORM values
-  // -------------------------------------
-  // planting date parsing
-  const safePlantingDate =
-    plantingDateStr && !isNaN(Date.parse(plantingDateStr))
-      ? new Date(plantingDateStr)
-      : formData.plantingDate
-      ? new Date(formData.plantingDate)
-      : new Date();
-
-  const plantingWeek = formData.plantingWeek || 1;
-
-  const cropDurationWeeks =
-    parseInt(durationWeeks, 10) ||
-    formData.cropDuration ||
-    VARIETY_DURATION_WEEKS[selectedVariety] ||
-    14;
-
-  const yieldKg =
-    parseFloat(yieldKgInput.replace(",", ".")) ||
-    parseFloat(formData.yieldKg) ||
-    1500;
-
-  const cost =
-    parseFloat(costInput.replace(",", ".")) ||
-    parseFloat(formData.cost) ||
-    45000;
-
-  const harvestDate = new Date(safePlantingDate);
-  harvestDate.setDate(harvestDate.getDate() + cropDurationWeeks * 7);
-
-  const harvestWeek = plantingWeek + cropDurationWeeks;
-
-  const forecast =
-    dummyPriceWeeks[Math.min(harvestWeek - 1, dummyPriceWeeks.length - 1)] ||
-    dummyPriceWeeks[0];
-
-  const expectedPrice = forecast.price;
-  const totalRevenue = yieldKg * expectedPrice;
-  const profit = totalRevenue - cost;
-
-  let profitColor = "#DC2626";
-  if (profit > 50000) profitColor = "#16A34A";
-  else if (profit > 0) profitColor = "#EAB308";
-
-  // --------------------------
-  // LANGUAGE TEXT
-  // --------------------------
-  const L = {
+  const T = {
     si: {
-      title: "🌽 වගා උපදෙස්",
-      loading: "කරුණාකර රැඳී සිටින්න...",
-      weatherCondition: "කාලගුණ තත්වය",
-      confidence: "විශ්වාසනීයත්වය",
-      currentWeather: "වත්මන් කාලගුණය",
-      temperature: "උෂ්ණත්වය",
-      rainfall: "වර්ෂාපතනය",
-      windspeed: "සුළං වේගය",
-      recommendation: "නිර්දේශ",
-      action: "ක්‍රියාමාර්ගය",
-      irrigation: "වාරිමාර්ග",
-      fertilizer: "පොහොර",
-      activities: "කටයුතු",
-      riskLevel: "අවදානම් මට්ටම",
-      plantingDate: "බීජ පැල කිරීමේ දිනය",
-      harvestDate: "අස්වැන්න දිනය",
-      harvestWeek: "අස්වැන්න සතිය",
-      expectedPrice: "අපේක්ෂිත මිල",
-      profit: "ලාභය",
-      goBack: "ආපසු යන්න",
-      cultivationInputs: "වගා තොරතුරු",
-      variety: "බීජ වර්ගය",
-      duration: "වගා කාලය (සති)",
-      yieldKgLabel: "අපේක්ෂිත අස්වැන්න (kg)",
-      costLabel: "සම්පූර්ණ වියදම (රු.)",
-      updatePrediction: "අනාවැකි යාවත්කාලීන කරන්න",
+      headerTitle: "වගා උපදෙස්",
+      headerSubtitle: "කාලගුණය, මිල සහ ලාභය පදනම් වූ උපදේශකය",
+      location: "ස්ථානය",
+      weather: "කාලගුණය",
+      quickQuestionsTitle: "ඉක්මන් ප්‍රශ්න 5",
+      fullFormTitle: "සම්පූර්ණ වගා උපදෙස් (උසස් මාදිලිය)",
+      resultTitle: "ඔබ සඳහා වගා උපදෙස්",
+      q1: "මේ සතිය වගා කිරීමට හොඳද?",
+      q2: "වගා කිරීම සති 1–2 ක් කල්තබන්න ද?",
+      q3: "වර්තමාන කාලගුණය වගා කිරීම සඳහා සුදුසුවද?",
+      q4: "මේ සතියේ වගා කලොත් ලාභද?",
+      q5: "අස්වැන්න විකිණීමට හොඳම කාලය කවදාද?",
+      formDistrict: "දිස්ත්‍රික්කය",
+      formPlantingDate: "බීජ පැල කිරීමේ දිනය",
+      formVariety: "බීජ වර්ගය",
+      formArea: "වැවිලි භූමි ප්‍රමාණය (ha / acre)",
+      formCost: "මුළු වියදම (රු.)",
+      formYield: "අපේක්ෂිත අස්වැන්න (කි.ග්‍රෑ / ප්‍රමාණ ඒකකය)",
+      btnRunFullAdvisor: "සම්පූර්ණ වගා උපදෙස් ලබාගන්න",
+      noQuestionSelected: "කරුණාකර ප්‍රශ්නයක් තෝරන්න හෝ පෝරමය පුරවන්න.",
+      weatherLoading: "කාලගුණ දත්ත ලබාගැනෙමින්...",
+      plantExcellent: "මේ සතිය වගා කිරීමට ඉතා හොඳ වේ.",
+      plantModerate: "වගා කළ හැක, නමුත් අවදානම් මට්ටම මධ්‍යමයි.",
+      plantRisky: "වගා කිරීම සඳහා අනෙකුත් සතියක් හොඳයි.",
+      weatherGood: "කාලගුණය වගා කිරීමට සුදුසු පරාසය තුළ තිබේ.",
+      weatherBad:
+        "උෂ්ණත්වය හෝ වැසි තත්ත්වය හේතුවෙන් වගා කිරීම සඳහා සුදුසු නොවේ.",
+      profitGood: "ආදායම වියදමට සාපේක්ෂව ඉතා හොඳි. වගා කිරීම ලාභදායීය.",
+      profitMedium: "ලාභ ඇත, නමුත් අඩුයි. ගබඩා, ණය වාරික වැනි සාධක සලකා බලන්න.",
+      profitBad:
+        "වගා කිරීමෙන් ලාභයට වඩා වියදම් වැඩි වීමට ඉඩ ඇත. වගා කිරීමෙන් වැලකෙන්න.",
+      bestHarvestHint:
+        "අස්වැන්නෙන් සති 1–3 ක් ඇතුළත වෙළඳපල තත්ත්වය පරීක්ෂා කර විකිණීමට සැලසුම් කරන්න.",
+      fullResultSummary: "සම්පූර්ණ විශ්ලේෂණය පදනම් වූ නිර්දේශය පහතින් දැක්වේ.",
+      rs: "රු.",
+      kg: "කි.ග්‍රෑ",
+      notAvailable: "දත්ත නොමැත",
+      advisorTagGood: "හොඳ කාලයක්",
+      advisorTagWarn: "අවදානම්",
+      advisorTagInfo: "වගා සැලසුම සකසන්න",
+      editInputs: "ආදාන සංස්කරණය කරන්න",
+      selectDate: "දිනය තෝරන්න",
+      selectVariety: "බීජ වර්ගය තෝරන්න",
+      cancel: "අවලංගු",
+      select: "තෝරන්න",
     },
     en: {
-      title: "🌽 Cultivation Advisor",
-      loading: "Please wait...",
-      weatherCondition: "Weather Condition",
-      confidence: "Confidence",
-      currentWeather: "Current Weather",
-      temperature: "Temperature",
-      rainfall: "Rainfall",
-      windspeed: "Wind Speed",
-      recommendation: "Recommendations",
-      action: "Action",
-      irrigation: "Irrigation",
-      fertilizer: "Fertilizer",
-      activities: "Activities",
-      riskLevel: "Risk Level",
-      plantingDate: "Planting Date",
-      harvestDate: "Expected Harvest Date",
-      harvestWeek: "Harvest Week",
-      expectedPrice: "Expected Price",
-      profit: "Expected Profit",
-      goBack: "Go Back",
-      cultivationInputs: "Cultivation Inputs",
-      variety: "Variety",
-      duration: "Crop Duration (weeks)",
-      yieldKgLabel: "Expected Yield (kg)",
-      costLabel: "Total Cost (Rs.)",
-      updatePrediction: "Update Prediction",
+      headerTitle: "Cultivation Advisor",
+      headerSubtitle: "Advice based on weather, prices and profit",
+      location: "Location",
+      weather: "Weather",
+      quickQuestionsTitle: "Quick Questions (5)",
+      fullFormTitle: "Full Cultivation Advisor (Advanced)",
+      resultTitle: "Advisor Result for You",
+      q1: "Is this a good week to plant?",
+      q2: "Should I delay planting 1–2 weeks?",
+      q3: "Is current weather suitable for planting?",
+      q4: "Will it be profitable if I plant this week?",
+      q5: "When is a good time to sell harvest?",
+      formDistrict: "District",
+      formPlantingDate: "Planting Date",
+      formVariety: "Seed Variety",
+      formArea: "Farm Area (ha / acre)",
+      formCost: "Total Cost (Rs.)",
+      formYield: "Expected Yield (kg / unit area)",
+      btnRunFullAdvisor: "Run Full Advisor",
+      noQuestionSelected: "Select a question or fill the form to see advice.",
+      weatherLoading: "Fetching weather data...",
+      plantExcellent: "This week looks excellent for planting.",
+      plantModerate: "You can plant, but risk is moderate.",
+      plantRisky: "Better to choose another week for planting.",
+      weatherGood: "Weather is within a good range for maize planting.",
+      weatherBad:
+        "Temperature or rain conditions are not ideal for planting now.",
+      profitGood:
+        "Expected revenue is clearly higher than cost. Planting is profitable.",
+      profitMedium:
+        "There is some profit, but not very high. Consider storage, cash flow, etc.",
+      profitBad:
+        "Costs may exceed revenue. It may be better to avoid planting now.",
+      bestHarvestHint:
+        "Plan to sell within 1–3 weeks after harvest depending on market signals.",
+      fullResultSummary:
+        "Below is the recommendation based on your detailed inputs.",
+      rs: "Rs.",
+      kg: "kg",
+      notAvailable: "N/A",
+      advisorTagGood: "Good window",
+      advisorTagWarn: "Risky",
+      advisorTagInfo: "Plan carefully",
+      editInputs: "Edit Inputs",
+      selectDate: "Select Date",
+      selectVariety: "Select Seed Variety",
+      cancel: "Cancel",
+      select: "Select",
     },
+  } as const;
+
+  const t = T[language];
+
+  const [form, setForm] = useState<AdvisorFormData>({
+    district: "",
+    plantingDate: "",
+    seedVariety: "",
+    area: "",
+    totalCost: params.formData?.cost ? String(params.formData.cost) : "",
+    expectedYield: params.formData?.yieldKg
+      ? String(params.formData.yieldKg)
+      : "",
+  });
+
+  const [selectedQuestion, setSelectedQuestion] = useState<QuestionKey | null>(
+    null
+  );
+  const [quickAnswer, setQuickAnswer] = useState<string | null>(null);
+
+  const [fullAdvisorText, setFullAdvisorText] = useState<string | null>(null);
+  const [fullAdvisorTag, setFullAdvisorTag] = useState<
+    "good" | "warn" | "info" | null
+  >(null);
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, scaleAnim]);
+
+  // Calendar Helper Functions
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month + 1, 0).getDate();
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color="#10B981" />
-        <Text style={styles.loadingText}>{L[language].loading}</Text>
-      </View>
+  const getFirstDayOfMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month, 1).getDay();
+  };
+
+  const formatDateForDisplay = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const monthNames =
+    language === "si"
+      ? [
+          "ජනවාරි",
+          "පෙබරවාරි",
+          "මාර්තු",
+          "අප්‍රේල්",
+          "මැයි",
+          "ජූනි",
+          "ජූලි",
+          "අගෝස්තු",
+          "සැප්තැම්බර්",
+          "ඔක්තෝබර්",
+          "නොවැම්බර්",
+          "දෙසැම්බර්",
+        ]
+      : [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+
+  const dayNames =
+    language === "si"
+      ? ["ඉරි", "සඳු", "අඟ", "බදා", "බ්‍රහ", "සිකු", "සෙන"]
+      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const handleDateSelect = (day: number) => {
+    const selected = new Date(
+      calendarDate.getFullYear(),
+      calendarDate.getMonth(),
+      day
     );
-  }
+    setForm((f) => ({ ...f, plantingDate: formatDateForDisplay(selected) }));
+    setShowCalendar(false);
+  };
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backIcon}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft size={26} color="#065F46" />
-        </TouchableOpacity>
+  const handleVarietySelect = (variety: string) => {
+    setForm((f) => ({ ...f, seedVariety: variety }));
+    setShowVarietyPicker(false);
+  };
 
-        <Text style={styles.headerTitle}>{L[language].title}</Text>
+  const getWeatherIcon = () => {
+    const c = (weatherCondition || "").toLowerCase();
 
-        <TouchableOpacity
-          style={styles.langSwitch}
-          onPress={() => setLanguage(language === "si" ? "en" : "si")}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+    if (!c) return <Cloud size={18} color="#10B981" />;
 
-      {/* Location & Real Weather */}
-      <View style={{ marginBottom: 15 }}>
-        <Text style={{ fontSize: 16, fontWeight: "bold", color: "#065F46" }}>
-          📍 {translateLocation(locationName, language)}
-        </Text>
+    if (c.includes("clear")) return <CloudSun size={18} color="#f59e0b" />;
+    if (c.includes("light") && c.includes("rain"))
+      return <CloudDrizzle size={18} color="#0ea5e9" />;
+    if (c.includes("rain")) return <CloudRain size={18} color="#0284c7" />;
+    if (c.includes("thunder"))
+      return <CloudLightning size={18} color="#e11d48" />;
+    if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
+      return <CloudFog size={18} color="#6b7280" />;
+    return <Cloud size={18} color="#10b981" />;
+  };
 
-        <Text style={{ color: "#047857", marginTop: 4 }}>
-          {weatherRec ? `${weatherRec.weather_data.temperature}°C` : "..."} |
-          Open-Meteo
-        </Text>
-      </View>
+  const classifyPlantingWindow = () => {
+    const temp = temperature ?? 0;
+    const c = (weatherCondition || "").toLowerCase();
 
-      {/* Weather Alert Card */}
-      {weatherRec && (
-        <View
-          style={[
-            styles.alertCard,
-            { borderLeftColor: weatherRec.recommendation.color },
-          ]}
-        >
-          <Text
-            style={[
-              styles.alertTitle,
-              { color: weatherRec.recommendation.color },
-            ]}
-          >
-            {weatherRec.recommendation.status}
-          </Text>
-          <Text style={styles.alertSubtext}>
-            {L[language].confidence}: {weatherRec.confidence}%
-          </Text>
-        </View>
-      )}
+    const hasThunder = c.includes("thunder");
+    const heavyRain = c.includes("heavy") && c.includes("rain");
 
-      {/* Current Weather Card */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{L[language].currentWeather} 🌤️</Text>
+    if (hasThunder || heavyRain || temp <= 18 || temp >= 36) {
+      return "risky" as const;
+    }
+    if (temp >= 22 && temp <= 32 && !heavyRain && !hasThunder) {
+      return "excellent" as const;
+    }
+    return "moderate" as const;
+  };
 
-        <View style={styles.weatherRow}>
-          <View style={styles.weatherItem}>
-            <Thermometer size={20} color="#EF4444" />
-            <Text style={styles.weatherLabel}>{L[language].temperature}</Text>
-            <Text style={styles.weatherValue}>
-              {weatherRec?.weather_data.temperature}°C
-            </Text>
-          </View>
+  const classifyProfitWindow = () => {
+    const area = parseFloat(form.area || "0");
+    const cost = parseFloat(form.totalCost || "0");
+    const yieldPer = parseFloat(form.expectedYield || "0");
 
-          <View style={styles.weatherItem}>
-            <CloudRain size={20} color="#3B82F6" />
-            <Text style={styles.weatherLabel}>{L[language].rainfall}</Text>
-            <Text style={styles.weatherValue}>
-              {weatherRec?.weather_data.rainfall}mm
-            </Text>
-          </View>
+    if (!area || !cost || !yieldPer) {
+      return "medium" as const;
+    }
 
-          <View style={styles.weatherItem}>
-            <Wind size={20} color="#6B7280" />
-            <Text style={styles.weatherLabel}>{L[language].windspeed}</Text>
-            <Text style={styles.weatherValue}>
-              {weatherRec?.weather_data.windspeed}km/h
-            </Text>
-          </View>
-        </View>
-      </View>
+    const assumedPricePerKg = 150;
+    const totalYield = area * yieldPer;
+    const revenue = totalYield * assumedPricePerKg;
+    const profit = revenue - cost;
 
-      {/* Recommendations */}
-      {weatherRec && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{L[language].recommendation} 📋</Text>
+    if (profit <= 0) return "bad" as const;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-          <View style={styles.recItem}>
-            <Text style={styles.recLabel}>{L[language].action}:</Text>
-            <Text style={styles.recValue}>
-              {weatherRec.recommendation.action}
-            </Text>
-          </View>
+    if (margin >= 40) return "good" as const;
+    if (margin >= 15) return "medium" as const;
+    return "bad" as const;
+  };
 
-          <View style={styles.recItem}>
-            <Text style={styles.recLabel}>{L[language].irrigation}:</Text>
-            <Text style={styles.recValue}>
-              {weatherRec.recommendation.irrigation}
-            </Text>
-          </View>
+  const handleQuestionPress = (key: QuestionKey) => {
+    setSelectedQuestion(key);
 
-          <View style={styles.recItem}>
-            <Text style={styles.recLabel}>{L[language].fertilizer}:</Text>
-            <Text style={styles.recValue}>
-              {weatherRec.recommendation.fertilizer}
-            </Text>
-          </View>
+    const plantingClass = classifyPlantingWindow();
+    const profitClass = classifyProfitWindow();
 
-          <View style={styles.recItem}>
-            <Text style={styles.recLabel}>{L[language].riskLevel}:</Text>
-            <Text
-              style={[
-                styles.recValue,
-                { color: weatherRec.recommendation.color },
-              ]}
-            >
-              {weatherRec.recommendation.risk_level}
-            </Text>
-          </View>
-        </View>
-      )}
+    let answer = "";
 
-      {/* Activities */}
-      {weatherRec && weatherRec.recommendation.activities && (
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>{L[language].activities} ✅</Text>
-          {weatherRec.recommendation.activities.map((activity, index) => (
-            <View key={index} style={styles.activityItem}>
-              <Text style={styles.activityText}>{activity}</Text>
+    if (key === "plant_now") {
+      if (plantingClass === "excellent") answer = t.plantExcellent;
+      else if (plantingClass === "moderate") answer = t.plantModerate;
+      else answer = t.plantRisky;
+    }
+
+    if (key === "delay_planting") {
+      if (plantingClass === "risky") {
+        answer =
+          language === "si"
+            ? "කාලගුණය හෝ උෂ්ණත්වය හේතුවෙන් වගා කිරීම සතියකටවත් ප්‍රමාද කිරීම සුදුසුය."
+            : "Due to temperature or rain, it is safer to delay planting by about one week.";
+      } else if (plantingClass === "moderate") {
+        answer =
+          language === "si"
+            ? "වගා කළ හැක, නමුත් අවදානම අඩු කරගැනීමට දිනය තෝරන විට වැසි පුරෝකථනය බලන්න."
+            : "You can plant, but check the rainfall forecast to reduce risk.";
+      } else {
+        answer =
+          language === "si"
+            ? "දැනට වගා කිරීම ප්‍රමාද කළ යුතු හේතුවක් නොපෙනේ."
+            : "There is no strong reason to delay planting this week.";
+      }
+    }
+
+    if (key === "weather_ok") {
+      if (plantingClass === "excellent") answer = t.weatherGood;
+      else if (plantingClass === "moderate") {
+        answer =
+          language === "si"
+            ? "කාලගුණය සම්පූර්ණ සරිලන නොවුනද වගා කිරීම කළ හැක. වැසි සහ සුළඟ වැඩි දින වල වගා කිරීමෙන් වැලකින්න."
+            : "Weather is not perfect but acceptable. Avoid planting on days with very strong rain or wind.";
+      } else {
+        answer = t.weatherBad;
+      }
+    }
+
+    if (key === "profit_now") {
+      if (profitClass === "good") {
+        answer = t.profitGood;
+      } else if (profitClass === "medium") {
+        answer = t.profitMedium;
+      } else {
+        answer = t.profitBad;
+      }
+    }
+
+    if (key === "best_harvest_time") {
+      answer = t.bestHarvestHint;
+    }
+
+    setQuickAnswer(answer);
+  };
+
+  const runFullAdvisor = () => {
+    const area = parseFloat(form.area || "0");
+    const cost = parseFloat(form.totalCost || "0");
+    const yieldPer = parseFloat(form.expectedYield || "0");
+
+    const variety = form.seedVariety.trim() || "Unknown";
+    const durationWeeks =
+      VARIETY_DURATION_WEEKS[variety] || VARIETY_DURATION_WEEKS["Unknown"];
+
+    const plantingClass = classifyPlantingWindow();
+    const profitClass = classifyProfitWindow();
+
+    let tag: "good" | "warn" | "info" = "info";
+    let summaryLines: string[] = [];
+
+    if (profitClass === "good") {
+      tag = "good";
+      summaryLines.push(t.profitGood);
+    } else if (profitClass === "medium") {
+      tag = "info";
+      summaryLines.push(t.profitMedium);
+    } else {
+      tag = "warn";
+      summaryLines.push(t.profitBad);
+    }
+
+    if (plantingClass === "excellent") {
+      summaryLines.push(t.plantExcellent);
+    } else if (plantingClass === "moderate") {
+      summaryLines.push(t.plantModerate);
+    } else {
+      summaryLines.push(t.plantRisky);
+    }
+
+    if (area && yieldPer) {
+      const assumedPricePerKg = 150;
+      const totalYield = area * yieldPer;
+      const revenue = totalYield * assumedPricePerKg;
+      const profit = revenue - (cost || 0);
+      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+      const numericLine =
+        language === "si"
+          ? `මුළු අස්වැන්න ආසන්න වශයෙන් ${totalYield.toFixed(0)} ${
+              t.kg
+            }, ආදායම ${t.rs} ${revenue.toFixed(0)}, ලාභය ${
+              t.rs
+            } ${profit.toFixed(0)} (${margin.toFixed(1)}% ).`
+          : `Approx. total yield ${totalYield.toFixed(0)} ${t.kg}, revenue ${
+              t.rs
+            } ${revenue.toFixed(0)}, profit ${t.rs} ${profit.toFixed(
+              0
+            )} (${margin.toFixed(1)}%).`;
+
+      summaryLines.push(numericLine);
+    }
+
+    summaryLines.push(
+      language === "si"
+        ? `මෙම වර්ගය සඳහා සාමාන්‍ය වගා කාලය සති ${durationWeeks} ක් පමණ වේ.`
+        : `Typical crop duration for this variety is about ${durationWeeks} weeks.`
+    );
+
+    setFullAdvisorTag(tag);
+    setFullAdvisorText(summaryLines.join(" "));
+
+    Animated.parallel([
+      Animated.timing(formSlideAnim, {
+        toValue: -20,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formOpacityAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setShowForm(false);
+    });
+  };
+
+  const handleEditInputs = () => {
+    setShowForm(true);
+    formSlideAnim.setValue(-20);
+    formOpacityAnim.setValue(0);
+
+    Animated.parallel([
+      Animated.timing(formSlideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(formOpacityAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const handleGoBack = () => navigation.goBack();
+
+  // Render Calendar
+  const renderCalendar = () => {
+    const daysInMonth = getDaysInMonth(calendarDate);
+    const firstDay = getFirstDayOfMonth(calendarDate);
+    const days: (number | null)[] = [];
+
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    return (
+      <Modal
+        visible={showCalendar}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCalendar(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.calendarModal}>
+            <View style={styles.calendarHeader}>
+              <TouchableOpacity
+                onPress={() => {
+                  const newDate = new Date(calendarDate);
+                  newDate.setMonth(newDate.getMonth() - 1);
+                  setCalendarDate(newDate);
+                }}
+              >
+                <ChevronLeft color="#047857" size={24} />
+              </TouchableOpacity>
+
+              <Text style={styles.calendarTitle}>
+                {monthNames[calendarDate.getMonth()]}{" "}
+                {calendarDate.getFullYear()}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  const newDate = new Date(calendarDate);
+                  newDate.setMonth(newDate.getMonth() + 1);
+                  setCalendarDate(newDate);
+                }}
+              >
+                <ChevronRight color="#047857" size={24} />
+              </TouchableOpacity>
             </View>
-          ))}
-        </View>
-      )}
 
-      {/* 🚜 NEW: Cultivation Inputs Form */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{L[language].cultivationInputs}</Text>
+            <View style={styles.calendarDayNames}>
+              {dayNames.map((day, idx) => (
+                <Text key={idx} style={styles.dayName}>
+                  {day}
+                </Text>
+              ))}
+            </View>
 
-        {/* Planting Date */}
-        <Text style={styles.label}>{L[language].plantingDate}</Text>
-        <TextInput
-          style={styles.input}
-          value={plantingDateStr}
-          onChangeText={setPlantingDateStr}
-          placeholder={language === "si" ? "YYYY-MM-DD" : "YYYY-MM-DD"}
-          placeholderTextColor="#9CA3AF"
-        />
-
-        {/* Variety Dropdown */}
-        <Text style={styles.label}>{L[language].variety}</Text>
-        <View style={styles.dropdownContainer}>
-          <TouchableOpacity
-            style={styles.dropdownSelected}
-            onPress={() => setShowVarietyDropdown(!showVarietyDropdown)}
-          >
-            <Text style={styles.dropdownSelectedText}>{selectedVariety}</Text>
-          </TouchableOpacity>
-          {showVarietyDropdown && (
-            <View style={styles.dropdownList}>
-              {VARIETY_OPTIONS.map((v) => (
+            <View style={styles.calendarGrid}>
+              {days.map((day, idx) => (
                 <TouchableOpacity
-                  key={v}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setSelectedVariety(v);
-                    setShowVarietyDropdown(false);
-                  }}
+                  key={idx}
+                  style={[
+                    styles.calendarDay,
+                    day === null && styles.calendarDayEmpty,
+                  ]}
+                  onPress={() => day && handleDateSelect(day)}
+                  disabled={day === null}
                 >
-                  <Text style={styles.dropdownItemText}>{v}</Text>
+                  {day && <Text style={styles.calendarDayText}>{day}</Text>}
                 </TouchableOpacity>
               ))}
             </View>
-          )}
+
+            <TouchableOpacity
+              style={styles.modalCloseButton}
+              onPress={() => setShowCalendar(false)}
+            >
+              <Text style={styles.modalCloseText}>{t.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // Render Variety Picker
+  const renderVarietyPicker = () => {
+    return (
+      <Modal
+        visible={showVarietyPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowVarietyPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.varietyModal}>
+            <View style={styles.varietyHeader}>
+              <Text style={styles.varietyTitle}>{t.selectVariety}</Text>
+              <TouchableOpacity onPress={() => setShowVarietyPicker(false)}>
+                <X color="#6B7280" size={24} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.varietyList}>
+              {SEED_VARIETIES.map((variety) => (
+                <TouchableOpacity
+                  key={variety}
+                  style={[
+                    styles.varietyItem,
+                    form.seedVariety === variety && styles.varietyItemSelected,
+                  ]}
+                  onPress={() => handleVarietySelect(variety)}
+                >
+                  <View style={styles.varietyItemLeft}>
+                    <Leaf
+                      color={
+                        form.seedVariety === variety ? "#10B981" : "#6B7280"
+                      }
+                      size={20}
+                    />
+                    <Text
+                      style={[
+                        styles.varietyItemText,
+                        form.seedVariety === variety &&
+                          styles.varietyItemTextSelected,
+                      ]}
+                    >
+                      {variety}
+                    </Text>
+                  </View>
+                  <Text style={styles.varietyDuration}>
+                    {VARIETY_DURATION_WEEKS[variety]}{" "}
+                    {language === "si" ? "සති" : "weeks"}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+          <ArrowLeft color="#047857" size={24} />
+        </TouchableOpacity>
+
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{t.headerTitle}</Text>
+          <Text style={styles.headerSubtitle}>{t.headerSubtitle}</Text>
         </View>
 
-        {/* Duration */}
-        <Text style={styles.label}>{L[language].duration}</Text>
-        <TextInput
-          style={styles.input}
-          value={durationWeeks}
-          onChangeText={setDurationWeeks}
-          keyboardType="numeric"
-          placeholder={language === "si" ? "සති ගණන" : "Number of weeks"}
-          placeholderTextColor="#9CA3AF"
-        />
-
-        {/* Expected Yield */}
-        <Text style={styles.label}>{L[language].yieldKgLabel}</Text>
-        <TextInput
-          style={styles.input}
-          value={yieldKgInput}
-          onChangeText={setYieldKgInput}
-          keyboardType="numeric"
-          placeholder={language === "si" ? "kg වලින්" : "in kg"}
-          placeholderTextColor="#9CA3AF"
-        />
-
-        {/* Cost */}
-        <Text style={styles.label}>{L[language].costLabel}</Text>
-        <TextInput
-          style={styles.input}
-          value={costInput}
-          onChangeText={setCostInput}
-          keyboardType="numeric"
-          placeholder={language === "si" ? "රු." : "Rs."}
-          placeholderTextColor="#9CA3AF"
-        />
-
-        {/* Update Button (for UX – logic already reactive) */}
-        <TouchableOpacity
-          style={styles.updateBtn}
-          onPress={() => {
-            Alert.alert(
-              language === "si" ? "යාවත්කාලීන විය" : "Updated",
-              language === "si"
-                ? "අනාවැකි ගණනය කරන්නේ යාවත්කාලීන වගා තොරතුරු මතයි."
-                : "Predictions are now based on your updated cultivation inputs."
-            );
-          }}
-        >
-          <Text style={styles.updateBtnText}>
-            {L[language].updatePrediction}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Bell color="#10B981" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.langButton}
+            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
+          >
+            <Text style={styles.langText}>
+              {language === "si" ? "EN" : "සිං"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Price Forecast */}
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>💰 {L[language].profit}</Text>
+      {/* Sub-header */}
+      <View style={styles.subHeader}>
+        <View style={styles.infoCard}>
+          <Leaf color="#10B981" size={18} />
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>{t.location}</Text>
+            <Text style={styles.infoValue}>
+              {locationName || t.notAvailable}
+            </Text>
+          </View>
+        </View>
 
-        <Text style={styles.label}>
-          {L[language].plantingDate}: {safePlantingDate.toLocaleDateString()}
-        </Text>
-        <Text style={styles.label}>
-          {L[language].harvestDate}: {harvestDate.toLocaleDateString()}
-        </Text>
-        <Text style={styles.label}>
-          {L[language].harvestWeek}: {harvestWeek}
-        </Text>
+        <View style={styles.divider} />
 
-        <Text style={styles.label}>
-          {L[language].expectedPrice}: Rs. {expectedPrice}/kg
-        </Text>
-        <Text style={[styles.profitText, { color: profitColor }]}>
-          {L[language].profit}: Rs. {profit.toLocaleString()}
-        </Text>
+        <View style={styles.infoCard}>
+          {getWeatherIcon()}
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoLabel}>{t.weather}</Text>
+            <Text style={styles.infoValue}>
+              {isWeatherLoading
+                ? t.weatherLoading
+                : temperature != null
+                ? `${Math.round(temperature)}°C${
+                    weatherCondition ? ` • ${weatherCondition}` : ""
+                  }`
+                : t.notAvailable}
+            </Text>
+          </View>
+        </View>
       </View>
 
-      {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backBtn}
-        onPress={() => navigation.goBack()}
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.backBtnText}>{L[language].goBack}</Text>
-      </TouchableOpacity>
+        <Animated.View
+          style={[
+            styles.content,
+            { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
+          {/* Quick Questions Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.quickQuestionsTitle}</Text>
 
-      <View style={{ height: 30 }} />
-    </ScrollView>
+            <View style={styles.quickGrid}>
+              <TouchableOpacity
+                style={[
+                  styles.quickCard,
+                  selectedQuestion === "plant_now" && styles.quickCardActive,
+                ]}
+                onPress={() => handleQuestionPress("plant_now")}
+              >
+                <View style={styles.quickIconContainer}>
+                  <Leaf color="#10B981" size={22} />
+                </View>
+                <Text style={styles.quickTitle}>{t.q1}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.quickCard,
+                  selectedQuestion === "delay_planting" &&
+                    styles.quickCardActive,
+                ]}
+                onPress={() => handleQuestionPress("delay_planting")}
+              >
+                <View style={styles.quickIconContainer}>
+                  <AlertTriangle color="#F59E0B" size={22} />
+                </View>
+                <Text style={styles.quickTitle}>{t.q2}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.quickCard,
+                  selectedQuestion === "weather_ok" && styles.quickCardActive,
+                ]}
+                onPress={() => handleQuestionPress("weather_ok")}
+              >
+                <View style={styles.quickIconContainer}>
+                  <CloudSun color="#0EA5E9" size={22} />
+                </View>
+                <Text style={styles.quickTitle}>{t.q3}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.quickCard,
+                  selectedQuestion === "profit_now" && styles.quickCardActive,
+                ]}
+                onPress={() => handleQuestionPress("profit_now")}
+              >
+                <View style={styles.quickIconContainer}>
+                  <DollarSign color="#22C55E" size={22} />
+                </View>
+                <Text style={styles.quickTitle}>{t.q4}</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.quickCard,
+                  selectedQuestion === "best_harvest_time" &&
+                    styles.quickCardActive,
+                ]}
+                onPress={() => handleQuestionPress("best_harvest_time")}
+              >
+                <View style={styles.quickIconContainer}>
+                  <TrendingUp color="#16A34A" size={22} />
+                </View>
+                <Text style={styles.quickTitle}>{t.q5}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Advisor Result */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.resultTitle}</Text>
+
+            {quickAnswer ? (
+              <View style={[styles.resultCard, { borderLeftColor: "#10B981" }]}>
+                <View style={styles.resultHeader}>
+                  <CheckCircle color="#10B981" size={24} />
+                  <Text style={styles.resultHeaderText}>
+                    {t.advisorTagGood}
+                  </Text>
+                </View>
+                <Text style={styles.resultText}>{quickAnswer}</Text>
+              </View>
+            ) : (
+              <View style={[styles.resultCard, { borderLeftColor: "#E5E7EB" }]}>
+                <Text style={styles.resultText}>{t.noQuestionSelected}</Text>
+              </View>
+            )}
+
+            {fullAdvisorText && (
+              <View
+                style={[
+                  styles.resultCard,
+                  {
+                    borderLeftColor:
+                      fullAdvisorTag === "good"
+                        ? "#10B981"
+                        : fullAdvisorTag === "warn"
+                        ? "#EF4444"
+                        : "#F59E0B",
+                  },
+                ]}
+              >
+                <View style={styles.resultHeader}>
+                  {fullAdvisorTag === "good" && (
+                    <CheckCircle color="#10B981" size={24} />
+                  )}
+                  {fullAdvisorTag === "warn" && (
+                    <AlertTriangle color="#EF4444" size={24} />
+                  )}
+                  {fullAdvisorTag === "info" && (
+                    <TrendingUp color="#F59E0B" size={24} />
+                  )}
+                  <Text style={styles.resultHeaderText}>
+                    {fullAdvisorTag === "good"
+                      ? t.advisorTagGood
+                      : fullAdvisorTag === "warn"
+                      ? t.advisorTagWarn
+                      : t.advisorTagInfo}
+                  </Text>
+                </View>
+                <Text style={styles.resultText}>{t.fullResultSummary}</Text>
+                <Text style={[styles.resultText, { marginTop: 6 }]}>
+                  {fullAdvisorText}
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={handleEditInputs}
+                >
+                  <Text style={styles.secondaryButtonText}>{t.editInputs}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          {/* Full Advisor Form */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.fullFormTitle}</Text>
+
+            {showForm && (
+              <Animated.View
+                style={{
+                  transform: [{ translateY: formSlideAnim }],
+                  opacity: formOpacityAnim,
+                }}
+              >
+                <View style={styles.formCard}>
+                  <Text style={styles.inputLabel}>{t.formDistrict}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.district}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, district: text }))
+                    }
+                    placeholder={
+                      language === "si" ? "උදා: අනුරාධපුර" : "e.g. Anuradhapura"
+                    }
+                    placeholderTextColor="#9CA3AF"
+                  />
+
+                  <Text style={styles.inputLabel}>{t.formPlantingDate}</Text>
+                  <TouchableOpacity
+                    style={styles.pickerInput}
+                    onPress={() => setShowCalendar(true)}
+                  >
+                    <Calendar color="#10B981" size={20} />
+                    <Text
+                      style={[
+                        styles.pickerText,
+                        !form.plantingDate && styles.pickerPlaceholder,
+                      ]}
+                    >
+                      {form.plantingDate || t.selectDate}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.inputLabel}>{t.formVariety}</Text>
+                  <TouchableOpacity
+                    style={styles.pickerInput}
+                    onPress={() => setShowVarietyPicker(true)}
+                  >
+                    <Leaf color="#10B981" size={20} />
+                    <Text
+                      style={[
+                        styles.pickerText,
+                        !form.seedVariety && styles.pickerPlaceholder,
+                      ]}
+                    >
+                      {form.seedVariety || t.selectVariety}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <Text style={styles.inputLabel}>{t.formArea}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.area}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, area: text }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="2.0"
+                    placeholderTextColor="#9CA3AF"
+                  />
+
+                  <Text style={styles.inputLabel}>{t.formCost}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.totalCost}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, totalCost: text }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="45000"
+                    placeholderTextColor="#9CA3AF"
+                  />
+
+                  <Text style={styles.inputLabel}>{t.formYield}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={form.expectedYield}
+                    onChangeText={(text) =>
+                      setForm((f) => ({ ...f, expectedYield: text }))
+                    }
+                    keyboardType="numeric"
+                    placeholder="1750"
+                    placeholderTextColor="#9CA3AF"
+                  />
+
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={runFullAdvisor}
+                  >
+                    <Text style={styles.primaryButtonText}>
+                      {t.btnRunFullAdvisor}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </Animated.View>
+            )}
+          </View>
+
+          <View style={{ height: 40 }} />
+        </Animated.View>
+      </ScrollView>
+
+      {renderCalendar()}
+      {renderVarietyPicker()}
+    </View>
   );
 };
 
-// ------------------------
-// STYLES
-// ------------------------
+export default PriceAdvisorScreen;
+
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ECFDF5",
-    padding: 20,
+    backgroundColor: "#F0FDF4",
   },
-
-  centerContent: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#065F46",
-  },
-
   header: {
+    backgroundColor: "#FFFFFF",
+    paddingTop: 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    marginTop: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
   },
-
-  backIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#D1FAE5",
   },
-
+  headerCenter: {
+    flex: 1,
+    marginLeft: 12,
+  },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#065F46",
   },
-
-  langSwitch: {
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  langButton: {
     backgroundColor: "#FFFFFF",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: "#10B981",
   },
-
   langText: {
     color: "#10B981",
+    fontSize: 13,
     fontWeight: "bold",
   },
-
-  alertCard: {
+  subHeader: {
     backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 16,
-    borderLeftWidth: 6,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-
-  alertTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 6,
-  },
-
-  alertSubtext: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-
-  card: {
-    backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: "#D1FAE5",
-  },
-
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#065F46",
-    marginBottom: 14,
-  },
-
-  weatherRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginTop: 10,
-  },
-
-  weatherItem: {
+    justifyContent: "space-between",
     alignItems: "center",
-  },
-
-  weatherLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 6,
-  },
-
-  weatherValue: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#065F46",
-    marginTop: 4,
-  },
-
-  recItem: {
-    marginBottom: 12,
-  },
-
-  recLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#065F46",
-    marginBottom: 4,
-  },
-
-  recValue: {
-    fontSize: 14,
-    color: "#374151",
-  },
-
-  activityItem: {
-    backgroundColor: "#F0FDF4",
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: "#10B981",
-  },
-
-  activityText: {
-    fontSize: 14,
-    color: "#065F46",
-  },
-
-  label: {
-    fontSize: 15,
-    color: "#065F46",
-    marginBottom: 8,
-    fontWeight: "500",
-  },
-
-  profitText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-
-  backBtn: {
-    backgroundColor: "#10B981",
-    padding: 16,
-    borderRadius: 14,
-    alignItems: "center",
-    marginTop: 10,
-  },
-
-  backBtnText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-
-  // NEW styles for form + dropdown
-  input: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginBottom: 10,
-    fontSize: 14,
-    color: "#111827",
-  },
-
-  dropdownContainer: {
-    marginBottom: 10,
-  },
-
-  dropdownSelected: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-
-  dropdownSelectedText: {
-    fontSize: 14,
-    color: "#111827",
-  },
-
-  dropdownList: {
-    marginTop: 6,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    maxHeight: 180,
-    overflow: "hidden",
-  },
-
-  dropdownItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-
-  dropdownItemText: {
+  infoCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  infoTextContainer: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginBottom: 3,
+    fontWeight: "500",
+  },
+  infoValue: {
     fontSize: 14,
-    color: "#111827",
+    fontWeight: "700",
+    color: "#047857",
+  },
+  divider: {
+    width: 1,
+    height: 42,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 12,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 16,
+    letterSpacing: 0.3,
+  },
+  quickGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  quickCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    width: (width - 20 * 2 - 12) / 2,
+    minHeight: 70,
   },
 
-  updateBtn: {
+  quickCardActive: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+    shadowColor: "#10B981",
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  quickIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+  },
+
+  quickTitle: {
+    fontSize: 12,
+    color: "#065F46",
+    fontWeight: "600",
+    flex: 1,
+    flexWrap: "wrap",
+    lineHeight: 16,
+  },
+
+  resultCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderLeftWidth: 5,
+    borderColor: "#E5E7EB",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  resultHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  resultHeaderText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#065F46",
+    letterSpacing: 0.2,
+  },
+  resultText: {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 21,
+  },
+  formCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  inputLabel: {
+    fontSize: 13,
+    color: "#065F46",
+    marginTop: 12,
+    marginBottom: 6,
+    fontWeight: "600",
+  },
+  input: {
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
+  },
+  pickerInput: {
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F9FAFB",
+  },
+  pickerText: {
+    fontSize: 14,
+    color: "#111827",
+    flex: 1,
+  },
+  pickerPlaceholder: {
+    color: "#9CA3AF",
+  },
+  primaryButton: {
+    marginTop: 20,
     backgroundColor: "#10B981",
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
+  },
+  secondaryButton: {
+    marginTop: 14,
+    alignSelf: "flex-start",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+  secondaryButtonText: {
+    color: "#047857",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  calendarModal: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    width: "100%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#065F46",
+  },
+  calendarDayNames: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 10,
+  },
+  dayName: {
+    width: 40,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  calendarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  calendarDay: {
+    width: "14.28%",
+    aspectRatio: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+  },
+  calendarDayEmpty: {
+    backgroundColor: "transparent",
+  },
+  calendarDayText: {
+    fontSize: 14,
+    color: "#065F46",
+    fontWeight: "500",
+  },
+  modalCloseButton: {
+    marginTop: 16,
+    backgroundColor: "#F3F4F6",
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
-    marginTop: 8,
   },
-
-  updateBtnText: {
-    color: "#FFFFFF",
+  modalCloseText: {
+    color: "#6B7280",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  varietyModal: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    width: "100%",
+    maxWidth: 400,
+    maxHeight: "70%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  varietyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  varietyTitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    color: "#065F46",
+  },
+  varietyList: {
+    padding: 12,
+  },
+  varietyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 14,
+    marginBottom: 10,
+    backgroundColor: "#F9FAFB",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+  varietyItemSelected: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#10B981",
+  },
+  varietyItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  varietyItemText: {
     fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  varietyItemTextSelected: {
+    color: "#065F46",
+  },
+  varietyDuration: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
   },
 });
-
-export default PriceAdvisorScreen;

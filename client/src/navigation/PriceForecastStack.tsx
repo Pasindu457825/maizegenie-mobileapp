@@ -13,7 +13,14 @@ export type PriceForecastStackParamList = {
   PriceForecastScreen: { data: any };
   AdminPanelScreen: undefined;
   WeatherForecastScreen: undefined;
-  PriceAdvisorScreen:  { formData: any };
+  PriceAdvisorScreen: {
+    data: any;
+    weeklyForecast: any[];
+    weatherCondition?: string | null;
+    temperature?: number | null;
+    district?: string | null;
+    plantingDate?: string;
+  };
 };
 
 const Stack = createStackNavigator<PriceForecastStackParamList>();
