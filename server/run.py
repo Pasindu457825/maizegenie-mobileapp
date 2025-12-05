@@ -12,8 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from config import settings
-from firebase import init_app  # ensures firebase is ready if configured
-from leafdisease.router import router as leaf_router  # <-- from src/
+from diseaseidentify.router import router as leaf_router  # <-- from src/
 
 app = FastAPI(title=settings.APP_NAME if hasattr(settings, "APP_NAME") else "API")
 
