@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
 import { Leaf, Droplets, Sun, Wind, CheckCircle, MapPin } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from '../../types/yieldPrediction';
+import { API_BASE } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -45,8 +47,18 @@ const processSteps: ProcessStep[] = [
     }
 ];
 
+type RouteParams = {
+    PredictYieldLoading: {
+        payload: YieldPredictionRequest;
+        formData: YieldPredictionFormData;
+    };
+};
+
 export default function PredictYieldLoadingScreen() {
     const navigation = useNavigation();
+    const route = useRoute<RouteProp<RouteParams, 'PredictYieldLoading'>>();
+    const { payload, formData } = route.params || {};
+
     const [currentStep, setCurrentStep] = useState(0);
     const [progress, setProgress] = useState(0);
     const fadeAnim = new Animated.Value(0);
@@ -67,15 +79,62 @@ export default function PredictYieldLoadingScreen() {
             })
         ]).start();
 
-        // Step progression simulation
+        // Step progression with API call simulation
         const stepInterval = setInterval(() => {
             setCurrentStep(prev => {
                 const next = prev + 1;
                 if (next >= processSteps.length) {
                     clearInterval(stepInterval);
-                    // Navigate after completing all steps
-                    setTimeout(() => {
-                        navigation.navigate('PredictYieldScreen' as never);
+                    // Make real API call
+                    setTimeout(async () => {
+                        try {
+                            console.log('🚀 Calling yield prediction API...');
+                            console.log('🌐 API URL:', `${API_BASE}/api/yield/predict`);
+                            console.log('Payload:', JSON.stringify(payload, null, 2));
+                            
+                            // Add timeout to prevent hanging
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                            
+                            const response = await fetch(`${API_BASE}/api/yield/predict`, {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify(payload),
+                                signal: controller.signal,
+                            });
+                            
+                            clearTimeout(timeoutId);
+
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`API Error ${response.status}: ${errorText}`);
+                            }
+
+                            const data: YieldPredictionResponse = await response.json();
+                            console.log('✅ API Response:', data);
+
+                            // Navigate to results with real API data
+                            (navigation as any).navigate('PredictYieldScreen', {
+                                result: data,
+                                formData: formData, // Also pass form data for context
+                            });
+                        } catch (error) {
+                            console.error('❌ API Error:', error);
+                            Alert.alert(
+                                'Prediction Failed',
+                                error instanceof Error 
+                                    ? `Error: ${error.message}` 
+                                    : 'Failed to get yield prediction. Please try again.',
+                                [
+                                    {
+                                        text: 'Go Back',
+                                        onPress: () => navigation.goBack()
+                                    }
+                                ]
+                            );
+                        }
                     }, 500);
                     return prev;
                 }
@@ -87,7 +146,7 @@ export default function PredictYieldLoadingScreen() {
         return () => {
             clearInterval(stepInterval);
         };
-    }, [navigation, fadeAnim, scaleAnim]);
+    }, [navigation, fadeAnim, scaleAnim, payload, formData]);
 
     const CurrentIcon = processSteps[currentStep]?.icon || Leaf;
 

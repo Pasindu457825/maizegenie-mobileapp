@@ -7,7 +7,7 @@ import { Platform } from "react-native";
  * If it fails, fallback to manual IP.
  */
 const { manifest2, manifest } = Constants;
-let devHost = "192.168.8.125"; // 👈 your PC IP running FastAPI
+let devHost = "192.168.8.117"; // 👈 your PC IP running FastAPI
 
 if (manifest2?.extra?.expoGo?.developer?.host) {
   devHost = manifest2.extra.expoGo.developer.host.split(":")[0];
