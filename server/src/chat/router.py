@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from src.chat.schema import ChatRoomRequest
-from src.chat.service import get_or_create_chat_room
+from fastapi import APIRouter
+from .schema import ChatRoomRequest
+from .service import get_or_create_chat_room
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -9,9 +9,6 @@ def create_or_get_room(req: ChatRoomRequest):
     room, error = get_or_create_chat_room(req.farmer_id, req.district)
 
     if error:
-        raise HTTPException(status_code=400, detail=error)
+        return {"error": error}
 
-    return {
-        "room_id": room["id"],
-        "officer_id": room["officer_id"]
-    }
+    return {"room": room}
