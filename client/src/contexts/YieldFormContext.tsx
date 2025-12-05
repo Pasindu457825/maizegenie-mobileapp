@@ -8,7 +8,7 @@ import {
   YieldPredictionFormData,
   INITIAL_FORM_DATA,
   ValidationErrors,
-} from '../types/yieldPrediction';
+} from '../types/farmerYieldPrediction';
 
 interface YieldFormContextType {
   formData: YieldPredictionFormData;

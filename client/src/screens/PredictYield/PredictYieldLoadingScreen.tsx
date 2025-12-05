@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
 import { Leaf, Droplets, Sun, Wind, CheckCircle, MapPin } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from '../../types/yieldPrediction';
+import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from '../../types/farmerYieldPrediction';
 import { API_BASE } from '../../services/api';
 
 const { width } = Dimensions.get('window');

@@ -20,7 +20,7 @@ import {
   SoilCondition,
   IrrigationType,
   Season,
-} from '../../../types/yieldPrediction';
+} from '../../../types/farmerYieldPrediction';
 import { TextInput } from 'react-native-paper';
 import { translations, translateOption } from '../../../translations/translationYieldPrediction';
 

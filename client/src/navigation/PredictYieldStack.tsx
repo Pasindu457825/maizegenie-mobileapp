@@ -9,7 +9,7 @@ import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadi
 import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
 import LanguageSelectionScreen from "../screens/PredictYield/LanguageSelectionScreen";
 import { ROUTES } from "../constants";
-import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from "../types/yieldPrediction";
+import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from "../types/farmerYieldPrediction";
 
 export type PredictYieldStackParamList = {
     [ROUTES.TABS.PREDICTYIELD]: undefined;

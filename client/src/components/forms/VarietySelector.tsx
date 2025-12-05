@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
-import { MaizeVariety, MAIZE_VARIETIES } from '../../types/yieldPrediction';
+import { MaizeVariety, MAIZE_VARIETIES } from '../../types/farmerYieldPrediction';
 
 interface VarietySelectorProps {
   label: string;
