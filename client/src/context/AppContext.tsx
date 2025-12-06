@@ -1,15 +1,15 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import axios from "axios";
 
-export const API_BASE = "http://192.168.1.12:8000/auth"; // change to your server IP
+export const API_BASE = "http://192.168.1.12:8000";
 
 type User = {
   id: string;
   email: string;
-  role?: string;
-  district?: string;
   full_name?: string;
   phone?: string;
+  district?: string;
+  role?: string;
 } | null;
 
 type AppCtx = {
@@ -28,28 +28,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // ----------------------------------------------------
-  // SIGN IN (connects to FastAPI backend)
-  // ----------------------------------------------------
   const signIn = async (email: string, password: string): Promise<boolean> => {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE}/login`, { email, password });
+      const payload = { email, password };
+      console.log("Sending Login Payload:", payload);
 
-      const { token: accessToken, user, profile } = res.data;
+      const res = await axios.post(`${API_BASE}/auth/login`, payload);
+
+      console.log("RAW LOGIN RESPONSE:", res.data);
+
+      const { token: accessToken, user: authUser, profile } = res.data;
+
+      if (!authUser || !profile) {
+        console.log("Invalid login response structure");
+        return false;
+      }
 
       setUser({
-        id: user.id,
-        email: user.email,
-        full_name: profile.full_name,
-        phone: profile.phone,
-        district: profile.district,
-        role: profile.role,
+        id: authUser.id,
+        email: authUser.email,
+        full_name: profile.full_name ?? "",
+        phone: profile.phone ?? "",
+        district: profile.district ?? "",
+        role: profile.role ?? "",
       });
 
       setToken(accessToken);
-      console.log("Login success:", user.email);
+
+      console.log("Login success:", authUser.email);
       return true;
     } catch (err: any) {
       console.log("Login failed:", err.response?.data || err.message);
@@ -59,9 +67,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ----------------------------------------------------
-  // SIGN OUT
-  // ----------------------------------------------------
   const signOut = () => {
     setUser(null);
     setToken(null);

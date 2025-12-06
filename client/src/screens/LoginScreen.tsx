@@ -9,9 +9,14 @@ export default function LoginScreen({ navigation }: any) {
   const [password, setPassword] = useState("");
 
   const handleLogin = async () => {
-    const ok = await signIn(email, password);
+    if (!email || !password) {
+      Alert.alert("Missing fields", "Please enter email & password.");
+      return;
+    }
+
+    const ok = await signIn(email.trim(), password);
     if (ok) navigation.replace("Main");
-    else Alert.alert("Login Failed", "Invalid credentials");
+    else Alert.alert("Login Failed", "Invalid email or password");
   };
 
   return (
@@ -26,6 +31,7 @@ export default function LoginScreen({ navigation }: any) {
         onChangeText={setEmail}
         className="border p-3 rounded-lg mb-4"
         autoCapitalize="none"
+        keyboardType="email-address"
       />
 
       <TextInput
@@ -37,10 +43,15 @@ export default function LoginScreen({ navigation }: any) {
       />
 
       <TouchableOpacity
+        disabled={loading}
         onPress={handleLogin}
-        className="bg-green-600 py-4 rounded-xl"
+        className={`py-4 rounded-xl ${
+          loading ? "bg-gray-400" : "bg-green-600"
+        }`}
       >
-        <Text className="text-white text-center font-bold text-lg">Login</Text>
+        <Text className="text-white text-center font-bold text-lg">
+          {loading ? "Logging in..." : "Login"}
+        </Text>
       </TouchableOpacity>
     </View>
   );
