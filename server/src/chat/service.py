@@ -1,83 +1,34 @@
 # src/chat/service.py
-from src.core.supabase_client import supabase
-from datetime import datetime
+from supabase import create_client
+from src.core.config import settings
+
+supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
 
 
-# Officer lookup
-def get_officer_for_district(district: str):
-    response = (
-        supabase.table("profiles")
-        .select("id")
-        .eq("role", "officer")
-        .eq("district", district)
-        .limit(1)
-        .execute()
-    )
-
-    return response.data[0] if response.data else None
+def save_farmer_message(farmer_id: str, message: str):
+    data = {
+        "farmer_id": farmer_id,
+        "sender": "farmer",
+        "message": message,
+    }
+    return supabase.table("messages").insert(data).execute()
 
 
-# Create / Get chat room
-def get_or_create_chat_room(farmer_id: str, district: str):
-    officer = get_officer_for_district(district)
-    if not officer:
-        return None, "No officer available for this district."
+def save_officer_reply(farmer_id: str, officer_id: str, message: str):
+    data = {
+        "farmer_id": farmer_id,
+        "officer_id": officer_id,
+        "sender": "officer",
+        "message": message,
+    }
+    return supabase.table("messages").insert(data).execute()
 
-    officer_id = officer["id"]
 
-    existing = (
-        supabase.table("chat_rooms")
+def get_chat_history(farmer_id: str):
+    return (
+        supabase.table("messages")
         .select("*")
         .eq("farmer_id", farmer_id)
-        .eq("officer_id", officer_id)
-        .limit(1)
+        .order("created_at", desc=False)
         .execute()
     )
-
-    if existing.data:
-        return existing.data[0], None
-
-    # create
-    inserted = (
-        supabase.table("chat_rooms")
-        .insert({
-            "farmer_id": farmer_id,
-            "officer_id": officer_id
-        })
-        .execute()
-    )
-
-    if inserted.data:
-        return inserted.data[0], None
-
-    return None, "Failed to create chat room"
-
-
-# Save a message to DB
-def save_chat_message(room_id: str, sender_id: str, message: str):
-    timestamp = datetime.utcnow().isoformat()
-
-    row = (
-        supabase.table("chat_messages")
-        .insert({
-            "room_id": room_id,
-            "sender_id": sender_id,
-            "message": message,
-            "timestamp": timestamp,
-        })
-        .execute()
-    )
-
-    return row.data[0]
-
-
-# Get message history
-def get_chat_messages(room_id: str):
-    result = (
-        supabase.table("chat_messages")
-        .select("*")
-        .eq("room_id", room_id)
-        .order("timestamp", desc=False)
-        .execute()
-    )
-    return result.data or []

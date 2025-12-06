@@ -29,11 +29,12 @@ app = FastAPI(title=settings.APP_NAME, version="1.0")
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],  # allow all origins
+    allow_credentials=False,  # MUST be false when using "*"
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Static upload directory
 uploads_dir = ROOT / settings.UPLOAD_DIR

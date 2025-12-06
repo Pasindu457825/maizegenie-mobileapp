@@ -1,12 +1,11 @@
-# src/chat/schema.py
+# src/chat/schemas.py
 from pydantic import BaseModel
 
-class ChatRoomRequest(BaseModel):
+class FarmerMessage(BaseModel):
     farmer_id: str
-    district: str
+    message: str
 
-
-class ChatMessageSend(BaseModel):
-    room_id: str
-    sender_id: str
+class OfficerReply(BaseModel):
+    farmer_id: str
+    officer_id: str
     message: str
