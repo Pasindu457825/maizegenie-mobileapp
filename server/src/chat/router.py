@@ -23,16 +23,10 @@ async def chat_ws(websocket: WebSocket, room_id: str):
 
     try:
         while True:
-            raw = await websocket.receive()
+            # ALWAYS returns clean text
+            text = await websocket.receive_text()
+            data = json.loads(text)
 
-            # 🔥 Ignore ping / pong / binary frames
-            if "text" not in raw or raw["text"] is None:
-                continue
-
-            # Safe JSON parsing
-            data = json.loads(raw["text"])
-
-            # Create message
             msg_obj = {
                 "id": str(uuid.uuid4()),
                 "room_id": room_id,
@@ -40,11 +34,10 @@ async def chat_ws(websocket: WebSocket, room_id: str):
                 "message": data["message"],
             }
 
-            # Save to DB
             await save_message(ChatMessage(**msg_obj))
 
-            # Broadcast to room
             await manager.broadcast(room_id, msg_obj)
 
     except WebSocketDisconnect:
         manager.disconnect(room_id, websocket)
+

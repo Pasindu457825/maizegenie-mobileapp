@@ -8,75 +8,87 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { getOrCreateRoom, deleteRoomIfEmpty } from "../../services/chatRoomApi";
+import { getOrCreateRoom } from "../../services/chatRoomApi";
 import { getChatHistory } from "../../services/chatApi";
 import { useChatWebSocket } from "../../hooks/useChatWebSocket";
 import { useApp } from "../../context/AppContext";
 
-export default function ChatScreen() {
+export default function ChatScreen({ route }: any) {
   const { user } = useApp();
 
-  // ❌ if user is missing → prevent undefined errors
-  if (!user?.id || !user?.district) {
-    return <Text>Error: User not loaded</Text>;
-  }
+  // Params for officer mode
+  const incomingRoomId = route?.params?.roomId ?? null;
+  const incomingUserId = route?.params?.userId ?? null;
 
-  const farmerId: string = user.id;
-  const farmerDistrict: string = user.district;
+  const isOfficer = !!incomingRoomId;
 
-  const [roomId, setRoomId] = useState<string>("");
+  // --- farmer values (safe) ---
+  const farmerId = user?.id ?? null;
+  const farmerDistrict = user?.district ?? null;
+
+  const [roomId, setRoomId] = useState<string | null>(incomingRoomId);
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const hasSentMessage = useRef(false);
 
-  // Auto-create room
   useEffect(() => {
-    async function initRoom() {
+    async function initChat() {
+      // OFFICER → joins existing room
+      if (isOfficer && incomingRoomId) {
+        setRoomId(incomingRoomId);
+        const history = await getChatHistory(incomingRoomId);
+        setMessages(history);
+        return;
+      }
+
+      // FARMER → user must exist
+      if (!farmerId || !farmerDistrict) {
+        console.log("Farmer user not loaded yet");
+        return;
+      }
+
       const room = await getOrCreateRoom(farmerId, farmerDistrict);
-
-      // enforce string type
-      const newRoomId: string = String(room.id);
-
+      const newRoomId = String(room.id);
       setRoomId(newRoomId);
 
       const history = await getChatHistory(newRoomId);
       setMessages(history);
     }
 
-    initRoom();
-
-    return () => {
-      if (!hasSentMessage.current && roomId) {
-        deleteRoomIfEmpty(roomId);
-      }
-    };
+    initChat();
   }, []);
 
-  // WebSocket (safe)
-  const { sendMessage } = useChatWebSocket(roomId || null, (msg) => {
+  // WebSocket
+  const { sendMessage } = useChatWebSocket(roomId, (msg) => {
     setMessages((prev) => [...prev, msg]);
   });
 
   const handleSend = () => {
-    if (!roomId || text.trim().length === 0) return;
+    if (!roomId || !text.trim()) return;
 
-    sendMessage(farmerId, text);
+    // Prevent TS error → ensure string always
+    const senderId = isOfficer ? String(incomingUserId) : String(farmerId);
+
+    sendMessage(senderId, text);
     hasSentMessage.current = true;
     setText("");
   };
 
   if (!roomId) return <Text>Loading chat...</Text>;
 
+  // Prevent TS error → always a string
+  const currentUserId = isOfficer ? String(incomingUserId) : String(farmerId);
+
   return (
     <View style={styles.container}>
       <FlatList
         data={messages}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View
             style={[
               styles.msgBubble,
-              item.sender_id === farmerId
+              item.sender_id === currentUserId
                 ? styles.meBubble
                 : styles.otherBubble,
             ]}

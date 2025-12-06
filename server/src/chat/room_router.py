@@ -71,3 +71,13 @@ def delete_if_empty(room_id: str):
     # Delete empty room
     supabase.table("chat_rooms").delete().eq("id", room_id).execute()
     return {"deleted": True}
+
+@router.get("/rooms")
+def get_all_rooms():
+    result = supabase.table("chat_rooms").select("*").execute()
+    return result.data
+
+@router.get("/active-rooms")
+def get_active_rooms():
+    rooms = supabase.rpc("get_active_rooms").execute().data
+    return rooms

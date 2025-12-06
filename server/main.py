@@ -31,6 +31,7 @@ from auth.router import router as auth_router
 from diseaseidentify.router import router as disease_router
 from pestidentify.router import router as pest_router
 from chat.room_router import router as room_router    # get/create room
+from chat.officer_router import router as officer_router
 from chat.router import router as chat_router         # history + websocket
 from priceforecast.admin_router import router as admin_router
 from yieldprediction.router import router as yield_router
@@ -75,6 +76,7 @@ app.include_router(pest_router)
 # Chat system (order does NOT matter but kept clean)
 app.include_router(room_router)     # /chat/get-room
 app.include_router(chat_router)     # /chat/history + websocket
+app.include_router(officer_router)
 
 app.include_router(admin_router)
 app.include_router(yield_router)
