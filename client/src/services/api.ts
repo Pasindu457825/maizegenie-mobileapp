@@ -8,7 +8,7 @@ import { Platform } from "react-native";
 const { manifest2, manifest } = Constants;
 
 // 👇 FIXED: Your actual FastAPI server IP
-let devHost = "192.168.1.12";
+let devHost = "192.168.8.117";
 
 // Auto-detect from Expo when available
 if (manifest2?.extra?.expoGo?.developer?.host) {

@@ -6,7 +6,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import 'react-native-gesture-handler';
 import RootNavigator from "./src/navigation";
 import "./global.css";
-import "react-native-url-polyfill/auto";
 
 export default function App() {
   return (

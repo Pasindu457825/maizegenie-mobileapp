@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import axios from "axios";
+import { supabase } from "../services/supabaseClient";
 
-export const API_BASE = "http://192.168.1.12:8000";
+export const API_BASE = "http://192.168.8.117:8000";
 
 type User = {
   id: string;
@@ -32,35 +33,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
 
     try {
-      const payload = { email, password };
-      console.log("Sending Login Payload:", payload);
+      console.log("Attempting Supabase login:", { email });
 
-      const res = await axios.post(`${API_BASE}/auth/login`, payload);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      console.log("RAW LOGIN RESPONSE:", res.data);
-
-      const { token: accessToken, user: authUser, profile } = res.data;
-
-      if (!authUser || !profile) {
-        console.log("Invalid login response structure");
+      if (error) {
+        console.log("Supabase login error:", error.message);
         return false;
       }
 
+      if (!data.user) {
+        console.log("No user data returned");
+        return false;
+      }
+
+      console.log("✅ Supabase login successful:", data.user.email);
+
       setUser({
-        id: authUser.id,
-        email: authUser.email,
-        full_name: profile.full_name ?? "",
-        phone: profile.phone ?? "",
-        district: profile.district ?? "",
-        role: profile.role ?? "",
+        id: data.user.id,
+        email: data.user.email || "",
+        full_name: data.user.user_metadata?.full_name || "",
+        phone: data.user.user_metadata?.phone || "",
+        district: data.user.user_metadata?.district || "",
+        role: data.user.user_metadata?.role || "farmer",
       });
 
-      setToken(accessToken);
+      setToken(data.session?.access_token || "");
 
-      console.log("Login success:", authUser.email);
+      console.log("Login success:", data.user.email);
       return true;
     } catch (err: any) {
-      console.log("Login failed:", err.response?.data || err.message);
+      console.log("Login failed:", err.message);
       return false;
     } finally {
       setLoading(false);
