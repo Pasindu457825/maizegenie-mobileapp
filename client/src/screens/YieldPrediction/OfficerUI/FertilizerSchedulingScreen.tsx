@@ -58,10 +58,110 @@ export const FertilizerSchedulingScreen: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateScreen()) {
-      // Navigate to loading screen which will handle the API call
-      navigation.navigate('PredictYieldLoading' as never);
+      try {
+        // For now, navigate directly to OfficerResults with mock data
+        // In production, this would call the officer prediction API
+        const mockOfficerData = {
+          status: 'success' as const,
+          prediction_id: 'mock_prediction_123',
+          timestamp: new Date().toISOString(),
+          prediction: {
+            predicted_yield: 5240.5,
+            yield_unit: 'kg/ha',
+            confidence_score: 0.87,
+            yield_category: 'High',
+            harvest_window: {
+              start_date: '2025-03-15',
+              target_date: '2025-03-22',
+              end_date: '2025-03-30',
+              days_to_harvest: 89
+            }
+          },
+          fertilizer_schedule: {
+            total_n_requirement: 125.5,
+            total_p_requirement: 62.3,
+            total_k_requirement: 98.7,
+            basal: {
+              date: '2024-12-05',
+              day_number: 0,
+              recommended_amount: 250,
+              applied_amount: parseFloat(formData.basal_npk || '0'),
+              remaining_amount: Math.max(0, 250 - parseFloat(formData.basal_npk || '0')),
+              status: parseFloat(formData.basal_npk || '0') >= 240 ? 'done' : parseFloat(formData.basal_npk || '0') > 0 ? 'partial' : 'pending',
+              npk_amount: 250,
+              adjustment_reason: null,
+              timing_warning: null,
+              instructions_si: 'බීජ රෝපණ කාලයේදී NPK පොහොර කිලෝග්‍රෑම් 250ක් අක්කරයකට යොදන්න',
+              instructions_en: 'Apply 250 kg NPK fertilizer per hectare at planting time'
+            },
+            top_dress_1: {
+              date: '2024-12-30',
+              day_number: 25,
+              recommended_amount: 65,
+              applied_amount: parseFloat(formData.top_dress_1_amount || '0'),
+              remaining_amount: Math.max(0, 65 - parseFloat(formData.top_dress_1_amount || '0')),
+              status: parseFloat(formData.top_dress_1_amount || '0') >= 62 ? 'done' : parseFloat(formData.top_dress_1_amount || '0') > 0 ? 'partial' : 'pending',
+              adjustment_reason: null,
+              timing_warning: null,
+              instructions_si: 'නයිට්‍රජන් කිලෝග්‍රෑම් 65ක් යොදන්න (යූරියා කිලෝග්‍රෑම් 141)',
+              instructions_en: 'Apply 65 kg nitrogen (equivalent to 141 kg urea)'
+            },
+            top_dress_2: {
+              date: '2025-01-19',
+              day_number: 45,
+              recommended_amount: 43,
+              applied_amount: parseFloat(formData.top_dress_2_amount || '0'),
+              remaining_amount: Math.max(0, 43 - parseFloat(formData.top_dress_2_amount || '0')),
+              status: parseFloat(formData.top_dress_2_amount || '0') >= 40 ? 'done' : parseFloat(formData.top_dress_2_amount || '0') > 0 ? 'partial' : 'pending',
+              adjustment_reason: null,
+              timing_warning: null,
+              instructions_si: 'නයිට්‍රජන් කිලෝග්‍රෑම් 43ක් යොදන්න (යූරියා කිලෝග්‍රෑම් 93)',
+              instructions_en: 'Apply 43 kg nitrogen (equivalent to 93 kg urea)'
+            },
+            warnings: ['Ensure timely application for optimal yield'],
+            calendar_events: []
+          },
+          impact_factors: [
+            {
+              factor: 'Soil pH',
+              value: '6.5',
+              impact: 0.85,
+              impact_percentage: 85,
+              description: 'Optimal pH range is 6.0-7.5 for maize growth'
+            },
+            {
+              factor: 'Variety',
+              value: formData.variety || 'Jet 999',
+              impact: 0.92,
+              impact_percentage: 92,
+              description: 'High-yielding variety suited for local conditions'
+            }
+          ],
+          recommendations: [
+            {
+              priority: 'high' as const,
+              category: 'Fertilizer Management',
+              title_si: 'පොහොර කළමනාකරණය',
+              title_en: 'Fertilizer Management',
+              description_si: 'නිර්දේශිත කාලසටහන අනුව පොහොර යෙදීම ඉතා වැදගත්',
+              description_en: 'Follow the recommended fertilizer schedule for optimal results'
+            }
+          ],
+          officer_insights: {
+            soil_health_score: 7.8,
+            fertilizer_efficiency: 0.89,
+            expected_roi: 2.1,
+            risk_factors: ['Monitor weather conditions'],
+            field_visit_recommendations: ['Schedule follow-up in 2 weeks']
+          }
+        };
+        
+        navigation.navigate('OfficerResults' as never, { predictionData: mockOfficerData } as never);
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
     }
   };
 
