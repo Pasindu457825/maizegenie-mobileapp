@@ -11,7 +11,7 @@ import { useYieldForm } from '../../../contexts/YieldFormContext';
 import { CustomDropdown } from '../../../components/forms/CustomDropdown';
 import { translations } from '../../../translations/translationYieldPrediction';
 import { PredictYieldStackParamList } from '../../../navigation/PredictYieldStack';
-import { LOCATIONS_BY_DISTRICT } from '../../../types/yieldPrediction';
+import { LOCATIONS_BY_DISTRICT } from '../../../types/farmerYieldPrediction';
 
 const SOIL_TYPES = ['Clay', 'Loam', 'RBE', 'RBL'] as const;
 const DISTRICTS = ['Anuradhapura', 'Monaragala', 'Badulla', 'Ampara', 'Hambantota', 'Polonnaruwa', 'Kurunegala', 'Puttalam'] as const;

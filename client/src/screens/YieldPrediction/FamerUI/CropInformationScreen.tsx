@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Leaf, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useYieldForm } from '../../../contexts/YieldFormContext';
 import { VarietySelector } from '../../../components/forms/VarietySelector';
-import { MaizeVariety } from '../../../types/yieldPrediction';
+import { MaizeVariety } from '../../../types/farmerYieldPrediction';
 import { translations } from '../../../translations/translationYieldPrediction';
 
 export const CropInformationScreen: React.FC = () => {
