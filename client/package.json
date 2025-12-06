@@ -17,7 +17,9 @@
     "@react-navigation/native": "^7.1.18",
     "@react-navigation/native-stack": "^7.3.28",
     "@react-navigation/stack": "^7.4.9",
+    "@supabase/supabase-js": "^2.86.2",
     "axios": "^1.12.2",
+    "dotenv": "^17.2.3",
     "expo": "~54.0.25",
     "expo-calendar": "^15.0.7",
     "expo-image-picker": "~17.0.8",
@@ -35,6 +37,7 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
+    "react-native-url-polyfill": "^3.0.0",
     "react-native-web": "^0.21.0",
     "react-native-worklets-core": "^1.6.2",
     "tailwindcss": "^3.4.17"

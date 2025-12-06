@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -7,190 +7,144 @@ import {
   FlatList,
   StyleSheet,
 } from "react-native";
-import axios from "axios";
-import { API_BASE } from "../../services/api";
 
-const ChatScreen = ({ route }: any) => {
-  const [room, setRoom] = useState<any>(null);
+import { supabase } from "../../services/supabaseClient";
+import { sendFarmerMessage, getChatHistory } from "../../services/chatApi";
+import { useApp } from "../../context/AppContext";
+
+export default function ChatScreen() {
+  const { user } = useApp();
+  const farmerId = user?.id as string | undefined;
+
   const [messages, setMessages] = useState<any[]>([]);
-  const [message, setMessage] = useState("");
+  const [text, setText] = useState("");
+  const flatListRef = useRef<FlatList>(null);
 
-  const ws = useRef<WebSocket | null>(null);
+  // ---------------------------
+  // Load chat history once
+  // ---------------------------
+  useEffect(() => {
+    if (!farmerId) return;
 
-  // Logged user data
-  const farmer_id = route?.params?.userId || "TEMP_ID";
-  const farmer_district = route?.params?.district || "Monaragala";
+    (async () => {
+      const res = await getChatHistory(farmerId);
+      setMessages(res.data);
+    })();
+  }, [farmerId]);
 
-  /** 🔹 1. Load or create chat room */
-  const loadRoom = async () => {
-    try {
-      const res = await axios.post(`${API_BASE}/chat/get-room`, {
-        farmer_id,
-        district: farmer_district,
-      });
+  // ---------------------------------------------------
+  // SINGLE realtime listener (the correct one)
+  // ---------------------------------------------------
+  useEffect(() => {
+    if (!farmerId) return;
 
-      if (res.data.room) {
-        setRoom(res.data.room);
-      } else {
-        console.log("Room creation error:", res.data);
-      }
-    } catch (err) {
-      console.log("Chat room error", err);
-    }
+    const channel = supabase
+      .channel(`chat-room-${farmerId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `farmer_id=eq.${farmerId}`,
+        },
+        (payload) => {
+          console.log("Realtime:", payload.new);
+
+          setMessages((prev) => {
+            const updated = [...prev, payload.new];
+            return updated.sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            );
+          });
+
+          setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+          }, 150);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [farmerId]);
+
+  // ---------------------------
+  // Send message
+  // ---------------------------
+  const handleSend = async () => {
+    if (!text.trim() || !farmerId) return;
+
+    await sendFarmerMessage(farmerId, text.trim());
+    setText("");
   };
 
-  /** 🔹 2. Load previous messages */
-  const loadHistory = async (room_id: string) => {
-    try {
-      const res = await axios.get(`${API_BASE}/chat/messages/${room_id}`);
-      setMessages(res.data.messages || []);
-    } catch (err) {
-      console.log("Message history error:", err);
-    }
-  };
-
-  /** 🔹 3. Connect WebSocket */
-  const connectWebSocket = (room_id: string) => {
-    const wsUrl = API_BASE.replace("http", "ws") + `/chat/ws/${room_id}`;
-
-    console.log("🔌 Connecting WebSocket:", wsUrl);
-
-    ws.current = new WebSocket(wsUrl);
-
-    ws.current.onopen = () => {
-      console.log("✅ WebSocket connected");
-    };
-
-    ws.current.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-
-      setMessages((prev) => [...prev, msg]);
-    };
-
-    ws.current.onerror = (err) => {
-      console.log("❌ WebSocket Error:", err);
-    };
-
-    ws.current.onclose = () => {
-      console.log("⚠ WebSocket closed. Reconnecting…");
-      setTimeout(() => connectWebSocket(room_id), 2000);
-    };
-  };
-
-  /** 🔹 4. Send message through WebSocket */
-  const sendMessage = () => {
-    if (!message.trim() || !ws.current) return;
-
-    ws.current.send(
-      JSON.stringify({
-        sender_id: farmer_id,
-        message,
-      })
+  if (!farmerId) {
+    return (
+      <View style={styles.center}>
+        <Text>Loading chat...</Text>
+      </View>
     );
-
-    setMessage("");
-  };
-
-  /** 🔹 5. Run on first load */
-  useEffect(() => {
-    loadRoom();
-  }, []);
-
-  /** 🔹 6. After room loads → fetch history + connect WebSocket */
-  useEffect(() => {
-    if (!room) return;
-
-    loadHistory(room.id);
-    connectWebSocket(room.id);
-  }, [room]);
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Chat with Agriculture Officer</Text>
-
-      {!room ? (
-        <Text style={styles.loadingText}>Connecting to officer…</Text>
-      ) : (
-        <>
-          {/* Chat messages */}
-          <FlatList
-            data={messages}
-            keyExtractor={(_, index) => index.toString()}
-            style={{ flex: 1 }}
-            renderItem={({ item }) => (
-              <View
-                style={[
-                  styles.messageBubble,
-                  item.sender_id === farmer_id
-                    ? styles.rightBubble
-                    : styles.leftBubble,
-                ]}
-              >
-                <Text style={styles.messageText}>{item.message}</Text>
-              </View>
-            )}
-          />
-
-          {/* Input */}
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              value={message}
-              onChangeText={setMessage}
-              placeholder="Type message…"
-            />
-            <TouchableOpacity style={styles.sendBtn} onPress={sendMessage}>
-              <Text style={styles.sendText}>Send</Text>
-            </TouchableOpacity>
+      <FlatList
+        ref={flatListRef}
+        data={messages}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.msgBubble,
+              item.sender === "farmer" ? styles.me : styles.them,
+            ]}
+          >
+            <Text style={styles.msgText}>{item.message}</Text>
           </View>
-        </>
-      )}
+        )}
+        onContentSizeChange={() =>
+          flatListRef.current?.scrollToEnd({ animated: true })
+        }
+      />
+
+      <View style={styles.inputRow}>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="Type message..."
+          style={styles.input}
+        />
+        <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
+          <Text style={{ color: "#fff" }}>Send</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#E3F2FD", padding: 15 },
-  header: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 10,
-    color: "#0D47A1",
-    textAlign: "center",
-  },
-  loadingText: { fontSize: 16, textAlign: "center", marginTop: 25 },
-
-  messageBubble: {
-    padding: 12,
-    marginVertical: 6,
-    borderRadius: 15,
+  container: { flex: 1, backgroundColor: "#f1f1f1", padding: 10 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  msgBubble: {
+    padding: 10,
+    marginVertical: 4,
     maxWidth: "75%",
+    borderRadius: 10,
   },
-  leftBubble: {
-    backgroundColor: "#ffffff",
-    alignSelf: "flex-start",
-  },
-  rightBubble: {
-    backgroundColor: "#1565C0",
-    alignSelf: "flex-end",
-  },
-  messageText: { color: "#000" },
-
-  inputRow: { flexDirection: "row", alignItems: "center", marginTop: 10 },
+  me: { backgroundColor: "#4CAF50", alignSelf: "flex-end" },
+  them: { backgroundColor: "#ddd", alignSelf: "flex-start" },
+  msgText: { color: "#000" },
+  inputRow: { flexDirection: "row", marginTop: 10 },
   input: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 12,
-    borderRadius: 25,
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 8,
   },
-  sendBtn: {
-    backgroundColor: "#1565C0",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    marginLeft: 10,
-    borderRadius: 25,
-  },
-  sendText: { color: "#fff", fontWeight: "bold" },
+  sendBtn: { backgroundColor: "#4CAF50", padding: 12, borderRadius: 8 },
 });
-
-export default ChatScreen;
