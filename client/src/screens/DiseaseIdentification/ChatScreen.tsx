@@ -53,11 +53,17 @@ export default function ChatScreen() {
 
           setMessages((prev) => {
             const updated = [...prev, payload.new];
-            return updated.sort(
-              (a, b) =>
-                new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime()
-            );
+            return updated.sort((a, b) => {
+              const t1 = a.created_at ? new Date(a.created_at).getTime() : 0;
+              const t2 = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+              if (t1 === t2) {
+                // fallback unique ordering
+                return a.id.localeCompare(b.id);
+              }
+
+              return t1 - t2;
+            });
           });
 
           setTimeout(() => {
