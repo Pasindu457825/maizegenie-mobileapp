@@ -10,7 +10,7 @@ import {
   PredictionErrorResponse 
 } from '../types/officerPrediction';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_BACKEND_API_URL || 'http://localhost:8000';
 
 /**
  * Submit officer yield prediction request
