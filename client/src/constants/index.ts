@@ -1,5 +1,14 @@
 export const ROUTES = {
-  ROOT: { MAIN: "Main", MODAL: "Modal" },
+  AUTH: {
+    LOGIN: "Login",
+    SIGNUP: "Signup",
+  },
+
+  ROOT: { 
+    MAIN: "Main", 
+    MODAL: "Modal" 
+  },
+
   TABS: { 
     HOME: "Home", 
     PRICEFORECAST: "PriceForecast",
@@ -11,6 +20,7 @@ export const ROUTES = {
     ADMINPANEL: "AdminPanel",
   },
 } as const;
+
 
 // IMPORTANT: Change based on your testing device
 // ─────────────────────────────────────────────────────────────
