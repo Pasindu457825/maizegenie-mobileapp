@@ -61,7 +61,7 @@ const getApiConfig = () => {
   if (__DEV__) {
     // --- MANUAL FIX for Expo real device ---
     // Replace this with your laptop's WiFi IP address
-    const LOCAL_IP = "192.168.1.28"; // ← CHANGE THIS
+    const LOCAL_IP = "192.168.1.12"; // ← CHANGE THIS
 
     const baseURL = `http://${LOCAL_IP}:8000`;
 
