@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
-import { Leaf, Sun, CheckCircle, MapPin } from 'lucide-react-native';
+import { Leaf, Droplets, Sun, Wind, CheckCircle, MapPin } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from '../../types/farmerYieldPrediction';
-import { supabase } from '../../services/supabaseClient';
+import { API_BASE } from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -18,25 +18,31 @@ const processSteps: ProcessStep[] = [
     {
         id: 1,
         title: 'Analyzing Location',
-        description: 'Processing district data',
+        description: 'Processing district and climate data',
         icon: MapPin
     },
     {
         id: 2,
         title: 'Evaluating Season',
-        description: 'Assessing patterns',
+        description: 'Assessing seasonal patterns',
         icon: Sun
     },
     {
         id: 3,
-        title: 'Processing Data',
-        description: 'Analyzing inputs',
+        title: 'Processing Variety',
+        description: 'Analyzing crop characteristics',
         icon: Leaf
     },
     {
         id: 4,
+        title: 'Calculating Factors',
+        description: 'Computing environmental variables',
+        icon: Wind
+    },
+    {
+        id: 5,
         title: 'Generating Prediction',
-        description: 'Finalizing forecast',
+        description: 'Finalizing yield forecast',
         icon: CheckCircle
     }
 ];
@@ -55,115 +61,113 @@ export default function PredictYieldLoadingScreen() {
 
     const [currentStep, setCurrentStep] = useState(0);
     const [progress, setProgress] = useState(0);
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
-    const isMounted = useRef(true);
+    const fadeAnim = new Animated.Value(0);
+    const scaleAnim = new Animated.Value(0.8);
 
     useEffect(() => {
-        // Initial fade in animation (simplified)
+        // Initial fade in animation
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 1,
-                duration: 300,
+                duration: 500,
                 useNativeDriver: true,
             }),
             Animated.timing(scaleAnim, {
                 toValue: 1,
-                duration: 300,
+                duration: 500,
                 useNativeDriver: true,
             })
         ]).start();
 
-        // Step progression with API call
+        // Step progression with API call simulation
         const stepInterval = setInterval(() => {
             setCurrentStep(prev => {
-                if (!isMounted.current) return prev;
                 const next = prev + 1;
                 if (next >= processSteps.length) {
                     clearInterval(stepInterval);
-                    // Make real API call to new farmer endpoint
+                    // Make real API call
                     setTimeout(async () => {
-                        if (!isMounted.current) return;
                         try {
-                            // Get Supabase session token
-                            const { data: { session } } = await supabase.auth.getSession();
-                            const token = session?.access_token;
-
-                            if (!token) {
-                                throw new Error('Authentication required. Please log in again.');
-                            }
-
-                            const API_URL = process.env.EXPO_PUBLIC_BACKEND_API_URL || 'http://192.168.8.117:8000';
-
+                            console.log('🚀 Calling yield prediction API...');
+                            console.log('🌐 API URL:', `${API_BASE}/api/yield/predict`);
+                            console.log('Payload:', JSON.stringify(payload, null, 2));
+                            
                             // Add timeout to prevent hanging
                             const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
-
-                            const response = await fetch(`${API_URL}/api/v1/yield-prediction/farmer`, {
+                            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+                            
+                            const response = await fetch(`${API_BASE}/api/yield/predict`, {
                                 method: 'POST',
                                 headers: { 
                                     'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${token}`,
                                 },
                                 body: JSON.stringify(payload),
                                 signal: controller.signal,
                             });
-
+                            
                             clearTimeout(timeoutId);
 
                             if (!response.ok) {
-                                const errorData = await response.json().catch(() => ({}));
-                                throw new Error(errorData.detail || `Server error: ${response.status}`);
+                                const errorText = await response.text();
+                                throw new Error(`API Error ${response.status}: ${errorText}`);
                             }
 
                             const data: YieldPredictionResponse = await response.json();
+                            console.log('✅ API Response:', data);
 
                             // Navigate to results with real API data
-                            if (isMounted.current) {
-                                (navigation as any).navigate('PredictYieldScreen', {
-                                    result: data,
-                                    formData: formData,
-                                });
-                            }
+                            (navigation as any).navigate('PredictYieldScreen', {
+                                result: data,
+                                formData: formData, // Also pass form data for context
+                            });
                         } catch (error) {
-                            console.error('API Error:', error);
-                            if (isMounted.current) {
-                                Alert.alert(
-                                    'Prediction Failed',
-                                    error instanceof Error 
-                                        ? error.message
-                                        : 'Failed to get yield prediction. Please try again.',
-                                    [
-                                        {
-                                            text: 'Go Back',
-                                            onPress: () => navigation.goBack()
-                                        }
-                                    ]
-                                );
-                            }
+                            console.error('❌ API Error:', error);
+                            Alert.alert(
+                                'Prediction Failed',
+                                error instanceof Error 
+                                    ? `Error: ${error.message}` 
+                                    : 'Failed to get yield prediction. Please try again.',
+                                [
+                                    {
+                                        text: 'Go Back',
+                                        onPress: () => navigation.goBack()
+                                    }
+                                ]
+                            );
                         }
                     }, 500);
                     return prev;
                 }
-                if (isMounted.current) {
-                    setProgress((next / processSteps.length) * 100);
-                }
+                setProgress((next / processSteps.length) * 100);
                 return next;
             });
-        }, 700);
+        }, 600);
 
         return () => {
-            isMounted.current = false;
             clearInterval(stepInterval);
         };
-    }, [navigation, payload, formData, fadeAnim, scaleAnim]);
+    }, [navigation, fadeAnim, scaleAnim, payload, formData]);
 
     const CurrentIcon = processSteps[currentStep]?.icon || Leaf;
 
     return (
         <View style={styles.container}>
-            {/* Simplified Background */}
-            <View style={styles.backgroundPattern} />
+            {/* Animated Background Pattern */}
+            <View style={styles.backgroundPattern}>
+                {[...Array(6)].map((_, i) => (
+                    <View
+                        key={i}
+                        style={[
+                            styles.patternCircle,
+                            {
+                                top: Math.random() * 100,
+                                left: Math.random() * 100,
+                                opacity: 0.1 + Math.random() * 0.2
+                            }
+                        ]}
+                    />
+                ))}
+            </View>
 
             {/* Header decoration with gradient effect */}
             <View style={styles.headerDecoration}>
@@ -262,8 +266,14 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: '#F0FDF4',
         zIndex: 0,
+    },
+    patternCircle: {
+        position: 'absolute',
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        backgroundColor: '#16A34A',
     },
     headerDecoration: {
         position: 'absolute',

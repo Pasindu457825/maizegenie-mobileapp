@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Alert, TouchableOpacity } from 'react-native';
-import { Card, Button } from 'react-native-paper';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Animated, Alert, Platform, TouchableOpacity } from 'react-native';
+import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { TrendingUp, Activity } from 'lucide-react-native';
+import { Leaf, TrendingUp, AlertCircle, CheckCircle, Calendar, Activity, CalendarPlus } from 'lucide-react-native';
 import { YieldPredictionResponse, YieldPredictionFormData } from '../../types/farmerYieldPrediction';
 import { useYieldForm } from '../../contexts/YieldFormContext';
 import { translations } from '../../translations/translationYieldPrediction';
+import * as ExpoCalendar from 'expo-calendar';
 
 const { width } = Dimensions.get('window');
 
@@ -33,71 +34,58 @@ export default function PredictYieldScreen() {
     const navigation = useNavigation();
     const route = useRoute<RouteProp<RouteParams, 'PredictYieldScreen'>>();
     const { language } = useYieldForm();
+    const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
 
-    // Safe translation access with fallback
-    const t = useMemo(() => {
-        try {
-            return translations.results[language] || translations.results.en;
-        } catch (error) {
-            console.warn('Translation error:', error);
-            return translations.results.en;
-        }
-    }, [language]);
+    // Get translations
+    const t = translations.results[language];
 
     // Get real data from backend API response
     const { result, formData } = route.params || {};
 
-    // Memoize calculations to prevent unnecessary re-renders
-    const displayResults = useMemo(() => {
-        try {
-            // NEW API FORMAT: Extract prediction data
-            const prediction = result?.prediction || {};
-            const impactFactors = result?.impact_factors || [];
+    // Debug logging
+    console.log('📊 Results Screen - Received Data:');
+    console.log('Backend Result:', JSON.stringify(result, null, 2));
+    console.log('Form Data:', JSON.stringify(formData, null, 2));
 
-            // Convert backend response to display format
-            const landSize = parseFloat(formData?.land_size_value || '1');
-            const landSizeHa = formData?.land_size_unit === 'Acres' ? landSize * 0.404686 : landSize;
+    // NEW API FORMAT: Extract prediction data
+    const prediction = result?.prediction || {};
+    const impactFactors = result?.impact_factors || [];
+    const recommendations = result?.recommendations || [];
 
-            // Calculate total yield for the land
-            const predictedYieldKg = prediction.predicted_yield_kg_per_ha
-                ? Math.round(prediction.predicted_yield_kg_per_ha * landSizeHa)
-                : 0;
+    // Convert backend response to display format
+    const landSize = parseFloat(formData?.land_size_value || '1');
+    const landSizeHa = formData?.land_size_unit === 'Acres' ? landSize * 0.404686 : landSize;
 
-            const confidencePercent = Math.round((prediction.confidence_score || 0) * 100);
+    // Calculate total yield for the land
+    const predictedYieldKg = prediction.predicted_yield_kg_per_ha
+        ? Math.round(prediction.predicted_yield_kg_per_ha * landSizeHa)
+        : 0;
 
-            // Convert backend impact factors to display format with safe access
-            const displayFactors: FactorData[] = impactFactors.map((factor: any) => {
-                const impactLevel = factor.impact === 'positive' ? 'High' :
-                    factor.impact === 'negative' ? 'Low' : 'Medium';
-                
-                // Safe string access for Sinhala text
-                const factorName = language === 'si' 
-                    ? (factor.description_sinhala || factor.description_english || 'N/A')
-                    : (factor.description_english || 'N/A');
+    console.log('Calculated Yield (kg):', predictedYieldKg);
+    console.log('Land Size (ha):', landSizeHa);
 
-                return {
-                    name: factorName,
-                    impact: impactLevel,
-                    value: Math.round((factor.weight || 0.5) * 100),
-                    color: factor.impact === 'positive' ? '#10B981' :
-                        factor.impact === 'negative' ? '#EF4444' : '#F59E0B'
-                };
-            });
+    const confidencePercent = prediction.confidence_score || 0;
 
-            return {
-                predictedYield: `${predictedYieldKg.toLocaleString()} kg`,
-                confidence: confidencePercent,
-                factors: displayFactors,
-            };
-        } catch (error) {
-            console.error('Error processing results:', error);
-            return {
-                predictedYield: '0 kg',
-                confidence: 0,
-                factors: [],
-            };
-        }
-    }, [result, formData, language]);
+    // Convert backend impact factors to display format
+    const displayFactors: FactorData[] = impactFactors.map(factor => {
+        const impactLevel = factor.impact === 'positive' ? 'High' :
+            factor.impact === 'negative' ? 'Low' : 'Medium';
+        return {
+            name: language === 'si' ? factor.description_sinhala : factor.description_english,
+            impact: impactLevel,
+            value: Math.round((factor.weight || 0.5) * 100),
+            color: factor.impact === 'positive' ? '#10B981' :
+                factor.impact === 'negative' ? '#EF4444' : '#F59E0B'
+        };
+    });
+
+    const displayResults = {
+        predictedYield: `${predictedYieldKg.toLocaleString()} kg`,
+        confidence: confidencePercent,
+        factors: displayFactors,
+        harvestWindow: null, // Not provided by new API yet
+        calendarEvent: null // Not provided by new API yet
+    };
 
     const getPriorityColor = (priority: string) => {
         switch (priority) {
@@ -115,34 +103,84 @@ export default function PredictYieldScreen() {
         }
     };
 
-    // Navigation handler with useCallback to prevent re-creation
-    const handleNewPrediction = useCallback(() => {
-        navigation.navigate('PredictYieldFormWizard' as never);
-    }, [navigation]);
+    // One-Tap Add to Calendar Function (Disabled - Feature Coming Soon)
+    const addHarvestToCalendar = async () => {
+        Alert.alert(
+            language === 'si' ? 'ඉදිරියේදී' : 'Feature Coming Soon',
+            language === 'si' ? 'අස්වැන්න නෙලීමේ දින දර්ශන ඒකාබද්ධ කිරීම ඉදිරි යාවත්කාලීනයකින් ලබා ගත හැක.' : 'Calendar integration will be available in the next update.'
+        );
+    };
 
-    // Memoized component to prevent unnecessary re-renders
-    const FactorRadar = useMemo(() => {
-        if (!displayResults.factors || displayResults.factors.length === 0) {
-            return null;
-        }
+    const HarvestWindowCard = () => {
+        if (!displayResults.harvestWindow) return null;
 
+        const formatDate = (dateStr: string) => {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        };
+
+        return (
+            <View style={styles.harvestContainer}>
+                <View style={styles.harvestHeader}>
+                    <Calendar color="#16A34A" size={20} />
+                    <Text style={styles.harvestTitle}>{t.harvestWindow}</Text>
+                </View>
+                <View style={styles.harvestContent}>
+                    <View style={styles.harvestDateRow}>
+                        <Text style={styles.harvestLabel}>{t.startDate}:</Text>
+                        <Text style={styles.harvestDate}>{formatDate(displayResults.harvestWindow.start)}</Text>
+                    </View>
+                    <View style={styles.harvestDateRow}>
+                        <Text style={styles.harvestLabel}>{t.targetDate}:</Text>
+                        <Text style={[styles.harvestDate, styles.harvestTarget]}>{formatDate(displayResults.harvestWindow.target)}</Text>
+                    </View>
+                    <View style={styles.harvestDateRow}>
+                        <Text style={styles.harvestLabel}>{t.endDate}:</Text>
+                        <Text style={styles.harvestDate}>{formatDate(displayResults.harvestWindow.end)}</Text>
+                    </View>
+                </View>
+                {displayResults.calendarEvent && (
+                    <View style={styles.calendarReminder}>
+                        <AlertCircle color="#F59E0B" size={16} />
+                        <Text style={styles.reminderText}>{displayResults.calendarEvent.title}</Text>
+                    </View>
+                )}
+
+                {/* Add to Calendar Button */}
+                <TouchableOpacity
+                    style={styles.calendarButton}
+                    onPress={addHarvestToCalendar}
+                    disabled={isAddingToCalendar}
+                >
+                    <CalendarPlus size={20} color="#FFFFFF" />
+                    <Text style={styles.calendarButtonText}>
+                        {isAddingToCalendar
+                            ? (language === 'si' ? 'එකතු කරමින්...' : 'Adding...')
+                            : t.addToCalendar}
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    const FactorRadar = () => {
         return (
             <View style={styles.factorContainer}>
                 <View style={styles.factorHeader}>
                     <Activity color="#16A34A" size={20} />
-                    <Text style={styles.factorTitle}>{t.impactFactors || 'Impact Factors'}</Text>
+                    <Text style={styles.factorTitle}>{t.impactFactors}</Text>
                 </View>
                 <View style={styles.factorList}>
                     {displayResults.factors.map((factor, index) => (
-                        <View key={`factor-${index}`} style={styles.factorItem}>
+                        <View key={index} style={styles.factorItem}>
                             <View style={styles.factorInfo}>
-                                <Text style={styles.factorName} numberOfLines={2}>{factor.name}</Text>
+                                <Text style={styles.factorName}>{factor.name}</Text>
                                 <View style={styles.factorBar}>
                                     <View
                                         style={[
                                             styles.factorBarFill,
                                             {
-                                                width: `${Math.min(factor.value, 100)}%`,
+                                                width: `${factor.value}%`,
                                                 backgroundColor: factor.color
                                             }
                                         ]}
@@ -159,7 +197,7 @@ export default function PredictYieldScreen() {
                 </View>
             </View>
         );
-    }, [displayResults.factors, t.impactFactors]);
+    };
 
 
     return (
@@ -181,41 +219,43 @@ export default function PredictYieldScreen() {
                         <View style={styles.pulseRing} />
                     </View>
 
-                    <Text style={styles.title}>{t.title || 'Yield Prediction'}</Text>
-                    <Text style={styles.subtitle}>{t.subtitle || 'Your Results'}</Text>
+                    <Text style={styles.title}>{t.title}</Text>
+                    <Text style={styles.subtitle}>{t.subtitle}</Text>
 
                     {/* Main Result Card */}
                     <Card style={styles.resultCard}>
                         <View style={styles.resultHeader}>
                             <TrendingUp color="#16A34A" size={24} />
-                            <Text style={styles.resultTitle}>{t.predictedYield || 'Predicted Yield'}</Text>
+                            <Text style={styles.resultTitle}>{t.title}</Text>
                         </View>
 
                         <View style={styles.yieldDisplay}>
+                            <Text style={styles.yieldLabel}>{t.predictedYield}</Text>
                             <Text style={styles.yieldValue}>{displayResults.predictedYield}</Text>
                         </View>
 
                         <View style={styles.confidenceContainer}>
-                            <Text style={styles.confidenceLabel}>{t.confidence || 'Confidence'}</Text>
+                            <Text style={styles.confidenceLabel}>{t.confidence}</Text>
                             <View style={styles.confidenceBar}>
-                                <View style={[styles.confidenceFill, { width: `${Math.min(displayResults.confidence, 100)}%` }]} />
+                                <View style={[styles.confidenceFill, { width: `${displayResults.confidence}%` }]} />
                                 <Text style={styles.confidenceText}>{displayResults.confidence}%</Text>
                             </View>
                         </View>
                     </Card>
 
                     {/* Data Sections */}
-                    {FactorRadar}
+                    <HarvestWindowCard />
+                    <FactorRadar />
 
                     {/* Action Button */}
                     <Button
                         mode="contained"
-                        onPress={handleNewPrediction}
+                        onPress={() => navigation.navigate('PredictYieldFormWizard' as never)}
                         style={styles.actionButton}
                         labelStyle={styles.actionButtonText}
                         icon={() => <TrendingUp color="#FFFFFF" size={20} />}
                     >
-                        {t.newPrediction || 'New Prediction'}
+                        {t.newPrediction}
                     </Button>
                 </View>
             </ScrollView>
