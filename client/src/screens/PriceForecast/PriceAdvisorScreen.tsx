@@ -63,6 +63,21 @@ interface AdvisorFormData {
   expectedYield: string;
 }
 
+// Dynamic API URL based on platform
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    return "http://localhost:8000";
+  } else {
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
+
+
 type QuestionKey =
   | "plant_now"
   | "delay_planting"

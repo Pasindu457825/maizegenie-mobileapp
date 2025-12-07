@@ -34,6 +34,26 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
 import { NotificationDropdown } from "../../components/NotificationDropdown";
 
+import { Platform } from "react-native";
+
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android device → read from .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
+
+
 const { width } = Dimensions.get("window");
 const LOCATION_TRANSLATIONS = {
   Colombo: "කොළඹ",

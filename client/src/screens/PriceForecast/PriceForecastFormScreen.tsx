@@ -95,10 +95,23 @@ type NavProp = StackNavigationProp<
   "PriceForecastFormScreen"
 >;
 
-const API_URL =
-  Platform.OS === "web"
-    ? "http://localhost:8000" // Expo Web
-    : "http://192.168.8.181:8000"; // Real device Expo Go
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
+
 
 const PriceForecastFormScreen = () => {
   const [notifVisible, setNotifVisible] = useState(false);
