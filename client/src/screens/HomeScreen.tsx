@@ -2,9 +2,11 @@ import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useApp } from "../context/AppContext";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 
 export default function HomeScreen() {
-  const { user, signIn, signOut } = useApp();
+  const { user } = useApp();
+  const navigation = useNavigation<any>();
 
   const features = [
     {
@@ -52,14 +54,6 @@ export default function HomeScreen() {
               Your farming companion
             </Text>
           </View>
-          {user && (
-            <TouchableOpacity
-              onPress={signOut}
-              className="bg-red-500 px-4 py-2 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Logout</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 
@@ -69,12 +63,14 @@ export default function HomeScreen() {
           <Text className="text-white text-2xl font-bold mb-2">
             Welcome Back! 👋
           </Text>
+
           <Text className="text-white text-base opacity-90">
-            {user?.email ?? "Guest User"}
+            {user?.full_name || user?.email || "Guest User"}
           </Text>
+
           {!user && (
             <TouchableOpacity
-              onPress={() => signIn("demo@user.com", "1234")}
+              onPress={() => navigation.navigate("Login")}
               className="bg-white mt-4 px-5 py-3 rounded-xl"
             >
               <Text className="text-green-600 font-bold text-center">
@@ -105,9 +101,7 @@ export default function HomeScreen() {
 
         {/* Features Grid */}
         <View className="px-4 mb-6">
-          <Text className="text-lg font-bold text-gray-800 mb-3">
-            Features
-          </Text>
+          <Text className="text-lg font-bold text-gray-800 mb-3">Features</Text>
           <View className="gap-3">
             {features.map((feature, index) => (
               <TouchableOpacity
@@ -132,11 +126,8 @@ export default function HomeScreen() {
                     {feature.description}
                   </Text>
                 </View>
-                <Ionicons
-                  name="chevron-forward"
-                  size={20}
-                  color="#9ca3af"
-                />
+
+                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
               </TouchableOpacity>
             ))}
           </View>
@@ -145,15 +136,15 @@ export default function HomeScreen() {
         {/* Tips Section */}
         <View className="px-4 mb-6">
           <Text className="text-lg font-bold text-gray-800 mb-3">
-            Today's Tip 💡
+            Today&apos;s Tip 💡
           </Text>
           <View className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
             <Text className="text-amber-900 font-semibold mb-2">
               Monitor your crops regularly
             </Text>
             <Text className="text-amber-800 text-sm">
-              Early detection of pests and diseases can save your harvest.
-              Check your plants daily for any signs of trouble.
+              Early detection of pests and diseases can save your harvest. Check
+              your plants daily for any signs of trouble.
             </Text>
           </View>
         </View>

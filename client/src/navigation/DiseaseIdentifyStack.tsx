@@ -1,12 +1,11 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import DiseaseDetectionScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen"; 
-// 🔹 adjust the import path if your folder is different
+import DiseaseIdentificationScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen";
+import ChatScreen from "@screens/DiseaseIdentification/ChatScreen"; // ✅ Add this
 
 export type DiseaseIdentifyStackParamList = {
   DiseaseDetection: undefined;
-  // add other screens later, e.g.:
-  // DiseaseResult: { id: string };
+  Chat: undefined; // ✅ add chat route type
 };
 
 const Stack = createStackNavigator<DiseaseIdentifyStackParamList>();
@@ -19,8 +18,13 @@ export default function DiseaseIdentifyStack() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="DiseaseDetection" component={DiseaseDetectionScreen} />
-      {/* Add more screens (e.g., DiseaseResult) when ready */}
+      <Stack.Screen
+        name="DiseaseDetection"
+        component={DiseaseIdentificationScreen}
+      />
+
+      {/* ✅ Chat Screen added here */}
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }

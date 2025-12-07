@@ -15,7 +15,7 @@ if (manifest2?.extra?.expoGo?.developer?.host) {
   devHost = manifest.debuggerHost.split(":")[0];
 }
 
-// Android emulator uses 10.0.2.2 to access localhost
+// Android Emulator uses 10.0.2.2
 const localhost = Platform.select({
   ios: "localhost",
   android: "10.0.2.2",

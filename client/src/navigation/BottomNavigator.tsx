@@ -7,8 +7,8 @@ import PriceForecastStack from "./PriceForecastStack";
 import PredictYieldStack from "./PredictYieldStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
-import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
 import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
+import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {

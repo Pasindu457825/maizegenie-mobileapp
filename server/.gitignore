@@ -10,13 +10,6 @@ __pycache__/
 venv/
 env/
 
-*.pkl
-*.pt
-*.h5
-__pycache__/
-models/
-
-
 # SQLite / uploads
 app.db
 *.sqlite*
