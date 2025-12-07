@@ -26,11 +26,17 @@ export function useChatWebSocket(
 
     return () => ws.current?.close();
   }, [roomId]);
-
-  const sendMessage = (senderId: string, message: string) => {
+  const sendTextMessage = (senderId: string, message: string) => {
     if (!ws.current) return;
     ws.current.send(JSON.stringify({ sender_id: senderId, message }));
   };
 
-  return { sendMessage };
+  const sendImageMessage = (senderId: string, imageUrl: string) => {
+    if (!ws.current) return;
+    ws.current.send(
+      JSON.stringify({ sender_id: senderId, image_url: imageUrl })
+    );
+  };
+
+  return { sendTextMessage, sendImageMessage };
 }
