@@ -8,149 +8,156 @@ import {
   StyleSheet,
 } from "react-native";
 
-import { supabase } from "../../services/supabaseClient";
-import { sendFarmerMessage, getChatHistory } from "../../services/chatApi";
+import { getOrCreateRoom } from "../../services/chatRoomApi";
+import { getChatHistory } from "../../services/chatApi";
+import { useChatWebSocket } from "../../hooks/useChatWebSocket";
 import { useApp } from "../../context/AppContext";
 
-export default function ChatScreen() {
+export default function ChatScreen({ route }: any) {
   const { user } = useApp();
-  const farmerId = user?.id as string | undefined;
 
+  // Params for officer mode
+  const incomingRoomId = route?.params?.roomId ?? null;
+  const incomingUserId = route?.params?.userId ?? null;
+
+  const isOfficer = !!incomingRoomId;
+
+  // --- farmer values (safe) ---
+  const farmerId = user?.id ?? null;
+  const farmerDistrict = user?.district ?? null;
+
+  const [roomId, setRoomId] = useState<string | null>(incomingRoomId);
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
-  const flatListRef = useRef<FlatList>(null);
+  const hasSentMessage = useRef(false);
 
-  // ---------------------------
-  // Load chat history once
-  // ---------------------------
   useEffect(() => {
-    if (!farmerId) return;
+    async function initChat() {
+      // OFFICER → joins existing room
+      if (isOfficer && incomingRoomId) {
+        setRoomId(incomingRoomId);
+        const history = await getChatHistory(incomingRoomId);
+        setMessages(history);
+        return;
+      }
 
-    (async () => {
-      const res = await getChatHistory(farmerId);
-      setMessages(res.data);
-    })();
-  }, [farmerId]);
+      // FARMER → user must exist
+      if (!farmerId || !farmerDistrict) {
+        console.log("Farmer user not loaded yet");
+        return;
+      }
 
-  // ---------------------------------------------------
-  // SINGLE realtime listener (the correct one)
-  // ---------------------------------------------------
-  useEffect(() => {
-    if (!farmerId) return;
+      const room = await getOrCreateRoom(farmerId, farmerDistrict);
+      const newRoomId = String(room.id);
+      setRoomId(newRoomId);
 
-    const channel = supabase
-      .channel(`chat-room-${farmerId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `farmer_id=eq.${farmerId}`,
-        },
-        (payload) => {
-          console.log("Realtime:", payload.new);
+      const history = await getChatHistory(newRoomId);
+      setMessages(history);
+    }
 
-          setMessages((prev) => {
-            const updated = [...prev, payload.new];
-            return updated.sort((a, b) => {
-              const t1 = a.created_at ? new Date(a.created_at).getTime() : 0;
-              const t2 = b.created_at ? new Date(b.created_at).getTime() : 0;
+    initChat();
+  }, []);
 
-              if (t1 === t2) {
-                // fallback unique ordering
-                return a.id.localeCompare(b.id);
-              }
+  // WebSocket
+  const { sendMessage } = useChatWebSocket(roomId, (msg) => {
+    setMessages((prev) => [...prev, msg]);
+  });
 
-              return t1 - t2;
-            });
-          });
+  const handleSend = () => {
+    if (!roomId || !text.trim()) return;
 
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 150);
-        }
-      )
-      .subscribe();
+    // Prevent TS error → ensure string always
+    const senderId = isOfficer ? String(incomingUserId) : String(farmerId);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [farmerId]);
-
-  // ---------------------------
-  // Send message
-  // ---------------------------
-  const handleSend = async () => {
-    if (!text.trim() || !farmerId) return;
-
-    await sendFarmerMessage(farmerId, text.trim());
+    sendMessage(senderId, text);
+    hasSentMessage.current = true;
     setText("");
   };
 
-  if (!farmerId) {
-    return (
-      <View style={styles.center}>
-        <Text>Loading chat...</Text>
-      </View>
-    );
-  }
+  if (!roomId) return <Text>Loading chat...</Text>;
+
+  // Prevent TS error → always a string
+  const currentUserId = isOfficer ? String(incomingUserId) : String(farmerId);
 
   return (
     <View style={styles.container}>
       <FlatList
-        ref={flatListRef}
         data={messages}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View
             style={[
               styles.msgBubble,
-              item.sender === "farmer" ? styles.me : styles.them,
+              item.sender_id === currentUserId
+                ? styles.meBubble
+                : styles.otherBubble,
             ]}
           >
             <Text style={styles.msgText}>{item.message}</Text>
           </View>
         )}
-        onContentSizeChange={() =>
-          flatListRef.current?.scrollToEnd({ animated: true })
-        }
       />
 
       <View style={styles.inputRow}>
         <TextInput
+          style={styles.input}
           value={text}
           onChangeText={setText}
-          placeholder="Type message..."
-          style={styles.input}
+          placeholder="Type a message..."
         />
-        <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-          <Text style={{ color: "#fff" }}>Send</Text>
+
+        <TouchableOpacity style={styles.btn} onPress={handleSend}>
+          <Text style={styles.btnText}>Send</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
 
+// --- styles ---
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f1f1f1", padding: 10 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  container: { flex: 1, padding: 10, backgroundColor: "#fff" },
+
   msgBubble: {
     padding: 10,
-    marginVertical: 4,
-    maxWidth: "75%",
+    marginVertical: 5,
     borderRadius: 10,
+    maxWidth: "80%",
   },
-  me: { backgroundColor: "#4CAF50", alignSelf: "flex-end" },
-  them: { backgroundColor: "#ddd", alignSelf: "flex-start" },
-  msgText: { color: "#000" },
-  inputRow: { flexDirection: "row", marginTop: 10 },
+
+  meBubble: {
+    backgroundColor: "#DCF8C6",
+    alignSelf: "flex-end",
+  },
+
+  otherBubble: {
+    backgroundColor: "#eee",
+    alignSelf: "flex-start",
+  },
+
+  msgText: { fontSize: 16 },
+
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+
   input: {
     flex: 1,
-    backgroundColor: "#fff",
+    padding: 12,
+    borderColor: "#ccc",
+    borderWidth: 1,
     borderRadius: 8,
-    padding: 10,
-    marginRight: 8,
   },
-  sendBtn: { backgroundColor: "#4CAF50", padding: 12, borderRadius: 8 },
+
+  btn: {
+    marginLeft: 10,
+    backgroundColor: "#007bff",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+
+  btnText: { color: "#fff", fontWeight: "bold" },
 });

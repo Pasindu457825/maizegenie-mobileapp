@@ -1,39 +1,43 @@
-# src/chat/router.py
-from fastapi import APIRouter, HTTPException
-from src.chat.schema import FarmerMessage, OfficerReply
-from src.chat.service import (
-    save_farmer_message,
-    save_officer_reply,
-    get_chat_history,
-)
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
+import json
+import uuid
 
+from .ws_manager import ConnectionManager
+from .schema import ChatMessage
+from .service import save_message, load_history
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+manager = ConnectionManager()
 
 
-@router.post("/send")
-def send_message(payload: FarmerMessage):
-    result = save_farmer_message(payload.farmer_id, payload.message)
-
-    if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to save message")
-
-    return {"status": "sent"}
+@router.get("/history/{room_id}")
+async def get_history(room_id: str):
+    messages = await load_history(room_id)
+    return JSONResponse(messages)
 
 
-@router.post("/reply")
-def officer_reply(payload: OfficerReply):
-    result = save_officer_reply(
-        payload.farmer_id, payload.officer_id, payload.message
-    )
+@router.websocket("/ws/{room_id}")
+async def chat_ws(websocket: WebSocket, room_id: str):
+    await manager.connect(room_id, websocket)
 
-    if not result.data:
-        raise HTTPException(status_code=500, detail="Failed to save reply")
+    try:
+        while True:
+            # ALWAYS returns clean text
+            text = await websocket.receive_text()
+            data = json.loads(text)
 
-    return {"status": "sent"}
+            msg_obj = {
+                "id": str(uuid.uuid4()),
+                "room_id": room_id,
+                "sender_id": data["sender_id"],
+                "message": data["message"],
+            }
 
+            await save_message(ChatMessage(**msg_obj))
 
-@router.get("/history/{farmer_id}")
-def history(farmer_id: str):
-    result = get_chat_history(farmer_id)
-    return result.data
+            await manager.broadcast(room_id, msg_obj)
+
+    except WebSocketDisconnect:
+        manager.disconnect(room_id, websocket)
+

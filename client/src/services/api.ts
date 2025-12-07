@@ -1,4 +1,3 @@
-// src/config/api.ts
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
@@ -23,9 +22,9 @@ const localhost = Platform.select({
 });
 
 export const API_BASE =
-  Platform.OS === "android"
-    ? `http://${devHost}:8000`
-    : `http://${localhost}:8000`;
+  Constants.expoConfig?.extra?.API_BASE ||
+  process.env.EXPO_PUBLIC_API_BASE ||
+  "http://localhost:8000";
 
 console.log("🌐 API_BASE =>", API_BASE);
 
