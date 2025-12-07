@@ -15,10 +15,13 @@ import {
   YieldPredictionRequest,
 } from '../../../types/farmerYieldPrediction';
 import { translations, translateOption } from '../../../translations/translationYieldPrediction';
+import { useApp } from '../../../context/AppContext';
+import { supabase } from '../../../services/supabaseClient';
 
 export const WeatherConditionScreen: React.FC = () => {
   const navigation = useNavigation();
   const { formData, updateFormData, errors, setErrors, resetForm, language } = useYieldForm();
+  const { user } = useApp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetectingWeather, setIsDetectingWeather] = useState(false);
 
@@ -121,25 +124,44 @@ export const WeatherConditionScreen: React.FC = () => {
       return;
     }
 
+    // Check if user is logged in
+    if (!user || !user.id) {
+      Alert.alert(
+        'Authentication Required',
+        'Please log in to submit yield prediction.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const payload = buildRequestPayload();
       
-      console.log('Yield Prediction Payload:', JSON.stringify(payload, null, 2));
+      // Add farmer_id from logged-in user
+      const requestPayload = {
+        ...payload,
+        farmer_id: user.id,
+      };
+      
+      console.log('🌾 Submitting Yield Prediction:', JSON.stringify(requestPayload, null, 2));
 
       // Navigate to loading screen with the payload
-      // The loading screen will handle the API call and show results
+      // The loading screen will handle the API call
       (navigation as any).navigate('PredictYieldLoading', { 
-        payload,
+        payload: requestPayload,
         formData 
       });
 
+      // Reset form after navigation
+      resetForm();
+
     } catch (error) {
-      console.error('Submission error:', error);
+      console.error('❌ Submission error:', error);
       Alert.alert(
         'Submission Failed',
-        'Failed to submit prediction request. Please try again.',
+        error instanceof Error ? error.message : 'Failed to submit prediction request. Please try again.',
         [{ text: 'OK' }]
       );
     } finally {

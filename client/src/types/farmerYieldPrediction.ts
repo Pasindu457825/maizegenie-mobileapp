@@ -233,25 +233,41 @@ export interface YieldPredictionRequest {
 
 /**
  * API Response for Yield Prediction
- * Matches backend response format from /api/yield/predict
+ * Matches NEW backend response format from /api/v1/yield-prediction/farmer
  */
 export interface YieldPredictionResponse {
-  yield_prediction_t_ha: number;
-  confidence: 'High' | 'Medium' | 'Low';
-  harvest_window: {
-    start: string;
-    end: string;
-    target: string;
+  prediction_id: string;
+  farmer_input_id: string;
+  timestamp: string;
+  prediction: {
+    predicted_yield_kg_per_ha: number;
+    predicted_yield_tons_per_ha: number;
+    confidence_level: 'High' | 'Medium' | 'Low';
+    confidence_score: number;
+    yield_lower_bound: number;
+    yield_upper_bound: number;
+    prediction_method: string;
+    model_version: string;
   };
-  calendar_event: {
-    title: string;
-    date: string;
-  };
-  factors: {
-    name: string;
-    impact: 'High' | 'Medium' | 'Low';
-    value: number;
+  impact_factors: {
+    factor: string;
+    impact: 'positive' | 'negative' | 'neutral';
+    description_english: string;
+    description_sinhala: string;
+    weight: number;
   }[];
+  primary_limiting_factors: string[];
+  recommendations: {
+    priority: 'high' | 'medium' | 'low';
+    title_english: string;
+    title_sinhala: string;
+    description_english: string;
+    description_sinhala: string;
+    icon: string;
+  }[];
+  summary_english: string;
+  summary_sinhala: string;
+  status: string;
 }
 
 // ==================== Utility Types ====================
