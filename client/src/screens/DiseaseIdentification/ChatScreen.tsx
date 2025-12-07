@@ -12,6 +12,9 @@ import { getOrCreateRoom } from "../../services/chatRoomApi";
 import { getChatHistory } from "../../services/chatApi";
 import { useChatWebSocket } from "../../hooks/useChatWebSocket";
 import { useApp } from "../../context/AppContext";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "react-native";
+import { uploadChatImage } from "../../services/chatUploadApi";
 
 export default function ChatScreen({ route }: any) {
   const { user } = useApp();
@@ -59,9 +62,30 @@ export default function ChatScreen({ route }: any) {
   }, []);
 
   // WebSocket
-  const { sendMessage } = useChatWebSocket(roomId, (msg) => {
-    setMessages((prev) => [...prev, msg]);
-  });
+  const { sendTextMessage, sendImageMessage } = useChatWebSocket(
+    roomId,
+    (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    }
+  );
+
+  const handlePickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.7,
+    });
+
+    if (result.canceled) return;
+
+    const uri = result.assets[0].uri;
+
+    // 1️⃣ Upload to Supabase
+    const imageUrl = await uploadChatImage(uri);
+
+    // 2️⃣ Send via WebSocket
+    const senderId = isOfficer ? String(incomingUserId) : String(farmerId);
+    sendImageMessage(senderId, imageUrl);
+  };
 
   const handleSend = () => {
     if (!roomId || !text.trim()) return;
@@ -69,7 +93,7 @@ export default function ChatScreen({ route }: any) {
     // Prevent TS error → ensure string always
     const senderId = isOfficer ? String(incomingUserId) : String(farmerId);
 
-    sendMessage(senderId, text);
+    sendTextMessage(senderId, text);
     hasSentMessage.current = true;
     setText("");
   };
@@ -93,12 +117,33 @@ export default function ChatScreen({ route }: any) {
                 : styles.otherBubble,
             ]}
           >
-            <Text style={styles.msgText}>{item.message}</Text>
+            {item.message ? (
+              <Text style={styles.msgText}>{item.message}</Text>
+            ) : null}
+
+            {item.image_url ? (
+              <Image
+                source={{ uri: item.image_url }}
+                style={{
+                  width: 180,
+                  height: 180,
+                  borderRadius: 10,
+                  marginTop: 5,
+                }}
+                resizeMode="cover"
+              />
+            ) : null}
           </View>
         )}
       />
 
       <View style={styles.inputRow}>
+        {/* Camera Button */}
+        <TouchableOpacity onPress={handlePickImage} style={styles.camBtn}>
+          <Text style={{ color: "#fff", fontSize: 20 }}>📸</Text>
+        </TouchableOpacity>
+
+        {/* Text Input */}
         <TextInput
           style={styles.input}
           value={text}
@@ -106,6 +151,7 @@ export default function ChatScreen({ route }: any) {
           placeholder="Type a message..."
         />
 
+        {/* Send Button */}
         <TouchableOpacity style={styles.btn} onPress={handleSend}>
           <Text style={styles.btnText}>Send</Text>
         </TouchableOpacity>
@@ -157,6 +203,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
+  },
+  camBtn: {
+    backgroundColor: "#28a745",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginRight: 8,
   },
 
   btnText: { color: "#fff", fontWeight: "bold" },
