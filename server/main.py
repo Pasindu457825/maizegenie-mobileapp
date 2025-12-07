@@ -23,6 +23,9 @@ from chat.router import router as chat_router
 from priceforecast.admin_router import router as admin_router
 from yieldprediction.router import router as yield_router
 from yieldprediction.officer_router import router as officer_yield_router
+from priceforecast.price_prediction_router import router as price_forecast_router
+
+
 
 # Create app
 app = FastAPI(title=settings.APP_NAME, version="1.0")
@@ -55,3 +58,4 @@ app.include_router(chat_router)
 app.include_router(admin_router)
 app.include_router(yield_router)
 app.include_router(officer_yield_router)
+app.include_router(price_forecast_router)
