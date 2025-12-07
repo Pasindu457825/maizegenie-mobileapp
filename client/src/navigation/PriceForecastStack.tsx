@@ -1,24 +1,61 @@
 import React from "react";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import PriceForecastFormScreen from "../screens/PriceForecast/PriceForecastFormScreen";
+import { createStackNavigator } from "@react-navigation/stack";
 import PriceForecastLoadingScreen from "../screens/PriceForecast/PriceForecastLoadingScreen";
+import PriceForecastFormScreen from "../screens/PriceForecast/PriceForecastFormScreen";
 import PriceForecastScreen from "../screens/PriceForecast/PriceForecastScreen";
-import { ROUTES } from "../constants";
+import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen";
+import WeatherForecastScreen from "../screens/PriceForecast/WeatherForecastScreen";
+import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
 
-type PriceStackParamList = {
-    PriceForecastLoading: undefined;
-    PriceForecastForm: undefined;
-    PriceForecastScreen: undefined;
+export type PriceForecastStackParamList = {
+  PriceForecastLoadingScreen: undefined;
+  PriceForecastFormScreen: undefined;
+  PriceForecastScreen: undefined;
+  AdminPanelScreen: undefined;
+  WeatherForecastScreen: undefined;
+  PriceAdvisorScreen:  { formData: any };
 };
 
-const Stack = createNativeStackNavigator<PriceStackParamList>();
+const Stack = createStackNavigator<PriceForecastStackParamList>();
 
-export default function PriceForecastStack() {
-    return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="PriceForecastLoading" component={PriceForecastLoadingScreen} />
-            <Stack.Screen name="PriceForecastForm" component={PriceForecastFormScreen} />
-            <Stack.Screen name="PriceForecastScreen" component={PriceForecastScreen} />
-        </Stack.Navigator>
-    );
-}
+const PriceForecastStack = () => {
+  return (
+    <Stack.Navigator
+      initialRouteName="PriceForecastLoadingScreen"
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: "#F0FDF4" },
+      }}
+    >
+      <Stack.Screen
+        name="PriceForecastLoadingScreen"
+        component={PriceForecastLoadingScreen}
+      />
+      <Stack.Screen
+        name="PriceForecastFormScreen"
+        component={PriceForecastFormScreen}
+      />
+      <Stack.Screen
+        name="PriceForecastScreen"
+        component={PriceForecastScreen}
+      />
+      <Stack.Screen
+        name="AdminPanelScreen"
+        component={AdminPanelScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="WeatherForecastScreen"
+        component={WeatherForecastScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="PriceAdvisorScreen"
+        component={PriceAdvisorScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  );
+};
+
+export default PriceForecastStack;
