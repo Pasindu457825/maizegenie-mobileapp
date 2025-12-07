@@ -7,6 +7,7 @@ async def save_message(msg: ChatMessage):
         "room_id": msg.room_id,
         "sender_id": msg.sender_id,
         "message": msg.message,
+        "image_url": msg.image_url,           # NEW FIELD
         "created_at": msg.created_at.isoformat(),
     }).execute()
     return True
@@ -18,5 +19,6 @@ async def load_history(room_id: str):
         .eq("room_id", room_id)\
         .order("created_at", desc=False)\
         .execute()
+
 
     return res.data or []
