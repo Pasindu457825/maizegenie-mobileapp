@@ -1,4 +1,15 @@
 import { useEffect, useRef } from "react";
+import { API_BASE } from "../services/api";
+
+function apiBaseToWs(base: string): string {
+  if (base.startsWith("https://")) {
+    return base.replace("https://", "wss://");
+  }
+  if (base.startsWith("http://")) {
+    return base.replace("http://", "ws://");
+  }
+  return base;
+}
 
 export function useChatWebSocket(
   roomId: string | null,
@@ -7,9 +18,10 @@ export function useChatWebSocket(
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!roomId) return; // stop when roomId not ready
+    if (!roomId) return;
 
-    const wsUrl = `ws://192.168.1.12:8000/chat/ws/${roomId}`;
+    const wsBase = apiBaseToWs(API_BASE);
+    const wsUrl = `${wsBase}/chat/ws/${roomId}`;
 
     ws.current = new WebSocket(wsUrl);
 
@@ -26,6 +38,7 @@ export function useChatWebSocket(
 
     return () => ws.current?.close();
   }, [roomId]);
+
   const sendTextMessage = (senderId: string, message: string) => {
     if (!ws.current) return;
     ws.current.send(JSON.stringify({ sender_id: senderId, message }));
