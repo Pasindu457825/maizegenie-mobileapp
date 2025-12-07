@@ -10,6 +10,10 @@ export const DISTRICTS = [
   'Monaragala',
   'Badulla',
   'Ampara',
+  'Hambantota',
+  'Polonnaruwa',
+  'Kurunegala',
+  'Puttalam',
 ] as const;
 
 export type District = typeof DISTRICTS[number];
@@ -37,6 +41,26 @@ export const LOCATIONS_BY_DISTRICT: Record<District, string[]> = {
     'Mahiyanganaya',
     'Rideemaliyadda',
   ],
+  Hambantota: [
+    'Hambantota',
+    'Tangalle',
+    'Tissamaharama',
+  ],
+  Polonnaruwa: [
+    'Polonnaruwa',
+    'Medirigiriya',
+    'Hingurakgoda',
+  ],
+  Kurunegala: [
+    'Kurunegala',
+    'Maho',
+    'Wariyapola',
+  ],
+  Puttalam: [
+    'Puttalam',
+    'Chilaw',
+    'Anamaduwa',
+  ],
 };
 
 export const SEASONS = ['Maha', 'Yala'] as const;
@@ -62,6 +86,9 @@ export type MaizeVariety = typeof MAIZE_VARIETIES[number];
 
 export const RAINFALL_CONDITIONS = ['Low', 'Normal', 'High'] as const;
 export type RainfallCondition = typeof RAINFALL_CONDITIONS[number];
+
+export const SOIL_TYPES_OFFICER = ['Clay', 'Loam', 'RBE', 'RBL'] as const;
+export type SoilTypeOfficer = typeof SOIL_TYPES_OFFICER[number];
 
 // ==================== Form Data Interfaces ====================
 
@@ -98,12 +125,62 @@ export interface WeatherConditionData {
 }
 
 /**
+ * AgriOfficer: Soil Profile Data
+ */
+export interface OfficerSoilProfileData {
+  soil_ph?: string;
+  soil_nitrogen?: string;
+  soil_phosphorus?: string;
+  soil_potassium?: string;
+  soil_type_officer?: SoilTypeOfficer | '';
+  organic_matter?: string;
+}
+
+/**
+ * AgriOfficer: Climate Data (Auto-fetched)
+ */
+export interface OfficerClimateData {
+  seasonal_rainfall?: string;
+  temperature?: string;
+  humidity?: string;
+  photoperiod?: string;
+  climate_auto_fetched?: boolean;
+}
+
+/**
+ * AgriOfficer: Crop Measurements (Optional)
+ */
+export interface OfficerCropMeasurementsData {
+  plant_height?: string;
+  cob_height?: string;
+  cob_length?: string;
+  kernel_rows?: string;
+  wet_weight_per_m2?: string;
+}
+
+/**
+ * AgriOfficer: Fertilizer Scheduling
+ */
+export interface OfficerFertilizerData {
+  basal_npk?: string;
+  top_dress_1_amount?: string;
+  top_dress_1_date?: Date | null;
+  top_dress_2_amount?: string;
+  top_dress_2_date?: Date | null;
+  organic_fertilizer?: string;
+}
+
+/**
  * Complete Yield Prediction Form Data
  */
 export interface YieldPredictionFormData
   extends LocationFieldData,
     CropInformationData,
-    WeatherConditionData {}
+    WeatherConditionData,
+    OfficerSoilProfileData,
+    OfficerClimateData,
+    OfficerCropMeasurementsData,
+    OfficerFertilizerData {}
 
 /**
  * Initial/Default Form State
@@ -146,8 +223,8 @@ export interface YieldPredictionRequest {
   gps_lng: number | null;
   season: Season;
   planting_date: string; // ISO date string
-  land_size_value: number | null;
-  land_size_unit: LandUnit | null;
+  land_size_value: number; // Mandatory field
+  land_size_unit: 'Acres'; // Fixed unit - always Acres
   soil_condition: SoilCondition;
   irrigation_type: IrrigationType;
   variety: MaizeVariety;
@@ -156,24 +233,25 @@ export interface YieldPredictionRequest {
 
 /**
  * API Response for Yield Prediction
- * (Structure to be finalized when backend is implemented)
+ * Matches backend response format from /api/yield/predict
  */
 export interface YieldPredictionResponse {
-  prediction_id: string;
-  predicted_yield: number;
-  unit: string;
-  confidence_score: number;
+  yield_prediction_t_ha: number;
+  confidence: 'High' | 'Medium' | 'Low';
+  harvest_window: {
+    start: string;
+    end: string;
+    target: string;
+  };
+  calendar_event: {
+    title: string;
+    date: string;
+  };
   factors: {
     name: string;
     impact: 'High' | 'Medium' | 'Low';
     value: number;
   }[];
-  recommendations: {
-    title: string;
-    description: string;
-    priority: 'High' | 'Medium' | 'Low';
-  }[];
-  created_at: string;
 }
 
 // ==================== Utility Types ====================

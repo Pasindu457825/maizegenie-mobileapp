@@ -7,19 +7,23 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { CloudRain, ChevronLeft, Send, Cloud } from 'lucide-react-native';
-import { useYieldForm } from '../../contexts/YieldFormContext';
-import { CustomDropdown } from '../../components/forms/CustomDropdown';
+import { useYieldForm } from '../../../contexts/YieldFormContext';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
 import {
   RAINFALL_CONDITIONS,
   RainfallCondition,
   YieldPredictionRequest,
-} from '../../types/yieldPrediction';
+} from '../../../types/farmerYieldPrediction';
+import { translations, translateOption } from '../../../translations/translationYieldPrediction';
 
 export const WeatherConditionScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { formData, updateFormData, errors, setErrors, resetForm } = useYieldForm();
+  const { formData, updateFormData, errors, setErrors, resetForm, language } = useYieldForm();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDetectingWeather, setIsDetectingWeather] = useState(false);
+
+  // Get translations
+  const t = translations.weatherCondition[language];
 
   // TODO: Implement actual weather API detection based on GPS location
   const handleWeatherDetection = async () => {
@@ -71,7 +75,7 @@ export const WeatherConditionScreen: React.FC = () => {
     const newErrors: any = {};
 
     if (!formData.rainfall_condition) {
-      newErrors.rainfall_condition = 'Please describe recent rainfall in your area.';
+      newErrors.rainfall_condition = t.errorRainfall;
     }
 
     setErrors(newErrors);
@@ -79,15 +83,32 @@ export const WeatherConditionScreen: React.FC = () => {
   };
 
   const buildRequestPayload = (): YieldPredictionRequest => {
+    // Safely handle planting date - use current date if not provided
+    let plantingDateStr = '';
+    try {
+      if (formData.planting_date && formData.planting_date instanceof Date && !isNaN(formData.planting_date.getTime())) {
+        plantingDateStr = formData.planting_date.toISOString().split('T')[0];
+      } else {
+        // Use current date as fallback
+        plantingDateStr = new Date().toISOString().split('T')[0];
+      }
+    } catch (error) {
+      console.warn('Invalid planting date, using current date:', error);
+      plantingDateStr = new Date().toISOString().split('T')[0];
+    }
+
+    // Use detected season or default to Maha if not available
+    const season = formData.season || 'Maha';
+
     return {
       district: formData.district as any,
       location: formData.location,
       gps_lat: formData.gps_lat,
       gps_lng: formData.gps_lng,
-      season: formData.season as any,
-      planting_date: formData.planting_date?.toISOString().split('T')[0] || '',
-      land_size_value: formData.land_size_value ? parseFloat(formData.land_size_value) : null,
-      land_size_unit: formData.land_size_value ? formData.land_size_unit : null,
+      season: season as any,
+      planting_date: plantingDateStr,
+      land_size_value: parseFloat(formData.land_size_value),
+      land_size_unit: 'Acres', // Fixed unit - always Acres
       soil_condition: formData.soil_condition as any,
       irrigation_type: formData.irrigation_type as any,
       variety: formData.variety as any,
@@ -107,29 +128,12 @@ export const WeatherConditionScreen: React.FC = () => {
       
       console.log('Yield Prediction Payload:', JSON.stringify(payload, null, 2));
 
-      // TODO: Replace with actual API call
-      // const response = await apiClient.post('/yield-prediction', payload);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      Alert.alert(
-        'Success',
-        'Yield prediction request submitted successfully!',
-        [
-          {
-            text: 'View Results',
-            onPress: () => {
-              // TODO: Navigate to results screen with response data
-              // navigation.navigate('YieldResults', { data: response.data });
-              
-              // For now, reset form and go back to start
-              resetForm();
-              navigation.navigate('LocationField' as never);
-            },
-          },
-        ]
-      );
+      // Navigate to loading screen with the payload
+      // The loading screen will handle the API call and show results
+      (navigation as any).navigate('PredictYieldLoading', { 
+        payload,
+        formData 
+      });
 
     } catch (error) {
       console.error('Submission error:', error);
@@ -155,8 +159,8 @@ export const WeatherConditionScreen: React.FC = () => {
           <CloudRain size={28} color="#16A34A" />
         </View>
         <View>
-          <Text style={styles.headerTitle}>Weather Condition</Text>
-          <Text style={styles.headerSubtitle}>Step 3 of 3</Text>
+          <Text style={styles.headerTitle}>{t.title}</Text>
+          <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
         </View>
       </View>
 
@@ -191,16 +195,19 @@ export const WeatherConditionScreen: React.FC = () => {
 
           {/* Manual Selection */}
           <CustomDropdown
-            label="Rainfall Condition"
+            label={t.rainfallCondition}
             value={formData.rainfall_condition}
-            options={RAINFALL_CONDITIONS}
+            options={RAINFALL_CONDITIONS.map(value => ({
+              value,
+              label: translateOption('rainfallConditions', value, language)
+            }))}
             onChange={(value) => updateFormData({ 
               rainfall_condition: value as RainfallCondition,
               weather_auto_detected: false,
             })}
             error={errors.rainfall_condition}
             mandatory
-            placeholder="Select rainfall condition"
+            placeholder={language === 'si' ? 'වර්ෂාපතන තත්ත්වය තෝරන්න' : 'Select rainfall condition'}
           />
 
           {formData.weather_auto_detected && (
@@ -212,26 +219,38 @@ export const WeatherConditionScreen: React.FC = () => {
 
           {/* Summary Section */}
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryTitle}>📋 Summary</Text>
+            <Text style={styles.summaryTitle}>📋 {t.summary}</Text>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>District:</Text>
-              <Text style={styles.summaryValue}>{formData.district || '-'}</Text>
+              <Text style={styles.summaryLabel}>{t.summaryDistrict}:</Text>
+              <Text style={styles.summaryValue}>{formData.district || t.notProvided}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Season:</Text>
-              <Text style={styles.summaryValue}>{formData.season || '-'}</Text>
+              <Text style={styles.summaryLabel}>{t.summarySeason}:</Text>
+              <Text style={styles.summaryValue}>
+                {formData.season ? translateOption('seasons', formData.season, language) : t.notProvided}
+              </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Variety:</Text>
-              <Text style={styles.summaryValue}>{formData.variety || '-'}</Text>
+              <Text style={styles.summaryLabel}>{t.summaryLandSize}:</Text>
+              <Text style={styles.summaryValue}>
+                {formData.land_size_value ? `${formData.land_size_value} ${language === 'si' ? 'අක්කර' : 'Acres'}` : t.notProvided}
+              </Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Soil:</Text>
-              <Text style={styles.summaryValue}>{formData.soil_condition || '-'}</Text>
+              <Text style={styles.summaryLabel}>{t.summaryVariety}:</Text>
+              <Text style={styles.summaryValue}>{formData.variety || t.notProvided}</Text>
             </View>
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Irrigation:</Text>
-              <Text style={styles.summaryValue}>{formData.irrigation_type || '-'}</Text>
+              <Text style={styles.summaryLabel}>{t.summarySoilCondition}:</Text>
+              <Text style={styles.summaryValue}>
+                {formData.soil_condition ? translateOption('soilConditions', formData.soil_condition, language) : t.notProvided}
+              </Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{t.summaryIrrigation}:</Text>
+              <Text style={styles.summaryValue}>
+                {formData.irrigation_type ? translateOption('irrigationTypes', formData.irrigation_type, language) : t.notProvided}
+              </Text>
             </View>
           </View>
         </View>
@@ -245,7 +264,7 @@ export const WeatherConditionScreen: React.FC = () => {
           disabled={isSubmitting}
         >
           <ChevronLeft size={20} color="#16A34A" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>{t.backButton}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -257,7 +276,7 @@ export const WeatherConditionScreen: React.FC = () => {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Text style={styles.submitButtonText}>Submit Prediction</Text>
+              <Text style={styles.submitButtonText}>{t.predictYield}</Text>
               <Send size={20} color="#FFFFFF" />
             </>
           )}

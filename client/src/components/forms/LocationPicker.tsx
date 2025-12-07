@@ -8,7 +8,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } fr
 import * as Location from 'expo-location';
 import { MapPin, Navigation } from 'lucide-react-native';
 import { CustomDropdown } from './CustomDropdown';
-import { District, LOCATIONS_BY_DISTRICT } from '../../types/yieldPrediction';
+import { District, LOCATIONS_BY_DISTRICT } from '../../types/farmerYieldPrediction';
 
 interface LocationPickerProps {
   district: District | '';
@@ -32,6 +32,86 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   error,
 }) => {
   const [isLoadingGPS, setIsLoadingGPS] = useState(false);
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // Known coordinates for major locations (approximate center points)
+  // You can expand this with actual coordinates for each location
+  const LOCATION_COORDINATES: Record<string, { lat: number; lng: number }> = {
+    // Anuradhapura District
+    'Medawachchiya': { lat: 9.3667, lng: 80.4833 },
+    'Horowpothana': { lat: 8.3667, lng: 80.5167 },
+    'Kahatagasdigiliya': { lat: 8.4500, lng: 80.6000 },
+    'Kebithigollewa': { lat: 8.2833, lng: 80.2500 },
+    'Nochchiyagama': { lat: 8.2500, lng: 80.2000 },
+    'Thalawa': { lat: 8.2667, lng: 80.3833 },
+    'Galnewa': { lat: 8.0000, lng: 80.3667 },
+    'Rambewa': { lat: 8.4167, lng: 80.4000 },
+    
+    // Monaragala District
+    'Buttala': { lat: 6.7500, lng: 81.2333 },
+    'Siyambalanduwa': { lat: 6.8500, lng: 81.5167 },
+    'Medagama': { lat: 6.7000, lng: 81.4333 },
+    'Thanamalwila': { lat: 6.5333, lng: 81.1333 },
+    'Sevanagala': { lat: 6.3667, lng: 81.1000 },
+    'Badalkumbura': { lat: 6.7833, lng: 81.0833 },
+    'Wellawaya': { lat: 6.7333, lng: 81.1000 },
+    'Kandaketiya': { lat: 6.9500, lng: 81.3667 },
+    'Bibile': { lat: 7.1667, lng: 81.2000 },
+    
+    // Badulla District
+    'Hali Ela': { lat: 6.9167, lng: 81.0167 },
+    'Mahiyanganaya': { lat: 7.3333, lng: 81.0000 },
+    'Badulla': { lat: 6.9833, lng: 81.0500 },
+    'Welimada': { lat: 6.9000, lng: 80.9167 },
+    
+    // Ampara District
+    'Ampara': { lat: 7.2833, lng: 81.6667 },
+    'Kalmunai': { lat: 7.4167, lng: 81.8333 },
+    'Akkarepattu': { lat: 7.2167, lng: 81.8333 },
+    'Sainthamaruthu': { lat: 7.3333, lng: 81.8000 },
+    'Sammanthurai': { lat: 7.3667, lng: 81.8333 },
+    'Pottuvil': { lat: 6.8667, lng: 81.8333 },
+  };
+
+  const findNearestLocation = (latitude: number, longitude: number): string | null => {
+    if (!district) return null;
+    
+    const availableLocations = LOCATIONS_BY_DISTRICT[district];
+    if (!availableLocations || availableLocations.length === 0) return null;
+
+    let nearestLocation = null;
+    let minDistance = Infinity;
+
+    availableLocations.forEach(location => {
+      const coords = LOCATION_COORDINATES[location];
+      if (coords) {
+        const distance = calculateDistance(latitude, longitude, coords.lat, coords.lng);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestLocation = location;
+        }
+      }
+    });
+
+    // If nearest location is within reasonable range (50km), return it
+    if (nearestLocation && minDistance < 50) {
+      return nearestLocation;
+    }
+
+    return null;
+  };
 
   const handleGPSDetection = async () => {
     if (gpsEnabled) {
@@ -63,36 +143,29 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 
       const { latitude, longitude } = location.coords;
 
-      // Try to reverse geocode to get location name (optional enhancement)
-      try {
-        const [address] = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
-        });
-
-        // If we have district and the geocoded locality matches one of our locations
-        if (district && address.district) {
-          const locations = LOCATIONS_BY_DISTRICT[district];
-          const matchedLocation = locations.find(loc => 
-            address.district?.toLowerCase().includes(loc.toLowerCase())
-          );
-          
-          if (matchedLocation) {
-            onLocationChange(matchedLocation);
-          }
-        }
-      } catch (geocodeError) {
-        console.log('Reverse geocoding failed:', geocodeError);
-        // Continue anyway with coordinates
-      }
-
-      onGPSToggle(true, latitude, longitude);
+      // Find nearest location from available options
+      const nearestLocation = findNearestLocation(latitude, longitude);
       
-      Alert.alert(
-        'GPS Location Detected',
-        `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-        [{ text: 'OK' }]
-      );
+      if (nearestLocation) {
+        // Auto-select the nearest location
+        onLocationChange(nearestLocation);
+        onGPSToggle(true, latitude, longitude);
+        
+        Alert.alert(
+          'GPS Location Detected',
+          `Nearest location: ${nearestLocation}\nCoordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        // No nearby location found, but still save GPS coordinates
+        onGPSToggle(true, latitude, longitude);
+        
+        Alert.alert(
+          'GPS Location Detected',
+          `Coordinates: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\n\nNo nearby location found in the list. Please select manually.`,
+          [{ text: 'OK' }]
+        );
+      }
 
     } catch (err) {
       console.error('GPS Error:', err);
@@ -112,7 +185,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
     <View style={styles.container}>
       <View style={styles.labelContainer}>
         <Text style={styles.label}>Location</Text>
-        <Text style={styles.optional}>(Optional)</Text>
+        <Text style={styles.mandatory}>*</Text>
       </View>
 
       {/* GPS Detection Button */}
@@ -188,10 +261,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
   },
-  optional: {
-    fontSize: 14,
-    color: '#6B7280',
-    fontStyle: 'italic',
+  mandatory: {
+    fontSize: 16,
+    color: '#EF4444',
+    marginLeft: 4,
   },
   gpsButton: {
     backgroundColor: '#FFFFFF',

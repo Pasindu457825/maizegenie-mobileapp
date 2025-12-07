@@ -5,28 +5,40 @@
 
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { MapPin, ChevronRight } from 'lucide-react-native';
-import { useYieldForm } from '../../contexts/YieldFormContext';
-import { CustomDropdown } from '../../components/forms/CustomDropdown';
-import { CustomDatePicker } from '../../components/forms/CustomDatePicker';
-import { CustomRadioGroup } from '../../components/forms/CustomRadioGroup';
-import { LocationPicker } from '../../components/forms/LocationPicker';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { MapPin, ChevronRight, Plus, Minus } from 'lucide-react-native';
+import { useYieldForm } from '../../../contexts/YieldFormContext';
+import { CustomDropdown } from '../../../components/forms/CustomDropdown';
+import { CustomDatePicker } from '../../../components/forms/CustomDatePicker';
+import { CustomRadioGroup } from '../../../components/forms/CustomRadioGroup';
+import { LocationPicker } from '../../../components/forms/LocationPicker';
 import {
   DISTRICTS,
   SOIL_CONDITIONS,
   IRRIGATION_TYPES,
-  LAND_UNITS,
   District,
   SoilCondition,
   IrrigationType,
   Season,
-} from '../../types/yieldPrediction';
+} from '../../../types/farmerYieldPrediction';
 import { TextInput } from 'react-native-paper';
+import { translations, translateOption } from '../../../translations/translationYieldPrediction';
 
 export const LocationFieldScreen: React.FC = () => {
   const navigation = useNavigation();
-  const { formData, updateFormData, errors, setErrors } = useYieldForm();
+  const route = useRoute();
+  const { formData, updateFormData, errors, setErrors, language, setLanguage } = useYieldForm();
+
+  // Get language from route params and set in context
+  useEffect(() => {
+    const params = route.params as { language?: 'si' | 'en' };
+    if (params?.language) {
+      setLanguage(params.language);
+    }
+  }, [route.params]);
+
+  // Get translations
+  const t = translations.locationField[language];
 
   // Auto-detect season from planting date
   useEffect(() => {
@@ -53,36 +65,42 @@ export const LocationFieldScreen: React.FC = () => {
     const newErrors: any = {};
 
     if (!formData.district) {
-      newErrors.district = 'Please select your district.';
+      newErrors.district = t.errorDistrict;
     }
 
-    if (!formData.planting_date) {
-      newErrors.planting_date = 'Please enter a valid planting date.';
-    } else {
+    if (!formData.location) {
+      newErrors.location = t.errorLocation;
+    }
+
+    // Planting date is now OPTIONAL
+    // Only validate if user has entered a date
+    if (formData.planting_date) {
       const today = new Date();
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
       if (formData.planting_date > today) {
-        newErrors.planting_date = 'Planting date cannot be in the future.';
+        newErrors.planting_date = t.errorPlantingDateFuture;
       } else if (formData.planting_date < sixMonthsAgo) {
-        newErrors.planting_date = 'Planting date cannot be older than 6 months.';
+        newErrors.planting_date = t.errorPlantingDateOld;
       }
     }
 
     if (!formData.soil_condition) {
-      newErrors.soil_condition = 'Select soil condition based on your field.';
+      newErrors.soil_condition = t.errorSoilCondition;
     }
 
     if (!formData.irrigation_type) {
-      newErrors.irrigation_type = 'Please select irrigation type.';
+      newErrors.irrigation_type = t.errorIrrigation;
     }
 
-    // Validate land size if entered
-    if (formData.land_size_value) {
+    // Validate land size (mandatory)
+    if (!formData.land_size_value || formData.land_size_value.trim() === '') {
+      newErrors.land_size_value = t.errorLandSize;
+    } else {
       const landSize = parseFloat(formData.land_size_value);
       if (isNaN(landSize) || landSize <= 0) {
-        newErrors.land_size_value = 'Land size must be a positive number.';
+        newErrors.land_size_value = t.errorLandSizePositive;
       }
     }
 
@@ -109,8 +127,8 @@ export const LocationFieldScreen: React.FC = () => {
           <MapPin size={28} color="#16A34A" />
         </View>
         <View>
-          <Text style={styles.headerTitle}>Location & Field</Text>
-          <Text style={styles.headerSubtitle}>Step 1 of 3</Text>
+          <Text style={styles.headerTitle}>{t.title}</Text>
+          <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
         </View>
       </View>
 
@@ -122,7 +140,7 @@ export const LocationFieldScreen: React.FC = () => {
         <View style={styles.card}>
           {/* District */}
           <CustomDropdown
-            label="District"
+            label={t.district}
             value={formData.district}
             options={DISTRICTS}
             onChange={(value) => updateFormData({ district: value as District, location: '' })}
@@ -144,31 +162,46 @@ export const LocationFieldScreen: React.FC = () => {
             error={errors.location}
           />
 
-          {/* Planting Date */}
+          {/* Planting Date - Now Optional */}
           <CustomDatePicker
-            label="Planting Date"
+            label={t.plantingDate}
             value={formData.planting_date}
             onChange={(date) => updateFormData({ planting_date: date })}
             error={errors.planting_date}
-            mandatory
             minimumDate={sixMonthsAgo}
             maximumDate={today}
           />
 
           {/* Season (Auto-detected) */}
           <View style={styles.readOnlyField}>
-            <Text style={styles.readOnlyLabel}>Season (Auto-detected)</Text>
+            <Text style={styles.readOnlyLabel}>{t.season}</Text>
             <View style={styles.seasonBadge}>
               <Text style={styles.seasonText}>
-                {formData.season || 'Select planting date first'}
+                {formData.season ? translateOption('seasons', formData.season, language) : t.seasonNotDetected}
               </Text>
             </View>
           </View>
 
           {/* Land Size */}
           <View style={styles.landSizeContainer}>
-            <Text style={styles.fieldLabel}>Land Size (Optional)</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.fieldLabel}>{t.landSize}</Text>
+              <Text style={styles.mandatory}>*</Text>
+            </View>
             <View style={styles.landSizeRow}>
+              {/* Decrement Button */}
+              <TouchableOpacity 
+                style={styles.incrementButton}
+                onPress={() => {
+                  const current = parseFloat(formData.land_size_value) || 0;
+                  const newValue = Math.max(0, current - 0.5);
+                  updateFormData({ land_size_value: newValue.toString() });
+                }}
+              >
+                <Minus size={20} color="#16A34A" />
+              </TouchableOpacity>
+
+              {/* Value Input */}
               <TextInput
                 value={formData.land_size_value}
                 onChangeText={(text) => updateFormData({ land_size_value: text })}
@@ -177,20 +210,24 @@ export const LocationFieldScreen: React.FC = () => {
                 style={styles.landSizeInput}
                 mode="outlined"
                 error={!!errors.land_size_value}
+                dense
               />
+
+              {/* Increment Button */}
+              <TouchableOpacity 
+                style={styles.incrementButton}
+                onPress={() => {
+                  const current = parseFloat(formData.land_size_value) || 0;
+                  const newValue = current + 0.5;
+                  updateFormData({ land_size_value: newValue.toString() });
+                }}
+              >
+                <Plus size={20} color="#16A34A" />
+              </TouchableOpacity>
               
-              <View style={styles.unitPicker}>
-                <CustomDropdown
-                  label=""
-                  value={formData.land_size_unit}
-                  options={LAND_UNITS}
-                  onChange={(unit) => {
-                    // Only update if a valid unit is selected
-                    if (unit) {
-                      updateFormData({ land_size_unit: unit });
-                    }
-                  }}
-                />
+              {/* Fixed Unit Label */}
+              <View style={styles.unitLabel}>
+                <Text style={styles.unitText}>{t.acres}</Text>
               </View>
             </View>
             {errors.land_size_value && (
@@ -200,9 +237,12 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Soil Condition */}
           <CustomDropdown
-            label="Soil Condition"
+            label={t.soilCondition}
             value={formData.soil_condition}
-            options={SOIL_CONDITIONS}
+            options={SOIL_CONDITIONS.map(value => ({
+              value,
+              label: translateOption('soilConditions', value, language)
+            }))}
             onChange={(value) => updateFormData({ soil_condition: value as SoilCondition })}
             error={errors.soil_condition}
             mandatory
@@ -210,12 +250,13 @@ export const LocationFieldScreen: React.FC = () => {
 
           {/* Irrigation Type */}
           <CustomRadioGroup
-            label="Irrigation Type"
+            label={t.irrigationType}
             value={formData.irrigation_type}
-            options={[
-              { value: 'Rainfed', label: 'Rainfed', description: 'Depends only on rainfall' },
-              { value: 'Irrigated', label: 'Irrigated', description: 'Has irrigation system' },
-            ]}
+            options={IRRIGATION_TYPES.map(value => ({
+              value,
+              label: translateOption('irrigationTypes', value, language),
+              description: ''
+            }))}
             onChange={(value) => updateFormData({ irrigation_type: value as IrrigationType })}
             error={errors.irrigation_type}
             mandatory
@@ -226,7 +267,7 @@ export const LocationFieldScreen: React.FC = () => {
       {/* Next Button */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>Next</Text>
+          <Text style={styles.nextButtonText}>{t.nextButton}</Text>
           <ChevronRight size={20} color="#FFFFFF" />
         </TouchableOpacity>
       </View>
@@ -309,22 +350,55 @@ const styles = StyleSheet.create({
   landSizeContainer: {
     marginBottom: 20,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   fieldLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1F2937',
-    marginBottom: 8,
+  },
+  mandatory: {
+    fontSize: 16,
+    color: '#EF4444',
+    marginLeft: 4,
   },
   landSizeRow: {
     flexDirection: 'row',
-    gap: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  incrementButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#16A34A',
+    backgroundColor: '#F0FDF4',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   landSizeInput: {
-    flex: 2,
-    backgroundColor: '#FFFFFF',
-  },
-  unitPicker: {
     flex: 1,
+    height: 40,
+    backgroundColor: '#FFFFFF',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  unitLabel: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  unitText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   errorText: {
     fontSize: 14,

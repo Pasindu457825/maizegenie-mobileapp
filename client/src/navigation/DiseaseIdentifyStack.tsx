@@ -1,26 +1,34 @@
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
-import DiseaseDetectionScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen"; 
-// 🔹 adjust the import path if your folder is different
+
+import DiseaseIdentificationScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen";
+import ChatScreen from "@screens/DiseaseIdentification/ChatScreen";
+import OfficerRoomsScreen from "@screens/DiseaseIdentification/OfficerRoomsScreen";
 
 export type DiseaseIdentifyStackParamList = {
   DiseaseDetection: undefined;
-  // add other screens later, e.g.:
-  // DiseaseResult: { id: string };
+
+  Chat: {
+    roomId: string | null;
+    userId: string;
+  };
+
+  OfficerRooms: {
+    officerId: string;
+  };
 };
 
 const Stack = createStackNavigator<DiseaseIdentifyStackParamList>();
 
 export default function DiseaseIdentifyStack() {
   return (
-    <Stack.Navigator
-      initialRouteName="DiseaseDetection"
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="DiseaseDetection" component={DiseaseDetectionScreen} />
-      {/* Add more screens (e.g., DiseaseResult) when ready */}
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen
+        name="DiseaseDetection"
+        component={DiseaseIdentificationScreen}
+      />
+      <Stack.Screen name="Chat" component={ChatScreen} />
+      <Stack.Screen name="OfficerRooms" component={OfficerRoomsScreen} />
     </Stack.Navigator>
   );
 }
