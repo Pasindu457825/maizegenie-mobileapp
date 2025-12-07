@@ -35,10 +35,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.log("Sending Login Payload:", payload);
       console.log("API_BASE =>", API_BASE);
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const res = await axios.post(`${API_BASE}/auth/login`, payload);
 
       console.log("RAW LOGIN RESPONSE:", res.data);
 
@@ -49,28 +46,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      if (!data.user) {
-        console.log("No user data returned");
-        return false;
-      }
-
-      console.log("✅ Supabase login successful:", data.user.email);
-
       setUser({
-        id: data.user.id,
-        email: data.user.email || "",
-        full_name: data.user.user_metadata?.full_name || "",
-        phone: data.user.user_metadata?.phone || "",
-        district: data.user.user_metadata?.district || "",
-        role: data.user.user_metadata?.role || "farmer",
+        id: authUser.id,
+        email: authUser.email,
+        full_name: profile.full_name ?? "",
+        phone: profile.phone ?? "",
+        district: profile.district ?? "",
+        role: profile.role ?? "",
       });
 
-      setToken(data.session?.access_token || "");
+      setToken(accessToken);
 
-      console.log("Login success:", data.user.email);
+      console.log("Login success:", authUser.email);
       return true;
     } catch (err: any) {
-      console.log("Login failed:", err.message);
+      console.log("Login failed:", err.response?.data || err.message);
       return false;
     } finally {
       setLoading(false);
