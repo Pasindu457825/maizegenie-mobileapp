@@ -26,6 +26,8 @@ export default function App() {
 function Root() {
   const { loading } = useApp();
 
+  console.log("APP STARTED — LOADING:", loading);
+
   return (
     <View style={{ flex: 1 }}>
       <NavigationContainer
@@ -38,6 +40,7 @@ function Root() {
       </NavigationContainer>
 
       {/* ✅ GLOBAL LOADING OVERLAY (does NOT block touches) */}
+      {/* GLOBAL LOADING OVERLAY */}
       {loading && (
         <View style={styles.overlay} pointerEvents="box-none">
           <ActivityIndicator size="large" color="green" />
@@ -55,4 +58,3 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
 });
-
