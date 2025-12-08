@@ -31,8 +31,11 @@ export default function ChatScreen({ route }: any) {
 
   const [roomId, setRoomId] = useState<string | null>(incomingRoomId);
   const [messages, setMessages] = useState<any[]>([]);
+
   const [text, setText] = useState("");
   const hasSentMessage = useRef(false);
+
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     async function initChat() {
@@ -106,7 +109,9 @@ export default function ChatScreen({ route }: any) {
   return (
     <View style={styles.container}>
       <FlatList
-        data={messages}
+        ref={flatListRef}
+        data={[...messages].reverse()} // show latest at bottom
+        inverted // render from bottom to top
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View
