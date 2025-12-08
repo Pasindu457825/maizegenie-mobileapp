@@ -1,4 +1,25 @@
 import Constants from "expo-constants";
+import { Platform } from "react-native";
+
+/**
+ * ✅ Automatically detects your local PC IP for Expo Go.
+ * If it fails, fallback to manual IP.
+ */
+const { manifest2, manifest } = Constants;
+let devHost = "192.168.8.181"; // 👈 your PC IP running FastAPI
+
+if (manifest2?.extra?.expoGo?.developer?.host) {
+  devHost = manifest2.extra.expoGo.developer.host.split(":")[0];
+} else if (manifest?.debuggerHost) {
+  devHost = manifest.debuggerHost.split(":")[0];
+}
+
+// Android Emulator uses 10.0.2.2
+const localhost = Platform.select({
+  ios: "localhost",
+  android: "10.0.2.2",
+  default: devHost,
+});
 
 export const API_BASE =
   Constants.expoConfig?.extra?.API_BASE ||

@@ -145,7 +145,6 @@ export default function HomeScreen() {
                     color={feature.color}
                   />
                 </View>
-
                 <View className="flex-1">
                   <Text className="text-base font-bold text-gray-800">
                     {feature.title}

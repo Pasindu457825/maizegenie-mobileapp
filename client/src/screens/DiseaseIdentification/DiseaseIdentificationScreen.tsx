@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-
 import {
   Bug,
   Camera,

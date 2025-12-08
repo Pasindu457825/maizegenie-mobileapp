@@ -21,7 +21,7 @@ interface Prediction {
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     // For REAL Android device, use your computer's IP
-    return "http://192.168.8.125:8000";
+    return process.env.EXPO_PUBLIC_API_BASE ;
 
     // For Android emulator, use:
     // return "http://10.0.2.2:8000";

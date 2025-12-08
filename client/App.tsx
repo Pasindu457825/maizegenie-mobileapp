@@ -8,7 +8,6 @@ import RootNavigator from "./src/navigation";
 
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import "./global.css";
-import "react-native-url-polyfill/auto";
 
 export default function App() {
   return (

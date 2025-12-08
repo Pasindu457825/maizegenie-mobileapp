@@ -5,11 +5,13 @@ import { LocationFieldScreen } from "../screens/YieldPrediction/FamerUI/Location
 import { CropInformationScreen } from "../screens/YieldPrediction/FamerUI/CropInformationScreen";
 import { WeatherConditionScreen } from "../screens/YieldPrediction/FamerUI/WeatherConditionScreen";
 import { SoilProfileScreen, ClimateScreen, CropMeasurementsScreen, FertilizerSchedulingScreen } from "../screens/YieldPrediction/OfficerUI";
+import { OfficerResultsScreen } from "../screens/YieldPrediction/OfficerUI/OfficerResultsScreen";
 import PredictYieldLoadingScreen from "../screens/PredictYield/PredictYieldLoadingScreen";
 import PredictYieldResultsScreen from "../screens/PredictYield/PredictYieldResultsScreen";
 import LanguageSelectionScreen from "../screens/PredictYield/LanguageSelectionScreen";
 import { ROUTES } from "../constants";
 import { YieldPredictionRequest, YieldPredictionFormData, YieldPredictionResponse } from "../types/farmerYieldPrediction";
+import { OfficerPredictionResponse } from "../types/officerPrediction";
 
 export type PredictYieldStackParamList = {
     [ROUTES.TABS.PREDICTYIELD]: undefined;
@@ -31,6 +33,9 @@ export type PredictYieldStackParamList = {
     PredictYieldScreen: {
         result: YieldPredictionResponse;
         formData: YieldPredictionFormData;
+    };
+    OfficerResults: {
+        predictionData: OfficerPredictionResponse;
     };
 };
 
@@ -60,6 +65,7 @@ export default function PredictYieldStack() {
                 {/* Common Screens */}
                 <Stack.Screen name="PredictYieldLoading" component={PredictYieldLoadingScreen} />
                 <Stack.Screen name="PredictYieldScreen" component={PredictYieldResultsScreen} />
+                <Stack.Screen name="OfficerResults" component={OfficerResultsScreen} />
             </Stack.Navigator>
         </YieldFormProvider>
     );

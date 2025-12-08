@@ -33,7 +33,37 @@ import {
   CloudLightning,
   CloudFog,
 } from "lucide-react-native";
+import {
+  getFormData,
+  getAutoData,
+  getPriceData,
+  getLocationData,
+  getWeatherData,
+} from "../../utils/storage";
 import useUniversalLocation from "../../utils/useUniversalLocation";
+import { getPriceForecast } from "../../services/priceForecastService";
+import type { WeekForecast } from "../../services/priceForecastService";
+import { LineChart } from "react-native-chart-kit";
+import { Platform } from "react-native";
+
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android device → read from .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
+
+
 
 const { width } = Dimensions.get("window");
 
@@ -62,6 +92,9 @@ interface ForecastData {
 }
 
 const PriceForecastScreen = () => {
+  const [weeklyForecast, setWeeklyForecast] = useState<WeekForecast[]>([]);
+  const [isLoadingForecast, setIsLoadingForecast] = useState(false);
+
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const [language, setLanguage] = useState<Language>("si");
@@ -75,18 +108,61 @@ const PriceForecastScreen = () => {
     isLoading,
   } = useUniversalLocation(language);
 
+  const loadSavedDataFromStorage = async () => {
+    try {
+      const form = await getFormData();
+      const auto = await getAutoData();
+      const price = await getPriceData();
+      const loc = await getLocationData();
+      const wea = await getWeatherData();
+
+      setSavedForm(form);
+      setSavedAuto(auto);
+      setSavedPrice(price);
+      setSavedLocation(loc);
+      setSavedWeather(wea);
+    } catch (error) {
+      console.log("Storage load error:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadSavedDataFromStorage();
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    generateForecast();
+  }, []);
+
   // State for district and weather display
   const [district, setDistrict] = useState("");
   const [weather, setWeather] = useState("");
 
   // Get data from route params (from form)
- const { data: formData } = route.params as { data: ForecastData };
+  const { data: formData } = route.params as { data: ForecastData };
 
   // Forecast results (mock data - replace with ML prediction)
   const [predictedPrice, setPredictedPrice] = useState(125.5);
   const [priceChange, setPriceChange] = useState(15.2);
   const [confidenceScore, setConfidenceScore] = useState(87);
   const [recommendation, setRecommendation] = useState("sell_now");
+
+  const [savedForm, setSavedForm] = useState<any>(null);
+  const [savedAuto, setSavedAuto] = useState<any>(null);
+  const [savedPrice, setSavedPrice] = useState<any>(null);
+  const [savedLocation, setSavedLocation] = useState<any>(null);
+  const [savedWeather, setSavedWeather] = useState<any>(null);
 
   const content = {
     si: {
@@ -128,6 +204,10 @@ const PriceForecastScreen = () => {
       loading: "පූරණය වෙමින්...",
       locationDetecting: "ස්ථානය හඳුනාගනිමින්...",
       weatherLoading: "කාලගුණය පූරණය වෙමින්...",
+      priceTrend: "සති 4 ක මිල ප්‍රවණතාව",
+      priceIncreasing: "📈 මිල ඉහළ යයි පෙනේ",
+      priceDecreasing: "📉 මිල පහළ යයි",
+      priceStable: "↔️ මිල ස්ථාවරයි",
     },
     en: {
       title: "Price Forecast",
@@ -168,6 +248,10 @@ const PriceForecastScreen = () => {
       loading: "Loading...",
       locationDetecting: "Detecting location...",
       weatherLoading: "Loading weather...",
+      priceTrend: "4-Week Price Trend",
+      priceIncreasing: "📈 Price is increasing",
+      priceDecreasing: "📉 Price is decreasing",
+      priceStable: "↔️ Price is stable",
     },
   };
 
@@ -296,22 +380,65 @@ const PriceForecastScreen = () => {
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
 
-  const generateForecast = () => {
-    // TODO: Call ML API with formData
-    // Mock prediction logic
-    const basePrice = 115;
-    const randomChange = Math.random() * 20 - 5;
-    setPredictedPrice(basePrice + randomChange);
-    setPriceChange((randomChange / basePrice) * 100);
-    setConfidenceScore(Math.floor(Math.random() * 15) + 75);
+  const generateForecast = async () => {
+    try {
+      setIsLoadingForecast(true);
 
-    // Recommendation logic
-    if (randomChange > 10) {
-      setRecommendation("sell_now");
-    } else if (randomChange > 0) {
-      setRecommendation(formData?.hasStorage ? "storage" : "sell_now");
-    } else {
-      setRecommendation("sell_later");
+      // current farm gate price (string -> number)
+      const currentPriceNumeric = parseFloat(
+        (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
+      );
+
+      const payload = {
+        year: formData.year,
+        week: formData.week,
+        district: formData.district,
+        season: formData.season,
+        productionCostPerKg: formData.productionCostPerKg,
+        weeks_ahead: 4,
+      };
+
+      const res = await getPriceForecast(payload);
+
+      if (!res.success || !res.weeks || res.weeks.length === 0) {
+        throw new Error("Empty forecast");
+      }
+
+      setWeeklyForecast(res.weeks);
+
+      // First week value use karala main card ekata price set karamu
+      const first = res.weeks[0];
+
+      setPredictedPrice(first.ensemble);
+
+      if (currentPriceNumeric > 0) {
+        const change =
+          ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100;
+        setPriceChange(change);
+      } else {
+        setPriceChange(0);
+      }
+
+      // simple fixed confidence (api eken enne naththam)
+      setConfidenceScore(85);
+
+      // Recommendation logic
+      const changePct = currentPriceNumeric
+        ? ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100
+        : 0;
+
+      if (changePct > 8) {
+        setRecommendation("sell_now");
+      } else if (changePct > 0) {
+        setRecommendation(formData?.hasStorage ? "storage" : "sell_now");
+      } else {
+        setRecommendation("sell_later");
+      }
+    } catch (err) {
+      console.log("Forecast error:", err);
+      // fallback – (optional) you can keep your old random logic here
+    } finally {
+      setIsLoadingForecast(false);
     }
   };
 
@@ -349,6 +476,42 @@ const PriceForecastScreen = () => {
     }
   };
 
+  // NEW: Calculate trend analysis from weeklyForecast
+  const getTrendAnalysis = () => {
+    if (weeklyForecast.length < 2) {
+      return {
+        direction: "stable",
+        color: "#F59E0B",
+        text: content[language].priceStable,
+      };
+    }
+
+    const firstPrice = weeklyForecast[0].ensemble;
+    const lastPrice = weeklyForecast[weeklyForecast.length - 1].ensemble;
+    const priceDiff = lastPrice - firstPrice;
+    const percentChange = (priceDiff / firstPrice) * 100;
+
+    if (percentChange > 3) {
+      return {
+        direction: "up",
+        color: "#10B981",
+        text: content[language].priceIncreasing,
+      };
+    } else if (percentChange < -3) {
+      return {
+        direction: "down",
+        color: "#EF4444",
+        text: content[language].priceDecreasing,
+      };
+    } else {
+      return {
+        direction: "stable",
+        color: "#F59E0B",
+        text: content[language].priceStable,
+      };
+    }
+  };
+
   const handleGoBack = () => {
     navigation.goBack();
   };
@@ -358,6 +521,7 @@ const PriceForecastScreen = () => {
   };
 
   const { revenue, profit, margin, totalYield } = calculateProfit();
+  const trendAnalysis = getTrendAnalysis();
 
   return (
     <View style={styles.container}>
@@ -409,6 +573,17 @@ const PriceForecastScreen = () => {
           </View>
         </View>
       </View>
+      <Text style={styles.savedTitle}>
+        {language === "si" ? "සුරැකි දත්ත" : "Saved Data"}
+      </Text>
+
+      <Text style={styles.savedItem}>🌾 Variety: {savedForm?.seedVariety}</Text>
+      <Text style={styles.savedItem}>📅 Year: {savedAuto?.year}</Text>
+      <Text style={styles.savedItem}>🗓 Week: {savedAuto?.week}</Text>
+      <Text style={styles.savedItem}>🛢 Fuel: {savedPrice?.fuelPrice}</Text>
+      <Text style={styles.savedItem}>📍 District: {formData?.district}</Text>
+
+      <Text style={styles.savedItem}>☀ Weather: {savedWeather?.weather}</Text>
 
       <ScrollView
         style={styles.scrollContainer}
@@ -486,6 +661,71 @@ const PriceForecastScreen = () => {
             </View>
           </View>
 
+          {/* ========== NEW: PRICE TREND CHART ========== */}
+          {weeklyForecast.length > 0 && (
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>
+                📊 {content[language].priceTrend}
+              </Text>
+
+              <LineChart
+                data={{
+                  labels: weeklyForecast.map((w) => `W${w.week}`),
+                  datasets: [
+                    {
+                      data: weeklyForecast.map((w) => w.ensemble),
+                      color: () => trendAnalysis.color,
+                      strokeWidth: 3,
+                    },
+                  ],
+                }}
+                width={width - 60}
+                height={220}
+                chartConfig={{
+                  backgroundColor: "#FFFFFF",
+                  backgroundGradientFrom: "#F0FDF4",
+                  backgroundGradientTo: "#FFFFFF",
+                  decimalPlaces: 1,
+                  color: (opacity = 1) => trendAnalysis.color,
+                  labelColor: (opacity = 1) => `rgba(6, 95, 70, ${opacity})`,
+                  style: {
+                    borderRadius: 16,
+                  },
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: trendAnalysis.color,
+                    fill: "#FFFFFF",
+                  },
+                  propsForBackgroundLines: {
+                    strokeDasharray: "",
+                    stroke: "#D1FAE5",
+                    strokeWidth: 1,
+                  },
+                }}
+                bezier
+                style={styles.chart}
+              />
+
+              <View
+                style={[
+                  styles.trendSummary,
+                  { borderLeftColor: trendAnalysis.color },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.trendSummaryText,
+                    { color: trendAnalysis.color },
+                  ]}
+                >
+                  {trendAnalysis.text}
+                </Text>
+              </View>
+            </View>
+          )}
+          {/* ========== END: PRICE TREND CHART ========== */}
+
           {/* Recommendation Card */}
           <View
             style={[
@@ -513,6 +753,40 @@ const PriceForecastScreen = () => {
               </View>
             )}
           </View>
+
+          {/* Next 4 weeks forecast list */}
+          {weeklyForecast.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {language === "si"
+                  ? "අලුත් සති 4 කට මිල පුරෝකථනය"
+                  : "Next 4 Weeks Price Forecast"}
+              </Text>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginTop: 8 }}
+              >
+                {weeklyForecast.map((w) => (
+                  <View key={w.week} style={styles.weekCard}>
+                    <Text style={styles.weekLabel}>
+                      {language === "si" ? `සතිය ${w.week}` : `Week ${w.week}`}
+                    </Text>
+
+                    <Text style={styles.weekPrice}>
+                      Rs {w.ensemble.toFixed(2)}
+                    </Text>
+
+                    <Text style={styles.weekSub}>
+                      SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
+                      {w.ensemble.toFixed(1)}
+                    </Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Profit Analysis */}
           <View style={styles.section}>
@@ -789,7 +1063,7 @@ const PriceForecastScreen = () => {
 
                     <Text style={styles.detailItem}>
                       {language === "si"
-                        ? "වাতාවරණ අතුරුදහන්"
+                        ? "වාතාවරණ අතුරුදහන්"
                         : "Weather Alert"}
                       : {weatherAlert}
                     </Text>
@@ -1021,6 +1295,43 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#047857",
   },
+  // NEW CHART STYLES
+  chartCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  chartTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 16,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  trendSummary: {
+    marginTop: 16,
+    padding: 14,
+    backgroundColor: "#F0FDF4",
+    borderRadius: 10,
+    borderLeftWidth: 4,
+  },
+  trendSummaryText: {
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  // END NEW CHART STYLES
   recommendationCard: {
     backgroundColor: "#ECFDF5",
     borderRadius: 16,
@@ -1201,6 +1512,48 @@ const styles = StyleSheet.create({
     color: "#374151",
     marginBottom: 6,
     fontWeight: "500",
+  },
+  savedItem: {
+    fontSize: 12,
+    color: "#374151",
+    marginBottom: 4,
+  },
+  savedTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 10,
+  },
+  weekCard: {
+    width: "100%",
+    maxWidth: 320,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 16,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  weekLabel: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 4,
+    fontWeight: "500",
+  },
+  weekPrice: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#047857",
+    marginBottom: 4,
+  },
+  weekSub: {
+    fontSize: 11,
+    color: "#6B7280",
   },
 });
 
