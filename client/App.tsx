@@ -26,26 +26,25 @@ export default function App() {
 function Root() {
   const { loading } = useApp();
 
-  console.log("APP STARTED — LOADING:", loading);
-
   return (
-    <View style={{ flex: 1 }}>
-      <NavigationContainer
-        theme={{
-          ...DefaultTheme,
-          colors: { ...DefaultTheme.colors, background: "#fff" },
-        }}
-      >
+    <NavigationContainer
+      theme={{
+        ...DefaultTheme,
+        colors: { ...DefaultTheme.colors, background: "#fff" },
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {/* All screens */}
         <RootNavigator />
-      </NavigationContainer>
 
-      {/* ✅ GLOBAL LOADING OVERLAY — now does NOT block touches */}
-      {loading && (
-        <View style={styles.overlay} pointerEvents="none">
-          <ActivityIndicator size="large" color="green" />
-        </View>
-      )}
-    </View>
+        {/* GLOBAL LOADING OVERLAY - inside navigator */}
+        {loading && (
+          <View style={styles.overlay} pointerEvents="none">
+            <ActivityIndicator size="large" color="green" />
+          </View>
+        )}
+      </View>
+    </NavigationContainer>
   );
 }
 
