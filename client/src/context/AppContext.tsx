@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import axios from "axios";
-
-export const API_BASE = "http://192.168.1.12:8000";
+import { API_BASE } from "../services/api"; // ✅ Use global API base
 
 type User = {
   id: string;
@@ -34,6 +33,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const payload = { email, password };
       console.log("Sending Login Payload:", payload);
+      console.log("API_BASE =>", API_BASE);
 
       const res = await axios.post(`${API_BASE}/auth/login`, payload);
 
@@ -42,7 +42,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const { token: accessToken, user: authUser, profile } = res.data;
 
       if (!authUser || !profile) {
-        console.log("Invalid login response structure");
+        console.log("Invalid login response");
         return false;
       }
 

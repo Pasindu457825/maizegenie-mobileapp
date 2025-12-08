@@ -68,6 +68,33 @@ export default function HomeScreen() {
             {user?.full_name || user?.email || "Guest User"}
           </Text>
 
+          {/* Chat button for FARMERS ONLY */}
+          {user?.role === "farmer" && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Chat")}
+              className="bg-green-600 mx-4 mt-4 p-4 rounded-xl shadow-lg"
+            >
+              <Text className="text-white text-center font-bold text-lg">
+                Chat With Agriculture Officer
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {user?.role === "officer" && (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("OfficerRooms", {
+                  officerId: user.id,
+                })
+              }
+              className="bg-blue-600 mx-4 mt-4 p-4 rounded-xl shadow-lg"
+            >
+              <Text className="text-white text-center font-bold text-lg">
+                View Farmer Chats
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {!user && (
             <TouchableOpacity
               onPress={() => navigation.navigate("Login")}
@@ -118,7 +145,6 @@ export default function HomeScreen() {
                     color={feature.color}
                   />
                 </View>
-
                 <View className="flex-1">
                   <Text className="text-base font-bold text-gray-800">
                     {feature.title}

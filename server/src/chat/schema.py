@@ -1,11 +1,17 @@
-# src/chat/schemas.py
 from pydantic import BaseModel
+from datetime import datetime
+import uuid
+from typing import Optional
 
-class FarmerMessage(BaseModel):
-    farmer_id: str
-    message: str
+class ChatMessage(BaseModel):
+    id: str = str(uuid.uuid4())
+    room_id: str
+    sender_id: str
+    message: Optional[str] = None        # keep text optional
+    image_url: Optional[str] = None       # NEW FIELD
+    created_at: datetime = datetime.utcnow()
 
-class OfficerReply(BaseModel):
-    farmer_id: str
-    officer_id: str
-    message: str
+class CreateMessage(BaseModel):
+    sender_id: str
+    message: Optional[str] = None
+    image_url: Optional[str] = None       # NEW FIELD

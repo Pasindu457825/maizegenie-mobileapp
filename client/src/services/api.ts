@@ -1,16 +1,13 @@
-// src/config/api.ts
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
 /**
- * Auto-detect Expo IP, fallback to manual IP
+ * ✅ Automatically detects your local PC IP for Expo Go.
+ * If it fails, fallback to manual IP.
  */
 const { manifest2, manifest } = Constants;
+let devHost = "192.168.8.181"; // 👈 your PC IP running FastAPI
 
-// 👇 FIXED: Your actual FastAPI server IP
-let devHost = "192.168.1.12";
-
-// Auto-detect from Expo when available
 if (manifest2?.extra?.expoGo?.developer?.host) {
   devHost = manifest2.extra.expoGo.developer.host.split(":")[0];
 } else if (manifest?.debuggerHost) {
@@ -25,9 +22,9 @@ const localhost = Platform.select({
 });
 
 export const API_BASE =
-  Platform.OS === "android"
-    ? `http://${devHost}:8000`
-    : `http://${localhost}:8000`;
+  Constants.expoConfig?.extra?.API_BASE ||
+  process.env.EXPO_PUBLIC_API_BASE ||
+  "http://localhost:8000";
 
 console.log("🌐 API_BASE =>", API_BASE);
 

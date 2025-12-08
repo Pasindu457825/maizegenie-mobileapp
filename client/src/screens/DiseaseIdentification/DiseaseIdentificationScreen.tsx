@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-
 import {
   Bug,
   Camera,
@@ -26,13 +25,14 @@ import {
   Leaf,
   MessageSquare,
 } from "lucide-react-native";
-
+import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import Constants from "expo-constants";
+import * as Speech from "expo-speech";
 
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 
@@ -57,29 +57,9 @@ type RootStackParamList = {
 };
 
 // Enhanced API configuration
-const getApiConfig = () => {
-  if (__DEV__) {
-    // --- MANUAL FIX for Expo real device ---
-    // Replace this with your laptop's WiFi IP address
-    const LOCAL_IP = "192.168.1.12"; // ← CHANGE THIS
 
-    const baseURL = `http://${LOCAL_IP}:8000`;
-
-    console.log("🌐 Dev API Base URL =>", baseURL);
-
-    return {
-      baseURL,
-      timeout: 45000,
-    };
-  }
-
-  return {
-    baseURL: "https://api.maizegenie.lk",
-    timeout: 45000,
-  };
-};
-
-const API_CONFIG = getApiConfig();
+const API_BASE_URL = API_BASE;
+const REQUEST_TIMEOUT = 45000; // 45 seconds
 
 const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
@@ -249,10 +229,7 @@ const PestIdentificationScreen = () => {
       setLoading(true);
       setError(null);
 
-      console.log(
-        "🔍 Connecting to:",
-        `${API_CONFIG.baseURL}/api/disease/identify`
-      );
+      console.log("🔍 Connecting to:", `${API_BASE_URL}/api/disease/identify`);
 
       const formData = new FormData();
 
@@ -270,14 +247,14 @@ const PestIdentificationScreen = () => {
       }
 
       const response = await axios.post(
-        `${API_CONFIG.baseURL}/api/disease/identify?conf=0.4&return_image=false`,
+        `${API_BASE_URL}/api/disease/identify?conf=0.4&return_image=false`,
         formData,
         {
           headers: {
             "Content-Type": "multipart/form-data",
             Accept: "application/json",
           },
-          timeout: API_CONFIG.timeout,
+          timeout: API_BASE_URL.timeout,
         }
       );
 
@@ -316,6 +293,19 @@ const PestIdentificationScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const speakDisease = (predictionName: string) => {
+    const text =
+      language === "si"
+        ? `${predictionName} රෝගය හමුවිය`
+        : `${predictionName} disease detected`;
+
+    Speech.speak(text, {
+      language: language === "si" ? "si-LK" : "en-US",
+      rate: 0.9,
+      pitch: 1.0,
+    });
   };
 
   const resetScreen = () => {
@@ -359,7 +349,12 @@ const PestIdentificationScreen = () => {
           {/* CHAT BUTTON */}
           <TouchableOpacity
             style={styles.headerIconButton}
-            onPress={() => navigation.navigate("Chat")}
+            onPress={() =>
+              navigation.navigate("Chat", {
+                roomId: null, // or your current room id
+                userId: "test-user", // replace with logged-in user
+              })
+            }
           >
             <MessageSquare color="#1565C0" size={20} />
           </TouchableOpacity>
@@ -578,6 +573,16 @@ const PestIdentificationScreen = () => {
                       </Text>
                     </View>
                   </View>
+
+                  <TouchableOpacity
+                    style={{ padding: 10 }}
+                    onPress={() => speakDisease(prediction.class_name)}
+                  >
+                    <Text style={{ color: "#1565C0", fontWeight: "bold" }}>
+                      🔊
+                    </Text>
+                  </TouchableOpacity>
+
                   <View
                     style={[
                       styles.confidenceBadge,
