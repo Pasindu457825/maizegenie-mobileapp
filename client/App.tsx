@@ -39,10 +39,9 @@ function Root() {
         <RootNavigator />
       </NavigationContainer>
 
-      {/* ✅ GLOBAL LOADING OVERLAY (does NOT block touches) */}
-      {/* GLOBAL LOADING OVERLAY */}
+      {/* ✅ GLOBAL LOADING OVERLAY — now does NOT block touches */}
       {loading && (
-        <View style={styles.overlay} pointerEvents="box-none">
+        <View style={styles.overlay} pointerEvents="none">
           <ActivityIndicator size="large" color="green" />
         </View>
       )}
