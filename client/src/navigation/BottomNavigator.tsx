@@ -4,10 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "../screens/HomeScreen";
 import PriceForecastStack from "./PriceForecastStack";
-import PredictYieldStack from "./PredictYieldStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
-import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
+import YieldPredictionStack from "./YieldPredictionStack";
 import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
 import { ROUTES } from "../constants";
 
@@ -15,11 +14,10 @@ export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
-  [ROUTES.TABS.FERTILIZERADVISOR]: undefined;
-  [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.PRICEFORECAST]: undefined;
+  [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
-  [ROUTES.TABS.ADMINPANEL]: undefined; // <-- NEW
+  [ROUTES.TABS.ADMINPANEL]: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -82,30 +80,6 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 🧪 Fertilizer */}
-      <Tab.Screen
-        name={ROUTES.TABS.FERTILIZERADVISOR}
-        component={FertilizerAdvisorStack}
-        options={{
-          tabBarLabel: "Fertilizer",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="leaf-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* 🌾 Yield */}
-      <Tab.Screen
-        name={ROUTES.TABS.PREDICTYIELD}
-        component={PredictYieldStack}
-        options={{
-          tabBarLabel: "Yield",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
       {/* 💹 Price */}
       <Tab.Screen
         name={ROUTES.TABS.PRICEFORECAST}
@@ -114,6 +88,18 @@ export default function BottomNavigator() {
           tabBarLabel: "Price",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="trending-up-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      {/* 🌾 Yield */}
+      <Tab.Screen
+        name={ROUTES.TABS.PREDICTYIELD}
+        component={YieldPredictionStack}
+        options={{
+          tabBarLabel: "Yield",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="leaf-outline" size={size} color={color} />
           ),
         }}
       />

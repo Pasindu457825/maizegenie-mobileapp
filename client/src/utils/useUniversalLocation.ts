@@ -24,7 +24,7 @@ const SI_DISTRICTS: Record<string, string> = {
   Kalutara: "කළුතර",
   Kandy: "මහනුවර",
   Matale: "මාතලේ",
-  "Nuwara Eliya": "නුවර එලිය",
+  NuwaraEliya: "නුවර එලිය",
   Galle: "ගාල්ල",
   Matara: "මාතර",
   Hambantota: "හම්බන්තොට",

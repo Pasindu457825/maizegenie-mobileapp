@@ -207,46 +207,6 @@ export function validateForm(
     return errors;
 }
 
-// Common validation rule sets
-export const commonValidationRules = {
-    district: [
-        { validator: validators.required, fieldName: 'District' },
-    ],
-    season: [
-        { validator: validators.required, fieldName: 'Season' },
-    ],
-    variety: [
-        { validator: validators.required, fieldName: 'Variety' },
-    ],
-    areaAcres: [
-        { validator: validators.required, fieldName: 'Area' },
-        { validator: validators.numeric, fieldName: 'Area' },
-        { validator: validators.positiveNumber, fieldName: 'Area' },
-        { validator: (value: string) => validators.range(value, 'Area', 0.1, 1000), fieldName: 'Area' },
-    ],
-    plantDate: [
-        { validator: validators.required, fieldName: 'Plant Date' },
-        { validator: validators.date, fieldName: 'Plant Date' },
-        { validator: validators.pastDate, fieldName: 'Plant Date' },
-    ],
-    irrigation: [
-        { validator: validators.required, fieldName: 'Irrigation Method' },
-    ],
-    soilType: [
-        { validator: validators.required, fieldName: 'Soil Type' },
-    ],
-    cropStage: [
-        { validator: validators.required, fieldName: 'Crop Stage' },
-    ],
-    lastFertilized: [
-        { validator: validators.date, fieldName: 'Last Fertilized Date' },
-        { validator: validators.pastDate, fieldName: 'Last Fertilized Date' },
-    ],
-    fertilizerType: [
-        { validator: validators.required, fieldName: 'Fertilizer Type' },
-    ],
-};
-
 // Error boundary component
 interface ErrorBoundaryState {
     hasError: boolean;
