@@ -32,6 +32,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import Constants from "expo-constants";
+import * as Speech from "expo-speech";
 
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 
@@ -292,6 +293,19 @@ const PestIdentificationScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const speakDisease = (predictionName: string) => {
+    const text =
+      language === "si"
+        ? `${predictionName} රෝගය හමුවිය`
+        : `${predictionName} disease detected`;
+
+    Speech.speak(text, {
+      language: language === "si" ? "si-LK" : "en-US",
+      rate: 0.9,
+      pitch: 1.0,
+    });
   };
 
   const resetScreen = () => {
@@ -559,6 +573,16 @@ const PestIdentificationScreen = () => {
                       </Text>
                     </View>
                   </View>
+
+                  <TouchableOpacity
+                    style={{ padding: 10 }}
+                    onPress={() => speakDisease(prediction.class_name)}
+                  >
+                    <Text style={{ color: "#1565C0", fontWeight: "bold" }}>
+                      🔊
+                    </Text>
+                  </TouchableOpacity>
+
                   <View
                     style={[
                       styles.confidenceBadge,
