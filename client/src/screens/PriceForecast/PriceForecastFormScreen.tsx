@@ -35,10 +35,59 @@ import {
   Droplets,
   Wind,
 } from "lucide-react-native";
+// 🔥 NEW IMPORTS
+import {
+  saveFormData,
+  getFormData,
+  saveAutoData,
+  getAutoData,
+  saveLocationData,
+  getLocationData,
+  saveWeatherData,
+  getWeatherData,
+  savePriceData,
+  getPriceData,
+} from "../../utils/storage";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import { NotificationDropdown } from "../../components/NotificationDropdown";
+
+// 🔥 ADD THIS HERE (top of file, after imports)
+
+const VARIETIES = [
+  "Ruhunu 1",
+  "Ruhunu 2",
+  "Sampath",
+  "Sudu Maize",
+  "BW Hybrid",
+  "Jet 999",
+  "GT 709",
+  "GT 722",
+  "CIC Hybrid 808",
+  "CIC Hybrid 989",
+  "CIC Premium Gold",
+  "Imported Hybrid",
+  "Local Hybrid",
+  "Unknown Variety",
+];
+
+const LOCATION_TRANSLATIONS = {
+  Colombo: "කොළඹ",
+  Gampaha: "ගම්පහ",
+  Kandy: "මහනුවර",
+  Matara: "මාතර",
+  Hambantota: "හම්බන්තොට",
+  Monaragala: "මොණරාගල",
+  Anuradhapura: "අනුරාධපුර",
+  Polonnaruwa: "පොලොන්නරුව",
+  Jaffna: "යාපනය",
+  Kurunegala: "කුරුණෑගල",
+  Puttalam: "පුත්තලම",
+  Badulla: "බදුල්ල",
+  "Nuwara Eliya": "නුවර එලිය",
+};
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -52,6 +101,8 @@ const API_URL =
     : "http://192.168.8.181:8000"; // Real device Expo Go
 
 const PriceForecastFormScreen = () => {
+  const [notifVisible, setNotifVisible] = useState(false);
+  const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const navigation = useNavigation<NavProp>();
   const [language, setLanguage] = useState<Language>("si");
   const {
@@ -65,7 +116,9 @@ const PriceForecastFormScreen = () => {
   // Auto-captured data (System)
   const [year, setYear] = useState("");
   const [week, setWeek] = useState("");
-  const [district, setDistrict] = useState("");
+  const [district, setDistrict] = useState(""); // User selection
+  const [autoDistrict, setAutoDistrict] = useState(""); // GPS location (top display ONLY)
+
   const [season, setSeason] = useState("");
   const [weather, setWeather] = useState("");
   const [fuelPrice, setFuelPrice] = useState("");
@@ -82,6 +135,9 @@ const PriceForecastFormScreen = () => {
   const [labourCost, setLabourCost] = useState("");
   const [otherCosts, setOtherCosts] = useState("");
   const [hasStorage, setHasStorage] = useState(false);
+  // Dropdown state
+  const [showVarietyPopup, setShowVarietyPopup] = useState(false);
+  const [showDistrictPopup, setShowDistrictPopup] = useState(false);
 
   // Content translations
   const content = {
@@ -145,6 +201,68 @@ const PriceForecastFormScreen = () => {
       locationDetecting: "Detecting location...",
       weatherLoading: "Loading weather...",
     },
+  };
+  type LocationKey = keyof typeof LOCATION_TRANSLATIONS;
+  const getTranslatedLocation = (rawName: string | null, lang: Language) => {
+    if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+    if (lang === "en") return rawName;
+
+    let enName = rawName.trim();
+
+    // Remove unwanted words
+    enName = enName
+      .replace(/District/i, "")
+      .replace(/Province/i, "")
+      .trim();
+
+    // Province mapping
+    const provinceMap: Record<string, string> = {
+      Western: "බස්නාහිර",
+      Southern: "දකුණු",
+      Central: "මධ්‍යම",
+      Northern: "උතුරු",
+      Eastern: "නැගෙනහිර",
+      NorthWestern: "වයඹ",
+      NorthCentral: "උතුරු මැද",
+      Uva: "ඌව",
+      Sabaragamuwa: "සබරගමුව",
+    };
+
+    if (provinceMap[enName]) return provinceMap[enName] + " පළාත";
+
+    // District mapping
+    const districtMap: Record<string, string> = {
+      Colombo: "කොළඹ",
+      Gampaha: "ගම්පහ",
+      Kalutara: "කළුතර",
+      Kandy: "මහනුවර",
+      Matale: "මාතලේ",
+      NuwaraEliya: "නුවර එලිය",
+      Galle: "ගාල්ල",
+      Matara: "මාතර",
+      Hambantota: "හම්බන්තොට",
+      Jaffna: "යාපනය",
+      Kilinochchi: "කිලිනොච්චි",
+      Mannar: "මන්නාරම",
+      Vavuniya: "වවුනියාව",
+      Mullaitivu: "මුලතිව්",
+      Batticaloa: "බතිකලාව",
+      Ampara: "අම්පාර",
+      Trincomalee: "ත්‍රිකුණාමලය",
+      Kurunegala: "කුරුණෑගල",
+      Puttalam: "පුත්තලම",
+      Anuradhapura: "අනුරාධපුර",
+      Polonnaruwa: "පොලොන්නරුව",
+      Badulla: "බදුල්ල",
+      Monaragala: "මොණරාගල",
+      Ratnapura: "රත්නපුර",
+      Kegalle: "කෑගල්ල",
+    };
+
+    if (districtMap[enName]) return districtMap[enName];
+
+    // Fallback for towns/villages → Keep English
+    return rawName;
   };
 
   // Enhanced weather translation mapping
@@ -230,6 +348,81 @@ const PriceForecastFormScreen = () => {
     fetchFestivalWeek();
   }, []);
 
+  useEffect(() => {
+    loadSavedData();
+  }, []);
+  // Auto-save form data whenever user types
+  useEffect(() => {
+    if (
+      seedVariety ||
+      expectedYield ||
+      farmArea ||
+      seedCost ||
+      fertilizerCost ||
+      labourCost
+    ) {
+      saveFormData({
+        district,
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
+    }
+  }, [
+    seedVariety,
+    expectedYield,
+    farmArea,
+    seedCost,
+    fertilizerCost,
+    labourCost,
+    otherCosts,
+    hasStorage,
+  ]);
+
+  const [isLoadingSavedData, setIsLoadingSavedData] = useState(true);
+
+  const loadSavedData = async () => {
+    setIsLoadingSavedData(true);
+    try {
+      const savedForm = await getFormData();
+      const savedAuto = await getAutoData();
+      const savedPrice = await getPriceData();
+
+      if (savedForm) {
+        setDistrict(savedForm.district || "");
+        setSeedVariety(savedForm.seedVariety || "");
+        setExpectedYield(savedForm.expectedYield || "");
+        setFarmArea(savedForm.farmArea || "");
+        setSeedCost(savedForm.seedCost || "");
+        setFertilizerCost(savedForm.fertilizerCost || "");
+        setLabourCost(savedForm.labourCost || "");
+        setOtherCosts(savedForm.otherCosts || "");
+        setHasStorage(savedForm.hasStorage || false);
+      }
+
+      if (savedAuto) {
+        setYear(savedAuto.year);
+        setWeek(savedAuto.week);
+        setSeason(savedAuto.season);
+      }
+
+      if (savedPrice) {
+        setFuelPrice(savedPrice.fuelPrice);
+        setCornImportTax(savedPrice.cornImportTax);
+        setFarmGatePrice(savedPrice.farmGatePrice);
+      }
+    } catch (error) {
+      console.log("Load saved failed:", error);
+    } finally {
+      setIsLoadingSavedData(false);
+    }
+  };
+
   // 🔥 NEW: Fetch price data from API
   const fetchPriceDataFromAPI = async () => {
     try {
@@ -237,19 +430,26 @@ const PriceForecastFormScreen = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setFuelPrice(
+        const fuelPriceFormatted =
           language === "si"
             ? `රු. ${data.data.fuelPrice.toFixed(2)}`
-            : `Rs. ${data.data.fuelPrice.toFixed(2)}`
-        );
+            : `Rs. ${data.data.fuelPrice.toFixed(2)}`;
 
-        setCornImportTax(`${data.data.importTax}%`);
-
-        setFarmGatePrice(
+        const farmGatePriceFormatted =
           language === "si"
             ? `රු. ${data.data.farmGatePrice.toFixed(2)}/kg`
-            : `Rs. ${data.data.farmGatePrice.toFixed(2)}/kg`
-        );
+            : `Rs. ${data.data.farmGatePrice.toFixed(2)}/kg`;
+
+        setFuelPrice(fuelPriceFormatted);
+        setCornImportTax(`${data.data.importTax}%`);
+        setFarmGatePrice(farmGatePriceFormatted);
+
+        // 🔥 SAVE TO STORAGE
+        await savePriceData({
+          fuelPrice: fuelPriceFormatted,
+          cornImportTax: `${data.data.importTax}%`,
+          farmGatePrice: farmGatePriceFormatted,
+        });
       }
     } catch (error) {
       console.error("Error fetching price data:", error);
@@ -270,6 +470,11 @@ const PriceForecastFormScreen = () => {
       // Determine season based on date
       const currentSeason = determineSeason(now);
       setSeason(currentSeason);
+      await saveAutoData({
+        year: currentYear,
+        week: weekNumber,
+        season: currentSeason,
+      });
 
       // 🔥 UPDATED: Fetch price data from API
       await fetchPriceDataFromAPI();
@@ -284,18 +489,19 @@ const PriceForecastFormScreen = () => {
     }
   };
 
-  // Update district and weather when location data changes
   useEffect(() => {
-    // Update district
+    // GPS LOCATION → ONLY UPDATE autoDistrict
     if (isLoading) {
-      setDistrict(content[language].locationDetecting);
+      setAutoDistrict(language === "si" ? "හඳුනාගනිමින්..." : "Detecting...");
     } else if (locationName && locationName !== "Loading...") {
-      setDistrict(locationName);
+      setAutoDistrict(locationName);
     } else {
-      setDistrict(language === "si" ? "ස්ථානය නොමැත" : "Location unavailable");
+      setAutoDistrict(
+        language === "si" ? "ස්ථානය නොමැත" : "Location unavailable"
+      );
     }
 
-    // Update weather
+    // WEATHER
     if (isLoading) {
       setWeather(content[language].weatherLoading);
     } else if (temperature !== null && weatherCondition) {
@@ -337,65 +543,122 @@ const PriceForecastFormScreen = () => {
       fetchPriceDataFromAPI();
     }, [])
   );
-  
   useEffect(() => {
     const now = new Date();
     const updatedSeason = determineSeason(now);
     setSeason(updatedSeason);
   }, [language]);
 
-  const handleSubmit = () => {
-    // Validation
+  // Add console.logs to see what's being saved
+  /* useEffect(() => {
     if (
-      !seedVariety ||
-      !expectedYield ||
-      !farmArea ||
-      !seedCost ||
-      !fertilizerCost ||
-      !labourCost
+      seedVariety ||
+      expectedYield ||
+      farmArea ||
+      seedCost ||
+      fertilizerCost ||
+      labourCost
     ) {
-      Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
-        language === "si"
-          ? "කරුණාකර සියලු අනිවාර්ය තොරතුරු පුරවන්න"
-          : "Please fill all required fields"
-      );
-      return;
+      console.log("💾 Saving form data:", {
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
+
+      saveFormData({
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
     }
+  }, [
+    seedVariety,
+    expectedYield,
+    farmArea,
+    seedCost,
+    fertilizerCost,
+    labourCost,
+    otherCosts,
+    hasStorage,
+  ]);*/
 
-    // Calculate production cost per kg
-    const totalCost =
-      parseFloat(seedCost) +
-      parseFloat(fertilizerCost) +
-      parseFloat(labourCost) +
-      (otherCosts ? parseFloat(otherCosts) : 0);
-    const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
-    const productionCostPerKg = totalCost / totalYield;
+  const handleSubmit = async () => {
+    try {
+      // Validation
+      if (
+        !district ||
+        !seedVariety ||
+        !expectedYield ||
+        !farmArea ||
+        !seedCost ||
+        !fertilizerCost ||
+        !labourCost
+      ) {
+        Alert.alert(
+          language === "si" ? "දෝෂයකි" : "Error",
+          language === "si"
+            ? "කරුණාකර සියලු අනිවාර්ය තොරතුරු පුරවන්න"
+            : "Please fill all required fields"
+        );
+        return;
+      }
 
-    // Prepare forecast data
-    const forecastData = {
-      // Auto-captured
-      year,
-      week,
-      district,
-      season,
-      weather,
-      fuelPrice,
-      cornImportTax,
-      farmGatePrice,
-      isFestivalWeek,
-      // User inputs
-      seedVariety,
-      expectedYield: parseFloat(expectedYield),
-      farmArea: parseFloat(farmArea),
-      totalCost,
-      productionCostPerKg,
-      hasStorage,
-      language,
-    };
+      // Calculate production cost per kg
+      const totalCost =
+        parseFloat(seedCost) +
+        parseFloat(fertilizerCost) +
+        parseFloat(labourCost) +
+        (otherCosts ? parseFloat(otherCosts) : 0);
+      const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
+      const productionCostPerKg = totalCost / totalYield;
 
-    // Navigate to forecast screen with data
-    navigation.navigate("PriceForecastScreen", { data: forecastData } as any);
+      // Save Form Data Locally 🔥
+      await saveFormData({
+        seedVariety,
+        expectedYield,
+        farmArea,
+        seedCost,
+        fertilizerCost,
+        labourCost,
+        otherCosts,
+        hasStorage,
+      });
+
+      // Prepare forecast data
+      const forecastData = {
+        year,
+        week,
+        district,
+        season,
+        weather,
+        fuelPrice,
+        cornImportTax,
+        farmGatePrice,
+        isFestivalWeek,
+        seedVariety,
+        expectedYield: parseFloat(expectedYield),
+        farmArea: parseFloat(farmArea),
+        totalCost,
+        productionCostPerKg,
+        hasStorage,
+        language,
+      };
+
+      // Navigate to next page
+      navigation.navigate("PriceForecastScreen", { data: forecastData });
+    } catch (error) {
+      console.log("Submit Error:", error);
+    }
   };
 
   const handleGoBack = () => {
@@ -449,9 +712,13 @@ const PriceForecastFormScreen = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setNotifVisible(true)}
+          >
             <Bell color="#10B981" size={20} />
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.langButton}
             onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
@@ -472,7 +739,9 @@ const PriceForecastFormScreen = () => {
             <Text style={styles.infoLabel}>
               {language === "si" ? "ස්ථානය" : "Location"}
             </Text>
-            <Text style={styles.infoValue}>{district}</Text>
+            <Text style={styles.infoValue}>
+              {getTranslatedLocation(autoDistrict, language)}
+            </Text>
           </View>
         </View>
         <View style={styles.divider} />
@@ -589,18 +858,70 @@ const PriceForecastFormScreen = () => {
               {content[language].userInputs}
             </Text>
           </View>
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].district} *</Text>
+
+            <TouchableOpacity
+              style={styles.input}
+              onPress={() => setShowDistrictPopup(true)}
+            >
+              <Text
+                style={{
+                  color: district ? "#1F2937" : "#9CA3AF",
+                  fontSize: 15,
+                }}
+              >
+                {district || (language === "si" ? "තෝරන්න" : "Select")}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {showDistrictPopup && (
+            <View style={styles.popupContainer}>
+              <View style={styles.popupBox}>
+                <ScrollView>
+                  {["Anuradhapura", "Monaragala", "Dambulla"].map((d) => (
+                    <TouchableOpacity
+                      key={d}
+                      style={styles.popupItem}
+                      onPress={() => {
+                        setDistrict(d);
+                        setShowDistrictPopup(false);
+                      }}
+                    >
+                      <Text style={styles.popupText}>{d}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <TouchableOpacity
+                  style={styles.popupCancel}
+                  onPress={() => setShowDistrictPopup(false)}
+                >
+                  <Text style={styles.popupCancelText}>
+                    {language === "si" ? "අවලංගු" : "Cancel"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
-            <TextInput
+
+            <TouchableOpacity
               style={styles.input}
-              placeholder={
-                language === "si" ? "උදා: පැසිෆික් 999" : "e.g., Pacific 999"
-              }
-              value={seedVariety}
-              onChangeText={setSeedVariety}
-              placeholderTextColor="#9CA3AF"
-            />
+              onPress={() => setShowVarietyPopup(true)}
+            >
+              <Text
+                style={{
+                  color: seedVariety ? "#1F2937" : "#9CA3AF",
+                  fontSize: 15,
+                }}
+              >
+                {seedVariety || (language === "si" ? "තෝරන්න" : "Select")}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.formRow}>
@@ -708,7 +1029,45 @@ const PriceForecastFormScreen = () => {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
+        {showVarietyPopup && (
+          <View style={styles.popupContainer}>
+            <View style={styles.popupBox}>
+              <ScrollView>
+                {VARIETIES.map((v) => (
+                  <TouchableOpacity
+                    key={v}
+                    style={styles.popupItem}
+                    onPress={() => {
+                      setSeedVariety(v);
+                      setShowVarietyPopup(false);
+                    }}
+                  >
+                    <Text style={styles.popupText}>{v}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                style={styles.popupCancel}
+                onPress={() => setShowVarietyPopup(false)}
+              >
+                <Text style={styles.popupCancelText}>
+                  {language === "si" ? "අවලංගු" : "Cancel"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
+      <NotificationDropdown
+        visible={notifVisible}
+        onClose={() => setNotifVisible(false)}
+        messages={
+          notifMessages.length > 0
+            ? notifMessages
+            : [language === "si" ? "නව දැනුම්දීමක් නොමැත" : "No notifications"]
+        }
+      />
     </View>
   );
 };
@@ -994,6 +1353,51 @@ const styles = StyleSheet.create({
   adminButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  popupContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+
+  popupBox: {
+    backgroundColor: "#fff",
+    width: "80%",
+    maxHeight: "60%",
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+
+  popupItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+
+  popupText: {
+    fontSize: 16,
+    color: "#047857",
+  },
+
+  popupCancel: {
+    marginTop: 10,
+    paddingVertical: 12,
+    backgroundColor: "#FEE2E2",
+    borderRadius: 10,
+  },
+
+  popupCancelText: {
+    textAlign: "center",
+    color: "#B91C1C",
     fontWeight: "bold",
   },
 });
