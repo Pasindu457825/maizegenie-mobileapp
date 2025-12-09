@@ -6,11 +6,14 @@ import {
   Animated,
   Dimensions,
   TouchableOpacity,
+  Alert,
+  ScrollView,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { Leaf, User, Briefcase } from "lucide-react-native";
+import { Leaf, Users, Package } from "lucide-react-native";
+import { useApp } from "../../context/AppContext";
 
 const { width } = Dimensions.get("window");
 
@@ -24,6 +27,8 @@ const YieldPredictionLoadingScreen = () => {
   const [language, setLanguage] = useState<"si" | "en">("si");
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
+  const { user } = useApp();
+  const isFarmer = user?.role === "farmer";
 
   useEffect(() => {
     Animated.parallel([
@@ -43,19 +48,29 @@ const YieldPredictionLoadingScreen = () => {
   const content = {
     si: {
       title: "අස්වැන්න පුරෝකථනය",
-      subtitle: "ඔබේ භූමිකාව තෝරන්න",
-      farmer: "ගොවියා",
-      officer: "කෘෂිකර්ම නිලධාරී",
-      farmerDesc: "සරල අස්වැන්න පුරෝකථනය",
-      officerDesc: "සවිස්තරාත්මක විශ්ලේෂණය සහ පොහොර නිර්දේශ",
+      subtitle: isFarmer ? "ඔබේ සේවාවන්" : "නිලධාරී සේවාවන්",
+      startTitle: "පුරෝකථනය ආරම්භ කරන්න",
+      startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
+      fertilizerTitle: "පොහොර උපදේශ",
+      fertilizerDesc: "ඉදිරි දිනවල",
+      fertilizerRecommendation: "පොහොර නිර්දේශ",
+      fertilizerRecommendationDesc: "ඉදිරි දිනවල",
+      farmerRequests: "ගොවි ඉල්ලීම්",
+      farmerRequestsDesc: "ඉදිරි දිනවල",
+      comingSoon: "ඉදිරි දිනවල",
     },
     en: {
       title: "Yield Prediction",
-      subtitle: "Select Your Role",
-      farmer: "Farmer",
-      officer: "Agricultural Officer",
-      farmerDesc: "Simple yield prediction",
-      officerDesc: "Detailed analysis & fertilizer recommendations",
+      subtitle: isFarmer ? "Your Services" : "Officer Services",
+      startTitle: "Start Prediction",
+      startDesc: "Get your yield prediction quickly",
+      fertilizerTitle: "Fertilizer Advices",
+      fertilizerDesc: "Coming soon",
+      fertilizerRecommendation: "Fertilizer Recommendation",
+      fertilizerRecommendationDesc: "Coming soon",
+      farmerRequests: "Farmer Requests",
+      farmerRequestsDesc: "Coming soon",
+      comingSoon: "Coming soon",
     },
   };
 
@@ -65,6 +80,15 @@ const YieldPredictionLoadingScreen = () => {
     } else {
       navigation.navigate("YieldPredictionOfficerFormScreen", { language });
     }
+  };
+
+  const handleComingSoon = (feature: string) => {
+    Alert.alert(
+      language === "si" ? "ඉදිරි දිනවල" : "Coming soon",
+      language === "si"
+        ? `${feature} මොඩියුලය ඉක්මනින් ලබා දෙනු ඇත.`
+        : `${feature} will be available soon.`
+    );
   };
 
   return (
@@ -85,56 +109,136 @@ const YieldPredictionLoadingScreen = () => {
         </TouchableOpacity>
       </View>
 
-      <Animated.View
-        style={[
-          styles.content,
-          { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
-        ]}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        {/* Icon */}
-        <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Leaf color="#10B981" size={64} />
+        <Animated.View
+          style={[
+            styles.content,
+            { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
+          {/* Icon */}
+          <View style={styles.iconContainer}>
+            <View style={styles.iconCircle}>
+              <Leaf color="#10B981" size={64} />
+            </View>
+            <View style={[styles.pulseRing, styles.pulseRing1]} />
+            <View style={[styles.pulseRing, styles.pulseRing2]} />
           </View>
-          <View style={[styles.pulseRing, styles.pulseRing1]} />
-          <View style={[styles.pulseRing, styles.pulseRing2]} />
-        </View>
 
-        {/* Role Selection Cards */}
-        <View style={styles.roleContainer}>
-          {/* Farmer Card */}
-          <TouchableOpacity
-            style={styles.roleCard}
-            onPress={() => handleRoleSelect("farmer")}
-            activeOpacity={0.7}
-          >
-            <View style={styles.roleIconCircle}>
-              <User color="#10B981" size={32} />
-            </View>
-            <Text style={styles.roleTitle}>{content[language].farmer}</Text>
-            <Text style={styles.roleDesc}>{content[language].farmerDesc}</Text>
-            <View style={styles.roleArrow}>
-              <Text style={styles.roleArrowText}>→</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Action Cards */}
+          <View style={styles.roleContainer}>
+          {isFarmer ? (
+            <>
+              {/* Card 1: Start Prediction */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => handleRoleSelect("farmer")}
+                activeOpacity={0.7}
+              >
+                <View style={styles.roleIconCircle}>
+                  <Leaf color="#10B981" size={32} />
+                </View>
+                <Text style={styles.roleTitle}>
+                  {content[language].startTitle}
+                </Text>
+                <Text style={styles.roleDesc}>
+                  {content[language].startDesc}
+                </Text>
+                <View style={styles.roleArrow}>
+                  <Text style={styles.roleArrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
 
-          {/* Officer Card */}
-          <TouchableOpacity
-            style={styles.roleCard}
-            onPress={() => handleRoleSelect("officer")}
-            activeOpacity={0.7}
-          >
-            <View style={styles.roleIconCircle}>
-              <Briefcase color="#10B981" size={32} />
-            </View>
-            <Text style={styles.roleTitle}>{content[language].officer}</Text>
-            <Text style={styles.roleDesc}>{content[language].officerDesc}</Text>
-            <View style={styles.roleArrow}>
-              <Text style={styles.roleArrowText}>→</Text>
-            </View>
-          </TouchableOpacity>
+              {/* Card 2: Fertilizer Advices */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => handleComingSoon(content[language].fertilizerTitle)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.roleIconCircle}>
+                  <Package color="#10B981" size={32} />
+                </View>
+                <Text style={styles.roleTitle}>
+                  {content[language].fertilizerTitle}
+                </Text>
+                <Text style={styles.roleDesc}>
+                  {content[language].fertilizerDesc}
+                </Text>
+                <View style={styles.roleArrow}>
+                  <Text style={styles.roleArrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              {/* Card 1: Start Prediction */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => handleRoleSelect("officer")}
+                activeOpacity={0.7}
+              >
+                <View style={styles.roleIconCircle}>
+                  <Leaf color="#10B981" size={32} />
+                </View>
+                <Text style={styles.roleTitle}>
+                  {content[language].startTitle}
+                </Text>
+                <Text style={styles.roleDesc}>
+                  {content[language].startDesc}
+                </Text>
+                <View style={styles.roleArrow}>
+                  <Text style={styles.roleArrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Card 2: Fertilizer Recommendation */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => handleComingSoon(content[language].fertilizerRecommendation)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.roleIconCircle}>
+                  <Package color="#10B981" size={32} />
+                </View>
+                <Text style={styles.roleTitle}>
+                  {content[language].fertilizerRecommendation}
+                </Text>
+                <Text style={styles.roleDesc}>
+                  {content[language].fertilizerRecommendationDesc}
+                </Text>
+                <View style={styles.roleArrow}>
+                  <Text style={styles.roleArrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Card 3: Farmer Requests */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => handleComingSoon(content[language].farmerRequests)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.roleIconCircle}>
+                  <Users color="#10B981" size={32} />
+                </View>
+                <Text style={styles.roleTitle}>
+                  {content[language].farmerRequests}
+                </Text>
+                <Text style={styles.roleDesc}>
+                  {content[language].farmerRequestsDesc}
+                </Text>
+                <View style={styles.roleArrow}>
+                  <Text style={styles.roleArrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
-      </Animated.View>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 };
@@ -184,8 +288,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  content: {
     paddingHorizontal: 20,
     paddingTop: 40,
   },

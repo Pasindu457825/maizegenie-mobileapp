@@ -20,7 +20,13 @@ import {
   CloudSun,
   Activity,
   Package,
+  Sparkles,
+  MapPin,
+  Plus,
+  Minus,
 } from "lucide-react-native";
+import * as Location from "expo-location";
+import { fetchWeatherByCoordinates } from "../../services/weatherApi";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -54,6 +60,108 @@ const VARIETIES = [
 ];
 const RAINFALL_CONDITIONS = ["Adequate", "Deficit", "Excess"];
 
+// Location coordinates and soil types by district
+const LOCATION_COORDINATES: { 
+    [key: string]: { 
+        [key: string]: { 
+            lat: number; 
+            lng: number; 
+            soilTypes: string[];
+        } 
+    } 
+} = {
+    Anuradhapura: {
+        'Eppawala': { 
+            lat: 8.2833, 
+            lng: 80.4667,
+            soilTypes: ['Reddish Brown Earth', 'Non-Calcic Brown Soil', 'Sandy-Loam']
+        },
+        'Tambuttegama': { 
+            lat: 8.0167, 
+            lng: 80.5000,
+            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil', 'Sandy-Clay-Loam']
+        },
+        'Nochchiyagama': { 
+            lat: 8.3833, 
+            lng: 80.2333,
+            soilTypes: ['Reddish Brown Earth', 'Non-Calcic Brown Soil']
+        },
+        'Kahatagasdigiliya': { 
+            lat: 8.4500, 
+            lng: 80.7167,
+            soilTypes: ['Reddish Brown Earth', 'Sandy-Loam']
+        },
+        'Horowpathana': { 
+            lat: 8.3167, 
+            lng: 80.3833,
+            soilTypes: ['Reddish Brown Earth', 'Non-Calcic Brown Soil']
+        },
+    },
+    Monaragala: {
+        'Siyambalanduwa': { 
+            lat: 6.7333, 
+            lng: 81.5333,
+            soilTypes: ['Reddish Brown Earth', 'Red-Yellow Podzolic Soil', 'Sandy-Loam']
+        },
+        'Wellawaya': { 
+            lat: 6.7333, 
+            lng: 81.1000,
+            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil', 'Loamy-Sand']
+        },
+        'Buttala': { 
+            lat: 6.7500, 
+            lng: 81.2333,
+            soilTypes: ['Reddish Brown Earth', 'Red-Yellow Podzolic Soil', 'Sandy-Clay-Loam']
+        },
+        'Thanamalwila': { 
+            lat: 6.4333, 
+            lng: 81.1833,
+            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil']
+        },
+    },
+    Badulla: {
+        'Mahiyanganaya': { 
+            lat: 7.3333, 
+            lng: 81.0000,
+            soilTypes: ['Red-Yellow Podzolic Soil', 'Alluvial Soil', 'Loamy-Clay']
+        },
+        'Rideemaliyadda': { 
+            lat: 7.2667, 
+            lng: 81.1333,
+            soilTypes: ['Red-Yellow Podzolic Soil', 'Lateritic Soil']
+        },
+    },
+    Ampara: {
+        'Maha Oya': { 
+            lat: 7.4167, 
+            lng: 81.5333,
+            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil']
+        },
+        'Padiyathalawa': { 
+            lat: 7.7167, 
+            lng: 81.0333,
+            soilTypes: ['Reddish Brown Earth', 'Sandy-Loam']
+        },
+        'Dehiattakandiya': { 
+            lat: 7.9167, 
+            lng: 81.1167,
+            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil']
+        },
+    },
+    Dambulla: {
+        'Dambulla': { 
+            lat: 7.8731, 
+            lng: 80.6514,
+            soilTypes: ['Reddish Brown Earth', 'Red-Brown Latosolic Soil', 'Alluvial Soil', 'Sandy-Loam']
+        },
+        'Pelwehera': { 
+            lat: 7.903092, 
+            lng: 80.670837,
+            soilTypes: ['Reddish Brown Earth', 'Latosolic Soil', 'Sandy-Clay-Loam']
+        },
+    },
+};
+
 const YieldPredictionOfficerFormScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
@@ -63,6 +171,8 @@ const YieldPredictionOfficerFormScreen = () => {
 
   // Soil Profile
   const [district, setDistrict] = useState("");
+  const [location, setLocation] = useState("");
+  const [soilType, setSoilType] = useState("");
   const [soilPh, setSoilPh] = useState("");
   const [soilNitrogen, setSoilNitrogen] = useState("");
   const [soilPhosphorus, setSoilPhosphorus] = useState("");
@@ -72,15 +182,54 @@ const YieldPredictionOfficerFormScreen = () => {
   // Climate Data
   const [seasonalRainfall, setSeasonalRainfall] = useState("");
   const [avgTemperature, setAvgTemperature] = useState("");
+  const [humidity, setHumidity] = useState("");
+  const [rainfall30d, setRainfall30d] = useState("");
+  const [rainfall60d, setRainfall60d] = useState("");
 
   // Crop Information
   const [variety, setVariety] = useState("");
   const [plantingDate, setPlantingDate] = useState("");
+  const [landSize, setLandSize] = useState("");
 
   // Dropdowns
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
+  const [showLocationPopup, setShowLocationPopup] = useState(false);
+  const [showSoilTypePopup, setShowSoilTypePopup] = useState(false);
   const [showVarietyPopup, setShowVarietyPopup] = useState(false);
   const [showRainfallPopup, setShowRainfallPopup] = useState(false);
+  
+  // Weather info
+  const [weatherData, setWeatherData] = useState<{ temp: string; condition: string }>({ 
+    temp: "N/A", 
+    condition: "Weather unavailable" 
+  });
+  const [locationName, setLocationName] = useState("Location");
+  
+  // Get location options based on selected district
+  const getLocationOptions = () => {
+    if (!district || !LOCATION_COORDINATES[district]) return [];
+    return Object.keys(LOCATION_COORDINATES[district]);
+  };
+  
+  // Get soil type options based on selected location
+  const getSoilTypeOptions = () => {
+    if (!district || !location || !LOCATION_COORDINATES[district] || !LOCATION_COORDINATES[district][location]) {
+      return [];
+    }
+    return LOCATION_COORDINATES[district][location].soilTypes;
+  };
+  
+  // Auto-fill soil type when location changes
+  React.useEffect(() => {
+    if (location && district && LOCATION_COORDINATES[district] && LOCATION_COORDINATES[district][location]) {
+      const soilTypes = LOCATION_COORDINATES[district][location].soilTypes;
+      if (soilTypes.length > 0) {
+        setSoilType(soilTypes[0]);
+      }
+    } else {
+      setSoilType("");
+    }
+  }, [location, district]);
 
   const content = {
     si: {
@@ -90,6 +239,8 @@ const YieldPredictionOfficerFormScreen = () => {
       climateData: "කාලගුණ දත්ත",
       cropInfo: "බෝග තොරතුරු",
       district: "දිස්ත්‍රික්කය",
+      location: "ස්ථානය",
+      soilType: "පස් වර්ගය",
       soilPh: "පස් pH",
       nitrogen: "නයිට්‍රජන් (ppm)",
       phosphorus: "පොස්පරස් (ppm)",
@@ -99,6 +250,11 @@ const YieldPredictionOfficerFormScreen = () => {
       avgTemperature: "සාමාන්‍ය උෂ්ණත්වය (°C)",
       variety: "බීජ වර්ගය",
       plantingDate: "වගා කළ දිනය",
+      landSize: "ඉඩම් ප්‍රමාණය (අක්කර)",
+      autoFill: "ස්වයංක්‍රීය පිරවීම",
+      humidity: "ආර්ද්‍රතාවය (%)",
+      rainfall30d: "වර්ෂාපතනය 30d (mm)",
+      rainfall60d: "වර්ෂාපතනය 60d (mm)",
       submit: "පුරෝකථනය ලබා ගන්න",
       back: "ආපසු",
       select: "තෝරන්න",
@@ -114,6 +270,8 @@ const YieldPredictionOfficerFormScreen = () => {
       climateData: "Climate Data",
       cropInfo: "Crop Information",
       district: "District",
+      location: "Location",
+      soilType: "Soil Type",
       soilPh: "Soil pH",
       nitrogen: "Nitrogen (ppm)",
       phosphorus: "Phosphorus (ppm)",
@@ -123,6 +281,11 @@ const YieldPredictionOfficerFormScreen = () => {
       avgTemperature: "Average Temperature (°C)",
       variety: "Seed Variety",
       plantingDate: "Planting Date",
+      landSize: "Land Size (acres)",
+      autoFill: "Auto Fill",
+      humidity: "Humidity (%)",
+      rainfall30d: "Rainfall 30d (mm)",
+      rainfall60d: "Rainfall 60d (mm)",
       submit: "Get Prediction",
       back: "Back",
       select: "Select",
@@ -131,6 +294,130 @@ const YieldPredictionOfficerFormScreen = () => {
       deficit: "Deficit",
       excess: "Excess",
     },
+  };
+  
+  // Request location permission and fetch weather
+  const requestLocationAndWeather = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      
+      if (status !== "granted") {
+        Alert.alert(
+          language === "si" ? "අවසරය අවශ්‍යයි" : "Permission Required",
+          language === "si" ? "කරුණාකර ස්ථානය සක්‍රිය කරන්න" : "Please enable location access"
+        );
+        return;
+      }
+
+      const loc = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = loc.coords;
+
+      // Fetch weather data
+      const weather = await fetchWeatherByCoordinates(latitude, longitude);
+      setWeatherData({
+        temp: `${weather.temperature}°C`,
+        condition: weather.description,
+      });
+
+      // Auto-fill weather fields
+      setAvgTemperature(weather.temperature.toString());
+      setHumidity(weather.humidity.toString());
+      
+      // Calculate rainfall estimates based on humidity and season
+      // OpenWeather often returns 0 for rainfall if not currently raining
+      // Use humidity-based estimation for Sri Lankan climate
+      const rainfall1h = weather.rainfall || 0;
+      let estimated30d: number;
+      let estimated60d: number;
+      
+      if (rainfall1h > 0) {
+          // If actual rainfall detected, use it
+          estimated30d = Math.round(rainfall1h * 90);
+          estimated60d = estimated30d * 2;
+      } else {
+          // Estimate based on humidity (Sri Lankan climate)
+          // High humidity (>70%) suggests monsoon season: 150-300mm/month
+          // Medium humidity (50-70%): 50-150mm/month
+          // Low humidity (<50%): 20-50mm/month
+          if (weather.humidity > 70) {
+              estimated30d = Math.round(150 + (weather.humidity - 70) * 5);
+          } else if (weather.humidity > 50) {
+              estimated30d = Math.round(50 + (weather.humidity - 50) * 5);
+          } else {
+              estimated30d = Math.round(20 + weather.humidity * 0.6);
+          }
+          estimated60d = estimated30d * 2;
+      }
+      
+      setRainfall30d(estimated30d.toString());
+      setRainfall60d(estimated60d.toString());
+
+      // Reverse geocode to get location name and district
+      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (geocode[0]) {
+        const cityName = geocode[0].city || geocode[0].district || "";
+        const districtName = geocode[0].region || geocode[0].district || "";
+        
+        setLocationName(cityName || "Location");
+        
+        // Auto-fill district if it matches
+        const matchedDistrict = DISTRICTS.find(d => 
+          districtName.toLowerCase().includes(d.toLowerCase())
+        );
+        if (matchedDistrict) {
+          setDistrict(matchedDistrict);
+        }
+        
+        // Auto-fill location if it matches
+        if (district && LOCATION_COORDINATES[district]) {
+          const matchedLocation = Object.keys(LOCATION_COORDINATES[district]).find(loc =>
+            cityName.toLowerCase().includes(loc.toLowerCase())
+          );
+          if (matchedLocation) {
+            setLocation(matchedLocation);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching location/weather:", error);
+      Alert.alert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si" ? "කාලගුණ දත්ත ලබා ගත නොහැක" : "Unable to fetch weather data"
+      );
+    }
+  };
+  
+  // Handle auto-fill button press
+  const handleAutoFill = () => {
+    Alert.alert(
+      language === "si" ? "ස්ථානය සක්‍රිය කරන්න" : "Enable Location",
+      language === "si" 
+        ? "දිස්ත්‍රික්කය සහ කාලගුණ දත්ත ස්වයංක්‍රීයව පුරවීමට ස්ථානය සක්‍රිය කරන්න" 
+        : "Enable location to auto-fill district and weather data",
+      [
+        {
+          text: language === "si" ? "අවලංගු" : "Cancel",
+          style: "cancel",
+        },
+        {
+          text: language === "si" ? "සක්‍රිය කරන්න" : "Enable",
+          onPress: requestLocationAndWeather,
+        },
+      ]
+    );
+  };
+  
+  // Land size increment/decrement
+  const increaseLandSize = () => {
+    const current = parseFloat(landSize) || 0;
+    setLandSize((current + 0.1).toFixed(1));
+  };
+
+  const decreaseLandSize = () => {
+    const current = parseFloat(landSize) || 0;
+    if (current > 0.1) {
+      setLandSize((current - 0.1).toFixed(1));
+    }
   };
 
   const handleSubmit = async () => {
@@ -533,7 +820,7 @@ const YieldPredictionOfficerFormScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#E8F5E9",
   },
   header: {
     backgroundColor: "#FFFFFF",
@@ -559,12 +846,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#065F46",
+    color: "#1F2937",
     marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#374151",
   },
   langButton: {
     backgroundColor: "#D1FAE5",
@@ -604,7 +891,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#065F46",
+    color: "#1F2937",
   },
   formGroup: {
     marginBottom: 16,
@@ -612,7 +899,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
+    color: "#000000",
     marginBottom: 8,
   },
   input: {
@@ -621,7 +908,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: "#1F2937",
+    color: "#000000",
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
