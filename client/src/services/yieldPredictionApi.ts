@@ -145,21 +145,35 @@ export const predictYieldFarmer = async (
 };
 
 /**
- * Get prediction history for a farmer
- * @param farmerId Farmer's user ID
- * @returns Array of past predictions
+ * Get prediction history for authenticated farmer
+ * @param limit Maximum number of predictions to return (default: 10)
+ * @returns Prediction history with shareable text
  */
 export const getFarmerPredictionHistory = async (
-    farmerId: string
-): Promise<FarmerPredictionResponse[]> => {
+    limit: number = 10
+): Promise<any> => {
     try {
+        console.log('📊 Fetching farmer prediction history...');
+        
+        // Get token from AsyncStorage
+        const authToken = await AsyncStorage.getItem('auth_token');
+        
+        const headers: Record<string, string> = {
+            'Accept': 'application/json',
+        };
+        
+        // Add Authorization header
+        if (authToken) {
+            headers['Authorization'] = `Bearer ${authToken}`;
+        } else {
+            throw new Error('Authentication required. Please login.');
+        }
+
         const response = await fetch(
-            `${API_BASE}/api/v1/yield-prediction/farmer/history/${farmerId}`,
+            `${API_BASE}/api/v1/yield-prediction/farmer/history?limit=${limit}`,
             {
                 method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                },
+                headers,
             }
         );
 

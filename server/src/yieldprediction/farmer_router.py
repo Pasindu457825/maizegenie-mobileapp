@@ -397,6 +397,105 @@ def generate_farmer_recommendations(
     
     return recommendations
 
+@router.get("/yield-prediction/farmer/history")
+async def get_farmer_prediction_history(
+    current_user: dict = Depends(get_current_user),
+    limit: int = 10
+):
+    """
+    Get prediction history for authenticated farmer
+    
+    Args:
+        current_user: Authenticated user from JWT token
+        limit: Maximum number of predictions to return (default: 10)
+        
+    Returns:
+        List of farmer's past predictions with shareable text
+    """
+    try:
+        farmer_id = current_user["id"]
+        
+        print(f"📊 Fetching prediction history for farmer: {farmer_id}")
+        
+        # Query database for farmer's predictions
+        from core.supabase_client import supabase
+        
+        response = supabase.table("farmer_inputs") \
+            .select("*, predictions(*)") \
+            .eq("farmer_id", farmer_id) \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .execute()
+        
+        predictions = response.data if response.data else []
+        
+        # Format predictions with shareable text
+        formatted_predictions = []
+        for pred in predictions:
+            # Generate shareable text for officer chat
+            shareable_text = generate_shareable_text(pred)
+            
+            formatted_predictions.append({
+                "id": pred.get("id"),
+                "district": pred.get("district"),
+                "season": pred.get("season"),
+                "variety": pred.get("variety"),
+                "land_size": f"{pred.get('land_size_value')} {pred.get('land_size_unit')}",
+                "planting_date": pred.get("planting_date"),
+                "created_at": pred.get("created_at"),
+                "shareable_text": shareable_text,
+                "prediction_data": pred.get("predictions")
+            })
+        
+        return {
+            "status": "success",
+            "farmer_id": farmer_id,
+            "total_predictions": len(formatted_predictions),
+            "predictions": formatted_predictions
+        }
+        
+    except Exception as e:
+        print(f"❌ Error fetching prediction history: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch prediction history: {str(e)}"
+        )
+
+def generate_shareable_text(prediction: dict) -> str:
+    """
+    Generate shareable text for officer chat
+    
+    Args:
+        prediction: Prediction data from database
+        
+    Returns:
+        Formatted text for sharing with agricultural officer
+    """
+    text = f"""🌾 Maize Yield Prediction Request
+
+📍 Location: {prediction.get('district', 'N/A')}
+{f"   {prediction.get('location', '')}" if prediction.get('location') else ""}
+
+🌱 Crop Details:
+   • Variety: {prediction.get('variety', 'N/A')}
+   • Season: {prediction.get('season', 'N/A')}
+   • Planting Date: {prediction.get('planting_date', 'N/A')}
+
+🏞️ Farm Details:
+   • Land Size: {prediction.get('land_size_value', 'N/A')} {prediction.get('land_size_unit', '')}
+   • Soil Condition: {prediction.get('soil_condition', 'N/A')}
+   • Irrigation: {prediction.get('irrigation_type', 'N/A')}
+   • Rainfall: {prediction.get('rainfall_condition', 'N/A')}
+
+📅 Request Date: {prediction.get('created_at', 'N/A')}
+
+{f"💬 Farmer Message: {prediction.get('farmer_message', '')}" if prediction.get('farmer_message') else ""}
+
+---
+I would like guidance on improving my maize yield. Please advise on best practices and recommendations.
+"""
+    return text
+
 @router.get("/farmer/health")
 async def farmer_health_check():
     """Health check for farmer prediction service"""
