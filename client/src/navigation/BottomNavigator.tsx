@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "../screens/HomeScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 import PriceForecastStack from "./PriceForecastStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
@@ -80,18 +81,6 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 💹 Price */}
-      <Tab.Screen
-        name={ROUTES.TABS.PRICEFORECAST}
-        component={PriceForecastStack}
-        options={{
-          tabBarLabel: "Price",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="trending-up-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
       {/* 🌾 Yield */}
       <Tab.Screen
         name={ROUTES.TABS.PREDICTYIELD}
@@ -104,10 +93,22 @@ export default function BottomNavigator() {
         }}
       />
 
+      {/* 💹 Price */}
+      <Tab.Screen
+        name={ROUTES.TABS.PRICEFORECAST}
+        component={PriceForecastStack}
+        options={{
+          tabBarLabel: "Price",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trending-up-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
       {/* 👤 Profile */}
       <Tab.Screen
         name={ROUTES.TABS.USERPROFILE}
-        component={HomeScreen}
+        component={ProfileScreen}
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
