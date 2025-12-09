@@ -46,19 +46,152 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-const DISTRICTS = ["Anuradhapura", "Monaragala", "Badulla", "Ampara", "Dambulla"];
+const DISTRICTS = [
+  "Anuradhapura",
+  "Monaragala",
+  "Badulla",
+  "Ampara",
+  "Dambulla",
+  "Panadura",
+  "Piliyandala",
+  "Malabe",
+  "Kaduwela",
+];
 const VARIETIES = [
-  "Ruhunu 1",
-  "Ruhunu 2",
-  "Sampath",
   "Jet 999",
   "GT 709",
-  "GT 722",
   "Pacific 808",
   "GT200",
   "Commando",
 ];
-const RAINFALL_CONDITIONS = ["Adequate", "Deficit", "Excess"];
+const RAINFALL_CONDITIONS = ["High", "Medium", "Low"];
+
+// Seasonal climate data for Sri Lankan districts
+// Unit: Total Millimeters (mm) per season for rainfall
+// Temperature in Celsius, Humidity in percentage
+const SEASONAL_CLIMATE_DATA: {
+    [key: string]: {
+        maha: { 
+            rainfall: { min: number; max: number; reliability: string };
+            temp: { min: number; max: number };
+            humidity: number;
+        };
+        yala: { 
+            rainfall: { min: number; max: number; reliability: string };
+            temp: { min: number; max: number };
+            humidity: number;
+        };
+    };
+} = {
+    Anuradhapura: {
+        maha: { 
+            rainfall: { min: 900, max: 1100, reliability: "High" },
+            temp: { min: 22, max: 30 },
+            humidity: 82
+        },
+        yala: { 
+            rainfall: { min: 350, max: 500, reliability: "Low" },
+            temp: { min: 25, max: 34 },
+            humidity: 70
+        }
+    },
+    Monaragala: {
+        maha: { 
+            rainfall: { min: 1000, max: 1300, reliability: "High" },
+            temp: { min: 22, max: 29 },
+            humidity: 82
+        },
+        yala: { 
+            rainfall: { min: 500, max: 650, reliability: "Medium" },
+            temp: { min: 25, max: 33 },
+            humidity: 72
+        }
+    },
+    Badulla: {
+        maha: { 
+            rainfall: { min: 1100, max: 1500, reliability: "High" },
+            temp: { min: 23, max: 29 },
+            humidity: 80
+        },
+        yala: { 
+            rainfall: { min: 600, max: 800, reliability: "Medium" },
+            temp: { min: 24, max: 33 },
+            humidity: 68
+        }
+    },
+    Ampara: {
+        maha: { 
+            rainfall: { min: 1100, max: 1400, reliability: "High" },
+            temp: { min: 23, max: 28 },
+            humidity: 85
+        },
+        yala: { 
+            rainfall: { min: 350, max: 450, reliability: "Low" },
+            temp: { min: 26, max: 34 },
+            humidity: 72
+        }
+    },
+    Dambulla: {
+        maha: { 
+            rainfall: { min: 800, max: 1100, reliability: "High" },
+            temp: { min: 21, max: 29 },
+            humidity: 83
+        },
+        yala: { 
+            rainfall: { min: 400, max: 550, reliability: "Low" },
+            temp: { min: 24, max: 33 },
+            humidity: 70
+        }
+    },
+    Panadura: {
+        maha: { 
+            rainfall: { min: 1200, max: 1500, reliability: "High" },
+            temp: { min: 23, max: 30 },
+            humidity: 85
+        },
+        yala: { 
+            rainfall: { min: 1500, max: 2000, reliability: "High" },
+            temp: { min: 25, max: 31 },
+            humidity: 90
+        }
+    },
+    Piliyandala: {
+        maha: { 
+            rainfall: { min: 1100, max: 1400, reliability: "High" },
+            temp: { min: 23, max: 30 },
+            humidity: 82
+        },
+        yala: { 
+            rainfall: { min: 1400, max: 1800, reliability: "High" },
+            temp: { min: 25, max: 31 },
+            humidity: 88
+        }
+    },
+    Malabe: {
+        maha: { 
+            rainfall: { min: 1100, max: 1400, reliability: "High" },
+            temp: { min: 22, max: 30 },
+            humidity: 82
+        },
+        yala: { 
+            rainfall: { min: 1300, max: 1700, reliability: "High" },
+            temp: { min: 24, max: 31 },
+            humidity: 88
+        }
+    },
+    Kaduwela: {
+        maha: { 
+            rainfall: { min: 1100, max: 1400, reliability: "High" },
+            temp: { min: 23, max: 31 },
+            humidity: 85
+        },
+        yala: { 
+            rainfall: { min: 1300, max: 1700, reliability: "High" },
+            temp: { min: 25, max: 32 },
+            humidity: 90
+        }
+    },
+};
 
 // Location coordinates and soil types by district
 const LOCATION_COORDINATES: { 
@@ -181,10 +314,17 @@ const YieldPredictionOfficerFormScreen = () => {
 
   // Climate Data
   const [seasonalRainfall, setSeasonalRainfall] = useState("");
+  // Live weather data
   const [avgTemperature, setAvgTemperature] = useState("");
   const [humidity, setHumidity] = useState("");
   const [rainfall30d, setRainfall30d] = useState("");
-  const [rainfall60d, setRainfall60d] = useState("");
+  
+  // Seasonal average data
+  const [seasonalTemperature, setSeasonalTemperature] = useState("");
+  const [seasonalHumidity, setSeasonalHumidity] = useState("");
+  const [rainfallSeasonal, setRainfallSeasonal] = useState("");
+  
+  const [isLiveData, setIsLiveData] = useState(false);
 
   // Crop Information
   const [variety, setVariety] = useState("");
@@ -254,7 +394,9 @@ const YieldPredictionOfficerFormScreen = () => {
       autoFill: "ස්වයංක්‍රීය පිරවීම",
       humidity: "ආර්ද්‍රතාවය (%)",
       rainfall30d: "වර්ෂාපතනය 30d (mm)",
-      rainfall60d: "වර්ෂාපතනය 60d (mm)",
+      seasonalTemperature: "වාර උෂ්ණත්වය (°C)",
+      seasonalHumidity: "වාර ආර්ද්‍රතාවය (%)",
+      rainfallSeasonal: "වාර වර්ෂාපතනය (mm)",
       submit: "පුරෝකථනය ලබා ගන්න",
       back: "ආපසු",
       select: "තෝරන්න",
@@ -285,7 +427,9 @@ const YieldPredictionOfficerFormScreen = () => {
       autoFill: "Auto Fill",
       humidity: "Humidity (%)",
       rainfall30d: "Rainfall 30d (mm)",
-      rainfall60d: "Rainfall 60d (mm)",
+      seasonalTemperature: "Seasonal Temperature (°C)",
+      seasonalHumidity: "Seasonal Humidity (%)",
+      rainfallSeasonal: "Seasonal Rainfall (mm)",
       submit: "Get Prediction",
       back: "Back",
       select: "Select",
@@ -319,38 +463,16 @@ const YieldPredictionOfficerFormScreen = () => {
         condition: weather.description,
       });
 
-      // Auto-fill weather fields
+      // Auto-fill weather fields (LIVE DATA from OpenWeatherMap API)
       setAvgTemperature(weather.temperature.toString());
       setHumidity(weather.humidity.toString());
       
-      // Calculate rainfall estimates based on humidity and season
-      // OpenWeather often returns 0 for rainfall if not currently raining
-      // Use humidity-based estimation for Sri Lankan climate
-      const rainfall1h = weather.rainfall || 0;
-      let estimated30d: number;
-      let estimated60d: number;
+      // Mark as live data
+      setIsLiveData(true);
       
-      if (rainfall1h > 0) {
-          // If actual rainfall detected, use it
-          estimated30d = Math.round(rainfall1h * 90);
-          estimated60d = estimated30d * 2;
-      } else {
-          // Estimate based on humidity (Sri Lankan climate)
-          // High humidity (>70%) suggests monsoon season: 150-300mm/month
-          // Medium humidity (50-70%): 50-150mm/month
-          // Low humidity (<50%): 20-50mm/month
-          if (weather.humidity > 70) {
-              estimated30d = Math.round(150 + (weather.humidity - 70) * 5);
-          } else if (weather.humidity > 50) {
-              estimated30d = Math.round(50 + (weather.humidity - 50) * 5);
-          } else {
-              estimated30d = Math.round(20 + weather.humidity * 0.6);
-          }
-          estimated60d = estimated30d * 2;
-      }
-      
-      setRainfall30d(estimated30d.toString());
-      setRainfall60d(estimated60d.toString());
+      // Determine current season based on month
+      const currentMonth = new Date().getMonth() + 1;
+      const currentSeason = (currentMonth >= 10 || currentMonth <= 3) ? 'maha' : 'yala';
 
       // Reverse geocode to get location name and district
       const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -362,8 +484,50 @@ const YieldPredictionOfficerFormScreen = () => {
         
         // Auto-fill district if it matches
         const matchedDistrict = DISTRICTS.find(d => 
-          districtName.toLowerCase().includes(d.toLowerCase())
+          districtName.toLowerCase().includes(d.toLowerCase()) ||
+          cityName.toLowerCase().includes(d.toLowerCase())
         );
+        
+        // Use matched district or default to Panadura for wet zone areas
+        const targetDistrict = matchedDistrict || "Panadura";
+        
+        // Set seasonal climate data for the target district
+        if (SEASONAL_CLIMATE_DATA[targetDistrict]) {
+          const seasonalData = SEASONAL_CLIMATE_DATA[targetDistrict][currentSeason];
+          
+          // Calculate average rainfall from min/max range
+          const avgRainfall = Math.round((seasonalData.rainfall.min + seasonalData.rainfall.max) / 2);
+          setRainfallSeasonal(avgRainfall.toString());
+          
+          // Calculate average temperature from min/max range
+          const avgSeasonalTemp = Math.round(((seasonalData.temp.min + seasonalData.temp.max) / 2) * 10) / 10;
+          setSeasonalTemperature(avgSeasonalTemp.toString());
+          
+          // Set seasonal humidity
+          setSeasonalHumidity(seasonalData.humidity.toString());
+          
+          // Calculate 30-day rainfall estimate
+          // If current rainfall is 0, use 10% of seasonal average as estimate
+          const currentRainfall = weather.rainfall || 0;
+          let estimated30d: number;
+          if (currentRainfall > 0) {
+            // Extrapolate from current rainfall
+            estimated30d = Math.round(currentRainfall * 720);
+          } else {
+            // Use 10% of seasonal average as fallback (represents typical 30-day period)
+            estimated30d = Math.round(avgRainfall * 0.1);
+          }
+          setRainfall30d(estimated30d.toString());
+          
+          console.log(`Data set for ${targetDistrict} (${currentSeason}):`, {
+            temp: avgSeasonalTemp,
+            humidity: seasonalData.humidity,
+            rainfall: avgRainfall,
+            rainfall30d: estimated30d
+          });
+        }
+        
+        // Only set district dropdown if matched
         if (matchedDistrict) {
           setDistrict(matchedDistrict);
         }
