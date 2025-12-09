@@ -58,6 +58,12 @@ type RootStackParamList = {
 
 // Enhanced API configuration
 
+const normalizePredictions = (raw: any): Prediction[] => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  return [];
+};
+
 const API_BASE_URL = API_BASE;
 const REQUEST_TIMEOUT = 45000; // 45 seconds
 
@@ -65,7 +71,14 @@ const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
   const [language, setLanguage] = useState<Language>("si");
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [result, setResult] = useState<Prediction[] | null>(null);
+  interface DetectionResult {
+    predictions: Prediction[];
+    severity_score: number;
+    severity_label: string;
+  }
+
+  const [result, setResult] = useState<DetectionResult | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -84,7 +97,7 @@ const PestIdentificationScreen = () => {
       detectButton: "රෝග හඳුනා ගන්න",
       analyzing: "රූපය විශ්ලේෂණය කරමින්...",
       resultTitle: "හඳුනාගත් රෝග",
-      noPests: "රෝග හමු නොවීය! 🎉",
+      noDiseases: "රෝග හමු නොවීය! 🎉",
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
@@ -103,7 +116,7 @@ const PestIdentificationScreen = () => {
       detectButton: "Detect Disease",
       analyzing: "Analyzing image...",
       resultTitle: "Detected Diseases",
-      noPests: "No diseases detected! 🎉",
+      noDiseases: "No diseases detected! 🎉",
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
       orText: "OR",
@@ -261,11 +274,22 @@ const PestIdentificationScreen = () => {
       console.log("✅ Response received:", response.data);
 
       if (response.data.success) {
-        const predictions = response.data.predictions || [];
-        setResult(predictions);
+        const res = response.data;
 
-        if (predictions.length === 0) {
-          setError(content[language].noPests);
+        const predictions = normalizePredictions(res?.predictions);
+
+        // Roboflow does not calculate severity → set default values
+        const severity_score = res.severity_score ?? 0;
+        const severity_label = res.severity_label ?? "None";
+
+        setResult({
+          predictions,
+          severity_score,
+          severity_label,
+        });
+
+        if (!predictions || predictions.length === 0) {
+          setError(content[language].noDiseases);
         }
       } else {
         throw new Error(response.data.message || "Detection failed");
@@ -539,7 +563,7 @@ const PestIdentificationScreen = () => {
           )}
 
           {/* Results */}
-          {result && result.length > 0 && (
+          {result && result.predictions.length > 0 && (
             <Animated.View
               style={[
                 styles.resultContainer,
@@ -555,50 +579,102 @@ const PestIdentificationScreen = () => {
                   {content[language].successMessage}
                 </Text>
               </View>
-
-              {result.map((prediction, index) => (
-                <View
-                  key={`${prediction.class_id}-${index}`}
-                  style={styles.resultItem}
+              <View
+                style={{
+                  backgroundColor: "#E3F2FD",
+                  padding: 16,
+                  borderRadius: 12,
+                  marginBottom: 20,
+                  borderWidth: 2,
+                  borderColor: "#90CAF9",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "700",
+                    color: "#0D47A1",
+                    textAlign: "center",
+                  }}
                 >
-                  <View style={styles.resultItemLeft}>
-                    <Leaf color="#1565C0" size={20} />
-                    <View style={styles.resultTextContainer}>
-                      <Text style={styles.resultName}>
-                        {prediction.class_name}
+                  {language === "si" ? "රෝග ගැඹුරු බව" : "Disease Severity"}
+                </Text>
+
+                <Text
+                  style={{
+                    fontSize: 22,
+                    fontWeight: "800",
+                    color:
+                      result.severity_label === "High"
+                        ? "#D32F2F"
+                        : result.severity_label === "Medium"
+                        ? "#F9A825"
+                        : "#388E3C",
+                    textAlign: "center",
+                    marginTop: 6,
+                  }}
+                >
+                  {result.severity_label}
+                </Text>
+
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: "#0D47A1",
+                    textAlign: "center",
+                    marginTop: 4,
+                  }}
+                >
+                  {Math.round(result.severity_score * 100)}%{" "}
+                  {language === "si" ? "අවාසනීය ප්‍රදේශය" : "affected area"}
+                </Text>
+              </View>
+
+              {result.predictions.map(
+                (prediction: Prediction, index: number) => (
+                  <View
+                    key={`${prediction.class_id}-${index}`}
+                    style={styles.resultItem}
+                  >
+                    <View style={styles.resultItemLeft}>
+                      <Leaf color="#1565C0" size={20} />
+                      <View style={styles.resultTextContainer}>
+                        <Text style={styles.resultName}>
+                          {prediction.class_name}
+                        </Text>
+                        <Text style={styles.confidenceLevel}>
+                          {getConfidenceLevel(prediction.confidence)}{" "}
+                          {language === "si" ? "විශ්වාසනීයත්වය" : "confidence"}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={{ padding: 10 }}
+                      onPress={() => speakDisease(prediction.class_name)}
+                    >
+                      <Text style={{ color: "#1565C0", fontWeight: "bold" }}>
+                        🔊
                       </Text>
-                      <Text style={styles.confidenceLevel}>
-                        {getConfidenceLevel(prediction.confidence)}{" "}
-                        {language === "si" ? "විශ්වාසනීයත්වය" : "confidence"}
+                    </TouchableOpacity>
+
+                    <View
+                      style={[
+                        styles.confidenceBadge,
+                        {
+                          backgroundColor: getConfidenceColor(
+                            prediction.confidence
+                          ),
+                        },
+                      ]}
+                    >
+                      <Text style={styles.confidenceText}>
+                        {Math.round(prediction.confidence * 100)}%
                       </Text>
                     </View>
                   </View>
-
-                  <TouchableOpacity
-                    style={{ padding: 10 }}
-                    onPress={() => speakDisease(prediction.class_name)}
-                  >
-                    <Text style={{ color: "#1565C0", fontWeight: "bold" }}>
-                      🔊
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View
-                    style={[
-                      styles.confidenceBadge,
-                      {
-                        backgroundColor: getConfidenceColor(
-                          prediction.confidence
-                        ),
-                      },
-                    ]}
-                  >
-                    <Text style={styles.confidenceText}>
-                      {Math.round(prediction.confidence * 100)}%
-                    </Text>
-                  </View>
-                </View>
-              ))}
+                )
+              )}
 
               <TouchableOpacity
                 style={styles.tryAgainButton}
@@ -611,14 +687,14 @@ const PestIdentificationScreen = () => {
             </Animated.View>
           )}
 
-          {/* No Pests Found */}
-          {result && result.length === 0 && (
-            <View style={styles.noPestsContainer}>
+          {/* No Diseases Found */}
+          {result && result.predictions.length === 0 && (
+            <View style={styles.noDiseasesContainer}>
               <CheckCircle color="#4CAF50" size={48} />
-              <Text style={styles.noPestsText}>
-                {content[language].noPests}
+              <Text style={styles.noDiseasesText}>
+                {content[language].noDiseases}
               </Text>
-              <Text style={styles.noPestsSubtext}>
+              <Text style={styles.noDiseasesSubtext}>
                 {language === "si"
                   ? "ඔබේ බෝගය රෝග තර්ජනයකින් තොරව සෞඛ්‍ය සම්පන්නයි!"
                   : "Your crop is healthy and free from disease threats!"}
@@ -1158,7 +1234,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
   },
-  noPestsContainer: {
+  noDiseasesContainer: {
     backgroundColor: "#F0FDF4",
     padding: 32,
     borderRadius: 24,
@@ -1175,13 +1251,13 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 8,
   },
-  noPestsText: {
+  noDiseasesText: {
     fontSize: 20,
     fontWeight: "800",
     color: "#166534",
     textAlign: "center",
   },
-  noPestsSubtext: {
+  noDiseasesSubtext: {
     fontSize: 14,
     color: "#059669",
     fontWeight: "500",
