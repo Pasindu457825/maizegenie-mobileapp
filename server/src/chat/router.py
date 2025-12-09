@@ -6,6 +6,8 @@ import uuid
 from .ws_manager import ConnectionManager
 from .schema import ChatMessage
 from .service import save_message, load_history
+from datetime import datetime
+from zoneinfo import ZoneInfo   # ✅ SL timezone support
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 manager = ConnectionManager()
@@ -32,6 +34,9 @@ async def chat_ws(websocket: WebSocket, room_id: str):
                 "sender_id": data["sender_id"],
                 "message": data.get("message"),
                 "image_url": data.get("image_url"),
+
+                # ✅ Save Sri Lanka time (Asia/Colombo)
+                "created_at": datetime.now(ZoneInfo("Asia/Colombo")).isoformat()
             }
 
             chat_msg = ChatMessage(**msg_obj)
