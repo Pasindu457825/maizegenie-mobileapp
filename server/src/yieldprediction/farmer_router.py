@@ -3,9 +3,10 @@ Farmer Yield Prediction Router
 Simple yield prediction endpoint for farmers
 """
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime
 from typing import Dict, Any
+from core.auth_dependencies import get_current_user
 
 from .farmer_models import (
     FarmerPredictionRequest,
@@ -29,7 +30,10 @@ from src.database.supabase_service_yieldNfert import (
 router = APIRouter(prefix="/api/v1", tags=["Farmer Yield Prediction"])
 
 @router.post("/yield-prediction/farmer", response_model=FarmerPredictionResponse)
-async def predict_yield_farmer(request: FarmerPredictionRequest):
+async def predict_yield_farmer(
+    request: FarmerPredictionRequest,
+    current_user: dict = Depends(get_current_user)
+):
     """
     Simple yield prediction for farmers
     
@@ -43,10 +47,14 @@ async def predict_yield_farmer(request: FarmerPredictionRequest):
     Farmers do NOT receive fertilizer schedules - only officers get those.
     """
     try:
+        # ✅ Use authenticated user ID instead of request body
+        authenticated_farmer_id = current_user["id"]
+        
         print(f"\n{'='*60}")
         print(f"🌾 FARMER PREDICTION REQUEST")
         print(f"{'='*60}")
-        print(f"Farmer ID: {request.farmer_id}")
+        print(f"🔐 Authenticated Farmer ID: {authenticated_farmer_id}")
+        print(f"📧 Email: {current_user.get('email', 'N/A')}")
         print(f"District: {request.district}")
         print(f"Season: {request.season}")
         print(f"Variety: {request.variety}")
@@ -58,7 +66,11 @@ async def predict_yield_farmer(request: FarmerPredictionRequest):
         
         # Step 1: Save farmer input to database
         try:
-            farmer_input_id = await save_farmer_input(request.model_dump())
+            # Override farmer_id with authenticated user ID
+            input_data = request.model_dump()
+            input_data['farmer_id'] = authenticated_farmer_id  # ✅ Use verified ID
+            
+            farmer_input_id = await save_farmer_input(input_data)
             print(f"✅ Saved to farmer_inputs table: {farmer_input_id}")
         except Exception as db_error:
             print(f"⚠️  Database save failed: {db_error}")
@@ -66,10 +78,12 @@ async def predict_yield_farmer(request: FarmerPredictionRequest):
             farmer_input_id = generate_uuid()
         
         # Step 2: Prepare data for prediction model
-        # Convert land size to hectares
-        land_size_hectares = request.land_size_value
-        if request.land_size_unit.lower() == 'acres':
-            land_size_hectares = request.land_size_value * 0.404686
+        # Convert land size to ACRES (ML model trained with acres)
+        land_size_acres = request.land_size_value
+        if request.land_size_unit.lower() == 'hectares':
+            # Convert hectares to acres (1 hectare = 2.47105 acres)
+            land_size_acres = request.land_size_value * 2.47105
+            print(f"🔄 Converted {request.land_size_value} hectares to {land_size_acres:.2f} acres")
         
         # Map simple conditions to model inputs
         soil_quality_map = {'Good': 0.9, 'Medium': 0.7, 'Poor': 0.5}
@@ -91,7 +105,7 @@ async def predict_yield_farmer(request: FarmerPredictionRequest):
                 'soil_quality': soil_quality,
                 'irrigation_factor': irrigation_factor,
                 'rainfall_factor': rainfall_factor,
-                'land_size_hectares': land_size_hectares,
+                'land_size_acres': land_size_acres,  # ML model expects acres
                 'gps_lat': request.gps_lat,
                 'gps_lng': request.gps_lng
             }
