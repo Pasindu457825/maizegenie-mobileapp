@@ -17,6 +17,8 @@ import CustomDropdown from "../../components/CustomDropdown";
 import CustomDatePicker from "../../components/CustomDatePicker";
 import * as Location from "expo-location";
 import { fetchWeatherByCoordinates, getLocationCoordinates } from "../../services/weatherApi";
+import { predictYieldFarmer, FarmerPredictionRequest } from "../../services/yieldPredictionApi";
+import { useApp } from "../../context/AppContext";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -371,6 +373,12 @@ const YieldPredictionFormScreen = () => {
     const [rainfallSeasonal, setRainfallSeasonal] = useState("");
     
     const [isLiveData, setIsLiveData] = useState(false);
+    const [gpsCoords, setGpsCoords] = useState<{latitude: number, longitude: number} | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [landSizeUnit, setLandSizeUnit] = useState<"Acres" | "Hectares">("Acres");
+    
+    // Get user from auth context
+    const { user } = useApp();
     
     // Get location options based on selected district
     const getLocationOptions = () => {
@@ -414,7 +422,8 @@ const YieldPredictionFormScreen = () => {
             location: "ස්ථානය",
             plantingDate: "වගා කළ දිනය",
             season: "වාරය",
-            landSize: "ඉඩම් ප්‍රමාණය (අක්කර)",
+            landSize: "ඉඩම් ප්‍රමාණය",
+            landSizeUnit: "ඒකකය",
             autoFill: "ස්වයංක්‍රීය පිරවීම",
             autoDetected: "ස්වයංක්‍රීය හඳුනාගත්",
             temperature: "උෂ්ණත්වය (°C)",
@@ -440,7 +449,8 @@ const YieldPredictionFormScreen = () => {
             location: "Location",
             plantingDate: "Planting Date",
             season: "Season",
-            landSize: "Land Size (acres)",
+            landSize: "Land Size",
+            landSizeUnit: "Unit",
             autoFill: "Auto Fill",
             autoDetected: "Auto-Detected",
             temperature: "Temperature (°C)",
@@ -489,6 +499,7 @@ const YieldPredictionFormScreen = () => {
 
             const loc = await Location.getCurrentPositionAsync({});
             const { latitude, longitude } = loc.coords;
+            setGpsCoords({ latitude, longitude }); // Save GPS coordinates
 
             // Fetch weather data
             const weather = await fetchWeatherByCoordinates(latitude, longitude);
@@ -631,7 +642,7 @@ const YieldPredictionFormScreen = () => {
         setter(sanitized);
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         // Required field validation
         if (!district || !plantingDate || !landSize || !soilCondition || !irrigationType || !variety || !rainfallCondition) {
             Alert.alert(
@@ -722,25 +733,52 @@ const YieldPredictionFormScreen = () => {
             }
         }
 
-        // Navigate to results with mock data
-        navigation.navigate("YieldPredictionResultsScreen", {
-            data: {
-                prediction: {
-                    predicted_yield: 4500,
-                    yield_unit: "kg/ha",
-                    confidence_score: 0.85,
-                    yield_category: "High",
-                },
-                impact_factors: [
-                    { factor: "Soil Quality", impact_percentage: 15, description: "Good soil condition" },
-                    { factor: "Irrigation", impact_percentage: 10, description: "Proper irrigation" },
-                ],
-                recommendations: [
-                    { title: "Fertilizer", description: "Apply NPK as recommended" },
-                ],
-            },
-            language,
-        });
+        // Call backend API for real prediction
+        setIsSubmitting(true);
+        
+        try {
+            // Prepare API request
+            const requestData: FarmerPredictionRequest = {
+                farmer_id: user?.id || "guest_user",
+                district: district,
+                location: location || undefined,
+                gps_lat: gpsCoords?.latitude,
+                gps_lng: gpsCoords?.longitude,
+                planting_date: plantingDate?.toISOString().split('T')[0] || "",
+                season: season,
+                land_size_value: parseFloat(landSize),
+                land_size_unit: landSizeUnit,
+                variety: variety,
+                soil_condition: soilCondition,
+                irrigation_type: irrigationType,
+                rainfall_condition: rainfallCondition,
+            };
+            
+            console.log("📤 Sending prediction request:", requestData);
+            
+            // Call API
+            const response = await predictYieldFarmer(requestData);
+            
+            console.log("📥 Received prediction response:", response);
+            
+            // Navigate to results with real data
+            navigation.navigate("YieldPredictionResultsScreen", {
+                data: response,
+                language,
+            });
+            
+        } catch (error: any) {
+            console.error("❌ Prediction failed:", error);
+            
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" 
+                    ? "පුරෝකථනය අසාර්ථකයි. කරුණාකර නැවත උත්සාහ කරන්න" 
+                    : error.message || "Prediction failed. Please try again"
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -826,7 +864,7 @@ const YieldPredictionFormScreen = () => {
                         </View>
                     )}
 
-                    {/* Land Size Input with +/- Buttons */}
+                    {/* Land Size Input with +/- Buttons and Unit Selector */}
                     <View style={styles.inputContainer}>
                         <Text style={styles.label}>
                             {content[language].landSize} <Text style={styles.required}>*</Text>
@@ -849,6 +887,25 @@ const YieldPredictionFormScreen = () => {
                                     <Minus color="#10B981" size={18} />
                                 </TouchableOpacity>
                             </View>
+                        </View>
+                        {/* Unit Selector */}
+                        <View style={styles.unitSelector}>
+                            <TouchableOpacity
+                                style={[styles.unitButton, landSizeUnit === "Acres" && styles.unitButtonActive]}
+                                onPress={() => setLandSizeUnit("Acres")}
+                            >
+                                <Text style={[styles.unitButtonText, landSizeUnit === "Acres" && styles.unitButtonTextActive]}>
+                                    Acres
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.unitButton, landSizeUnit === "Hectares" && styles.unitButtonActive]}
+                                onPress={() => setLandSizeUnit("Hectares")}
+                            >
+                                <Text style={[styles.unitButtonText, landSizeUnit === "Hectares" && styles.unitButtonTextActive]}>
+                                    Hectares
+                                </Text>
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -1007,8 +1064,17 @@ const YieldPredictionFormScreen = () => {
                     </View>
 
                     {/* Submit Button */}
-                    <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                        <Text style={styles.submitText}>{content[language].submit}</Text>
+                    <TouchableOpacity 
+                        style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
+                        onPress={handleSubmit}
+                        disabled={isSubmitting}
+                    >
+                        <Text style={styles.submitText}>
+                            {isSubmitting 
+                                ? (language === "si" ? "කරුණාකර රැඳී සිටින්න..." : "Please wait...") 
+                                : content[language].submit
+                            }
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
@@ -1193,6 +1259,11 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 4,
     },
+    submitButtonDisabled: {
+        backgroundColor: "#9CA3AF",
+        shadowColor: "#9CA3AF",
+        shadowOpacity: 0.1,
+    },
     submitText: {
         fontSize: 16,
         fontWeight: "700",
@@ -1258,6 +1329,33 @@ const styles = StyleSheet.create({
         padding: 8,
         alignItems: "center",
         justifyContent: "center",
+    },
+    unitSelector: {
+        flexDirection: "row",
+        gap: 8,
+        marginTop: 8,
+    },
+    unitButton: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+    },
+    unitButtonActive: {
+        backgroundColor: "#D1FAE5",
+        borderColor: "#10B981",
+    },
+    unitButtonText: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#6B7280",
+    },
+    unitButtonTextActive: {
+        color: "#10B981",
     },
     autoDetectedSection: {
         marginTop: 24,

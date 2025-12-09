@@ -255,18 +255,20 @@ const YieldPredictionResultsScreen = () => {
                   <Text style={styles.factorDescription}>
                     {language === "si" && factor.description_sinhala
                       ? factor.description_sinhala
-                      : factor.description}
+                      : factor.description_english}
                   </Text>
                   <View style={styles.factorImpactContainer}>
                     <View
                       style={[
                         styles.factorImpactBar,
                         {
-                          width: `${Math.abs(factor.impact_percentage || 0)}%`,
+                          width: `${Math.abs((factor.weight || 0) * 100)}%`,
                           backgroundColor:
-                            (factor.impact_percentage || 0) >= 0
+                            factor.impact === 'positive'
                               ? "#10B981"
-                              : "#EF4444",
+                              : factor.impact === 'negative'
+                              ? "#EF4444"
+                              : "#F59E0B",
                         },
                       ]}
                     />
@@ -275,14 +277,15 @@ const YieldPredictionResultsScreen = () => {
                         styles.factorImpactText,
                         {
                           color:
-                            (factor.impact_percentage || 0) >= 0
+                            factor.impact === 'positive'
                               ? "#10B981"
-                              : "#EF4444",
+                              : factor.impact === 'negative'
+                              ? "#EF4444"
+                              : "#F59E0B",
                         },
                       ]}
                     >
-                      {factor.impact_percentage > 0 ? "+" : ""}
-                      {factor.impact_percentage?.toFixed(0)}%
+                      {((factor.weight || 0) * 100).toFixed(0)}%
                     </Text>
                   </View>
                 </View>
@@ -309,13 +312,13 @@ const YieldPredictionResultsScreen = () => {
                     <Text style={styles.recommendationTitle}>
                       {language === "si" && rec.title_sinhala
                         ? rec.title_sinhala
-                        : rec.title}
+                        : rec.title_english}
                     </Text>
                   </View>
                   <Text style={styles.recommendationText}>
                     {language === "si" && rec.description_sinhala
                       ? rec.description_sinhala
-                      : rec.description}
+                      : rec.description_english}
                   </Text>
                 </View>
               ))}

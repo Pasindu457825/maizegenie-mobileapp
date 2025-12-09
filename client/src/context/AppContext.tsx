@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 import axios from "axios";
-import { API_BASE } from "../services/api"; // ✅ Use global API base
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE } from "../services/api";
 
 type User = {
   id: string;
@@ -57,6 +58,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       setToken(accessToken);
 
+      // Store token in AsyncStorage for API calls
+      await AsyncStorage.setItem('auth_token', accessToken);
+
       console.log("Login success:", authUser.email);
       return true;
     } catch (err: any) {
@@ -67,9 +71,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = () => {
+  const signOut = async () => {
     setUser(null);
     setToken(null);
+    // Clear token from AsyncStorage
+    await AsyncStorage.removeItem('auth_token');
   };
 
   const value = useMemo<AppCtx>(
