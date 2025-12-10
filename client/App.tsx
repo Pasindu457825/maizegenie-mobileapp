@@ -27,23 +27,24 @@ function Root() {
   const { loading } = useApp();
 
   return (
-    <View style={{ flex: 1 }}>
-      <NavigationContainer
-        theme={{
-          ...DefaultTheme,
-          colors: { ...DefaultTheme.colors, background: "#fff" },
-        }}
-      >
+    <NavigationContainer
+      theme={{
+        ...DefaultTheme,
+        colors: { ...DefaultTheme.colors, background: "#fff" },
+      }}
+    >
+      <View style={{ flex: 1 }}>
+        {/* All screens */}
         <RootNavigator />
-      </NavigationContainer>
 
-      {/* ✅ GLOBAL LOADING OVERLAY (does NOT block touches) */}
-      {loading && (
-        <View style={styles.overlay} pointerEvents="box-none">
-          <ActivityIndicator size="large" color="green" />
-        </View>
-      )}
-    </View>
+        {/* GLOBAL LOADING OVERLAY - inside navigator */}
+        {loading && (
+          <View style={styles.overlay} pointerEvents="none">
+            <ActivityIndicator size="large" color="green" />
+          </View>
+        )}
+      </View>
+    </NavigationContainer>
   );
 }
 
@@ -55,4 +56,3 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
 });
-
