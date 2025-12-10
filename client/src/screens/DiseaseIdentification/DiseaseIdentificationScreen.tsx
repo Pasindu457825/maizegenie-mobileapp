@@ -28,6 +28,7 @@ import {
 import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import { useLanguage } from "../../context/LanguageContext";
 
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -67,24 +68,10 @@ const normalizePredictions = (raw: any): Prediction[] => {
 const API_BASE_URL = API_BASE;
 const REQUEST_TIMEOUT = 45000; // 45 seconds
 
-const PestIdentificationScreen = () => {
+const DiseaseIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  interface DetectionResult {
-    predictions: Prediction[];
-    severity_score: number;
-    severity_label: string;
-  }
-
-  const [result, setResult] = useState<DetectionResult | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(0.8));
-  const [leafAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const { language: lang, setLanguage } = useLanguage();
+  const language = lang === "sinhala" ? "si" : "en";
 
   const content = {
     si: {
@@ -126,6 +113,22 @@ const PestIdentificationScreen = () => {
       serverError: "Cannot connect to server",
     },
   };
+
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  interface DetectionResult {
+    predictions: Prediction[];
+    severity_score: number;
+    severity_label: string;
+  }
+
+  const [result, setResult] = useState<DetectionResult | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0.8));
+  const [leafAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
 
   useEffect(() => {
     // Entrance animations
@@ -385,11 +388,13 @@ const PestIdentificationScreen = () => {
 
           <TouchableOpacity
             style={styles.langButtonHeader}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
+            onPress={() =>
+              setLanguage(lang === "sinhala" ? "english" : "sinhala")
+            }
             activeOpacity={0.7}
           >
             <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
+              {lang === "sinhala" ? "EN" : "සිං"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -579,56 +584,24 @@ const PestIdentificationScreen = () => {
                   {content[language].successMessage}
                 </Text>
               </View>
-              <View
-                style={{
-                  backgroundColor: "#E3F2FD",
-                  padding: 16,
-                  borderRadius: 12,
-                  marginBottom: 20,
-                  borderWidth: 2,
-                  borderColor: "#90CAF9",
-                }}
+              {/* MORE DETAILS BUTTON */}
+              <TouchableOpacity
+                style={styles.moreDetailsBtn}
+                onPress={() =>
+                  navigation.navigate("SeverityDetails", {
+                    image: imageUri,
+                    severity_score: result?.severity_score,
+                    severity_label: result?.severity_label,
+                    predictions: result?.predictions,
+                  })
+                }
               >
-                <Text
-                  style={{
-                    fontSize: 18,
-                    fontWeight: "700",
-                    color: "#0D47A1",
-                    textAlign: "center",
-                  }}
-                >
-                  {language === "si" ? "රෝග ගැඹුරු බව" : "Disease Severity"}
+                <Text style={styles.moreDetailsText}>
+                  {language === "si"
+                    ? "වැඩි විස්තර බලන්න"
+                    : "View More Details"}
                 </Text>
-
-                <Text
-                  style={{
-                    fontSize: 22,
-                    fontWeight: "800",
-                    color:
-                      result.severity_label === "High"
-                        ? "#D32F2F"
-                        : result.severity_label === "Medium"
-                        ? "#F9A825"
-                        : "#388E3C",
-                    textAlign: "center",
-                    marginTop: 6,
-                  }}
-                >
-                  {result.severity_label}
-                </Text>
-
-                <Text
-                  style={{
-                    fontSize: 14,
-                    color: "#0D47A1",
-                    textAlign: "center",
-                    marginTop: 4,
-                  }}
-                >
-                  {Math.round(result.severity_score * 100)}%{" "}
-                  {language === "si" ? "අවාසනීය ප්‍රදේශය" : "affected area"}
-                </Text>
-              </View>
+              </TouchableOpacity>
 
               {result.predictions.map(
                 (prediction: Prediction, index: number) => (
@@ -1264,6 +1237,26 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
+  moreDetailsBtn: {
+    backgroundColor: "#1565C0",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    alignSelf: "center",
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  moreDetailsText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    textAlign: "center",
+  },
 });
 
-export default PestIdentificationScreen;
+export default DiseaseIdentificationScreen;

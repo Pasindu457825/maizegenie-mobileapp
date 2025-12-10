@@ -17,8 +17,12 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width, height } = Dimensions.get("window");
+
+// ✨ FIXED: Type definition for language
+type LanguageType = "sinhala" | "english";
 
 const translations = {
   sinhala: {
@@ -39,11 +43,8 @@ const translations = {
   },
 };
 
-
-type LanguageKey = keyof typeof translations;
-
 export default function Onboarding2({ navigation, route }: any) {
-  const language: LanguageKey = route?.params?.language || "english";
+  const { language } = useLanguage();
   const t = translations[language];
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -254,7 +255,7 @@ export default function Onboarding2({ navigation, route }: any) {
         </View>
       </Animated.View>
 
-      {/* Next Button */}
+      {/* ✨ FIXED: Next Button - Pass language correctly */}
       <Animated.View
         style={[
           styles.buttonContainer,
