@@ -36,6 +36,8 @@ import {
 } from "lucide-react-native";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
+import { useLanguage } from "../../context/LanguageContext";
+
 
 const { width } = Dimensions.get("window");
 
@@ -100,7 +102,8 @@ const PriceAdvisorScreen: React.FC = () => {
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
 
-  const [language, setLanguage] = useState<Language>("si");
+  const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
 
@@ -707,14 +710,6 @@ const PriceAdvisorScreen: React.FC = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
             <Bell color="#10B981" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
