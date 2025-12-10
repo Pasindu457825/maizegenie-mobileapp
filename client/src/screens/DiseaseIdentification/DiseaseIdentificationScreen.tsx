@@ -28,6 +28,7 @@ import {
 import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import { useLanguage } from "../../context/LanguageContext";
 
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -69,22 +70,8 @@ const REQUEST_TIMEOUT = 45000; // 45 seconds
 
 const DiseaseIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  interface DetectionResult {
-    predictions: Prediction[];
-    severity_score: number;
-    severity_label: string;
-  }
-
-  const [result, setResult] = useState<DetectionResult | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(0.8));
-  const [leafAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const { language: lang, setLanguage } = useLanguage();
+  const language = lang === "sinhala" ? "si" : "en";
 
   const content = {
     si: {
@@ -126,6 +113,22 @@ const DiseaseIdentificationScreen = () => {
       serverError: "Cannot connect to server",
     },
   };
+
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  interface DetectionResult {
+    predictions: Prediction[];
+    severity_score: number;
+    severity_label: string;
+  }
+
+  const [result, setResult] = useState<DetectionResult | null>(null);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0.8));
+  const [leafAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(50));
 
   useEffect(() => {
     // Entrance animations
@@ -385,11 +388,13 @@ const DiseaseIdentificationScreen = () => {
 
           <TouchableOpacity
             style={styles.langButtonHeader}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
+            onPress={() =>
+              setLanguage(lang === "sinhala" ? "english" : "sinhala")
+            }
             activeOpacity={0.7}
           >
             <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
+              {lang === "sinhala" ? "EN" : "සිං"}
             </Text>
           </TouchableOpacity>
         </View>
