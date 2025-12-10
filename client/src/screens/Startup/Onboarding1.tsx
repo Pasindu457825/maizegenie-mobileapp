@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { ArrowRight, Zap, Bug, Leaf, Shield } from "lucide-react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -38,7 +39,7 @@ const translations = {
 type LanguageKey = keyof typeof translations;
 
 export default function Onboarding1({ navigation, route }: any) {
-  const language: LanguageKey = route?.params?.language || "english";
+  const { language } = useLanguage();
   const t = translations[language];
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -239,7 +240,7 @@ export default function Onboarding1({ navigation, route }: any) {
       >
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => navigation.navigate("Onboarding2", { language })}
+          onPress={() => navigation.navigate("Onboarding2")}
         >
           <LinearGradient
             colors={["#10b981", "#059669"]}
