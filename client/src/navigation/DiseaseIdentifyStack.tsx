@@ -4,6 +4,14 @@ import { createStackNavigator } from "@react-navigation/stack";
 import DiseaseIdentificationScreen from "@screens/DiseaseIdentification/DiseaseIdentificationScreen";
 import ChatScreen from "@screens/DiseaseIdentification/ChatScreen";
 import OfficerRoomsScreen from "@screens/DiseaseIdentification/OfficerRoomsScreen";
+import SeverityDetailsScreen from "@screens/DiseaseIdentification/SeverityDetailsScreen";
+
+// ---- NEW TYPE FOR PREDICTIONS ----
+type Prediction = {
+  class_id: number;
+  class_name: string;
+  confidence: number;
+};
 
 export type DiseaseIdentifyStackParamList = {
   DiseaseDetection: undefined;
@@ -15,6 +23,14 @@ export type DiseaseIdentifyStackParamList = {
 
   OfficerRooms: {
     officerId: string;
+  };
+
+  // ---- NEW SCREEN ----
+  SeverityDetails: {
+    image: string | null;
+    severity_score: number;
+    severity_label: string;
+    predictions: Prediction[];
   };
 };
 
@@ -29,6 +45,9 @@ export default function DiseaseIdentifyStack() {
       />
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="OfficerRooms" component={OfficerRoomsScreen} />
+
+      {/* ---- NEW SCREEN ---- */}
+      <Stack.Screen name="SeverityDetails" component={SeverityDetailsScreen} />
     </Stack.Navigator>
   );
 }
