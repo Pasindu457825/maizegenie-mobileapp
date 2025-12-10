@@ -2,10 +2,11 @@ import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import PestIdentificationLoadingScreen from "@screens/PestIdentification/PestIdentifyLoadingScreen";    
 import FallArmywormLifecycleScreen from "@screens/PestIdentification/FallArmywormLifecycleScreen";
-
+import BollwormLifecycleScreen from "@screens/PestIdentification/BollwormLifecycleScreen";
 export type PestIdentifyStackParamList = {
     PestIdentifyLoading: undefined;
     FallArmywormLifecycle: undefined;
+    BollwormLifecycle: undefined;
     // add other screens here, e.g.:
     // PestIdentifyResult: { id: string };
 };
@@ -27,6 +28,10 @@ export default function PestIdentifyStack() {
             <Stack.Screen 
                 name="FallArmywormLifecycle" 
                 component={FallArmywormLifecycleScreen} 
+            />
+            <Stack.Screen 
+                name="BollwormLifecycle" 
+                component={BollwormLifecycleScreen} 
             />
         </Stack.Navigator>
     );
