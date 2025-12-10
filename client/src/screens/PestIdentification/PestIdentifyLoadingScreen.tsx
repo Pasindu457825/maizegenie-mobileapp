@@ -268,6 +268,15 @@ const PestIdentificationScreen = () => {
     return result.some((p) => p.class_name.toLowerCase().includes("bollworm"));
   };
 
+  const isAsianCornBorerDetected = () => {
+  if (!result?.length) return false;
+
+  return result.some(
+    (p) => p.class_name.toLowerCase() === "asian-corn-borer"
+  );
+};
+
+
   const resetScreen = () => {
     setImageUri(null);
     setResult(null);
@@ -484,6 +493,20 @@ const PestIdentificationScreen = () => {
                 <TouchableOpacity 
                   style={styles.lifecycleButton}
                   onPress={() => navigation.navigate("BollwormLifecycle")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewLifecycle}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show lifecycle button only if Asian Corn Borer is detected */}
+              {isAsianCornBorerDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton} 
+                  onPress={() => navigation.navigate("AsianCornBorerLifecycle")}
                   activeOpacity={0.85}
                 >
                   <Text >
