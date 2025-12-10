@@ -263,6 +263,11 @@ const PestIdentificationScreen = () => {
     );
   };
 
+  const isBollwormDetected = () => {
+    if (!result || result.length === 0) return false;
+    return result.some((p) => p.class_name.toLowerCase().includes("bollworm"));
+  };
+
   const resetScreen = () => {
     setImageUri(null);
     setResult(null);
@@ -465,6 +470,20 @@ const PestIdentificationScreen = () => {
                 <TouchableOpacity 
                   style={styles.lifecycleButton}
                   onPress={() => navigation.navigate("FallArmywormLifecycle")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewLifecycle}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show lifecycle button only if Bollworm is detected */}
+              {isBollwormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("BollwormLifecycle")}
                   activeOpacity={0.85}
                 >
                   <Text >
