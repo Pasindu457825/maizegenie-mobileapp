@@ -38,27 +38,27 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { useFocusEffect } from "@react-navigation/native";
 import { Platform } from "react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// ✨ FIXED: Get language type from context
+type Language = "sinhala" | "english";
+
 const getApiUrl = () => {
   if (Platform.OS === "android") {
-    // Real Android device → read from .env
     return process.env.EXPO_PUBLIC_API_BASE;
   } else if (Platform.OS === "ios") {
-    // iOS simulator
     return "http://localhost:8000";
   } else {
-    // Web fallback
     return "http://localhost:8000";
   }
 };
 
 const API_URL = getApiUrl();
 
-const getTranslatedLocation = (rawName: string | null, lang: "si" | "en") => {
-  if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+const getTranslatedLocation = (rawName: string | null, lang: Language) => {
+  if (!rawName) return lang === "sinhala" ? "ස්ථානය" : "Location";
 
-  if (lang === "en") return rawName;
+  if (lang === "english") return rawName;
 
   let enName = rawName.trim();
 
@@ -100,8 +100,6 @@ const getTranslatedLocation = (rawName: string | null, lang: "si" | "en") => {
   return rawName;
 };
 
-type Language = "si" | "en";
-
 interface WeatherDay {
   day: number;
   date: string;
@@ -138,6 +136,7 @@ const screenWidth = Dimensions.get("window").width;
 
 const WeatherForecastScreen = () => {
   const navigation = useNavigation();
+  const { language } = useLanguage();
 
   const locationHook: any = useUniversalLocation("si");
   const {
@@ -152,14 +151,12 @@ const WeatherForecastScreen = () => {
     longitude?: number;
   } = locationHook || {};
 
-  const [language, setLanguage] = useState<Language>("si");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherPrediction | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
-
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   // ✨ UPDATED: Generate 7-day weather summary text - ENGLISH ONLY
@@ -320,7 +317,7 @@ const WeatherForecastScreen = () => {
   const slideAnim = useState(new Animated.Value(30))[0];
 
   const content = {
-    si: {
+    sinhala: {
       title: "කාලගුණ පුරෝකථනය",
       subtitle: "බඩ ඉරිඟු වගාව සඳහා",
       loading: "දත්ත ගෙනෙමින්...",
@@ -368,7 +365,7 @@ const WeatherForecastScreen = () => {
       speakForecast: "🔊 කාලගුණය කියවන්න",
       stopSpeaking: "⏹️ නවතන්න",
     },
-    en: {
+    english: {
       title: "Weather Forecast",
       subtitle: "For Corn Farming",
       loading: "Loading weather...",
@@ -452,7 +449,7 @@ const WeatherForecastScreen = () => {
       "නොවැ",
       "දැසැ",
     ];
-    const months = language === "si" ? monthsSi : monthsEn;
+    const months = language === "sinhala" ? monthsSi : monthsEn;
     return `${months[(m || 1) - 1]} ${d || 1}`;
   };
 
@@ -480,7 +477,7 @@ const WeatherForecastScreen = () => {
           "Friday",
           "Saturday",
         ];
-    return language === "si" ? si[date.getDay()] : en[date.getDay()];
+    return language === "sinhala" ? si[date.getDay()] : en[date.getDay()];
   };
 
   // 🌾 FARMING ADVICE LOGIC FOR CORN
@@ -498,7 +495,7 @@ const WeatherForecastScreen = () => {
             content[language].heavyRainWarning
           }`,
           description: `${rain.toFixed(1)}mm ${
-            language === "si" ? "වර්ෂාව අපේක්ෂිතයි" : "rainfall expected"
+            language === "sinhala" ? "වර්ෂාව අපේක්ෂිතයි" : "rainfall expected"
           }`,
           icon: <CloudRain size={20} color="#ef4444" />,
         });
@@ -509,7 +506,7 @@ const WeatherForecastScreen = () => {
             content[language].idealConditions
           }`,
           description: `${rain.toFixed(1)}mm ${
-            language === "si" ? "වර්ෂාව, උෂ්ණත්වය" : "rain, temp"
+            language === "sinhala" ? "වර්ෂාව, උෂ්ණත්වය" : "rain, temp"
           } ${Math.round(temp)}°C`,
           icon: <CheckCircle size={20} color="#10B981" />,
         });
@@ -520,7 +517,7 @@ const WeatherForecastScreen = () => {
             content[language].dryCondition
           }`,
           description: `${
-            language === "si" ? "ආර්ද්‍රතාව" : "Humidity"
+            language === "sinhala" ? "ආර්ද්‍රතාව" : "Humidity"
           } ${Math.round(humidity)}%`,
           icon: <AlertTriangle size={20} color="#f59e0b" />,
         });
@@ -531,7 +528,7 @@ const WeatherForecastScreen = () => {
             content[language].highTemp
           }`,
           description: `${Math.round(temp)}°C - ${
-            language === "si"
+            language === "sinhala"
               ? "අමතර වාරිමාර්ග අවශ්‍යයි"
               : "Extra irrigation needed"
           }`,
@@ -819,7 +816,7 @@ const WeatherForecastScreen = () => {
       title = currentContent.goodWeek;
       emoji = "🌱";
       desc =
-        language === "si"
+        language === "sinhala"
           ? `${goodDaysCount} හොඳ දින - සිටින්න!`
           : `${goodDaysCount} good days - Perfect time to farm!`;
       bgColor = "#F0FDF4";
@@ -829,7 +826,7 @@ const WeatherForecastScreen = () => {
       title = currentContent.riskyWeek;
       emoji = "⛔";
       desc =
-        language === "si"
+        language === "sinhala"
           ? `${riskyDaysCount} අවදානම් දින - අවධානයෙන්!`
           : `${riskyDaysCount} risky days - Be careful!`;
       bgColor = "#FEF2F2";
@@ -839,7 +836,7 @@ const WeatherForecastScreen = () => {
       title = currentContent.mixedWeek;
       emoji = "⚠️";
       desc =
-        language === "si"
+        language === "sinhala"
           ? "දිනපතා පුරෝකථනය පරීක්ෂා කරන්න"
           : "Check daily forecasts";
       bgColor = "#FFFBEB";
@@ -885,7 +882,7 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ FIXED: Speech control button - text only
+  // ✨ FIXED: Speech control button - uses language from context
   const SpeechControlButton = () => {
     const currentContent = getContent();
 
@@ -913,7 +910,7 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ FIXED: Enhanced header with language toggle that triggers speech change
+  // ✨ FIXED: Enhanced header uses language from context
   const EnhancedHeader = () => {
     const currentContent = getContent();
 
@@ -933,34 +930,6 @@ const WeatherForecastScreen = () => {
           </View>
           <Text style={styles.headerSubtitle}>{currentContent.subtitle}</Text>
         </View>
-
-        <TouchableOpacity
-          onPress={() => {
-            console.log("Language button pressed");
-            const newLang = language === "si" ? "en" : "si";
-            console.log("Switching language from", language, "to", newLang);
-            setLanguage(newLang);
-          }}
-          style={[
-            styles.langBtn,
-            {
-              shadowColor: "#10B981",
-              elevation: 3,
-              backgroundColor: language === "si" ? "#FEF3C7" : "#E0F2FE",
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.langText,
-              {
-                color: language === "si" ? "#D97706" : "#0369A1",
-              },
-            ]}
-          >
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
       </View>
     );
   };
@@ -1007,7 +976,7 @@ const WeatherForecastScreen = () => {
               {Math.round(temperature ?? 26)}°C
             </Text>
             <Text style={styles.currentLabel}>
-              {language === "si"
+              {language === "sinhala"
                 ? "දැන් තියෙන උෂ්ණත්වය"
                 : "Current Temperature"}
             </Text>
@@ -1190,7 +1159,9 @@ const WeatherForecastScreen = () => {
           >
             <View style={styles.dailySummaryContent}>
               <Text style={styles.dailySummaryLabel}>
-                {language === "si" ? "📍 අද කාලගුණය" : "📍 Today's Weather"}
+                {language === "sinhala"
+                  ? "📍 අද කාලගුණය"
+                  : "📍 Today's Weather"}
               </Text>
               <Text style={styles.dailySummaryValue}>
                 {getDailySummaryText(predictions[0])}
@@ -1262,7 +1233,7 @@ const WeatherForecastScreen = () => {
             yAxisLabel=""
           />
           <Text style={styles.chartNote}>
-            {language === "si"
+            {language === "sinhala"
               ? "* 5-25mm වර්ෂාව බඩ ඉරිඟු වගාවට හිතකරයි"
               : "* 5-25mm rainfall is ideal for corn farming"}
           </Text>
@@ -1290,21 +1261,21 @@ const WeatherForecastScreen = () => {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <EnhancedTrafficDot color="green" />
             <Text style={{ color: "#047857", fontSize: 12, fontWeight: "600" }}>
-              {language === "si" ? "හොඳ" : "Good"}
+              {language === "sinhala" ? "හොඳ" : "Good"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <EnhancedTrafficDot color="yellow" />
             <Text style={{ color: "#CA8A04", fontSize: 12, fontWeight: "600" }}>
-              {language === "si" ? "අවධානයෙන්" : "Moderate"}
+              {language === "sinhala" ? "අවධානයෙන්" : "Moderate"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <EnhancedTrafficDot color="red" />
             <Text style={{ color: "#DC2626", fontSize: 12, fontWeight: "600" }}>
-              {language === "si" ? "අවදානම්" : "Risky"}
+              {language === "sinhala" ? "අවදානම්" : "Risky"}
             </Text>
           </View>
         </View>
@@ -1376,7 +1347,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   retryTxt: { color: "#fff", fontWeight: "600" },
-
   speechBtn: {
     marginHorizontal: 20,
     marginTop: 12,
@@ -1400,7 +1370,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
-
   header: {
     paddingTop: 50,
     paddingBottom: 15,
@@ -1416,15 +1385,6 @@ const styles = StyleSheet.create({
   headerTitleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#047857" },
   headerSubtitle: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-  langBtn: {
-    borderWidth: 2,
-    borderColor: "#10B981",
-    paddingVertical: 5,
-    paddingHorizontal: 14,
-    borderRadius: 22,
-  },
-  langText: { fontWeight: "bold" },
-
   currentWeatherCard: {
     marginHorizontal: 20,
     marginTop: 15,
@@ -1455,7 +1415,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 4,
   },
-
   dailySummaryBanner: {
     marginHorizontal: 20,
     marginBottom: 12,
@@ -1483,7 +1442,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 4,
   },
-
   adviceSection: {
     marginHorizontal: 20,
     marginBottom: 15,
@@ -1517,7 +1475,6 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   adviceCardDesc: { fontSize: 12, color: "#6B7280" },
-
   chartCard: {
     marginHorizontal: 20,
     marginVertical: 10,
@@ -1527,7 +1484,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     elevation: 3,
   },
-
   chartHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1542,7 +1498,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 8,
   },
-
   sectionHeader: {
     marginHorizontal: 20,
     marginTop: 10,
@@ -1552,7 +1507,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#047857" },
-
   dayCard: {
     backgroundColor: "#fff",
     marginHorizontal: 20,
@@ -1563,7 +1517,6 @@ const styles = StyleSheet.create({
   },
   dayName: { fontSize: 16, fontWeight: "700", color: "#1F2937" },
   dateTxt: { fontSize: 12, color: "#6B7280", marginTop: 2 },
-
   dailyReasonText: {
     fontSize: 13,
     color: "#047857",
@@ -1573,7 +1526,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#D1FAE5",
   },
-
   metricsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
