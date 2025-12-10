@@ -7,11 +7,6 @@ class ChatMessage(BaseModel):
     id: str = str(uuid.uuid4())
     room_id: str
     sender_id: str
-    message: Optional[str] = None        # keep text optional
-    image_url: Optional[str] = None       # NEW FIELD
-    created_at: datetime = datetime.utcnow()
-
-class CreateMessage(BaseModel):
-    sender_id: str
     message: Optional[str] = None
-    image_url: Optional[str] = None       # NEW FIELD
+    image_url: Optional[str] = None
+    created_at: str = datetime.utcnow().isoformat()  # <-- FIXED

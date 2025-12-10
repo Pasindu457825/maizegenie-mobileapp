@@ -7,10 +7,10 @@ async def save_message(msg: ChatMessage):
         "room_id": msg.room_id,
         "sender_id": msg.sender_id,
         "message": msg.message,
-        "image_url": msg.image_url,           # NEW FIELD
-        "created_at": msg.created_at.isoformat(),
+        "image_url": msg.image_url,
+        "created_at": msg.created_at,   # FIXED
     }).execute()
-    return True
+
 
 
 async def load_history(room_id: str):

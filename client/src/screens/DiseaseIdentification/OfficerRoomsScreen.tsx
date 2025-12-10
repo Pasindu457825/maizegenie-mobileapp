@@ -35,6 +35,12 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.backBtn}
+      >
+        <Text style={styles.backText}>← Back</Text>
+      </TouchableOpacity>
       <Text style={styles.heading}>Active Farmer Chats</Text>
 
       {rooms.length === 0 ? (
@@ -70,6 +76,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     elevation: 1,
   },
+  backBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    marginBottom: 10,
+  },
+
+  backText: {
+    fontSize: 16,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+
   roomTitle: { fontSize: 16, fontWeight: "600" },
   roomDistrict: { marginTop: 4, color: "#555" },
 });
