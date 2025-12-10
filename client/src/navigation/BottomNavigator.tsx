@@ -8,7 +8,8 @@ import PriceForecastStack from "./PriceForecastStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
 import YieldPredictionStack from "./YieldPredictionStack";
-import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
+import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
+import AdminStack from "./AdminStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
@@ -44,7 +45,6 @@ export default function BottomNavigator() {
         },
       }}
     >
-
       {/* 🏠 Home */}
       <Tab.Screen
         name={ROUTES.TABS.HOME}
@@ -120,15 +120,18 @@ export default function BottomNavigator() {
       {/* 🛠 Admin Panel */}
       <Tab.Screen
         name={ROUTES.TABS.ADMINPANEL}
-        component={AdminPanelScreen}
+        component={AdminStack} // <-- replace single screen with whole stack
         options={{
           tabBarLabel: "Admin",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="shield-checkmark-outline" size={size} color={color} />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
-
     </Tab.Navigator>
   );
 }

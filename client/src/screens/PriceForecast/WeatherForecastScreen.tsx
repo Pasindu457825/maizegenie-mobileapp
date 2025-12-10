@@ -1,6 +1,5 @@
 // client/src/screens/PriceForecast/WeatherForecastScreen.tsx
 import React, { useState, useEffect, useCallback } from "react";
-
 import {
   View,
   Text,
@@ -30,8 +29,11 @@ import {
   AlertTriangle,
   CheckCircle,
   Info,
+  Volume2,
+  VolumeX,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
+import * as Speech from "expo-speech";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { useFocusEffect } from "@react-navigation/native";
@@ -52,7 +54,6 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
-
 
 const getTranslatedLocation = (rawName: string | null, lang: "si" | "en") => {
   if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
@@ -159,10 +160,142 @@ const WeatherForecastScreen = () => {
   );
   const [error, setError] = useState<string | null>(null);
 
-  // 🔥 FIX: Screen re-focus refresh
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // ✨ UPDATED: Generate 7-day weather summary text - ENGLISH ONLY
+  const generateWeatherSummary = (
+    predictions: WeatherDay[],
+    lang: Language
+  ): string => {
+    if (!predictions || predictions.length === 0) return "";
+
+    const weatherSummaryContent = {
+      intro: "Here is the weather forecast for the next 7 days.",
+      today: "Today",
+      tomorrow: "Tomorrow",
+      nextDays: "For the next 5 days",
+      temp: "temperature",
+      rain: "rainfall",
+      mm: "millimeters",
+      celsius: "celsius",
+      good: "good farming conditions",
+      caution: "caution advised",
+      risky: "risky conditions",
+      average: "Average",
+      total: "total",
+      farmingDays: "farming days",
+    };
+
+    const content = weatherSummaryContent;
+    let summary = content.intro + " ";
+
+    // Today's forecast
+    const today = predictions[0];
+    if (today) {
+      summary += `${content.today}: ${Math.round(
+        today.temperature_min
+      )}-${Math.round(today.temperature_max)} ${content.celsius}, ${
+        content.rain
+      } ${(today.rain_mm || 0).toFixed(1)} ${content.mm}. `;
+
+      if ((today.rain_mm ?? 0) > 25) {
+        summary += content.risky + ". ";
+      } else if ((today.rain_mm ?? 0) >= 5 && today.temperature >= 25) {
+        summary += content.good + ". ";
+      } else {
+        summary += content.caution + ". ";
+      }
+    }
+
+    // Tomorrow's forecast
+    const tomorrow = predictions[1];
+    if (tomorrow) {
+      summary += `${content.tomorrow}: ${Math.round(
+        tomorrow.temperature_min
+      )}-${Math.round(tomorrow.temperature_max)} ${content.celsius}, ${
+        content.rain
+      } ${(tomorrow.rain_mm || 0).toFixed(1)} ${content.mm}. `;
+    }
+
+    // Next 5 days summary
+    summary += content.nextDays + ": ";
+    const next5Days = predictions.slice(2, 7);
+    if (next5Days.length > 0) {
+      const avgTemp =
+        next5Days.reduce((sum, d) => sum + d.temperature, 0) / next5Days.length;
+      const totalRain = next5Days.reduce((sum, d) => sum + (d.rain_mm || 0), 0);
+      const goodDays = next5Days.filter(
+        (d) =>
+          (d.rain_mm ?? 0) >= 5 &&
+          (d.rain_mm ?? 0) <= 25 &&
+          d.temperature >= 25 &&
+          d.temperature <= 33
+      ).length;
+
+      summary += `${content.average} ${content.temp} ${Math.round(avgTemp)} ${
+        content.celsius
+      }, ${content.total} ${content.rain} ${totalRain.toFixed(1)} ${
+        content.mm
+      }. ${goodDays} ${content.farmingDays}.`;
+    }
+
+    return summary;
+  };
+
+  // ✨ FIXED: Speak weather forecast - ENGLISH ONLY
+  const speakWeatherForecast = async (predictions: WeatherDay[]) => {
+    try {
+      // Stop any ongoing speech first
+      await Speech.stop();
+      setIsSpeaking(true);
+
+      const summary = generateWeatherSummary(predictions, language);
+
+      if (!summary) {
+        console.log("No summary to speak");
+        setIsSpeaking(false);
+        return;
+      }
+
+      const speechOptions: any = {
+        pitch: 1,
+        rate: 0.85,
+        language: "en",
+        onDone: () => {
+          console.log("Speech finished");
+          setIsSpeaking(false);
+        },
+        onError: (error: any) => {
+          console.log("Speech error:", error);
+          setIsSpeaking(false);
+        },
+      };
+
+      console.log("Speaking with language: English");
+      console.log("Summary:", summary.substring(0, 50) + "...");
+
+      await Speech.speak(summary, speechOptions);
+    } catch (err) {
+      console.log("Speech error:", err);
+      setIsSpeaking(false);
+    }
+  };
+
+  // ✨ FIXED: Stop speech properly
+  const stopSpeech = async () => {
+    try {
+      await Speech.stop();
+      setIsSpeaking(false);
+    } catch (err) {
+      console.log("Stop speech error:", err);
+      setIsSpeaking(false);
+    }
+  };
+
+  // ✨ NEW: Stop speech when leaving the page
   useFocusEffect(
     useCallback(() => {
-      console.log("Screen focused...");
+      console.log("Weather screen focused...");
 
       if (latitude == null || longitude == null) {
         console.log("GPS not ready → skipping fetch");
@@ -173,6 +306,13 @@ const WeatherForecastScreen = () => {
       setWeatherData(null);
 
       fetchWeatherData(latitude, longitude);
+
+      // ✨ NEW: Return cleanup function to stop speech on blur
+      return () => {
+        console.log("Weather screen blurred - stopping speech");
+        Speech.stop().catch((err) => console.log("Stop speech error:", err));
+        setIsSpeaking(false);
+      };
     }, [latitude, longitude])
   );
 
@@ -211,7 +351,6 @@ const WeatherForecastScreen = () => {
       dayLabel: "දින",
       today: "අද",
 
-      // NEW: Daily summary & farm action
       goodDay: "වගාවට හොඳයි",
       riskyDay: "අවදානම් දිනක්",
       dryDay: "වියළි - වාරිමාර්ග කරන්න",
@@ -225,6 +364,9 @@ const WeatherForecastScreen = () => {
       dontPlantToday: "– අද වගා කරන්න එපා",
       goodForFarming: "– වගාවට සුදුසුයි",
       irrigateNeeded: "– වාරිමාර්ග කරන්න",
+
+      speakForecast: "🔊 කාලගුණය කියවන්න",
+      stopSpeaking: "⏹️ නවතන්න",
     },
     en: {
       title: "Weather Forecast",
@@ -257,7 +399,6 @@ const WeatherForecastScreen = () => {
       dayLabel: "Day",
       today: "Today",
 
-      // NEW: Daily summary & farm action
       goodDay: "Good for farming",
       riskyDay: "Risky day",
       dryDay: "Dry - irrigate",
@@ -271,10 +412,12 @@ const WeatherForecastScreen = () => {
       dontPlantToday: "– Don't plant today",
       goodForFarming: "– Good for farming",
       irrigateNeeded: "– Irrigation needed",
+
+      speakForecast: "🔊 Speak Forecast",
+      stopSpeaking: "⏹️ Stop",
     },
   };
 
-  // ✨ FIX: Type-safe content helper (moved inside component)
   const getContent = () => {
     return content[language];
   };
@@ -313,11 +456,6 @@ const WeatherForecastScreen = () => {
     return `${months[(m || 1) - 1]} ${d || 1}`;
   };
 
-  const getShortDate = (dateStr: string) => {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    return `${d}/${m}`;
-  };
-
   const getDayName = (dateStr: string, short = false) => {
     const date = new Date(dateStr + "T00:00:00");
     const si = short
@@ -348,13 +486,11 @@ const WeatherForecastScreen = () => {
   // 🌾 FARMING ADVICE LOGIC FOR CORN
   const getFarmingAdvice = (predictions: WeatherDay[]): FarmingAdvice[] => {
     const advice: FarmingAdvice[] = [];
-
     predictions.forEach((day, idx) => {
       const rain = day.rain_mm || 0;
       const temp = day.temperature;
       const humidity = day.humidity_mean || 0;
 
-      // Heavy rain warning (>25mm)
       if (rain > 25) {
         advice.push({
           type: "alert",
@@ -366,9 +502,7 @@ const WeatherForecastScreen = () => {
           }`,
           icon: <CloudRain size={20} color="#ef4444" />,
         });
-      }
-      // Moderate rain (5-25mm) - Good for corn
-      else if (rain >= 5 && rain <= 25 && temp >= 25 && temp <= 33) {
+      } else if (rain >= 5 && rain <= 25 && temp >= 25 && temp <= 33) {
         advice.push({
           type: "good",
           title: `${getDayName(day.date, true)} - ${
@@ -379,9 +513,7 @@ const WeatherForecastScreen = () => {
           } ${Math.round(temp)}°C`,
           icon: <CheckCircle size={20} color="#10B981" />,
         });
-      }
-      // Dry conditions (no rain + low humidity)
-      else if (rain < 2 && humidity < 50) {
+      } else if (rain < 2 && humidity < 50) {
         advice.push({
           type: "warning",
           title: `${getDayName(day.date, true)} - ${
@@ -392,9 +524,7 @@ const WeatherForecastScreen = () => {
           } ${Math.round(humidity)}%`,
           icon: <AlertTriangle size={20} color="#f59e0b" />,
         });
-      }
-      // High temperature warning (>33°C)
-      else if (temp > 33) {
+      } else if (temp > 33) {
         advice.push({
           type: "warning",
           title: `${getDayName(day.date, true)} - ${
@@ -409,29 +539,20 @@ const WeatherForecastScreen = () => {
         });
       }
     });
-
     return advice;
   };
 
-  // 🌈 Traffic Light Color Logic
   const getTrafficColor = (day: WeatherDay): "red" | "yellow" | "green" => {
     const rain = day.rain_mm || 0;
     const temp = day.temperature;
     const humidity = day.humidity_mean || 0;
 
-    // 🔴 High risk
     if (rain > 25 || temp > 33) return "red";
-
-    // 🟡 Medium risk
     if ((rain < 2 && humidity < 50) || (rain >= 2 && rain < 5)) return "yellow";
-
-    // 🟢 Best farming conditions
     if (rain >= 5 && rain <= 25 && temp >= 25 && temp <= 33) return "green";
-
     return "yellow";
   };
 
-  // 📊 Get daily summary text for each day
   const getDailySummaryText = (day: WeatherDay): string => {
     const rain = day.rain_mm || 0;
     const temp = day.temperature;
@@ -449,11 +570,9 @@ const WeatherForecastScreen = () => {
     return content[language].moderateConditions;
   };
 
-  // 🔘 Circle indicator
   const TrafficDot = ({ color }: { color: "red" | "yellow" | "green" }) => {
     const bg =
       color === "red" ? "#ef4444" : color === "yellow" ? "#facc15" : "#22c55e";
-
     return (
       <View
         style={{
@@ -466,19 +585,6 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Beautiful gradient color based on traffic light
-  const getTrafficGradient = (color: "red" | "yellow" | "green") => {
-    switch (color) {
-      case "red":
-        return { start: "#fecaca", end: "#ef4444" };
-      case "yellow":
-        return { start: "#fef08a", end: "#facc15" };
-      case "green":
-        return { start: "#bbf7d0", end: "#22c55e" };
-    }
-  };
-
-  // ✨ NEW: Get weather icon based on conditions
   const getWeatherIcon = (day: WeatherDay) => {
     const rain = day.rain_mm || 0;
     const temp = day.temperature;
@@ -492,7 +598,6 @@ const WeatherForecastScreen = () => {
     return <Sun size={32} color="#fbbf24" />;
   };
 
-  // ✨ NEW: Get animated glow effect color
   const getGlowColor = (color: "red" | "yellow" | "green") => {
     const glowMap = {
       red: "rgba(239, 68, 68, 0.3)",
@@ -502,7 +607,6 @@ const WeatherForecastScreen = () => {
     return glowMap[color];
   };
 
-  // ✨ NEW: Enhanced Traffic Dot with glow effect
   const EnhancedTrafficDot = ({
     color,
   }: {
@@ -540,7 +644,6 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Beautiful day card header with gradient background
   const BeautifulDayCardHeader = ({
     day,
     trafficColor,
@@ -548,13 +651,6 @@ const WeatherForecastScreen = () => {
     day: WeatherDay;
     trafficColor: "red" | "yellow" | "green";
   }) => {
-    const headerBgColor =
-      trafficColor === "red"
-        ? "#FEF2F2"
-        : trafficColor === "yellow"
-        ? "#FFFBEB"
-        : "#F0FDF4";
-
     return (
       <View
         style={{
@@ -585,7 +681,6 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Beautiful metrics display with icons
   const BeautifulMetricsGrid = ({ day }: { day: WeatherDay }) => {
     const metrics = [
       {
@@ -640,7 +735,6 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Animated weekly forecast dots with tooltips
   const AnimatedWeeklyStrip = ({
     predictions,
   }: {
@@ -696,7 +790,6 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Beautiful summary card with emoji (FIXED)
   const EnhancedFarmActionCard = ({
     predictions,
   }: {
@@ -727,7 +820,7 @@ const WeatherForecastScreen = () => {
       emoji = "🌱";
       desc =
         language === "si"
-          ? `${goodDaysCount} හොඳ දින - සිටින්න!"}`
+          ? `${goodDaysCount} හොඳ දින - සිටින්න!`
           : `${goodDaysCount} good days - Perfect time to farm!`;
       bgColor = "#F0FDF4";
       borderColor = "#10B981";
@@ -792,7 +885,35 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Beautiful header with gradient effect (FIXED)
+  // ✨ FIXED: Speech control button - text only
+  const SpeechControlButton = () => {
+    const currentContent = getContent();
+
+    return (
+      <TouchableOpacity
+        style={[styles.speechBtn, isSpeaking && styles.speechBtnActive]}
+        onPress={() => {
+          if (isSpeaking) {
+            stopSpeech();
+          } else if (weatherData && weatherData.predictions) {
+            speakWeatherForecast(weatherData.predictions);
+          }
+        }}
+      >
+        {isSpeaking ? (
+          <Text style={[styles.speechBtnText, { color: "#ef4444" }]}>
+            {currentContent.stopSpeaking}
+          </Text>
+        ) : (
+          <Text style={[styles.speechBtnText, { color: "#10B981" }]}>
+            {currentContent.speakForecast}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  // ✨ FIXED: Enhanced header with language toggle that triggers speech change
   const EnhancedHeader = () => {
     const currentContent = getContent();
 
@@ -814,10 +935,29 @@ const WeatherForecastScreen = () => {
         </View>
 
         <TouchableOpacity
-          onPress={() => setLanguage(language === "si" ? "en" : "si")}
-          style={[styles.langBtn, { shadowColor: "#10B981", elevation: 3 }]}
+          onPress={() => {
+            console.log("Language button pressed");
+            const newLang = language === "si" ? "en" : "si";
+            console.log("Switching language from", language, "to", newLang);
+            setLanguage(newLang);
+          }}
+          style={[
+            styles.langBtn,
+            {
+              shadowColor: "#10B981",
+              elevation: 3,
+              backgroundColor: language === "si" ? "#FEF3C7" : "#E0F2FE",
+            },
+          ]}
         >
-          <Text style={styles.langText}>
+          <Text
+            style={[
+              styles.langText,
+              {
+                color: language === "si" ? "#D97706" : "#0369A1",
+              },
+            ]}
+          >
             {language === "si" ? "EN" : "සිං"}
           </Text>
         </TouchableOpacity>
@@ -825,10 +965,8 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ NEW: Enhanced current weather with gradient card (FIXED)
   const EnhancedCurrentWeatherCard = () => {
     const currentContent = getContent();
-
     return (
       <Animated.View style={[styles.currentWeatherCard, { opacity: fadeAnim }]}>
         <View style={styles.locationRow}>
@@ -926,7 +1064,6 @@ const WeatherForecastScreen = () => {
       setWeatherData({
         success: true,
         city: locationName || "Sri Lanka",
-
         predictions,
         last_actual_temp: temperature ?? predictions[0]?.temperature ?? 26,
         advice: [],
@@ -985,7 +1122,9 @@ const WeatherForecastScreen = () => {
         <Text style={styles.errorText}>{content[language].error}</Text>
         <TouchableOpacity
           style={styles.retryBtn}
-          onPress={() => fetchWeatherData(latToUse, lonToUse)}
+          onPress={() =>
+            fetchWeatherData(latitude ?? DEFAULT_LAT, longitude ?? DEFAULT_LON)
+          }
         >
           <RefreshCw size={20} color="#fff" />
           <Text style={styles.retryTxt}>{content[language].retry}</Text>
@@ -996,7 +1135,6 @@ const WeatherForecastScreen = () => {
   const predictions = weatherData.predictions;
   const farmingAdvice = getFarmingAdvice(predictions);
 
-  // Chart data
   const rainChartData = {
     labels: predictions.map((d) => getDayName(d.date, true)),
     datasets: [
@@ -1026,18 +1164,23 @@ const WeatherForecastScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* ENHANCED HEADER */}
       <EnhancedHeader />
+      <SpeechControlButton />
 
       <ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => fetchWeatherData(latToUse, lonToUse, true)}
+            onRefresh={() =>
+              fetchWeatherData(
+                latitude ?? DEFAULT_LAT,
+                longitude ?? DEFAULT_LON,
+                true
+              )
+            }
           />
         }
       >
-        {/* ENHANCED CURRENT WEATHER CARD */}
         <EnhancedCurrentWeatherCard />
 
         {/* DAILY WEATHER SUMMARY BANNER */}
@@ -1168,17 +1311,6 @@ const WeatherForecastScreen = () => {
 
         {/* BEAUTIFUL DAILY CARDS */}
         {predictions.map((d, idx) => {
-          const isGoodDay =
-            (d.rain_mm ?? 0) >= 5 &&
-            (d.rain_mm ?? 0) <= 25 &&
-            d.temperature >= 25 &&
-            d.temperature <= 33;
-
-          const needsAttention =
-            (d.rain_mm ?? 0) > 25 ||
-            d.temperature > 33 ||
-            ((d.rain_mm ?? 0) < 2 && (d.humidity_mean ?? 0) < 50);
-
           const trafficColor = getTrafficColor(d);
           const cardBg =
             trafficColor === "red"
@@ -1207,13 +1339,9 @@ const WeatherForecastScreen = () => {
               ]}
             >
               <BeautifulDayCardHeader day={d} trafficColor={trafficColor} />
-
-              {/* FARMER-FRIENDLY REASON TEXT */}
               <Text style={styles.dailyReasonText}>
                 {getDailySummaryText(d)}
               </Text>
-
-              {/* BEAUTIFUL METRICS */}
               <BeautifulMetricsGrid day={d} />
             </Animated.View>
           );
@@ -1249,6 +1377,30 @@ const styles = StyleSheet.create({
   },
   retryTxt: { color: "#fff", fontWeight: "600" },
 
+  speechBtn: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: "#F0FDF4",
+    borderWidth: 2,
+    borderColor: "#10B981",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  speechBtnActive: {
+    borderColor: "#ef4444",
+    backgroundColor: "#FEF2F2",
+  },
+  speechBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+
   header: {
     paddingTop: 50,
     paddingBottom: 15,
@@ -1271,7 +1423,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 22,
   },
-  langText: { color: "#10B981", fontWeight: "bold" },
+  langText: { fontWeight: "bold" },
 
   currentWeatherCard: {
     marginHorizontal: 20,
@@ -1293,12 +1445,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   locationText: { fontSize: 15, fontWeight: "600", color: "#047857" },
-  currentTempRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-    paddingVertical: 8,
-  },
   currentTemp: {
     fontSize: 42,
     fontWeight: "bold",
@@ -1309,13 +1455,7 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 4,
   },
-  noTempText: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    fontStyle: "italic",
-  },
 
-  // NEW: Daily Summary Banner
   dailySummaryBanner: {
     marginHorizontal: 20,
     marginBottom: 12,
@@ -1342,28 +1482,6 @@ const styles = StyleSheet.create({
     color: "#1F2937",
     fontWeight: "700",
     marginTop: 4,
-  },
-
-  // NEW: Farm Action Card
-  farmActionCard: {
-    marginBottom: 15,
-    backgroundColor: "#F0FDF4",
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "#10B981",
-    elevation: 3,
-  },
-  farmActionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginBottom: 4,
-  },
-  farmActionDesc: {
-    fontSize: 13,
-    color: "#6B7280",
-    lineHeight: 18,
   },
 
   adviceSection: {
@@ -1443,26 +1561,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     elevation: 2,
   },
-  dayCardGood: {
-    backgroundColor: "#F0FDF4",
-    borderWidth: 2,
-    borderColor: "#10B981",
-  },
-  dayCardWarning: {
-    backgroundColor: "#FFFBEB",
-    borderWidth: 2,
-    borderColor: "#f59e0b",
-  },
-  dayHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-  },
   dayName: { fontSize: 16, fontWeight: "700", color: "#1F2937" },
   dateTxt: { fontSize: 12, color: "#6B7280", marginTop: 2 },
 
-  // NEW: Daily reason text
   dailyReasonText: {
     fontSize: 13,
     color: "#047857",
