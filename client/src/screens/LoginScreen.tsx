@@ -53,6 +53,14 @@ export default function LoginScreen({ navigation }: any) {
           {loading ? "Logging in..." : "Login"}
         </Text>
       </TouchableOpacity>
+
+      {/* Signup Link */}
+      <View className="flex-row justify-center mt-6">
+        <Text className="text-gray-600">Don't have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+          <Text className="text-green-600 font-bold">Sign Up</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
