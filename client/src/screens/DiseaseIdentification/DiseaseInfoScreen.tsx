@@ -1,23 +1,20 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  LayoutAnimation,
-  Platform,
-  UIManager,
 } from "react-native";
-import { ArrowLeft, ChevronDown, ChevronUp } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import { useNavigation, RouteProp } from "@react-navigation/native";
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
+import { StackNavigationProp } from "@react-navigation/stack";
 
-// Enable Layout Animation for Android
-if (Platform.OS === "android") {
-  UIManager.setLayoutAnimationEnabledExperimental &&
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+type NavProp = StackNavigationProp<
+  DiseaseIdentifyStackParamList,
+  "DiseaseInfo"
+>;
 
 // ------------------ ROUTE TYPE ------------------
 type DiseaseInfoRouteProp = RouteProp<
@@ -29,7 +26,7 @@ interface Props {
   route: DiseaseInfoRouteProp;
 }
 
-// ---------- DISEASE DESCRIPTIONS ----------
+// ---------- DISEASE DATABASE ----------
 const DISEASE_INFO: Record<
   string,
   {
@@ -45,92 +42,76 @@ const DISEASE_INFO: Record<
   common_rust: {
     name: "Common Rust",
     overview:
-      "Common rust is caused by *Puccinia sorghi*. It spreads rapidly in humid, cool conditions. Early detection prevents severe yield loss.",
+      "Common rust is caused by *Puccinia sorghi* and spreads rapidly in humid, cool conditions. Early treatment prevents grain loss.",
     symptoms: [
       "Reddish-brown raised pustules",
-      "Yellowing around infected areas",
-      "Black hardened spores in late stages",
+      "Yellow areas around lesions",
+      "Black hardened spores in late stage",
     ],
-    causes: [
-      "Wind-borne fungal spores",
-      "High humidity conditions",
-      "Overcrowded planting",
-    ],
+    causes: ["Wind-borne spores", "High humidity", "Dense planting"],
     conditions: [
       "Cool temperatures (16–24°C)",
-      "High moisture on leaves",
-      "Shaded field areas",
+      "Moist leaf surfaces",
+      "Shaded fields",
     ],
     management: [
-      "Apply recommended fungicides early",
-      "Use rust-resistant maize hybrid seeds",
-      "Remove heavily infected leaves",
+      "Early fungicide application",
+      "Use resistant maize varieties",
+      "Remove severely infected leaves",
     ],
     prevention: [
-      "Crop rotation",
-      "Avoid dense planting",
-      "Remove leftover crop debris",
+      "Rotate crops",
+      "Avoid overcrowding",
+      "Destroy leftover infected debris",
     ],
   },
 
   blight: {
     name: "Leaf Blight",
     overview:
-      "Leaf blight affects leaf health and reduces photosynthesis. It spreads fast in warm, rainy periods.",
+      "A fast-spreading fungal disease that reduces photosynthesis and weakens plant structure.",
     symptoms: [
-      "Large brown lesions",
-      "Leaves dry and curl",
-      "Dark brown edges spreading upward",
+      "Large brown irregular lesions",
+      "Leaves curl and dry",
+      "Dark edges spreading upward",
     ],
-    causes: [
-      "Fungal organisms in soil or residue",
-      "Rain splash dispersal",
-      "Poor airflow in crop canopy",
-    ],
-    conditions: [
-      "Warm temperatures (22–30°C)",
-      "Frequent rainfall",
-      "Heavy morning dew",
-    ],
+    causes: ["Fungus in residue", "Rain splash", "Poor airflow"],
+    conditions: ["Warm weather (22–30°C)", "Frequent rainfall", "Morning dew"],
     management: [
-      "Improve airflow by proper spacing",
+      "Improve airflow through spacing",
       "Apply fungicides early",
-      "Destroy infected residues after harvest",
+      "Destroy infected residue",
     ],
     prevention: [
-      "Use certified clean seeds",
-      "Practice crop rotation",
-      "Avoid excessive nitrogen fertilizer",
+      "Use certified disease-free seeds",
+      "Rotate crops regularly",
+      "Avoid excessive nitrogen",
     ],
   },
 
   gray_leaf_spot: {
     name: "Gray Leaf Spot",
     overview:
-      "Gray Leaf Spot is one of the most damaging maize foliar diseases, caused by *Cercospora zeae-maydis*.",
+      "One of the most destructive maize foliar diseases, caused by *Cercospora zeae-maydis*.",
     symptoms: [
-      "Narrow rectangular gray lesions",
-      "Parallel lesion alignment",
+      "Long rectangular gray lesions",
+      "Lesions form parallel lines",
       "Lower leaves dry first",
     ],
     causes: [
-      "Fungal spores surviving in debris",
-      "High humidity and warm nights",
-      "Continuous maize planting",
+      "Spores surviving in debris",
+      "High humidity",
+      "Continuous maize cropping",
     ],
-    conditions: [
-      "Humidity > 90%",
-      "Warm weather (25–30°C)",
-      "Low airflow in dense fields",
-    ],
+    conditions: ["Humidity above 90%", "Warm nights (25–30°C)", "Dense canopy"],
     management: [
-      "Use resistant maize hybrids",
-      "Apply preventive fungicides before tasseling",
-      "Remove plant debris",
+      "Use resistant hybrids",
+      "Preventive fungicide before tasseling",
+      "Remove residue",
     ],
     prevention: [
-      "Crop rotation every season",
-      "Avoid overhead irrigation in evenings",
+      "Rotate crops yearly",
+      "Avoid evening overhead irrigation",
       "Reduce canopy density",
     ],
   },
@@ -138,15 +119,9 @@ const DISEASE_INFO: Record<
 
 // ------------------ COMPONENT ------------------
 export default function DiseaseInfoScreen({ route }: Props) {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavProp>();
+
   const { predictions } = route.params;
-
-  const [openSection, setOpenSection] = useState<string | null>(null);
-
-  const toggleSection = (section: string) => {
-    LayoutAnimation.easeInEaseOut();
-    setOpenSection(openSection === section ? null : section);
-  };
 
   return (
     <ScrollView style={styles.container}>
@@ -159,134 +134,75 @@ export default function DiseaseInfoScreen({ route }: Props) {
         <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header}>Full Disease Details</Text>
+      {/* CONTACT AGRO OFFICER BUTTON */}
+      <TouchableOpacity
+        style={styles.contactBtn}
+        onPress={() =>
+          navigation.navigate("Chat", {
+            roomId: null, // force auto-create farmer room
+            userId: "", // ChatScreen will use logged-in farmer ID
+          })
+        }
+      >
+        <Text style={styles.contactBtnText}>Contact Agro Officer</Text>
+      </TouchableOpacity>
 
-      {predictions?.map((p, index) => {
+      <Text style={styles.header}>Disease Information</Text>
+
+      {predictions?.map((p, i) => {
         const key = p.class_name.toLowerCase().replace(/ /g, "_");
-        const disease = DISEASE_INFO[key];
-
-        if (!disease) return null;
+        const d = DISEASE_INFO[key];
+        if (!d) return null;
 
         return (
-          <View key={index} style={styles.card}>
-            <Text style={styles.diseaseTitle}>{disease.name}</Text>
+          <View key={i} style={styles.card}>
+            <Text style={styles.diseaseTitle}>{d.name}</Text>
 
-            {/* ===================== OVERVIEW ===================== */}
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(`overview-${index}`)}
-            >
-              <Text style={styles.sectionTitle}>Overview</Text>
-              {openSection === `overview-${index}` ? (
-                <ChevronUp color="#1565C0" />
-              ) : (
-                <ChevronDown color="#1565C0" />
-              )}
-            </TouchableOpacity>
+            {/* Overview */}
+            <Text style={styles.sectionLabel}>Overview</Text>
+            <Text style={styles.sectionText}>{d.overview}</Text>
 
-            {openSection === `overview-${index}` && (
-              <Text style={styles.sectionBody}>{disease.overview}</Text>
-            )}
+            {/* Symptoms */}
+            <Text style={styles.sectionLabel}>Symptoms</Text>
+            {d.symptoms.map((s, idx) => (
+              <Text key={idx} style={styles.listItem}>
+                • {s}
+              </Text>
+            ))}
 
-            {/* ===================== SYMPTOMS ===================== */}
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(`symptoms-${index}`)}
-            >
-              <Text style={styles.sectionTitle}>Symptoms</Text>
-              {openSection === `symptoms-${index}` ? (
-                <ChevronUp color="#1565C0" />
-              ) : (
-                <ChevronDown color="#1565C0" />
-              )}
-            </TouchableOpacity>
+            {/* Causes */}
+            <Text style={styles.sectionLabel}>Causes</Text>
+            {d.causes.map((s, idx) => (
+              <Text key={idx} style={styles.listItem}>
+                • {s}
+              </Text>
+            ))}
 
-            {openSection === `symptoms-${index}` &&
-              disease.symptoms.map((item, i) => (
-                <Text key={i} style={styles.listItem}>
-                  • {item}
-                </Text>
-              ))}
+            {/* Favorable Conditions */}
+            <Text style={styles.sectionLabel}>Favorable Conditions</Text>
+            {d.conditions.map((s, idx) => (
+              <Text key={idx} style={styles.listItem}>
+                • {s}
+              </Text>
+            ))}
 
-            {/* ===================== CAUSES ===================== */}
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(`causes-${index}`)}
-            >
-              <Text style={styles.sectionTitle}>Causes</Text>
-              {openSection === `causes-${index}` ? (
-                <ChevronUp color="#1565C0" />
-              ) : (
-                <ChevronDown color="#1565C0" />
-              )}
-            </TouchableOpacity>
+            {/* Management */}
+            <Text style={[styles.sectionLabel, { color: "#B91C1C" }]}>
+              Management Recommendations
+            </Text>
+            {d.management.map((s, idx) => (
+              <Text key={idx} style={styles.managementItem}>
+                • {s}
+              </Text>
+            ))}
 
-            {openSection === `causes-${index}` &&
-              disease.causes.map((item, i) => (
-                <Text key={i} style={styles.listItem}>
-                  • {item}
-                </Text>
-              ))}
-
-            {/* ===================== FAVORABLE CONDITIONS ===================== */}
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(`conditions-${index}`)}
-            >
-              <Text style={styles.sectionTitle}>Favorable Conditions</Text>
-              {openSection === `conditions-${index}` ? (
-                <ChevronUp color="#1565C0" />
-              ) : (
-                <ChevronDown color="#1565C0" />
-              )}
-            </TouchableOpacity>
-
-            {openSection === `conditions-${index}` &&
-              disease.conditions.map((item, i) => (
-                <Text key={i} style={styles.listItem}>
-                  • {item}
-                </Text>
-              ))}
-
-            {/* ===================== MANAGEMENT ===================== */}
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(`management-${index}`)}
-            >
-              <Text style={styles.sectionTitle}>Management</Text>
-              {openSection === `management-${index}` ? (
-                <ChevronUp color="#1565C0" />
-              ) : (
-                <ChevronDown color="#1565C0" />
-              )}
-            </TouchableOpacity>
-
-            {openSection === `management-${index}` &&
-              disease.management.map((item, i) => (
-                <Text key={i} style={styles.managementItem}>
-                  • {item}
-                </Text>
-              ))}
-
-            {/* ===================== PREVENTION ===================== */}
-            <TouchableOpacity
-              style={styles.sectionHeader}
-              onPress={() => toggleSection(`prevention-${index}`)}
-            >
-              <Text style={styles.sectionTitle}>Prevention</Text>
-              {openSection === `prevention-${index}` ? (
-                <ChevronUp color="#1565C0" />
-              ) : (
-                <ChevronDown color="#1565C0" />
-              )}
-            </TouchableOpacity>
-
-            {openSection === `prevention-${index}` &&
-              disease.prevention.map((item, i) => (
-                <Text key={i} style={styles.listItem}>
-                  • {item}
-                </Text>
-              ))}
+            {/* Prevention */}
+            <Text style={styles.sectionLabel}>Prevention Tips</Text>
+            {d.prevention.map((s, idx) => (
+              <Text key={idx} style={styles.listItem}>
+                • {s}
+              </Text>
+            ))}
           </View>
         );
       })}
@@ -300,17 +216,22 @@ const styles = StyleSheet.create({
 
   backButton: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
   backText: {
+    marginLeft: 6,
     fontSize: 16,
     color: "#1565C0",
     fontWeight: "700",
-    marginLeft: 6,
   },
 
-  header: { fontSize: 24, fontWeight: "800", color: "#1565C0", marginBottom: 20 },
+  header: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#1565C0",
+    marginBottom: 20,
+  },
 
   card: {
     backgroundColor: "#FFFFFF",
-    padding: 18,
+    padding: 20,
     borderRadius: 16,
     borderWidth: 2,
     borderColor: "#E3F2FD",
@@ -318,39 +239,53 @@ const styles = StyleSheet.create({
   },
 
   diseaseTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "800",
     color: "#0D47A1",
-    marginBottom: 12,
+    marginBottom: 14,
   },
 
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1565C0",
+    marginTop: 12,
+    marginBottom: 6,
   },
 
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1565C0" },
-
-  sectionBody: {
+  sectionText: {
     fontSize: 14,
-    paddingVertical: 10,
     color: "#374151",
     lineHeight: 20,
+    marginBottom: 6,
   },
 
   listItem: {
     fontSize: 14,
-    paddingVertical: 4,
     color: "#374151",
+    lineHeight: 20,
+    marginLeft: 4,
+    paddingVertical: 2,
   },
 
   managementItem: {
     fontSize: 14,
-    paddingVertical: 4,
     color: "#B91C1C",
     fontWeight: "600",
+    lineHeight: 20,
+    marginLeft: 4,
+    paddingVertical: 2,
+  },
+  contactBtn: {
+    backgroundColor: "#0D8A43",
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  contactBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
