@@ -27,18 +27,6 @@ export default function HomeScreen() {
       description: "Diagnose crop diseases",
       color: "#f59e0b",
     },
-    {
-      icon: "leaf",
-      title: "Fertilizer Advisor",
-      description: "Get fertilizer recommendations",
-      color: "#22c55e",
-    },
-    {
-      icon: "analytics",
-      title: "Yield Prediction",
-      description: "Predict your crop yield",
-      color: "#8b5cf6",
-    },
   ];
 
   return (

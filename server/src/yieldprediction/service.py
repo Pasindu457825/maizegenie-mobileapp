@@ -14,54 +14,63 @@ def rule_based_yield(data: Dict) -> float:
     """
     Fallback logic when ML model is not available.
     Returns yield in tons per hectare (t/ha)
-    """
-    # Base yield in t/ha
-    base_yield = 4.5
     
-    # Variety multipliers
+    Based on Sri Lankan maize yield data:
+    - Local Average: 3.58 t/ha
+    - Potential (Hybrid): 6-7 t/ha
+    - Smallholder Reality: 3.7-6.2 t/ha
+    - Factors: Management, seed type, season, water, fertilizer, pests
+    """
+    # Base yield in t/ha (Sri Lankan local average)
+    base_yield = 3.6
+    
+    # Variety multipliers (Hybrid seeds offer much higher potential)
     variety_multipliers = {
-        "Jet 999": 1.1,
-        "Pacific 808": 1.05,
-        "GT 709": 0.95,
-        "GT200": 1.0,
-        "Commando": 1.08,
+        "Jet 999": 1.5,        # High-yield hybrid (can reach 5.4 t/ha)
+        "Pacific 808": 1.45,   # High-yield hybrid (can reach 5.2 t/ha)
+        "Commando": 1.4,       # Popular hybrid (can reach 5.0 t/ha)
+        "GT 709": 1.2,         # Medium hybrid (can reach 4.3 t/ha)
+        "GT200": 1.15,         # Medium hybrid (can reach 4.1 t/ha)
+        "Local Variety": 0.9,  # Local seeds (around 3.2 t/ha)
     }
     variety_mult = variety_multipliers.get(data.get("variety", ""), 1.0)
     
-    # Soil condition multipliers
+    # Soil condition multipliers (Good soil = better yield)
     soil_multipliers = {
-        "Well-Drained Loamy": 1.15,
-        "Clay Loam": 1.0,
-        "Sandy Loam": 0.95,
-        "Heavy Clay": 0.85,
-        "Sandy": 0.8,
+        "Good": 1.15,    # Well-managed, fertile soil
+        "Medium": 1.0,   # Average soil condition
+        "Poor": 0.75,    # Degraded or problematic soil
     }
     soil_mult = soil_multipliers.get(data.get("soil_condition", ""), 1.0)
     
-    # Irrigation multipliers
+    # Irrigation multipliers (Water management is critical)
     irrigation_multipliers = {
-        "Drip Irrigation": 1.2,
-        "Sprinkler": 1.1,
-        "Flood Irrigation": 1.05,
-        "Rainfed": 0.85,
+        "Irrigated": 1.25,  # Proper water supply (can boost to 6+ t/ha)
+        "Mixed": 1.1,       # Partial irrigation
+        "Rainfed": 0.85,    # Dependent on rainfall (lower yields)
     }
     irrigation_mult = irrigation_multipliers.get(data.get("irrigation_type", ""), 1.0)
     
-    # Rainfall multipliers
+    # Rainfall condition multipliers
     rainfall_multipliers = {
-        "Adequate": 1.1,
-        "Moderate": 1.0,
-        "Low": 0.8,
-        "Excessive": 0.9,
+        "High": 1.1,     # Good rainfall (if not excessive)
+        "Normal": 1.0,   # Adequate rainfall
+        "Low": 0.75,     # Drought stress reduces yield significantly
     }
     rainfall_mult = rainfall_multipliers.get(data.get("rainfall_condition", ""), 1.0)
     
-    # Season multipliers
+    # Season multipliers (Maha season has better rainfall)
     season_multipliers = {
-        "Maha": 1.05,
+        "Maha Season": 1.15,  # Main season with better rainfall
+        "Maha": 1.15,
+        "Yala Season": 0.95,  # Off-season, drier conditions
         "Yala": 0.95,
     }
     season_mult = season_multipliers.get(data.get("season", ""), 1.0)
+    
+    # Management quality factor (based on soil quality as proxy)
+    # Proper nitrogen, pest control (fall armyworm), fertilizer management
+    management_quality = soil_multipliers.get(data.get("soil_quality", ""), 1.0)
     
     # Calculate final yield
     yield_t_ha = (
@@ -73,11 +82,16 @@ def rule_based_yield(data: Dict) -> float:
         * season_mult
     )
     
-    # Add small random variance
+    # Add realistic variance (±8% to simulate field conditions)
     import random
-    yield_t_ha *= (0.95 + random.random() * 0.1)  # ±5%
+    yield_t_ha *= (0.92 + random.random() * 0.16)  # ±8%
     
-    return max(yield_t_ha, 0.5)  # Minimum 0.5 t/ha
+    # Constrain to realistic Sri Lankan ranges
+    # Minimum: 2.5 t/ha (poor conditions)
+    # Maximum: 7.0 t/ha (excellent hybrid + management)
+    yield_t_ha = max(2.5, min(yield_t_ha, 7.0))
+    
+    return yield_t_ha
 
 
 # ============================================================
@@ -164,11 +178,11 @@ def predict_yield_service(data: Dict) -> Dict:
     
     Frontend expects:
     {
-      "yield_prediction_t_ha": float,
-      "confidence": "High" | "Medium" | "Low",
-      "harvest_window": { "start": str, "end": str, "target": str },
-      "calendar_event": { "title": str, "date": str },
-      "factors": [ { "name": str, "impact": str, "value": float } ]
+        "yield_prediction_t_ha": float,
+        "confidence": "High" | "Medium" | "Low",
+        "harvest_window": { "start": str, "end": str, "target": str },
+        "calendar_event": { "title": str, "date": str },
+        "factors": [ { "name": str, "impact": str, "value": float } ]
     }
     """
     

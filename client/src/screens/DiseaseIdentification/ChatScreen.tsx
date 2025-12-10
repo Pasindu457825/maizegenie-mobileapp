@@ -16,7 +16,18 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
 import { uploadChatImage } from "../../services/chatUploadApi";
 
-export default function ChatScreen({ route }: any) {
+function formatTime(timestamp: string | number | Date | undefined) {
+  if (!timestamp) return "";
+
+  try {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch (e) {
+    return "";
+  }
+}
+
+export default function ChatScreen({ route, navigation }: any) {
   const { user } = useApp();
 
   // Params for officer mode
@@ -31,8 +42,11 @@ export default function ChatScreen({ route }: any) {
 
   const [roomId, setRoomId] = useState<string | null>(incomingRoomId);
   const [messages, setMessages] = useState<any[]>([]);
+
   const [text, setText] = useState("");
   const hasSentMessage = useRef(false);
+
+  const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     async function initChat() {
@@ -105,8 +119,21 @@ export default function ChatScreen({ route }: any) {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
+          <Text style={styles.backText}>← Back</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>Chat</Text>
+      </View>
+
       <FlatList
-        data={messages}
+        ref={flatListRef}
+        data={[...messages].reverse()} // show latest at bottom
+        inverted // render from bottom to top
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <View
@@ -133,6 +160,9 @@ export default function ChatScreen({ route }: any) {
                 resizeMode="cover"
               />
             ) : null}
+
+            {/* TIME LIKE WHATSAPP */}
+            <Text style={styles.timeText}>{formatTime(item.created_at)}</Text>
           </View>
         )}
       />
@@ -210,6 +240,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 8,
     marginRight: 8,
+  },
+  timeText: {
+    fontSize: 11,
+    color: "#777",
+    marginTop: 4,
+    alignSelf: "flex-end",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+    marginBottom: 10,
+  },
+
+  backBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+
+  backText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#007AFF",
+  },
+
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginLeft: 10,
   },
 
   btnText: { color: "#fff", fontWeight: "bold" },

@@ -2,6 +2,7 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import BottomNavigator from "./BottomNavigator";
 import LoginScreen from "../screens/LoginScreen";
+import SignupScreen from "../screens/SignupScreen";
 import { ROUTES } from "../constants";
 
 import ChatScreen from "../screens/DiseaseIdentification/ChatScreen";
@@ -52,6 +53,7 @@ export default function RootNavigator() {
 
       {/* LOGIN */}
       <Stack.Screen name={ROUTES.AUTH.LOGIN} component={LoginScreen} />
+      <Stack.Screen name={ROUTES.AUTH.SIGNUP} component={SignupScreen} />
 
       {/* MAIN TABS */}
       <Stack.Screen name={ROUTES.ROOT.MAIN} component={BottomNavigator} />
