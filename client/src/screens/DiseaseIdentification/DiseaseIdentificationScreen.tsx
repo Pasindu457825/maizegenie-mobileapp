@@ -405,12 +405,6 @@ const DiseaseIdentificationScreen = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <ArrowLeft color="#FFFFFF" size={24} />
-        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
