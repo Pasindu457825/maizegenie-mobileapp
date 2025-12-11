@@ -27,7 +27,7 @@ export default function MaizeGenieHome({ navigation }: MaizeGenieHomeProps) {
 
   const handleCropDetails = () => {
     // Navigate to crop details screen (add this to your stack if needed)
-    console.log('Navigate to Crop Details');
+    navigation.navigate('PestRiskMeter');
     // navigation.navigate('CropDetails'); // when you add this screen
   };
 
@@ -90,8 +90,8 @@ export default function MaizeGenieHome({ navigation }: MaizeGenieHomeProps) {
               <View style={styles.buttonIcon}>
                 <Text style={styles.iconText}>📊</Text>
               </View>
-              <Text style={styles.secondaryButtonText}>වගාව පිළිබඳ වැඩි විස්තර</Text>
-              <Text style={styles.buttonSubtext}>සම්පූර්ණ මාර්ගෝපදේශ</Text>
+              <Text style={styles.secondaryButtonText}>කෘමි අවධානම බලන්න☠️</Text>
+              <Text style={styles.buttonSubtext}>වගාවට පෙර අවදානම හදුනාගන්න</Text>
             </TouchableOpacity>
           </View>
         </View>
