@@ -405,12 +405,6 @@ const DiseaseIdentificationScreen = () => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-        >
-          <ArrowLeft color="#FFFFFF" size={24} />
-        </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
@@ -418,33 +412,6 @@ const DiseaseIdentificationScreen = () => {
           <Text style={styles.headerSubtitle}>
             {content[language].modernAgriculture}
           </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() =>
-            setLanguage(lang === "sinhala" ? "english" : "sinhala")
-          }
-        >
-          <Text style={styles.langText}>
-            {lang === "sinhala" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats Bar */}
-      <View style={styles.statsBar}>
-        <View style={styles.statItem}>
-          <Leaf color="#059669" size={16} />
-          <Text style={styles.statLabel}>{content[language].location}</Text>
-          <Text style={styles.statValue}>
-            {language === "si" ? "මොණරාගල" : "Monaragala"}
-          </Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Shield color="#059669" size={16} />
-          <Text style={styles.statLabel}>{content[language].status}</Text>
-          <Text style={styles.statValue}>{__DEV__ ? "Dev" : "Live"}</Text>
         </View>
       </View>
 
