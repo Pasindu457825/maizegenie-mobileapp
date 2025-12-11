@@ -13,7 +13,10 @@ import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyS
 import SeverityGauge from "../../components/SeverityGauge";
 import { StackNavigationProp } from "@react-navigation/stack";
 
-// 👉 ADD THIS (FIX)
+// 🌐 LANGUAGE CONTEXT
+import { useLanguage } from "../../context/LanguageContext";
+
+// NAV TYPES
 type NavProp = StackNavigationProp<
   DiseaseIdentifyStackParamList,
   "SeverityDetails"
@@ -30,9 +33,45 @@ interface Props {
 
 export default function SeverityDetailsScreen({ route }: Props) {
   const { image, severity_score, severity_label, predictions } = route.params;
-
-  // 👉 NOW IT WORKS
   const navigation = useNavigation<NavProp>();
+
+  // 🌐 GLOBAL LANGUAGE (sinhala/english)
+  const { language: lang } = useLanguage();
+  const language = lang === "sinhala" ? "si" : "en";
+
+  // 🌐 TRANSLATION CONTENT
+  const content = {
+    si: {
+      back: "ආපසු",
+      header: "පැලැස්ම සෞඛ්‍ය තත්ත්වය",
+      currentSeverity: "වත්මන් තත්ත්වය",
+      infectionDetected: "ආසාදනය හමුවිය",
+      mild: "ඔබේ බිම හොඳ තත්ත්වයකි. සුළු රෝග ලක්ෂණ තිබේ.",
+      moderate: "සැලකිල්ලක් යොමු කරන්න. රෝගය මධ්‍යම ලෙස පැතිරෙමින් ඇත.",
+      severe:
+        "අවදානම් තත්ත්වයකි! දැඩි ආසාදනයක් හමුවිය. වහාම ක්‍රියාමාර්ග ගන්න.",
+      viewDetails: "සම්පූර්ණ විස්තර බලන්න",
+    },
+    en: {
+      back: "Back",
+      header: "Plant Health Status",
+      currentSeverity: "Current Severity Level",
+      infectionDetected: "Infection Detected",
+      mild: "Your plant is in good condition. Mild signs of disease detected.",
+      moderate: "Your plant needs attention. Disease is spreading moderately.",
+      severe:
+        "Warning! Severe infection levels detected. Immediate action required.",
+      viewDetails: "View Full Disease Details",
+    },
+  };
+
+  // Status text logic stays 100% the same
+  const statusText =
+    severity_score < 0.33
+      ? content[language].mild
+      : severity_score < 0.66
+      ? content[language].moderate
+      : content[language].severe;
 
   return (
     <ScrollView style={styles.container}>
@@ -42,10 +81,11 @@ export default function SeverityDetailsScreen({ route }: Props) {
         onPress={() => navigation.goBack()}
       >
         <ArrowLeft size={24} color="#1565C0" />
-        <Text style={styles.backText}>Back</Text>
+        <Text style={styles.backText}>{content[language].back}</Text>
       </TouchableOpacity>
 
-      <Text style={styles.header}>Plant Health Status</Text>
+      {/* HEADER */}
+      <Text style={styles.header}>{content[language].header}</Text>
 
       {/* IMAGE */}
       {image && (
@@ -56,26 +96,21 @@ export default function SeverityDetailsScreen({ route }: Props) {
         />
       )}
 
-      {/* SEVERITY CARD */}
+      {/* INFO CARD */}
       <View style={styles.card}>
-        <Text style={styles.title}>Current Severity Level</Text>
+        <Text style={styles.title}>{content[language].currentSeverity}</Text>
         <Text style={styles.value}>{severity_label}</Text>
 
         <Text style={styles.subValue}>
-          {Math.round(severity_score * 100)}% Infection Detected
+          {Math.round(severity_score * 100)}%{" "}
+          {content[language].infectionDetected}
         </Text>
 
-        {/* SVG GAUGE */}
+        {/* GAUGE */}
         <SeverityGauge severity={severity_score} />
 
-        {/* QUICK STATUS DESCRIPTION */}
-        <Text style={styles.statusText}>
-          {severity_score < 0.33
-            ? "Your plant is in good condition. Mild signs of disease detected."
-            : severity_score < 0.66
-            ? "Your plant needs attention. Disease is spreading moderately."
-            : "Warning! Severe infection levels detected. Immediate action required."}
-        </Text>
+        {/* DESCRIPTION */}
+        <Text style={styles.statusText}>{statusText}</Text>
 
         {/* BUTTON → FULL DETAILS */}
         <TouchableOpacity
@@ -87,7 +122,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
           }
         >
           <Text style={styles.detailsButtonText}>
-            View Full Disease Details
+            {content[language].viewDetails}
           </Text>
         </TouchableOpacity>
       </View>
@@ -134,7 +169,13 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 18, fontWeight: "700", color: "#0D47A1" },
   value: { fontSize: 22, fontWeight: "900", color: "#1565C0", marginTop: 6 },
-  subValue: { fontSize: 14, color: "#4CAF50", marginTop: 4, fontWeight: "600" },
+
+  subValue: {
+    fontSize: 14,
+    color: "#4CAF50",
+    marginTop: 4,
+    fontWeight: "600",
+  },
 
   statusText: {
     fontSize: 15,
@@ -150,6 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#1565C0",
     borderRadius: 10,
   },
+
   detailsButtonText: {
     textAlign: "center",
     color: "#fff",
