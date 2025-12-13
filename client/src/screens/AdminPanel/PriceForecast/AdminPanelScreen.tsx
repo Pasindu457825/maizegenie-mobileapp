@@ -22,16 +22,16 @@ import {
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Platform } from "react-native";
+import { useLanguage } from "../../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "sinhala" | "english";
 
 const AdminPanelScreen = () => {
   const navigation = useNavigation();
-  const [language, setLanguage] = useState<Language>("si");
+  const { language, setLanguage } = useLanguage();
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
-
 
   // Form fields
   const [fuelPrice, setFuelPrice] = useState("");
@@ -39,24 +39,25 @@ const AdminPanelScreen = () => {
   const [farmGatePrice, setFarmGatePrice] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
-// 🔥 Dynamic API URL using .env + Platform detection
-const getApiUrl = () => {
-  if (Platform.OS === "android") {
-    // Real Android Device → Uses .env
-    return process.env.EXPO_PUBLIC_API_BASE;
-  } else if (Platform.OS === "ios") {
-    // iOS simulator
-    return "http://localhost:8000";
-  } else {
-    // Expo Web fallback
-    return "http://localhost:8000";
-  }
-};
+  // 🔥 Dynamic API URL using .env + Platform detection
+  const getApiUrl = () => {
+    if (Platform.OS === "android") {
+      // Real Android Device → Uses .env
+      return process.env.EXPO_PUBLIC_API_BASE;
+    } else if (Platform.OS === "ios") {
+      // iOS simulator
+      return "http://localhost:8000";
+    } else {
+      // Expo Web fallback
+      return "http://localhost:8000";
+    }
+  };
 
-const API_URL = getApiUrl();
+  const API_URL = getApiUrl();
 
+  // ✨ FIXED: Changed language type keys from "si"/"en" to "sinhala"/"english"
   const content = {
-    si: {
+    sinhala: {
       title: "මිල යාවත්කාලීන කිරීම",
       subtitle: "🌾 MaizeGenie",
       welcome: "ස්වාගතයි",
@@ -79,7 +80,7 @@ const API_URL = getApiUrl();
       saving: "සුරකිමින්...",
       noData: "දත්ත තවම නැත",
     },
-    en: {
+    english: {
       title: "Price Update",
       subtitle: "🌾 MaizeGenie",
       welcome: "Welcome",
@@ -123,7 +124,7 @@ const API_URL = getApiUrl();
     } catch (error) {
       console.error("Error fetching data:", error);
       Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
+        language === "sinhala" ? "දෝෂයකි" : "Error",
         content[language].loadError
       );
     } finally {
@@ -135,7 +136,7 @@ const API_URL = getApiUrl();
     // Validation
     if (!fuelPrice || !importTax || !farmGatePrice) {
       Alert.alert(
-        language === "si" ? "අවශ්‍යයි" : "Required",
+        language === "sinhala" ? "අවශ්‍යයි" : "Required",
         content[language].fillAll
       );
       return;
@@ -159,7 +160,7 @@ const API_URL = getApiUrl();
 
       if (response.ok && data.success) {
         Alert.alert(
-          language === "si" ? "සාර්ථකයි ✓" : "Success ✓",
+          language === "sinhala" ? "සාර්ථකයි ✓" : "Success ✓",
           content[language].saveSuccess
         );
         fetchCurrentData(); // Refresh data
@@ -169,7 +170,7 @@ const API_URL = getApiUrl();
     } catch (error) {
       console.error("Error saving data:", error);
       Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
+        language === "sinhala" ? "දෝෂයකි" : "Error",
         content[language].saveError
       );
     } finally {
@@ -187,14 +188,6 @@ const API_URL = getApiUrl();
             style={styles.backButton}
           >
             <ArrowLeft color="#059669" size={22} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
           </TouchableOpacity>
         </View>
         <View style={styles.headerContent}>
@@ -239,7 +232,7 @@ const API_URL = getApiUrl();
                   </Text>
                   <Text style={styles.updateValue}>
                     {new Date(lastUpdated).toLocaleString(
-                      language === "si" ? "si-LK" : "en-US",
+                      language === "sinhala" ? "si-LK" : "en-US",
                       {
                         dateStyle: "medium",
                         timeStyle: "short",

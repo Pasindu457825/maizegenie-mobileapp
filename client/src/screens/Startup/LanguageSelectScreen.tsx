@@ -9,6 +9,8 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Globe, CheckCircle, Zap } from "lucide-react-native";
+import { useLanguage } from "../../context/LanguageContext";
+
 
 const { width, height } = Dimensions.get("window");
 
@@ -93,12 +95,17 @@ export default function LanguageSelectScreen({ navigation }: any) {
     ).start();
   }, []);
 
-  const handleLanguageSelect = (lang: Language) => {
-    setSelectedLang(lang);
-    setTimeout(() => {
-      navigation.replace("Onboarding1", { language: lang });
-    }, 300);
-  };
+const { setLanguage } = useLanguage();
+
+const handleLanguageSelect = (lang: Language) => {
+  setSelectedLang(lang);
+  setLanguage(lang); // GLOBAL UPDATE
+
+  setTimeout(() => {
+    navigation.replace("Onboarding1"); // ❌ remove params
+  }, 300);
+};
+
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],

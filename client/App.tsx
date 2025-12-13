@@ -9,42 +9,47 @@ import RootNavigator from "./src/navigation";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import "./global.css";
 
+
+import { LanguageProvider } from "./src/context/LanguageContext";
+
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppProvider>
-        <SafeAreaProvider>
-          <ErrorProvider>
-            <Root />
-          </ErrorProvider>
-        </SafeAreaProvider>
-      </AppProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AppProvider>
+          <SafeAreaProvider>
+            <ErrorProvider>
+              <Root />
+            </ErrorProvider>
+          </SafeAreaProvider>
+        </AppProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }
 
 function Root() {
   const { loading } = useApp();
 
-  return (
-    <NavigationContainer
-      theme={{
-        ...DefaultTheme,
-        colors: { ...DefaultTheme.colors, background: "#fff" },
-      }}
-    >
-      <View style={{ flex: 1 }}>
-        {/* All screens */}
-        <RootNavigator />
+  console.log("APP STARTED — LOADING:", loading);
 
-        {/* GLOBAL LOADING OVERLAY - inside navigator */}
-        {loading && (
-          <View style={styles.overlay} pointerEvents="none">
-            <ActivityIndicator size="large" color="green" />
-          </View>
-        )}
-      </View>
-    </NavigationContainer>
+  return (
+    <View style={{ flex: 1 }}>
+      <NavigationContainer
+        theme={{
+          ...DefaultTheme,
+          colors: { ...DefaultTheme.colors, background: "#fff" },
+        }}
+      >
+        <RootNavigator />
+      </NavigationContainer>
+
+      {loading && (
+        <View style={styles.overlay} pointerEvents="none">
+          <ActivityIndicator size="large" color="green" />
+        </View>
+      )}
+    </View>
   );
 }
 

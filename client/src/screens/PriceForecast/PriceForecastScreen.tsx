@@ -45,6 +45,7 @@ import { getPriceForecast } from "../../services/priceForecastService";
 import type { WeekForecast } from "../../services/priceForecastService";
 import { LineChart } from "react-native-chart-kit";
 import { Platform } from "react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -61,9 +62,6 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
-
-
-
 
 const { width } = Dimensions.get("window");
 
@@ -97,7 +95,12 @@ const PriceForecastScreen = () => {
 
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const [language, setLanguage] = useState<Language>("si");
+  // Global language from context
+  const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
+
+  // Convert global language ("sinhala" | "english") to screen language ("si" | "en")
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
+
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const {
@@ -332,7 +335,7 @@ const PriceForecastScreen = () => {
   useEffect(() => {
     // Set language from form data
     if (formData?.language) {
-      setLanguage(formData.language);
+      setAppLanguage(formData.language === "si" ? "sinhala" : "english");
     }
 
     // Animate on mount
@@ -539,14 +542,6 @@ const PriceForecastScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton}>
             <Bell color="#10B981" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>

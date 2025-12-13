@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
   StyleSheet,
   Alert,
+  StatusBar,
 } from "react-native";
 import {
   Bug,
@@ -24,10 +25,18 @@ import {
   CheckCircle,
   Leaf,
   MessageSquare,
+  Scan,
+  Sparkles,
+  ChevronRight,
+  Mic,
+  Shield,
+  ArrowLeft,
+  RefreshCw,
 } from "lucide-react-native";
 import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
+import { useLanguage } from "../../context/LanguageContext";
 
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
@@ -36,7 +45,6 @@ import * as Speech from "expo-speech";
 
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 
-// 👉 FIXED: Navigation type for this screen
 type NavProp = StackNavigationProp<
   DiseaseIdentifyStackParamList,
   "DiseaseDetection"
@@ -52,12 +60,6 @@ interface Prediction {
   confidence: number;
 }
 
-type RootStackParamList = {
-  PestIdentificationScreen: undefined;
-};
-
-// Enhanced API configuration
-
 const normalizePredictions = (raw: any): Prediction[] => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -65,26 +67,12 @@ const normalizePredictions = (raw: any): Prediction[] => {
 };
 
 const API_BASE_URL = API_BASE;
-const REQUEST_TIMEOUT = 45000; // 45 seconds
+const REQUEST_TIMEOUT = 45000;
 
 const DiseaseIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
-  const [imageUri, setImageUri] = useState<string | null>(null);
-  interface DetectionResult {
-    predictions: Prediction[];
-    severity_score: number;
-    severity_label: string;
-  }
-
-  const [result, setResult] = useState<DetectionResult | null>(null);
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [fadeAnim] = useState(new Animated.Value(0));
-  const [scaleAnim] = useState(new Animated.Value(0.8));
-  const [leafAnim] = useState(new Animated.Value(0));
-  const [slideAnim] = useState(new Animated.Value(50));
+  const { language: lang, setLanguage } = useLanguage();
+  const language = lang === "sinhala" ? "si" : "en";
 
   const content = {
     si: {
@@ -105,6 +93,24 @@ const DiseaseIdentificationScreen = () => {
       selectImageFirst: "කරුණාකර පළමුව ඡායාරූපයක් තෝරන්න",
       permissionDenied: "ප්‍රවේශ අවසරය අවශ්‍යයි",
       serverError: "සේවාදායකයට සම්බන්ධ විය නොහැක",
+      viewDetails: "වැඩි විස්තර බලන්න",
+      scanLeaf: "කොළය ස්කෑන් කරන්න",
+      uploadPhoto: "ඡායාරූපය උඩුගත කරන්න",
+      modernAgriculture: "නවීන කෘෂිකර්මය",
+      aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
+      healthyCrop: "සෞඛ්‍ය සම්පන්න බෝග",
+      back: "ආපසු",
+      newDetection: "නව හඳුනාගැනීම",
+      speak: "කියවන්න",
+      confidence: "විශ්වාසනීයත්වය",
+      high: "ඉහළ",
+      medium: "මධ්‍යම",
+      low: "අඩු",
+      severity: "දැඩි තත්ත්වය",
+      detectionStatus: "හඳුනාගැනීමේ තත්ත්වය",
+      healthy: "සෞඛ්‍ය සම්පන්න",
+      location: "ස්ථානය",
+      status: "තත්ත්වය",
     },
     en: {
       title: "🍃 Leaf Disease Detection",
@@ -124,51 +130,80 @@ const DiseaseIdentificationScreen = () => {
       selectImageFirst: "Please select an image first",
       permissionDenied: "Permission required",
       serverError: "Cannot connect to server",
+      viewDetails: "View More Details",
+      scanLeaf: "Scan Leaf",
+      uploadPhoto: "Upload Photo",
+      modernAgriculture: "Modern Agriculture",
+      aiPowered: "AI Powered Analysis",
+      healthyCrop: "Healthy Crop",
+      back: "Back",
+      newDetection: "New Detection",
+      speak: "Speak",
+      confidence: "Confidence",
+      high: "High",
+      medium: "Medium",
+      low: "Low",
+      severity: "Severity",
+      detectionStatus: "Detection Status",
+      healthy: "Healthy",
+      location: "Location",
+      status: "Status",
     },
   };
+
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  interface DetectionResult {
+    predictions: Prediction[];
+    severity_score: number;
+    severity_label: string;
+  }
+
+  const [result, setResult] = useState<DetectionResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [scaleAnim] = useState(new Animated.Value(0.9));
+  const [slideAnim] = useState(new Animated.Value(30));
+  const [pulseAnim] = useState(new Animated.Value(1));
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     // Entrance animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
+        duration: 800,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 6,
+        friction: 8,
         tension: 40,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 800,
+        duration: 600,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Floating leaf animation
+    // Pulse animation for main button
     Animated.loop(
       Animated.sequence([
-        Animated.timing(leafAnim, {
-          toValue: 1,
-          duration: 2500,
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
           useNativeDriver: true,
         }),
-        Animated.timing(leafAnim, {
-          toValue: 0,
-          duration: 2500,
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
           useNativeDriver: true,
         }),
       ])
     ).start();
-  }, [fadeAnim, scaleAnim, leafAnim, slideAnim]);
-
-  const leafTranslate = leafAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, -25],
-  });
+  }, []);
 
   const requestPermissions = async (
     type: "camera" | "gallery"
@@ -204,7 +239,7 @@ const DiseaseIdentificationScreen = () => {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.9,
       exif: false,
     });
 
@@ -212,6 +247,8 @@ const DiseaseIdentificationScreen = () => {
       setImageUri(result.assets[0].uri);
       setError(null);
       setResult(null);
+      // Scroll to top when new image is selected
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
 
@@ -221,7 +258,7 @@ const DiseaseIdentificationScreen = () => {
     const result = await ImagePicker.launchCameraAsync({
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.9,
       exif: false,
     });
 
@@ -229,6 +266,7 @@ const DiseaseIdentificationScreen = () => {
       setImageUri(result.assets[0].uri);
       setError(null);
       setResult(null);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
 
@@ -246,15 +284,14 @@ const DiseaseIdentificationScreen = () => {
 
       const formData = new FormData();
 
-      // Handle different platforms
       if (Platform.OS === "web") {
         const response = await fetch(imageUri);
         const blob = await response.blob();
-        formData.append("file", blob, "pest-image.jpg");
+        formData.append("file", blob, "disease-image.jpg");
       } else {
         formData.append("file", {
           uri: imageUri,
-          name: "pest-image.jpg",
+          name: "disease-image.jpg",
           type: "image/jpeg",
         } as any);
       }
@@ -267,7 +304,7 @@ const DiseaseIdentificationScreen = () => {
             "Content-Type": "multipart/form-data",
             Accept: "application/json",
           },
-          timeout: API_BASE_URL.timeout,
+          timeout: REQUEST_TIMEOUT,
         }
       );
 
@@ -275,10 +312,7 @@ const DiseaseIdentificationScreen = () => {
 
       if (response.data.success) {
         const res = response.data;
-
         const predictions = normalizePredictions(res?.predictions);
-
-        // Roboflow does not calculate severity → set default values
         const severity_score = res.severity_score ?? 0;
         const severity_label = res.severity_label ?? "None";
 
@@ -336,109 +370,56 @@ const DiseaseIdentificationScreen = () => {
     setImageUri(null);
     setResult(null);
     setError(null);
+    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return "#1E88E5"; // High - Blue
-    if (confidence >= 0.6) return "#42A5F5"; // Medium - Light Blue
-    return "#90CAF9"; // Low - Lightest Blue
+    if (confidence >= 0.8) return "#10B981";
+    if (confidence >= 0.6) return "#F59E0B";
+    return "#EF4444";
   };
 
   const getConfidenceLevel = (confidence: number) => {
-    if (confidence >= 0.8) return language === "si" ? "ඉහළ" : "High";
-    if (confidence >= 0.6) return language === "si" ? "මධ්‍යම" : "Medium";
-    return language === "si" ? "අඩු" : "Low";
+    if (confidence >= 0.8) return content[language].high;
+    if (confidence >= 0.6) return content[language].medium;
+    return content[language].low;
+  };
+
+  const getSeverityColor = (severity: string) => {
+    const sev = severity.toLowerCase();
+    if (sev.includes("high") || sev.includes("severe")) return "#DC2626";
+    if (sev.includes("medium") || sev.includes("moderate")) return "#F59E0B";
+    return "#10B981";
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    const sev = severity.toLowerCase();
+    if (sev.includes("high") || sev.includes("severe")) return "🔴";
+    if (sev.includes("medium") || sev.includes("moderate")) return "🟡";
+    return "🟢";
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
+        <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
           <Text style={styles.headerSubtitle}>
-            {content[language].headerSubtitle}
+            {content[language].modernAgriculture}
           </Text>
         </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconButton}>
-            <Bell color="#1565C0" size={20} />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIconButton}>
-            <CloudSun color="#1565C0" size={20} />
-          </TouchableOpacity>
-          {/* CHAT BUTTON */}
-          <TouchableOpacity
-            style={styles.headerIconButton}
-            onPress={() =>
-              navigation.navigate("Chat", {
-                roomId: null, // or your current room id
-                userId: "test-user", // replace with logged-in user
-              })
-            }
-          >
-            <MessageSquare color="#1565C0" size={20} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.langButtonHeader}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
-      {/* Sub-header */}
-      <View style={styles.subHeader}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Leaf color="#1565C0" size={20} />
-          </View>
-          <View>
-            <View style={styles.locationRow}>
-              <MapPin color="#0D47A1" size={14} />
-              <Text style={styles.locationText}>
-                {language === "si" ? "මොණරාගල" : "Monaragala"}
-              </Text>
-            </View>
-            <Text style={styles.apiText}>
-              API: {__DEV__ ? "Development" : "Production"}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Animated Background Elements */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.floatingLeaf1,
-          { transform: [{ translateY: leafTranslate }] },
-        ]}
-      >
-        <Leaf color="#42A5F5" size={44} opacity={0.2} />
-      </Animated.View>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.floatingLeaf2,
-          { transform: [{ translateY: leafTranslate }] },
-        ]}
-      >
-        <Leaf color="#90CAF9" size={38} opacity={0.2} />
-      </Animated.View>
-
-      {/* Main Content */}
+      {/* Main ScrollView */}
       <ScrollView
-        style={styles.scrollContainer}
-        contentContainerStyle={styles.scrollBody}
+        ref={scrollViewRef}
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <Animated.View
@@ -450,233 +431,388 @@ const DiseaseIdentificationScreen = () => {
             },
           ]}
         >
-          {/* Animated Icon */}
-          <View style={styles.iconCircle}>
-            <View style={styles.iconInner}>
-              <Text style={styles.pestEmoji}>🍃</Text>
+          {/* Hero Section */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroContent}>
+              <View style={styles.aiBadge}>
+                <Sparkles size={14} color="#10B981" />
+                <Text style={styles.aiBadgeText}>
+                  {content[language].aiPowered}
+                </Text>
+              </View>
+
+              <View style={styles.heroIconContainer}>
+                <Animated.View
+                  style={[
+                    styles.heroIcon,
+                    { transform: [{ scale: pulseAnim }] },
+                  ]}
+                >
+                  <View style={styles.heroIconInner}>
+                    <Leaf size={48} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.heroIconRing} />
+                </Animated.View>
+
+                <View style={styles.sparkleContainer}>
+                  <Sparkles size={16} color="#10B981" style={styles.sparkle1} />
+                  <Sparkles size={12} color="#059669" style={styles.sparkle2} />
+                </View>
+              </View>
+
+              <Text style={styles.heroTitle}>{content[language].title}</Text>
+              <Text style={styles.heroSubtitle}>
+                {content[language].subtitle}
+              </Text>
             </View>
-            <View style={styles.pulseRing} />
           </View>
 
-          <Text style={styles.subtitle}>{content[language].subtitle}</Text>
-          <Text style={styles.title}>{content[language].title}</Text>
-
-          {/* Image Preview */}
+          {/* Image Preview Section */}
           {imageUri && (
             <Animated.View
               style={[
-                styles.imagePreviewContainer,
-                { transform: [{ scale: fadeAnim }] },
+                styles.imageSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: scaleAnim }],
+                },
               ]}
             >
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-              <TouchableOpacity
-                style={styles.removeImageButton}
-                onPress={resetScreen}
-              >
-                <X color="#FFFFFF" size={20} />
-              </TouchableOpacity>
+              <View style={styles.imageCard}>
+                <Image
+                  source={{ uri: imageUri }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+                <View style={styles.imageOverlay}>
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={resetScreen}
+                  >
+                    <X size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                  <View style={styles.imageLabel}>
+                    <Scan size={16} color="#FFFFFF" />
+                    <Text style={styles.imageLabelText}>
+                      {content[language].scanLeaf}
+                    </Text>
+                  </View>
+                </View>
+              </View>
             </Animated.View>
           )}
 
-          {/* Action Buttons */}
+          {/* Action Buttons Section */}
           {!imageUri && !loading && (
-            <View style={styles.buttonsContainer}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={pickImageFromCamera}
-                activeOpacity={0.85}
-              >
-                <Camera color="#FFFFFF" size={24} />
-                <Text style={styles.actionButtonText}>
-                  {content[language].cameraOption}
-                </Text>
-              </TouchableOpacity>
+            <Animated.View
+              style={[
+                styles.actionSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <View style={styles.actionCards}>
+                <TouchableOpacity
+                  style={[styles.actionCard, styles.actionCardPrimary]}
+                  onPress={pickImageFromCamera}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.actionIconContainer}>
+                    <Camera size={28} color="#FFFFFF" />
+                  </View>
+                  <Text style={styles.actionCardTitle}>
+                    {content[language].cameraOption}
+                  </Text>
+                  <Text style={styles.actionCardDescription}>
+                    {language === "si"
+                      ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
+                      : "Take photo directly from camera"}
+                  </Text>
+                  <View style={styles.actionArrow}>
+                    <ChevronRight size={18} color="#FFFFFF" />
+                  </View>
+                </TouchableOpacity>
 
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.orText}>{content[language].orText}</Text>
-                <View style={styles.dividerLine} />
+                <TouchableOpacity
+                  style={[styles.actionCard, styles.actionCardSecondary]}
+                  onPress={pickImageFromGallery}
+                  activeOpacity={0.9}
+                >
+                  <View
+                    style={[
+                      styles.actionIconContainer,
+                      styles.actionIconSecondary,
+                    ]}
+                  >
+                    <Upload size={28} color="#10B981" />
+                  </View>
+                  <Text
+                    style={[
+                      styles.actionCardTitle,
+                      styles.actionCardTitleSecondary,
+                    ]}
+                  >
+                    {content[language].uploadOption}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.actionCardDescription,
+                      styles.actionCardDescriptionSecondary,
+                    ]}
+                  >
+                    {language === "si"
+                      ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
+                      : "Choose existing photos from gallery"}
+                  </Text>
+                  <View
+                    style={[styles.actionArrow, styles.actionArrowSecondary]}
+                  >
+                    <ChevronRight size={18} color="#10B981" />
+                  </View>
+                </TouchableOpacity>
               </View>
-
-              <TouchableOpacity
-                style={styles.actionButtonSecondary}
-                onPress={pickImageFromGallery}
-                activeOpacity={0.85}
-              >
-                <Upload color="#1565C0" size={24} />
-                <Text style={styles.actionButtonTextSecondary}>
-                  {content[language].uploadOption}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            </Animated.View>
           )}
 
           {/* Detect Button */}
           {imageUri && !loading && !result && (
-            <TouchableOpacity
-              style={styles.detectButton}
-              onPress={uploadAndDetect}
-              activeOpacity={0.85}
-              disabled={loading}
+            <Animated.View
+              style={[
+                styles.detectSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: pulseAnim }],
+                },
+              ]}
             >
-              <Leaf color="#FFFFFF" size={24} />
-              <Text style={styles.detectButtonText}>
-                {content[language].detectButton}
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.detectButton}
+                onPress={uploadAndDetect}
+                activeOpacity={0.9}
+                disabled={loading}
+              >
+                <View style={styles.detectButtonContent}>
+                  <Scan size={24} color="#FFFFFF" />
+                  <Text style={styles.detectButtonText}>
+                    {content[language].detectButton}
+                  </Text>
+                  <Shield size={20} color="#FFFFFF" />
+                </View>
+                <View style={styles.detectButtonGlow} />
+              </TouchableOpacity>
+            </Animated.View>
           )}
 
           {/* Loading State */}
           {loading && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#1565C0" />
-              <Text style={styles.loadingText}>
-                {content[language].analyzing}
-              </Text>
-              <Text style={styles.loadingSubtext}>
-                {language === "si"
-                  ? "කරුණාකර රැඳී සිටින්න..."
-                  : "Please wait..."}
-              </Text>
+            <View style={styles.loadingSection}>
+              <View style={styles.loadingCard}>
+                <ActivityIndicator size="large" color="#10B981" />
+                <View style={styles.loadingTextContainer}>
+                  <Text style={styles.loadingText}>
+                    {content[language].analyzing}
+                  </Text>
+                  <Text style={styles.loadingSubtext}>
+                    {language === "si"
+                      ? "කරුණාකර රැඳී සිටින්න..."
+                      : "Please wait..."}
+                  </Text>
+                </View>
+                <View style={styles.loadingDots}>
+                  <View style={[styles.dot, styles.dot1]} />
+                  <View style={[styles.dot, styles.dot2]} />
+                  <View style={[styles.dot, styles.dot3]} />
+                </View>
+              </View>
             </View>
           )}
 
           {/* Error State */}
           {error && !result && (
-            <View style={styles.errorContainer}>
-              <AlertCircle color="#1565C0" size={32} />
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={resetScreen}
-              >
-                <Text style={styles.retryButtonText}>
-                  {content[language].tryAgain}
+            <View style={styles.errorSection}>
+              <View style={styles.errorCard}>
+                <View style={styles.errorIconContainer}>
+                  <AlertCircle size={36} color="#EF4444" />
+                </View>
+                <Text style={styles.errorTitle}>
+                  {language === "si" ? "දෝෂයක්" : "Error"}
                 </Text>
-              </TouchableOpacity>
+                <Text style={styles.errorMessage}>{error}</Text>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={resetScreen}
+                >
+                  <Text style={styles.retryButtonText}>
+                    {content[language].tryAgain}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
-          {/* Results */}
+          {/* Results Section */}
           {result && result.predictions.length > 0 && (
             <Animated.View
               style={[
-                styles.resultContainer,
-                { transform: [{ scale: fadeAnim }] },
+                styles.resultSection,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ scale: scaleAnim }],
+                },
               ]}
             >
-              <View style={styles.resultHeader}>
-                <CheckCircle color="#4CAF50" size={28} />
-                <Text style={styles.resultTitle}>
-                  {content[language].resultTitle}
-                </Text>
-                <Text style={styles.successSubtitle}>
-                  {content[language].successMessage}
-                </Text>
-              </View>
-              {/* MORE DETAILS BUTTON */}
-              <TouchableOpacity
-                style={styles.moreDetailsBtn}
-                onPress={() =>
-                  navigation.navigate("SeverityDetails", {
-                    image: imageUri,
-                    severity_score: result?.severity_score,
-                    severity_label: result?.severity_label,
-                    predictions: result?.predictions,
-                  })
-                }
-              >
-                <Text style={styles.moreDetailsText}>
-                  {language === "si"
-                    ? "වැඩි විස්තර බලන්න"
-                    : "View More Details"}
-                </Text>
-              </TouchableOpacity>
+              <View style={styles.resultCard}>
+                {/* Result Header */}
+                <View style={styles.resultHeader}>
+                  <View style={styles.resultTitleContainer}>
+                    <CheckCircle color="#059669" size={24} />
+                    <Text style={styles.resultTitle}>
+                      {content[language].resultTitle}
+                    </Text>
+                  </View>
+                  <Text style={styles.resultSubtitle}>
+                    {content[language].successMessage}
+                  </Text>
+                </View>
 
-              {result.predictions.map(
-                (prediction: Prediction, index: number) => (
+                {/* Severity Indicator */}
+                <View style={styles.severityContainer}>
                   <View
-                    key={`${prediction.class_id}-${index}`}
-                    style={styles.resultItem}
+                    style={[
+                      styles.severityBadge,
+                      {
+                        backgroundColor: getSeverityColor(
+                          result.severity_label
+                        ),
+                      },
+                    ]}
                   >
-                    <View style={styles.resultItemLeft}>
-                      <Leaf color="#1565C0" size={20} />
-                      <View style={styles.resultTextContainer}>
-                        <Text style={styles.resultName}>
-                          {prediction.class_name}
-                        </Text>
-                        <Text style={styles.confidenceLevel}>
-                          {getConfidenceLevel(prediction.confidence)}{" "}
-                          {language === "si" ? "විශ්වාසනීයත්වය" : "confidence"}
+                    <Shield color="#FFFFFF" size={16} />
+                    <Text style={styles.severityText}>
+                      {getSeverityIcon(result.severity_label)}{" "}
+                      {content[language].severity}: {result.severity_label}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Predictions List */}
+                <View style={styles.predictionsList}>
+                  {result.predictions.map((prediction, index) => (
+                    <View
+                      key={`${prediction.class_id}-${index}`}
+                      style={styles.predictionCard}
+                    >
+                      <View style={styles.predictionInfo}>
+                        <View style={styles.diseaseIcon}>
+                          <Leaf color="#059669" size={18} />
+                        </View>
+                        <View style={styles.predictionDetails}>
+                          <Text style={styles.diseaseName}>
+                            {prediction.class_name}
+                          </Text>
+                          <View style={styles.confidenceRow}>
+                            <Text style={styles.confidenceLabel}>
+                              {content[language].confidence}:
+                            </Text>
+                            <Text style={styles.confidenceLevel}>
+                              {getConfidenceLevel(prediction.confidence)}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      <View style={styles.predictionActions}>
+                        <TouchableOpacity
+                          style={styles.speakButton}
+                          onPress={() => speakDisease(prediction.class_name)}
+                        >
+                          <Mic color="#059669" size={18} />
+                        </TouchableOpacity>
+
+                        <View style={styles.confidenceContainer}>
+                          <View
+                            style={[
+                              styles.confidenceBar,
+                              {
+                                backgroundColor: getConfidenceColor(
+                                  prediction.confidence
+                                ),
+                                width: `${prediction.confidence * 100}%`,
+                              },
+                            ]}
+                          />
+                        </View>
+
+                        <Text style={styles.confidencePercentage}>
+                          {Math.round(prediction.confidence * 100)}%
                         </Text>
                       </View>
                     </View>
+                  ))}
+                </View>
 
-                    <TouchableOpacity
-                      style={{ padding: 10 }}
-                      onPress={() => speakDisease(prediction.class_name)}
-                    >
-                      <Text style={{ color: "#1565C0", fontWeight: "bold" }}>
-                        🔊
-                      </Text>
-                    </TouchableOpacity>
+                {/* Action Buttons */}
+                <View style={styles.resultActions}>
+                  <TouchableOpacity
+                    style={styles.detailsButton}
+                    onPress={() =>
+                      navigation.navigate("SeverityDetails", {
+                        image: imageUri,
+                        severity_score: result.severity_score,
+                        severity_label: result.severity_label,
+                        predictions: result.predictions,
+                      })
+                    }
+                  >
+                    <Text style={styles.detailsButtonText}>
+                      {content[language].viewDetails}
+                    </Text>
+                    <ChevronRight color="#FFFFFF" size={18} />
+                  </TouchableOpacity>
 
-                    <View
-                      style={[
-                        styles.confidenceBadge,
-                        {
-                          backgroundColor: getConfidenceColor(
-                            prediction.confidence
-                          ),
-                        },
-                      ]}
-                    >
-                      <Text style={styles.confidenceText}>
-                        {Math.round(prediction.confidence * 100)}%
-                      </Text>
-                    </View>
-                  </View>
-                )
-              )}
-
-              <TouchableOpacity
-                style={styles.tryAgainButton}
-                onPress={resetScreen}
-              >
-                <Text style={styles.tryAgainButtonText}>
-                  {content[language].tryAgain}
-                </Text>
-              </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.resetButton}
+                    onPress={resetScreen}
+                  >
+                    <RefreshCw color="#059669" size={18} />
+                    <Text style={styles.resetButtonText}>
+                      {content[language].newDetection}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </Animated.View>
           )}
 
           {/* No Diseases Found */}
           {result && result.predictions.length === 0 && (
-            <View style={styles.noDiseasesContainer}>
-              <CheckCircle color="#4CAF50" size={48} />
-              <Text style={styles.noDiseasesText}>
-                {content[language].noDiseases}
+            <View style={styles.healthyCard}>
+              <View style={styles.healthyIconContainer}>
+                <CheckCircle color="#059669" size={40} />
+              </View>
+              <Text style={styles.healthyTitle}>
+                {content[language].healthy}!
               </Text>
-              <Text style={styles.noDiseasesSubtext}>
+              <Text style={styles.healthySubtitle}>
                 {language === "si"
-                  ? "ඔබේ බෝගය රෝග තර්ජනයකින් තොරව සෞඛ්‍ය සම්පන්නයි!"
-                  : "Your crop is healthy and free from disease threats!"}
+                  ? "ඔබේ කොළය සෞඛ්‍ය සම්පන්න තත්ත්වයේ පවතී"
+                  : "Your leaf appears to be in healthy condition"}
               </Text>
               <TouchableOpacity
-                style={styles.retryButton}
+                style={styles.healthyButton}
                 onPress={resetScreen}
               >
-                <Text style={styles.retryButtonText}>
+                <Text style={styles.healthyButtonText}>
                   {content[language].tryAgain}
                 </Text>
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Bottom Spacing */}
+          <View style={styles.bottomSpacer} />
         </Animated.View>
       </ScrollView>
     </View>
@@ -686,571 +822,677 @@ const DiseaseIdentificationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FBFE",
-    position: "relative",
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollBody: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 40,
-    flexGrow: 1,
+    backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#059669",
     paddingTop: 50,
-    paddingBottom: 12,
+    paddingBottom: 20,
     paddingHorizontal: 20,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 100,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1F2937",
-    lineHeight: 22,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  headerRight: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "center",
-  },
-  headerIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E3F2FD",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#BBDEFB",
-    position: "relative",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  notificationDot: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#1565C0",
-    borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-  },
-  langButtonHeader: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#1565C0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  langText: {
-    color: "#1565C0",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  subHeader: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    zIndex: 99,
-  },
-  logoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  logoCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E3F2FD",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#1565C0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginBottom: 4,
-  },
-  locationText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#0D47A1",
-  },
-  apiText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#4CAF50",
-    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
-  },
-  floatingLeaf1: {
-    position: "absolute",
-    top: 180,
-    left: 20,
-    zIndex: 1,
-  },
-  floatingLeaf2: {
-    position: "absolute",
-    top: 250,
-    right: 25,
-    zIndex: 1,
-  },
-  content: {
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    zIndex: 10,
-    paddingVertical: 20,
-  },
-  iconCircle: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    backgroundColor: "#1565C0",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 24,
-    shadowColor: "#1565C0",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 15,
-    position: "relative",
-  },
-  iconInner: {
-    width: 106,
-    height: 106,
-    borderRadius: 53,
-    backgroundColor: "#0D47A1",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: "#059669",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 6,
   },
-  pestEmoji: {
-    fontSize: 52,
-  },
-  pulseRing: {
-    position: "absolute",
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderWidth: 3,
-    borderColor: "#1565C0",
-    opacity: 0.3,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#0D47A1",
-    fontWeight: "700",
-    marginBottom: 8,
-    letterSpacing: 1,
-    textTransform: "uppercase",
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "800",
-    color: "#1565C0",
-    marginBottom: 30,
-    textAlign: "center",
-    textShadowColor: "rgba(21, 101, 192, 0.2)",
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  imagePreviewContainer: {
-    width: width - 80,
-    height: width - 80,
-    maxWidth: 320,
-    maxHeight: 320,
-    borderRadius: 20,
-    overflow: "hidden",
-    marginBottom: 24,
-    position: "relative",
-    borderWidth: 4,
-    borderColor: "#1565C0",
-    shadowColor: "#1565C0",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 15,
-  },
-  imagePreview: {
-    width: "100%",
-    height: "100%",
-  },
-  removeImageButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(21, 101, 192, 0.9)",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
   },
-  buttonsContainer: {
-    width: "100%",
-    alignItems: "center",
-    gap: 16,
-    marginTop: 10,
-  },
-  actionButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: "#1565C0",
-    paddingHorizontal: 32,
-    paddingVertical: 18,
-    borderRadius: 50,
-    width: "100%",
-    maxWidth: 280,
-    shadowColor: "#1565C0",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 12,
-  },
-  actionButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  divider: {
-    flexDirection: "row",
-    alignItems: "center",
-    width: "100%",
-    maxWidth: 280,
-    marginVertical: 8,
-  },
-  dividerLine: {
+  headerCenter: {
     flex: 1,
-    height: 2,
-    backgroundColor: "#BBDEFB",
-    borderRadius: 1,
+    marginLeft: 16,
   },
-  orText: {
-    fontSize: 14,
-    color: "#0D47A1",
-    fontWeight: "700",
-    marginHorizontal: 16,
-    backgroundColor: "#F8FBFE",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  actionButtonSecondary: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 32,
-    paddingVertical: 18,
-    borderRadius: 50,
-    width: "100%",
-    maxWidth: 280,
-    borderWidth: 3,
-    borderColor: "#1565C0",
-    shadowColor: "#1565C0",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  actionButtonTextSecondary: {
-    color: "#1565C0",
-    fontSize: 18,
-    fontWeight: "700",
-  },
-  detectButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    backgroundColor: "#1565C0",
-    paddingHorizontal: 36,
-    paddingVertical: 18,
-    borderRadius: 50,
-    width: "100%",
-    maxWidth: 280,
-    shadowColor: "#1565C0",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 12,
-    marginTop: 10,
-  },
-  detectButtonText: {
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
     color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "700",
+    marginBottom: 4,
   },
-  loadingContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 40,
-    gap: 20,
-    width: "100%",
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#D1FAE5",
+    opacity: 0.9,
   },
-  loadingText: {
-    fontSize: 18,
-    color: "#0D47A1",
-    fontWeight: "700",
-    textAlign: "center",
+  langButton: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
   },
-  loadingSubtext: {
-    fontSize: 14,
-    color: "#1565C0",
-    fontWeight: "500",
-    textAlign: "center",
+  langText: {
+    color: "#059669",
+    fontSize: 12,
+    fontWeight: "bold",
   },
-  errorContainer: {
-    backgroundColor: "#E3F2FD",
-    padding: 24,
-    borderRadius: 20,
-    alignItems: "center",
-    gap: 16,
-    width: "100%",
-    maxWidth: 320,
-    marginTop: 20,
-    borderWidth: 3,
-    borderColor: "#BBDEFB",
+  statsBar: {
+    flexDirection: "row",
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#0D47A1",
-    textAlign: "center",
-    fontWeight: "600",
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: "#1565C0",
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 25,
-    marginTop: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 4,
+    zIndex: 1,
   },
-  retryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  resultContainer: {
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-    borderRadius: 24,
-    width: "100%",
-    maxWidth: 340,
-    marginTop: 20,
-    borderWidth: 3,
-    borderColor: "#E3F2FD",
-    shadowColor: "#1565C0",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  resultHeader: {
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 3,
-    borderBottomColor: "#E3F2FD",
-  },
-  resultTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: "#0D47A1",
-    textAlign: "center",
-  },
-  successSubtitle: {
-    fontSize: 14,
-    color: "#1565C0",
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  resultItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: "#F8FBFE",
-    borderRadius: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: "#E3F2FD",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  resultItemLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+  statItem: {
     flex: 1,
+    alignItems: "center",
   },
-  resultTextContainer: {
-    flex: 1,
-  },
-  resultName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1F2937",
+  statLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginTop: 4,
     marginBottom: 2,
   },
-  confidenceLevel: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "500",
+  statValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#059669",
   },
-  confidenceBadge: {
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: "#E5E7EB",
+    marginHorizontal: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 30,
+    paddingBottom: 40,
+  },
+  content: {
+    flex: 1,
+  },
+  heroSection: {
+    paddingTop: 10,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  heroContent: {
+    alignItems: "center",
+    width: "100%",
+  },
+  aiBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.1)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    minWidth: 60,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    gap: 6,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.2)",
   },
-  confidenceText: {
-    color: "#FFFFFF",
-    fontSize: 14,
+  aiBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+  heroIconContainer: {
+    position: "relative",
+    marginBottom: 20,
+  },
+  heroIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#10B981",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  heroIconInner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#047857",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  heroIconRing: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 2,
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    top: -10,
+    left: -10,
+  },
+  sparkleContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  sparkle1: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+  },
+  sparkle2: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+  },
+  heroTitle: {
+    fontSize: 32,
     fontWeight: "800",
+    color: "#1E293B",
+    textAlign: "center",
+    marginBottom: 8,
+    letterSpacing: -0.5,
   },
-  tryAgainButton: {
-    backgroundColor: "#1565C0",
-    paddingVertical: 16,
-    borderRadius: 25,
+  heroSubtitle: {
+    fontSize: 16,
+    color: "#64748B",
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  imageSection: {
+    paddingHorizontal: 20,
+    marginTop: 30,
+  },
+  imageCard: {
+    borderRadius: 24,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  imagePreview: {
+    width: "100%",
+    height: 280,
+  },
+  imageOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  removeButton: {
+    alignSelf: "flex-end",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
     alignItems: "center",
-    marginTop: 20,
+  },
+  imageLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    alignSelf: "flex-start",
+    gap: 6,
+  },
+  imageLabelText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  actionSection: {
+    paddingHorizontal: 20,
+    marginTop: 30,
+  },
+  actionCards: {
+    gap: 16,
+  },
+  actionCard: {
+    borderRadius: 20,
+    padding: 24,
+    position: "relative",
+    overflow: "hidden",
+  },
+  actionCardPrimary: {
+    backgroundColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 10,
+  },
+  actionCardSecondary: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 2,
+    borderColor: "#10B981",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 4,
   },
-  tryAgainButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  noDiseasesContainer: {
-    backgroundColor: "#F0FDF4",
-    padding: 32,
-    borderRadius: 24,
+  actionIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
     alignItems: "center",
-    gap: 20,
-    width: "100%",
-    maxWidth: 320,
-    marginTop: 20,
-    borderWidth: 3,
-    borderColor: "#BBF7D0",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 15,
-    elevation: 8,
+    marginBottom: 16,
   },
-  noDiseasesText: {
+  actionIconSecondary: {
+    backgroundColor: "#F0FDF4",
+  },
+  actionCardTitle: {
     fontSize: 20,
-    fontWeight: "800",
-    color: "#166534",
-    textAlign: "center",
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 8,
   },
-  noDiseasesSubtext: {
+  actionCardTitleSecondary: {
+    color: "#1E293B",
+  },
+  actionCardDescription: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.8)",
+    lineHeight: 18,
+    marginBottom: 20,
+  },
+  actionCardDescriptionSecondary: {
+    color: "#64748B",
+  },
+  actionArrow: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  actionArrowSecondary: {
+    backgroundColor: "#F0FDF4",
+  },
+  detectSection: {
+    paddingHorizontal: 20,
+    marginTop: 30,
+  },
+  detectButton: {
+    backgroundColor: "#10B981",
+    borderRadius: 16,
+    paddingVertical: 18,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 15,
+    position: "relative",
+    overflow: "hidden",
+  },
+  detectButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  detectButtonText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  detectButtonGlow: {
+    position: "absolute",
+    top: -50,
+    left: -50,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  loadingSection: {
+    paddingHorizontal: 20,
+    marginTop: 40,
+  },
+  loadingCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 30,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  loadingTextContainer: {
+    alignItems: "center",
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 6,
+  },
+  loadingSubtext: {
     fontSize: 14,
-    color: "#059669",
-    fontWeight: "500",
+    color: "#64748B",
+  },
+  loadingDots: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+  },
+  dot1: {
+    opacity: 0.4,
+  },
+  dot2: {
+    opacity: 0.6,
+  },
+  dot3: {
+    opacity: 0.8,
+  },
+  errorSection: {
+    paddingHorizontal: 20,
+    marginTop: 40,
+  },
+  errorCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 30,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  errorIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEF2F2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#DC2626",
+    marginBottom: 8,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: "#64748B",
     textAlign: "center",
     lineHeight: 20,
+    marginBottom: 24,
   },
-  moreDetailsBtn: {
-    backgroundColor: "#1565C0",
-    paddingVertical: 12,
+  resultSection: {
     paddingHorizontal: 20,
-    borderRadius: 20,
-    alignSelf: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    marginTop: 40,
   },
-
-  moreDetailsText: {
+  resultCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  resultHeader: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  resultTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  resultSubtitle: {
+    fontSize: 14,
+    color: "#10B981",
+    fontWeight: "600",
+  },
+  severityContainer: {
+    marginBottom: 20,
+  },
+  severityBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  severityText: {
     color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  predictionsList: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  predictionCard: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  predictionInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  diseaseIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+  predictionDetails: {
+    flex: 1,
+  },
+  diseaseName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  confidenceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  confidenceLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  confidenceLevel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#059669",
+  },
+  predictionActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  speakButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  confidenceContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  confidenceBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  confidencePercentage: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#059669",
+    minWidth: 45,
+    textAlign: "right",
+  },
+  resultActions: {
+    gap: 12,
+  },
+  detailsButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#059669",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  detailsButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  resetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#059669",
+  },
+  resetButtonText: {
+    color: "#059669",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  healthyCard: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 20,
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#A7F3D0",
+  },
+  healthyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#059669",
+  },
+  healthyTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#059669",
     textAlign: "center",
+  },
+  healthySubtitle: {
+    fontSize: 16,
+    color: "#047857",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  healthyButton: {
+    backgroundColor: "#059669",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  healthyButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  bottomSpacer: {
+    height: 40,
+  },
+  retryButton: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
   },
 });
 

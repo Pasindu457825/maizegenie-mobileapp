@@ -53,6 +53,8 @@ import { Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { NotificationDropdown } from "../../components/NotificationDropdown";
+import { useLanguage } from "../../context/LanguageContext";
+
 
 // 🔥 ADD THIS HERE (top of file, after imports)
 
@@ -111,13 +113,13 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-
-
 const PriceForecastFormScreen = () => {
   const [notifVisible, setNotifVisible] = useState(false);
   const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
+  // 🌐 Get global language & convert to "si" | "en"
+  const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
   const {
     locationName,
     temperature,
@@ -730,15 +732,6 @@ const PriceForecastFormScreen = () => {
             onPress={() => setNotifVisible(true)}
           >
             <Bell color="#10B981" size={20} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>

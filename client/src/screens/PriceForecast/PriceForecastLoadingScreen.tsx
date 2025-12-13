@@ -33,7 +33,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
 import { NotificationDropdown } from "../../components/NotificationDropdown";
-
+import { useLanguage } from "../../context/LanguageContext";
 import { Platform } from "react-native";
 
 // 🔥 Dynamic API URL using .env + Platform detection
@@ -51,8 +51,6 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
-
-
 
 const { width } = Dimensions.get("window");
 const LOCATION_TRANSLATIONS = {
@@ -103,8 +101,9 @@ type NavProp = StackNavigationProp<
 const PriceForecastLoadingScreen = () => {
   const [notifVisible, setNotifVisible] = useState(false);
   const [notifMessages, setNotifMessages] = useState<string[]>([]);
+  const { language: globalLang } = useLanguage();
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
   const [progress, setProgress] = useState(0);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
@@ -395,16 +394,6 @@ const PriceForecastLoadingScreen = () => {
             {notifMessages.length > 0 && (
               <View style={styles.notificationDot} />
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.langButtonHeader}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
           </TouchableOpacity>
         </View>
       </View>
