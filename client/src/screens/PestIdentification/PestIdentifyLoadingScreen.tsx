@@ -80,6 +80,7 @@ const PestIdentificationScreen = () => {
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
+      viewControl: "පාලනය බලන්න",
       viewLifecycle: "ජීවන චක්‍රය බලන්න",
     },
     en: {
@@ -96,6 +97,7 @@ const PestIdentificationScreen = () => {
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
       orText: "OR",
+      viewControl: "View Control",
       viewLifecycle: "View Lifecycle",
     },
   };
@@ -511,6 +513,20 @@ const PestIdentificationScreen = () => {
                 >
                   <Text >
                     {content[language].viewLifecycle}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show control button only if Fall Armyworm is detected */}
+              {isFallArmywormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("FallArmywormControl")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewControl}
                   </Text>
                   <ArrowRight color="#FFFFFF" size={20} />
                 </TouchableOpacity>
