@@ -532,11 +532,25 @@ const PestIdentificationScreen = () => {
                 </TouchableOpacity>
               )}
 
-              {/* Show control button only if Fall Armyworm is detected */}
+              {/* Show control button only if bollworm is detected */}
               {isBollwormDetected() && (
                 <TouchableOpacity 
                   style={styles.lifecycleButton}
                   onPress={() => navigation.navigate("BollwormControl")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewControl}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show control button only if Asian Corn Borer is detected */}
+              {isAsianCornBorerDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("AsianCornBorerControl")}
                   activeOpacity={0.85}
                 >
                   <Text >
