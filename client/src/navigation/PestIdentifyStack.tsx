@@ -7,6 +7,7 @@ import AsianCornBorerLifecycleScreen from "@screens/PestIdentification/AsianCorn
 import PestHomeScreen from "@screens/PestIdentification/PestHomeScreen";
 import PestRiskMeter from "@screens/PestIdentification/PestRiskMeter";
 import FallArmywormControl from "@screens/PestIdentification/FallArmywormControl";
+import BollwormControl from "@screens/PestIdentification/BollwormControl";
 export type PestIdentifyStackParamList = {
     pesthome: undefined;
     PestIdentifyLoading: undefined;
@@ -15,6 +16,7 @@ export type PestIdentifyStackParamList = {
     AsianCornBorerLifecycle: undefined;
     PestRiskMeter: undefined;
     FallArmywormControl: undefined;
+    BollwormControl: undefined;
     // add other screens here, e.g.:
     // PestIdentifyResult: { id: string };
 };
@@ -56,6 +58,10 @@ export default function PestIdentifyStack() {
             <Stack.Screen 
                 name="FallArmywormControl" 
                 component={FallArmywormControl} 
+            />
+            <Stack.Screen 
+                name="BollwormControl" 
+                component={BollwormControl} 
             />
         </Stack.Navigator>
     );

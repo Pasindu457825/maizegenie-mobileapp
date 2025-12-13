@@ -532,6 +532,20 @@ const PestIdentificationScreen = () => {
                 </TouchableOpacity>
               )}
 
+              {/* Show control button only if Fall Armyworm is detected */}
+              {isBollwormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("BollwormControl")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewControl}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity style={styles.tryAgainButton} onPress={resetScreen}>
                 <Text style={styles.tryAgainButtonText}>{content[language].tryAgain}</Text>
               </TouchableOpacity>
