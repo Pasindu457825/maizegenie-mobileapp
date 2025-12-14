@@ -299,6 +299,29 @@ const PriceForecastScreen = () => {
     return `${start} – ${end}`;
   };
 
+  // ⭐ BEST WEEK INDEX (highest ensemble price)
+  const bestWeekIndex = React.useMemo(() => {
+    if (!weeklyForecast || weeklyForecast.length === 0) return -1;
+
+    return weeklyForecast.reduce((bestIdx, w, idx, arr) => {
+      return w.ensemble > arr[bestIdx].ensemble ? idx : bestIdx;
+    }, 0);
+  }, [weeklyForecast]);
+
+  const getBestWeekMessage = () => {
+    if (bestWeekIndex === -1) return null;
+
+    if (bestWeekIndex === 0) {
+      return language === "si"
+        ? "⭐ වත්මන් සතියේ මිල හොඳමය – දැන් විකිණීම වාසිදායකයි"
+        : "⭐ Current week has the highest price – best time to sell now";
+    }
+
+    return language === "si"
+      ? `⭐ හොඳම මිල ලැබෙන්නේ ඉදිරි සතිය ${bestWeekIndex + 1} තුළය`
+      : `⭐ Best price is expected in week ${bestWeekIndex + 1}`;
+  };
+
   // Enhanced weather translation mapping
   const getWeatherTranslation = (condition: string, lang: Language): string => {
     if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
@@ -800,32 +823,58 @@ const PriceForecastScreen = () => {
                   : "Next 4 Weeks Price Forecast"}
               </Text>
 
+              {/* ✅ Dynamic Best Week Message */}
+              {getBestWeekMessage() && (
+                <Text style={styles.bestWeekInfoText}>
+                  {getBestWeekMessage()}
+                </Text>
+              )}
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={{ marginTop: 8 }}
               >
-                {weeklyForecast.map((w, index) => (
-                  <View key={w.week} style={styles.weekCard}>
-                    <Text style={styles.weekLabel}>
-                      {getISOWeekRangeWithOffset(
-                        Number(formData.year),
-                        Number(formData.week),
-                        index,
-                        language
+                {weeklyForecast.map((w, index) => {
+                  const isBest = index === bestWeekIndex;
+
+                  return (
+                    <View
+                      key={w.week}
+                      style={[styles.weekCard, isBest && styles.bestWeekCard]}
+                    >
+                      {/* ⭐ BEST WEEK BADGE */}
+                      {isBest && (
+                        <View style={styles.bestBadge}>
+                          <Text style={styles.bestBadgeText}>
+                            ⭐ {language === "si" ? "හොඳම සතිය" : "Best Week"}
+                          </Text>
+                        </View>
                       )}
-                    </Text>
 
-                    <Text style={styles.weekPrice}>
-                      Rs {w.ensemble.toFixed(2)}
-                    </Text>
+                      {/* WEEK DATE RANGE */}
+                      <Text style={styles.weekLabel}>
+                        {getISOWeekRangeWithOffset(
+                          Number(formData.year),
+                          Number(formData.week),
+                          index,
+                          language
+                        )}
+                      </Text>
 
-                    <Text style={styles.weekSub}>
-                      SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
-                      {w.ensemble.toFixed(1)}
-                    </Text>
-                  </View>
-                ))}
+                      {/* PRICE */}
+                      <Text style={styles.weekPrice}>
+                        Rs {w.ensemble.toFixed(2)}
+                      </Text>
+
+                      {/* MODEL DETAILS */}
+                      <Text style={styles.weekSub}>
+                        SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
+                        {w.ensemble.toFixed(1)}
+                      </Text>
+                    </View>
+                  );
+                })}
               </ScrollView>
             </View>
           )}
@@ -1447,6 +1496,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#6B7280",
   },
+  bestWeekCard: {
+    borderColor: "#10B981",
+    borderWidth: 2,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+
+  bestBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#10B981",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  bestBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  bestWeekInfoText: {
+  fontSize: 13,
+  color: "#047857",
+  fontWeight: "600",
+  marginBottom: 12,
+  backgroundColor: "#ECFDF5",
+  padding: 10,
+  borderRadius: 10,
+  borderLeftWidth: 4,
+  borderLeftColor: "#10B981",
+},
+
 });
 
 export default PriceForecastScreen;
