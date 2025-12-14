@@ -10,10 +10,10 @@ from .ml_model import predict_yield_ml, USE_ML
 # ============================================================
 # RULE-BASED FALLBACK LOGIC
 # ============================================================
-def rule_based_yield(data: Dict) -> float:
+def rule_based_yield(data: Dict) -> tuple[float, Dict[str, float]]:
     """
     Fallback logic when ML model is not available.
-    Returns yield in tons per hectare (t/ha)
+    Returns (yield in kg/ha, multipliers dict)
     
     Based on Sri Lankan maize yield data:
     - Local Average: 3.58 t/ha
@@ -91,7 +91,19 @@ def rule_based_yield(data: Dict) -> float:
     # Maximum: 7.0 t/ha (excellent hybrid + management)
     yield_t_ha = max(2.5, min(yield_t_ha, 7.0))
     
-    return yield_t_ha
+    # Convert to kg/ha for frontend
+    yield_kg_ha = yield_t_ha * 1000
+    
+    # Return yield and actual multipliers used
+    multipliers = {
+        "variety": variety_mult,
+        "soil": soil_mult,
+        "irrigation": irrigation_mult,
+        "rainfall": rainfall_mult,
+        "season": season_mult,
+    }
+    
+    return yield_kg_ha, multipliers
 
 
 # ============================================================
@@ -129,7 +141,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     rainfall_mult = multipliers.get("rainfall", 1.0)
     factors.append({
         "name": "Rainfall Condition",
-        "impact": "High" if rainfall_mult >= 1.05 else "Medium" if rainfall_mult >= 0.9 else "Low",
+        "impact": "positive" if rainfall_mult >= 1.05 else "neutral" if rainfall_mult >= 0.9 else "negative",
         "value": rainfall_mult
     })
     
@@ -137,7 +149,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     soil_mult = multipliers.get("soil", 1.0)
     factors.append({
         "name": "Soil Condition",
-        "impact": "High" if soil_mult >= 1.1 else "Medium" if soil_mult >= 0.95 else "Low",
+        "impact": "positive" if soil_mult >= 1.1 else "neutral" if soil_mult >= 0.95 else "negative",
         "value": soil_mult
     })
     
@@ -145,7 +157,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     variety_mult = multipliers.get("variety", 1.0)
     factors.append({
         "name": "Variety",
-        "impact": "High" if variety_mult >= 1.05 else "Medium" if variety_mult >= 0.98 else "Low",
+        "impact": "positive" if variety_mult >= 1.3 else "neutral" if variety_mult >= 1.0 else "negative",
         "value": variety_mult
     })
     
@@ -153,7 +165,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     irrigation_mult = multipliers.get("irrigation", 1.0)
     factors.append({
         "name": "Irrigation Type",
-        "impact": "High" if irrigation_mult >= 1.1 else "Medium" if irrigation_mult >= 0.95 else "Low",
+        "impact": "positive" if irrigation_mult >= 1.1 else "neutral" if irrigation_mult >= 0.95 else "negative",
         "value": irrigation_mult
     })
     
@@ -161,7 +173,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     season_mult = multipliers.get("season", 1.0)
     factors.append({
         "name": "Season",
-        "impact": "Medium",
+        "impact": "positive" if season_mult >= 1.1 else "neutral" if season_mult >= 0.98 else "negative",
         "value": season_mult
     })
     
@@ -187,16 +199,25 @@ def predict_yield_service(data: Dict) -> Dict:
     """
     
     # Try ML model first
+    multipliers = {}
     try:
         if USE_ML:
-            yield_t_ha = predict_yield_ml(data)
+            yield_kg_ha = predict_yield_ml(data)
             confidence_score = 0.9
+            # Estimate multipliers from data for ML predictions
+            multipliers = {
+                "variety": 1.2,
+                "soil": 1.0,
+                "irrigation": 1.0,
+                "rainfall": 1.0,
+                "season": 1.0,
+            }
         else:
             raise RuntimeError("ML not available")
     except Exception as e:
         # Fallback to rule-based
         print(f"[YieldService] Using rule-based prediction: {e}")
-        yield_t_ha = rule_based_yield(data)
+        yield_kg_ha, multipliers = rule_based_yield(data)
         confidence_score = 0.7
     
     # Determine confidence level
@@ -216,20 +237,12 @@ def predict_yield_service(data: Dict) -> Dict:
         data.get("variety", "Unknown")
     )
     
-    # Build impact factors
-    # Store multipliers for factor display
-    multipliers = {
-        "rainfall": 1.0,
-        "soil": 1.0,
-        "variety": 1.0,
-        "irrigation": 1.0,
-        "season": 1.0,
-    }
+    # Build impact factors using actual multipliers
     factors = build_impact_factors(data, multipliers)
     
     # Build response in EXACT format frontend expects
     response = {
-        "yield_prediction_t_ha": round(yield_t_ha, 2),
+        "predicted_yield": round(yield_kg_ha, 2),  # kg/ha for frontend
         "confidence": confidence,
         "harvest_window": {
             "start": start.strftime("%Y-%m-%d"),
