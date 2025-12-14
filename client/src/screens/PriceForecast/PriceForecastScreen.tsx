@@ -519,6 +519,33 @@ const PriceForecastScreen = () => {
     return { revenue, profit, margin, totalYield };
   };
 
+  const getBestWeekProfitDifference = () => {
+    if (
+      !weeklyForecast ||
+      weeklyForecast.length === 0 ||
+      predictedPrice === null
+    )
+      return null;
+
+    const totalYield = formData.expectedYield * formData.farmArea;
+
+    // current week profit
+    const currentRevenue = totalYield * predictedPrice;
+    const currentProfit = currentRevenue - formData.totalCost;
+
+    // best week price
+    const bestWeekPrice =
+      weeklyForecast[bestWeekIndex]?.ensemble ?? predictedPrice;
+    const bestRevenue = totalYield * bestWeekPrice;
+    const bestProfit = bestRevenue - formData.totalCost;
+
+    return {
+      currentProfit,
+      bestProfit,
+      difference: bestProfit - currentProfit,
+    };
+  };
+
   const getRecommendationText = () => {
     if (recommendation === "sell_now") {
       return content[language].sellNow;
@@ -590,6 +617,7 @@ const PriceForecastScreen = () => {
 
   const { revenue, profit, margin, totalYield } = calculateProfit();
   const trendAnalysis = getTrendAnalysis();
+  const bestWeekProfit = getBestWeekProfitDifference();
 
   return (
     <View style={styles.container}>
@@ -785,6 +813,40 @@ const PriceForecastScreen = () => {
             </View>
           )}
           {/* ========== END: PRICE TREND CHART ========== */}
+
+          {bestWeekProfit && (
+            <View style={styles.bestProfitCard}>
+              <Text style={styles.bestProfitTitle}>
+                📊{" "}
+                {language === "si"
+                  ? bestWeekIndex === 0
+                    ? "වත්මන් සතිය හොඳමය"
+                    : "හොඳම සතියේ අමතර ලාභය"
+                  : bestWeekIndex === 0
+                  ? "Current Week is the Best"
+                  : "Extra Profit in Best Week"}
+              </Text>
+
+              {bestWeekProfit.difference > 0 ? (
+                <>
+                  <Text style={styles.bestProfitValue}>
+                    රු. {bestWeekProfit.difference.toFixed(0)}
+                  </Text>
+                  <Text style={styles.bestProfitSub}>
+                    {language === "si"
+                      ? "වත්මන් සතියට වඩා හොඳම සතියේ විකිණුවොත් ලැබෙන අමතර ලාභය"
+                      : "Additional profit if you sell in the best week instead of this week"}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.bestProfitSub}>
+                  {language === "si"
+                    ? "වත්මන් සතියේ විකිණීමෙන් උපරිම ලාභය ලබාගත හැක"
+                    : "Selling in the current week gives the maximum profit"}
+                </Text>
+              )}
+            </View>
+          )}
 
           {/* Recommendation Card */}
           <View
@@ -1520,17 +1582,46 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   bestWeekInfoText: {
-  fontSize: 13,
-  color: "#047857",
-  fontWeight: "600",
-  marginBottom: 12,
-  backgroundColor: "#ECFDF5",
-  padding: 10,
-  borderRadius: 10,
-  borderLeftWidth: 4,
-  borderLeftColor: "#10B981",
-},
+    fontSize: 13,
+    color: "#047857",
+    fontWeight: "600",
+    marginBottom: 12,
+    backgroundColor: "#ECFDF5",
+    padding: 10,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+  },
+  bestProfitCard: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    alignItems: "center",
+  },
 
+  bestProfitTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  bestProfitValue: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#10B981",
+    marginBottom: 6,
+  },
+
+  bestProfitSub: {
+    fontSize: 13,
+    color: "#047857",
+    textAlign: "center",
+  },
 });
 
 export default PriceForecastScreen;
