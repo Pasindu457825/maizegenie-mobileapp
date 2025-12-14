@@ -52,9 +52,8 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
-import { NotificationDropdown } from "../../components/NotificationDropdown";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { useNotifications } from "../../context/NotificationContext";
 
 // 🔥 ADD THIS HERE (top of file, after imports)
 
@@ -97,6 +96,13 @@ type NavProp = StackNavigationProp<
   "PriceForecastFormScreen"
 >;
 
+type RootStackParamList = {
+  PriceForecastFormScreen: undefined;
+  WeatherForecastScreen: undefined;
+  PriceAdvisorScreen: { formData: any } | undefined;
+  Notifications: undefined;
+};
+
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
@@ -114,8 +120,9 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 const PriceForecastFormScreen = () => {
-  const [notifVisible, setNotifVisible] = useState(false);
-  const [notifMessages, setNotifMessages] = useState<string[]>([]);
+  const { unreadCount } = useNotifications();
+  type RootNavProp = StackNavigationProp<RootStackParamList>;
+  const rootNavigation = useNavigation<RootNavProp>();
   const navigation = useNavigation<NavProp>();
   // 🌐 Get global language & convert to "si" | "en"
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
@@ -680,64 +687,66 @@ const PriceForecastFormScreen = () => {
     navigation.goBack();
   };
 
-const fetchFestivalWeek = async () => {
-  try {
-    const today = new Date();
-    const year = today.getFullYear();
-
-    // Calendarific – supported holiday types: national, local, religious, observance
-    const calendarificUrl =
-      `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3` +
-      `&country=LK&year=${year}&type=national`;
-
-    let holidayDates: Date[] = [];
-
-    // Force a JSON response and check status
+  const fetchFestivalWeek = async () => {
     try {
-      const holidaysRes = await fetch(calendarificUrl, {
-        headers: { Accept: "application/json" },
-      });
-      if (holidaysRes.ok) {
-        const json = await holidaysRes.json();
-        const holidays = json?.response?.holidays || [];
-        holidayDates = holidays.map((h: any) => new Date(h.date.iso));
-      } else {
-        console.warn(`Calendarific responded with status ${holidaysRes.status}`);
-      }
-    } catch (calendarErr) {
-      console.warn("Calendarific fetch failed:", calendarErr);
-    }
+      const today = new Date();
+      const year = today.getFullYear();
 
-    // fallback – use Nager.Date API if Calendarific fails
-    if (holidayDates.length === 0) {
+      // Calendarific – supported holiday types: national, local, religious, observance
+      const calendarificUrl =
+        `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3` +
+        `&country=LK&year=${year}&type=national`;
+
+      let holidayDates: Date[] = [];
+
+      // Force a JSON response and check status
       try {
-        const fallback = await fetch(
-          `https://date.nager.at/api/v3/PublicHolidays/${year}/LK`
-        );
-        if (fallback.ok) {
-          const nagerHolidays = await fallback.json();
-          holidayDates = nagerHolidays.map((h: any) => new Date(h.date));
+        const holidaysRes = await fetch(calendarificUrl, {
+          headers: { Accept: "application/json" },
+        });
+        if (holidaysRes.ok) {
+          const json = await holidaysRes.json();
+          const holidays = json?.response?.holidays || [];
+          holidayDates = holidays.map((h: any) => new Date(h.date.iso));
         } else {
-          console.warn(`Nager API responded with status ${fallback.status}`);
+          console.warn(
+            `Calendarific responded with status ${holidaysRes.status}`
+          );
         }
-      } catch (nagerErr) {
-        console.warn("Nager API fetch failed:", nagerErr);
+      } catch (calendarErr) {
+        console.warn("Calendarific fetch failed:", calendarErr);
       }
-    }
 
-    // Mark as festival week if within ±3 days of any holiday
-    let festival = false;
-    holidayDates.forEach(date => {
-      const diffDays =
-        Math.abs(today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
-      if (diffDays <= 3) festival = true;
-    });
-    setIsFestivalWeek(festival);
-  } catch (err) {
-    console.warn("Festival week detect error:", err);
-    setIsFestivalWeek(false);
-  }
-};
+      // fallback – use Nager.Date API if Calendarific fails
+      if (holidayDates.length === 0) {
+        try {
+          const fallback = await fetch(
+            `https://date.nager.at/api/v3/PublicHolidays/${year}/LK`
+          );
+          if (fallback.ok) {
+            const nagerHolidays = await fallback.json();
+            holidayDates = nagerHolidays.map((h: any) => new Date(h.date));
+          } else {
+            console.warn(`Nager API responded with status ${fallback.status}`);
+          }
+        } catch (nagerErr) {
+          console.warn("Nager API fetch failed:", nagerErr);
+        }
+      }
+
+      // Mark as festival week if within ±3 days of any holiday
+      let festival = false;
+      holidayDates.forEach((date) => {
+        const diffDays =
+          Math.abs(today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays <= 3) festival = true;
+      });
+      setIsFestivalWeek(festival);
+    } catch (err) {
+      console.warn("Festival week detect error:", err);
+      setIsFestivalWeek(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -754,8 +763,8 @@ const fetchFestivalWeek = async () => {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setNotifVisible(true)}
+            style={styles.headerIconButton}
+            onPress={() => rootNavigation.navigate("Notifications")}
           >
             <Bell color="#10B981" size={20} />
           </TouchableOpacity>
@@ -1091,15 +1100,6 @@ const fetchFestivalWeek = async () => {
           </View>
         )}
       </ScrollView>
-      <NotificationDropdown
-        visible={notifVisible}
-        onClose={() => setNotifVisible(false)}
-        messages={
-          notifMessages.length > 0
-            ? notifMessages
-            : [language === "si" ? "නව දැනුම්දීමක් නොමැත" : "No notifications"]
-        }
-      />
     </View>
   );
 };
@@ -1431,6 +1431,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#B91C1C",
     fontWeight: "bold",
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    position: "relative",
   },
 });
 

@@ -31,10 +31,9 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import useUniversalLocation from "../../utils/useUniversalLocation";
-import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
-import { NotificationDropdown } from "../../components/NotificationDropdown";
 import { useLanguage } from "../../context/LanguageContext";
 import { Platform } from "react-native";
+import { useNotifications } from "../../context/NotificationContext";
 
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -74,6 +73,8 @@ type RootStackParamList = {
   PriceForecastFormScreen: undefined;
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
+  Notifications: undefined;
+
 };
 
 type Language = "si" | "en";
@@ -99,7 +100,9 @@ type NavProp = StackNavigationProp<
 >;
 
 const PriceForecastLoadingScreen = () => {
-  const [notifVisible, setNotifVisible] = useState(false);
+  const { unreadCount } = useNotifications();
+  type RootNavProp = StackNavigationProp<RootStackParamList>;
+  const rootNavigation = useNavigation<RootNavProp>();
   const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const { language: globalLang } = useLanguage();
   const language: Language = globalLang === "sinhala" ? "si" : "en";
@@ -388,12 +391,9 @@ const PriceForecastLoadingScreen = () => {
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.headerIconButton}
-            onPress={() => setNotifVisible(true)}
+            onPress={() => rootNavigation.navigate("Notifications")}
           >
             <Bell color="#10B981" size={20} />
-            {notifMessages.length > 0 && (
-              <View style={styles.notificationDot} />
-            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -585,15 +585,6 @@ const PriceForecastLoadingScreen = () => {
           )}
         </Animated.View>
       </ScrollView>
-      <NotificationDropdown
-        visible={notifVisible}
-        onClose={() => setNotifVisible(false)}
-        messages={
-          notifMessages.length > 0
-            ? notifMessages
-            : [language === "si" ? "නව දැනුම්දීමක් නොමැත" : "No notifications"]
-        }
-      />
     </View>
   );
 };
