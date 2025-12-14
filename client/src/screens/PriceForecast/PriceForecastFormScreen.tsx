@@ -680,38 +680,64 @@ const PriceForecastFormScreen = () => {
     navigation.goBack();
   };
 
-  const fetchFestivalWeek = async () => {
+const fetchFestivalWeek = async () => {
+  try {
+    const today = new Date();
+    const year = today.getFullYear();
+
+    // Calendarific – supported holiday types: national, local, religious, observance
+    const calendarificUrl =
+      `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3` +
+      `&country=LK&year=${year}&type=national`;
+
+    let holidayDates: Date[] = [];
+
+    // Force a JSON response and check status
     try {
-      const today = new Date();
-      const year = today.getFullYear();
-
-      const holidaysRes = await fetch(
-        `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3&country=LK&year=${year}&type=public`
-      );
-
-      const json = await holidaysRes.json();
-
-      // Calendarific correct response object:
-      const holidays = json?.response?.holidays || [];
-
-      let festivalDetected = false;
-
-      holidays.forEach((h: any) => {
-        const hd = new Date(h.date.iso);
-        const diffDays =
-          Math.abs(today.getTime() - hd.getTime()) / (1000 * 60 * 60 * 24);
-
-        // +- 3 days rule for "festival week"
-        if (diffDays <= 3) {
-          festivalDetected = true;
-        }
+      const holidaysRes = await fetch(calendarificUrl, {
+        headers: { Accept: "application/json" },
       });
-
-      setIsFestivalWeek(festivalDetected);
-    } catch (err) {
-      console.log("Festival week detect error:", err);
+      if (holidaysRes.ok) {
+        const json = await holidaysRes.json();
+        const holidays = json?.response?.holidays || [];
+        holidayDates = holidays.map((h: any) => new Date(h.date.iso));
+      } else {
+        console.warn(`Calendarific responded with status ${holidaysRes.status}`);
+      }
+    } catch (calendarErr) {
+      console.warn("Calendarific fetch failed:", calendarErr);
     }
-  };
+
+    // fallback – use Nager.Date API if Calendarific fails
+    if (holidayDates.length === 0) {
+      try {
+        const fallback = await fetch(
+          `https://date.nager.at/api/v3/PublicHolidays/${year}/LK`
+        );
+        if (fallback.ok) {
+          const nagerHolidays = await fallback.json();
+          holidayDates = nagerHolidays.map((h: any) => new Date(h.date));
+        } else {
+          console.warn(`Nager API responded with status ${fallback.status}`);
+        }
+      } catch (nagerErr) {
+        console.warn("Nager API fetch failed:", nagerErr);
+      }
+    }
+
+    // Mark as festival week if within ±3 days of any holiday
+    let festival = false;
+    holidayDates.forEach(date => {
+      const diffDays =
+        Math.abs(today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+      if (diffDays <= 3) festival = true;
+    });
+    setIsFestivalWeek(festival);
+  } catch (err) {
+    console.warn("Festival week detect error:", err);
+    setIsFestivalWeek(false);
+  }
+};
 
   return (
     <View style={styles.container}>
