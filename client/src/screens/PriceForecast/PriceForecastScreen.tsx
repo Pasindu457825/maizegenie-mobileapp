@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -46,6 +46,14 @@ import type { WeekForecast } from "../../services/priceForecastService";
 import { LineChart } from "react-native-chart-kit";
 import { Platform } from "react-native";
 import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
+import type { RootStackParamList } from "../../navigation/index";
+
+type RootNavProp = StackNavigationProp<RootStackParamList>;
+type LocalNavProp = StackNavigationProp<
+  PriceForecastStackParamList,
+  "PriceForecastScreen"
+>;
 
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -91,9 +99,11 @@ interface ForecastData {
 
 const PriceForecastScreen = () => {
   const [weeklyForecast, setWeeklyForecast] = useState<WeekForecast[]>([]);
+  const notificationSentRef = useRef(false);
+  const rootNavigation = useNavigation<RootNavProp>();
+  const localNavigation = useNavigation<LocalNavProp>();
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
-
-  const navigation = useNavigation<NavProp>();
+  const { unreadCount, addNotification } = useNotifications();
   const route = useRoute();
   // Global language from context
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
@@ -128,25 +138,6 @@ const PriceForecastScreen = () => {
       console.log("Storage load error:", error);
     }
   };
-
-  useEffect(() => {
-    loadSavedDataFromStorage();
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    generateForecast();
-  }, []);
 
   // State for district and weather display
   const [district, setDistrict] = useState("");
@@ -478,6 +469,49 @@ const PriceForecastScreen = () => {
 
       setPredictedPrice(first.ensemble);
 
+      // AFTER setWeeklyForecast(res.weeks)
+      // ⭐ BEST WEEK INDEX (highest ensemble price)
+      const bestIdx = res.weeks.reduce(
+        (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
+        0
+      );
+
+      // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
+      if (!notificationSentRef.current) {
+        if (bestIdx === 0) {
+          // ✅ CURRENT WEEK BEST
+          await addNotification({
+            type: "price",
+            title:
+              language === "si"
+                ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
+                : "⭐ Best time to sell is this week",
+            message:
+              language === "si"
+                ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
+                : "The current week has the highest predicted price",
+          });
+        } else {
+          // ✅ FUTURE BEST WEEK
+          const daysToSell = bestIdx * 7;
+
+          await addNotification({
+            type: "price",
+            title:
+              language === "si"
+                ? `🗓 දින ${daysToSell} කින් විකිණන්න`
+                : `🗓 Sell in ${daysToSell} days`,
+            message:
+              language === "si"
+                ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
+                : "Best price expected in the selected week",
+          });
+        }
+
+        // 🚫 Prevent duplicate notifications
+        notificationSentRef.current = true;
+      }
+
       if (currentPriceNumeric > 0) {
         const change =
           ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100;
@@ -608,11 +642,12 @@ const PriceForecastScreen = () => {
   };
 
   const handleGoBack = () => {
-    navigation.goBack();
+    localNavigation.goBack();
   };
 
   const handleStartOver = () => {
-    navigation.navigate("PriceForecastLoadingScreen");
+    notificationSentRef.current = false; // ✅ RESET HERE
+    localNavigation.navigate("PriceForecastLoadingScreen");
   };
 
   const { revenue, profit, margin, totalYield } = calculateProfit();
@@ -633,8 +668,17 @@ const PriceForecastScreen = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Bell color="#10B981" size={20} />
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => rootNavigation.navigate("Notifications")}
+          >
+            <Bell size={20} color="#047857" />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1621,6 +1665,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#047857",
     textAlign: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    minWidth: 16,
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });
 

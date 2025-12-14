@@ -14,11 +14,14 @@ import LanguageSelectScreen from "../screens/Startup/LanguageSelectScreen";
 import Onboarding1 from "../screens/Startup/Onboarding1";
 import Onboarding2 from "../screens/Startup/Onboarding2";
 
-type RootStackParamList = {
+import NotificationsScreen from "../screens/Notifications/NotificationsScreen";
+
+export type RootStackParamList = {
   Splash: undefined;
   LanguageSelect: undefined;
   Onboarding1: undefined;
   Onboarding2: undefined;
+  Notifications: undefined;
 
   [ROUTES.AUTH.LOGIN]: undefined;
   [ROUTES.AUTH.SIGNUP]: undefined;
@@ -44,7 +47,6 @@ export default function RootNavigator() {
       screenOptions={{ headerShown: false }}
       initialRouteName="Splash"     // ⭐ ADDED — Forces Splash to load first
     >
-
       {/* STARTUP FLOW */}
       <Stack.Screen name="Splash" component={SplashScreen} />
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
@@ -61,6 +63,12 @@ export default function RootNavigator() {
       {/* CHAT SYSTEM */}
       <Stack.Screen name="Chat" component={ChatScreen} />
       <Stack.Screen name="OfficerRooms" component={OfficerRoomsScreen} />
+
+      <Stack.Screen
+        name="Notifications"
+        component={NotificationsScreen}
+        options={{ headerShown: false }}
+      />
     </Stack.Navigator>
   );
 }
