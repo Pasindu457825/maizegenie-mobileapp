@@ -66,6 +66,7 @@ export const NotificationProvider = ({
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
+      .eq("user_id", user.id) // ✅ SECURITY FILTER
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -74,7 +75,35 @@ export const NotificationProvider = ({
   };
 
   /* =======================
+     REALTIME LISTENER
+  ======================= */
+  useEffect(() => {
+    const channel = supabase
+      .channel("notifications-realtime")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+        },
+        (payload) => {
+          setNotifications((prev) => [
+            payload.new as AppNotification,
+            ...prev,
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  /* =======================
      ADD NOTIFICATION
+     (WITH DUPLICATE CHECK)
   ======================= */
   const addNotification = async ({
     title,
@@ -91,6 +120,22 @@ export const NotificationProvider = ({
 
     if (!user) return;
 
+    // 🚫 DUPLICATE PREVENTION (last 6 hours)
+    const { data: existing } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("type", type)
+      .ilike("title", `%${title}%`)
+      .gte(
+        "created_at",
+        new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
+      )
+      .limit(1);
+
+    if (existing && existing.length > 0) return;
+
+    // ✅ INSERT
     const { data, error } = await supabase
       .from("notifications")
       .insert({
@@ -168,7 +213,10 @@ export const NotificationProvider = ({
 
 export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
-  if (!ctx)
-    throw new Error("useNotifications must be used inside NotificationProvider");
+  if (!ctx) {
+    throw new Error(
+      "useNotifications must be used inside NotificationProvider"
+    );
+  }
   return ctx;
 };
