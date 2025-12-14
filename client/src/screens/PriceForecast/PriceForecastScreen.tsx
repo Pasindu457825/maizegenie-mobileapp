@@ -155,11 +155,13 @@ const PriceForecastScreen = () => {
   // Get data from route params (from form)
   const { data: formData } = route.params as { data: ForecastData };
 
-  // Forecast results (mock data - replace with ML prediction)
-  const [predictedPrice, setPredictedPrice] = useState(125.5);
-  const [priceChange, setPriceChange] = useState(15.2);
-  const [confidenceScore, setConfidenceScore] = useState(87);
-  const [recommendation, setRecommendation] = useState("sell_now");
+  // Forecast results
+  const [predictedPrice, setPredictedPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number>(0);
+  const [confidenceScore, setConfidenceScore] = useState<number>(0);
+  const [recommendation, setRecommendation] = useState<
+    "sell_now" | "sell_immediately" | "storage" | "sell_later"
+  >("sell_later");
 
   const [savedForm, setSavedForm] = useState<any>(null);
   const [savedAuto, setSavedAuto] = useState<any>(null);
@@ -256,6 +258,45 @@ const PriceForecastScreen = () => {
       priceDecreasing: "📉 Price is decreasing",
       priceStable: "↔️ Price is stable",
     },
+  };
+
+  // Convert ISO year + week number to date range
+  const getISOWeekRangeWithOffset = (
+    year: number,
+    baseWeek: number,
+    offset: number,
+    lang: "si" | "en"
+  ) => {
+    // Jan 4 is always in ISO Week 1
+    const jan4 = new Date(year, 0, 4);
+    const jan4Day = jan4.getDay() === 0 ? 7 : jan4.getDay();
+
+    // Monday of ISO Week 1
+    const week1Monday = new Date(jan4);
+    week1Monday.setDate(jan4.getDate() - (jan4Day - 1));
+
+    // Target week Monday (base + offset)
+    const weekStart = new Date(week1Monday);
+    weekStart.setDate(week1Monday.getDate() + (baseWeek - 1 + offset) * 7);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+    };
+
+    const start = weekStart.toLocaleDateString(
+      lang === "si" ? "si-LK" : "en-US",
+      options
+    );
+    const end = weekEnd.toLocaleDateString(
+      lang === "si" ? "si-LK" : "en-US",
+      options
+    );
+
+    return `${start} – ${end}`;
   };
 
   // Enhanced weather translation mapping
@@ -448,9 +489,10 @@ const PriceForecastScreen = () => {
   const calculateProfit = () => {
     if (!formData) return { revenue: 0, profit: 0, margin: 0 };
     const totalYield = formData.expectedYield * formData.farmArea;
-    const revenue = totalYield * predictedPrice;
+    const price = predictedPrice ?? 0;
+    const revenue = totalYield * price;
     const profit = revenue - formData.totalCost;
-    const margin = (profit / revenue) * 100;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
     return { revenue, profit, margin, totalYield };
   };
 
@@ -568,17 +610,6 @@ const PriceForecastScreen = () => {
           </View>
         </View>
       </View>
-      <Text style={styles.savedTitle}>
-        {language === "si" ? "සුරැකි දත්ත" : "Saved Data"}
-      </Text>
-
-      <Text style={styles.savedItem}>🌾 Variety: {savedForm?.seedVariety}</Text>
-      <Text style={styles.savedItem}>📅 Year: {savedAuto?.year}</Text>
-      <Text style={styles.savedItem}>🗓 Week: {savedAuto?.week}</Text>
-      <Text style={styles.savedItem}>🛢 Fuel: {savedPrice?.fuelPrice}</Text>
-      <Text style={styles.savedItem}>📍 District: {formData?.district}</Text>
-
-      <Text style={styles.savedItem}>☀ Weather: {savedWeather?.weather}</Text>
 
       <ScrollView
         style={styles.scrollContainer}
@@ -597,11 +628,22 @@ const PriceForecastScreen = () => {
               <DollarSign color="#10B981" size={32} />
             </View>
             <Text style={styles.priceLabel}>
-              {content[language].predictedPrice}
+              {content[language].predictedPrice} (
+              {getISOWeekRangeWithOffset(
+                Number(formData.year),
+                Number(formData.week),
+                0,
+                language
+              )}
+              )
             </Text>
+
             <Text style={styles.priceValue}>
-              රු. {predictedPrice.toFixed(2)}
+              {predictedPrice === null
+                ? "—"
+                : `රු. ${predictedPrice.toFixed(2)}`}
             </Text>
+
             <Text style={styles.priceUnit}>{content[language].perKg}</Text>
 
             <View
@@ -763,10 +805,15 @@ const PriceForecastScreen = () => {
                 showsHorizontalScrollIndicator={false}
                 style={{ marginTop: 8 }}
               >
-                {weeklyForecast.map((w) => (
+                {weeklyForecast.map((w, index) => (
                   <View key={w.week} style={styles.weekCard}>
                     <Text style={styles.weekLabel}>
-                      {language === "si" ? `සතිය ${w.week}` : `Week ${w.week}`}
+                      {getISOWeekRangeWithOffset(
+                        Number(formData.year),
+                        Number(formData.week),
+                        index,
+                        language
+                      )}
                     </Text>
 
                     <Text style={styles.weekPrice}>
@@ -916,156 +963,6 @@ const PriceForecastScreen = () => {
                 </View>
               </View>
             </View>
-          </View>
-
-          {/* ----------------------------- */}
-          {/* 🌾 Cultivation Advisor Section */}
-          {/* ----------------------------- */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              🌾 {language === "si" ? "වගා උපදෙස්" : "Cultivation Advisor"}
-            </Text>
-
-            {/* Calculate values */}
-            {(() => {
-              const varietyDurations: any = {
-                "Jet 999": 95,
-                "GT 709": 100,
-                "808": 90,
-                "Pacific 999": 95,
-                Unknown: 95,
-              };
-
-              const durationDays =
-                varietyDurations[formData?.seedVariety] ||
-                varietyDurations["Unknown"];
-              const durationWeeks = Math.round(durationDays / 7);
-
-              const plantingWeek = Number(formData?.week);
-              const harvestWeek = plantingWeek + durationWeeks;
-
-              const harvestDate = new Date();
-              harvestDate.setDate(harvestDate.getDate() + durationDays);
-              const harvestDateStr = harvestDate.toDateString();
-
-              const production = formData.expectedYield * formData.farmArea;
-              const revenue = production * predictedPrice;
-              const profit = revenue - formData.totalCost;
-
-              let signalColor = "#EF4444";
-              let signalText =
-                language === "si"
-                  ? "මෙම සතිය වගා කිරීමට සුදුසු නොවේ"
-                  : "Not suitable for cultivation this week";
-
-              if (profit > formData.totalCost * 0.5) {
-                signalColor = "#10B981";
-                signalText =
-                  language === "si"
-                    ? "මෙම සතිය වගා කිරීමට ඉතා හොඳයි"
-                    : "Excellent week for cultivation";
-              } else if (profit > 0) {
-                signalColor = "#F59E0B";
-                signalText =
-                  language === "si"
-                    ? "මධ්‍යම ලෙස ලාභදායී සතියක්"
-                    : "Moderately profitable week";
-              }
-
-              let weatherAlert =
-                language === "si"
-                  ? "කාලගුණය ස්ථාවරයි"
-                  : "Weather conditions are stable";
-
-              const wc = (weatherCondition || "").toLowerCase();
-
-              if (wc.includes("heavy rain")) {
-                weatherAlert =
-                  language === "si"
-                    ? "බර වැසි - දින 2–3ක් ප්‍රමාද කරන්න"
-                    : "Heavy rain — delay 2–3 days";
-              }
-              if (wc.includes("thunder")) {
-                weatherAlert =
-                  language === "si"
-                    ? "අකුණු සහිත වැසි - අද වගා නොකරන්න"
-                    : "Thunderstorm — avoid planting today";
-              }
-
-              return (
-                <>
-                  {/* Signal Card */}
-                  <View
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      borderLeftWidth: 5,
-                      borderLeftColor: signalColor,
-                      padding: 16,
-                      borderRadius: 12,
-                      marginBottom: 16,
-                      elevation: 3,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontWeight: "bold",
-                        color: signalColor,
-                        marginBottom: 6,
-                      }}
-                    >
-                      {signalText}
-                    </Text>
-
-                    <Text style={{ color: "#374151", fontSize: 14 }}>
-                      {language === "si"
-                        ? `ප්රතිඵල: රු. ${profit.toFixed(0)} ලාභය`
-                        : `Profit: Rs. ${profit.toFixed(0)}`}
-                    </Text>
-                  </View>
-
-                  {/* Advisor Summary */}
-                  <View
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      padding: 18,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: "#D1FAE5",
-                      marginBottom: 16,
-                    }}
-                  >
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "වගා සතිය" : "Planting Week"}:{" "}
-                      {plantingWeek}
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "අස්වැන්න සතිය" : "Harvest Week"}:{" "}
-                      {harvestWeek}
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "අස්වැන්න දිනය" : "Harvest Date"}:{" "}
-                      {harvestDateStr}
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "මුළු අස්වැන්න" : "Total Yield"}:{" "}
-                      {production.toFixed(0)} kg
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si"
-                        ? "වාතාවරණ අතුරුදහන්"
-                        : "Weather Alert"}
-                      : {weatherAlert}
-                    </Text>
-                  </View>
-                </>
-              );
-            })()}
           </View>
 
           {/* Action Buttons */}
