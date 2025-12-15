@@ -85,33 +85,28 @@ async def predict_yield_farmer(
             land_size_acres = request.land_size_value * 2.47105
             print(f"🔄 Converted {request.land_size_value} hectares to {land_size_acres:.2f} acres")
         
-        # Map simple conditions to model inputs
-        soil_quality_map = {'Good': 0.9, 'Medium': 0.7, 'Poor': 0.5}
-        irrigation_factor_map = {'Irrigated': 1.0, 'Mixed': 0.8, 'Rainfed': 0.6}
-        rainfall_factor_map = {'High': 1.0, 'Normal': 0.85, 'Low': 0.6}
-        
-        soil_quality = soil_quality_map.get(request.soil_condition, 0.7)
-        irrigation_factor = irrigation_factor_map.get(request.irrigation_type, 0.8)
-        rainfall_factor = rainfall_factor_map.get(request.rainfall_condition, 0.85)
-        
         # Step 3: Run yield prediction
         try:
             # Prepare data for prediction service
+            # Service expects: soil_condition, irrigation_type, rainfall_condition (string values)
             prediction_input = {
                 'district': request.district,
                 'season': request.season,
                 'variety': request.variety,
                 'planting_date': request.planting_date,
-                'soil_quality': soil_quality,
-                'irrigation_factor': irrigation_factor,
-                'rainfall_factor': rainfall_factor,
+                'soil_condition': request.soil_condition,  # Pass string: Good/Medium/Poor
+                'irrigation_type': request.irrigation_type,  # Pass string: Irrigated/Mixed/Rainfed
+                'rainfall_condition': request.rainfall_condition,  # Pass string: High/Normal/Low
                 'land_size_acres': land_size_acres,  # ML model expects acres
                 'gps_lat': request.gps_lat,
                 'gps_lng': request.gps_lng
             }
             
             result = predict_yield_service(prediction_input)
-            predicted_yield = result.get('predicted_yield', 5000)  # Default fallback
+            predicted_yield = result.get('predicted_yield')  # kg/ha from service
+            
+            if predicted_yield is None:
+                raise ValueError("Prediction service returned no yield value")
             
             print(f"📊 Predicted Yield: {predicted_yield:.2f} kg/ha")
             
