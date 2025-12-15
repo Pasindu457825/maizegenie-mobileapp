@@ -39,6 +39,8 @@ import { LineChart, BarChart } from "react-native-chart-kit";
 import { useFocusEffect } from "@react-navigation/native";
 import { Platform } from "react-native";
 import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
+import { Bell } from "lucide-react-native";
 
 // ✨ FIXED: Get language type from context
 type Language = "sinhala" | "english";
@@ -137,6 +139,7 @@ const screenWidth = Dimensions.get("window").width;
 const WeatherForecastScreen = () => {
   const navigation = useNavigation();
   const { language } = useLanguage();
+  const { unreadCount } = useNotifications();
 
   const locationHook: any = useUniversalLocation("si");
   const {
@@ -913,9 +916,11 @@ const WeatherForecastScreen = () => {
   // ✨ FIXED: Enhanced header uses language from context
   const EnhancedHeader = () => {
     const currentContent = getContent();
+    const { unreadCount } = useNotifications();
 
     return (
       <View style={styles.header}>
+        {/* Back button */}
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
@@ -923,6 +928,7 @@ const WeatherForecastScreen = () => {
           <ArrowLeft size={22} color="#047857" />
         </TouchableOpacity>
 
+        {/* Title */}
         <View style={styles.headerCenter}>
           <View style={styles.headerTitleRow}>
             <Sprout size={22} color="#047857" />
@@ -930,6 +936,22 @@ const WeatherForecastScreen = () => {
           </View>
           <Text style={styles.headerSubtitle}>{currentContent.subtitle}</Text>
         </View>
+
+        {/* 🔔 Notification Icon */}
+        <TouchableOpacity
+          style={styles.headerIconButton}
+          onPress={() => navigation.navigate("Notifications" as never)}
+        >
+          <Bell size={20} color="#10B981" />
+
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
     );
   };
@@ -1134,6 +1156,7 @@ const WeatherForecastScreen = () => {
   return (
     <View style={styles.container}>
       <EnhancedHeader />
+
       <SpeechControlButton />
 
       <ScrollView
@@ -1544,4 +1567,43 @@ const styles = StyleSheet.create({
     borderColor: "#E5E7EB",
   },
   metricLabel: { fontSize: 13, fontWeight: "700", color: "#1F2937" },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    position: "relative",
+  },
+
+  notificationDot: {
+    position: "absolute",
+    top: 7,
+    right: 7,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#EF4444",
+  },
+  badge: {
+  position: "absolute",
+  top: 4,
+  right: 4,
+  backgroundColor: "#EF4444",
+  borderRadius: 10,
+  minWidth: 16,
+  height: 16,
+  paddingHorizontal: 4,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+badgeText: {
+  color: "#FFFFFF",
+  fontSize: 10,
+  fontWeight: "bold",
+},
 });
