@@ -720,6 +720,14 @@ const PriceAdvisorScreen: React.FC = () => {
             onPress={() => rootNavigation.navigate("Notifications")}
           >
             <Bell color="#10B981" size={20} />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1458,5 +1466,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D1FAE5",
     position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });

@@ -74,7 +74,6 @@ type RootStackParamList = {
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
   Notifications: undefined;
-
 };
 
 type Language = "si" | "en";
@@ -394,6 +393,14 @@ const PriceForecastLoadingScreen = () => {
             onPress={() => rootNavigation.navigate("Notifications")}
           >
             <Bell color="#10B981" size={20} />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -934,6 +941,24 @@ const styles = StyleSheet.create({
     color: "#10B981",
     fontWeight: "bold",
   },
+  badge: {
+  position: "absolute",
+  top: 4,
+  right: 4,
+  backgroundColor: "#EF4444",
+  borderRadius: 10,
+  paddingHorizontal: 5,
+  minWidth: 16,
+  height: 16,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+badgeText: {
+  color: "#FFFFFF",
+  fontSize: 10,
+  fontWeight: "bold",
+},
 });
 
 export default PriceForecastLoadingScreen;
