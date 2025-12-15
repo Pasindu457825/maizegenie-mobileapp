@@ -48,6 +48,7 @@ import { Platform } from "react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation/index";
+import { supabase } from "../../lib/supabase";
 
 type RootNavProp = StackNavigationProp<RootStackParamList>;
 type LocalNavProp = StackNavigationProp<
@@ -103,7 +104,7 @@ const PriceForecastScreen = () => {
   const rootNavigation = useNavigation<RootNavProp>();
   const localNavigation = useNavigation<LocalNavProp>();
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
-  const { unreadCount, addNotification } = useNotifications();
+  const { unreadCount, sendNotification } = useNotifications();
   const route = useRoute();
   // Global language from context
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
@@ -475,42 +476,35 @@ const PriceForecastScreen = () => {
         (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
         0
       );
+// 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
+if (!notificationSentRef.current) {
+  if (bestIdx === 0) {
+    await sendNotification(
+      language === "si"
+        ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
+        : "⭐ Best time to sell is this week",
+      language === "si"
+        ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
+        : "The current week has the highest predicted price",
+      "price"
+    );
+  } else {
+    const daysToSell = bestIdx * 7;
 
-      // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
-      if (!notificationSentRef.current) {
-        if (bestIdx === 0) {
-          // ✅ CURRENT WEEK BEST
-          await addNotification({
-            type: "price",
-            title:
-              language === "si"
-                ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
-                : "⭐ Best time to sell is this week",
-            message:
-              language === "si"
-                ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
-                : "The current week has the highest predicted price",
-          });
-        } else {
-          // ✅ FUTURE BEST WEEK
-          const daysToSell = bestIdx * 7;
+    await sendNotification(
+      language === "si"
+        ? `🗓 දින ${daysToSell} කින් විකිණන්න`
+        : `🗓 Sell in ${daysToSell} days`,
+      language === "si"
+        ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
+        : "Best price expected in the selected week",
+      "price"
+    );
+  }
 
-          await addNotification({
-            type: "price",
-            title:
-              language === "si"
-                ? `🗓 දින ${daysToSell} කින් විකිණන්න`
-                : `🗓 Sell in ${daysToSell} days`,
-            message:
-              language === "si"
-                ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
-                : "Best price expected in the selected week",
-          });
-        }
+  notificationSentRef.current = true;
+}
 
-        // 🚫 Prevent duplicate notifications
-        notificationSentRef.current = true;
-      }
 
       if (currentPriceNumeric > 0) {
         const change =

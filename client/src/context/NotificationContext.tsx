@@ -17,23 +17,21 @@ export type AppNotification = {
   type: "price" | "weather" | "system";
   created_at: string;
   read: boolean;
+  user_id?: string;
 };
 
 type NotificationContextType = {
   notifications: AppNotification[];
-  addNotification: (n: {
-    title: string;
-    message: string;
-    type: "price" | "weather" | "system";
-  }) => Promise<void>;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
   unreadCount: number;
+  sendNotification: (
+    title: string,
+    message: string,
+    type: "price" | "weather" | "system"
+  ) => Promise<void>;
 };
-
-/* =======================
-   CONTEXT
-======================= */
 
 const NotificationContext =
   createContext<NotificationContextType | null>(null);
@@ -47,51 +45,80 @@ export const NotificationProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [notifications, setNotifications] =
+    useState<AppNotification[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
 
   /* =======================
-     LOAD ON APP START
+     LOAD USER + INITIAL
   ======================= */
   useEffect(() => {
-    loadNotifications();
+    const init = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      setUserId(user.id);
+
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("❌ Fetch notifications failed", error);
+        return;
+      }
+
+      if (data) setNotifications(data);
+    };
+
+    init();
   }, []);
-
-  const loadNotifications = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", user.id) // ✅ SECURITY FILTER
-      .order("created_at", { ascending: false });
-
-    if (!error && data) {
-      setNotifications(data);
-    }
-  };
 
   /* =======================
      REALTIME LISTENER
   ======================= */
   useEffect(() => {
+    if (!userId) return;
+
     const channel = supabase
-      .channel("notifications-realtime")
+      .channel(`notifications-${userId}`)
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "notifications",
+          filter: `user_id=eq.${userId}`,
         },
         (payload) => {
-          setNotifications((prev) => [
-            payload.new as AppNotification,
-            ...prev,
-          ]);
+          if (payload.eventType === "INSERT") {
+            setNotifications((prev) => {
+              if (prev.some((n) => n.id === payload.new.id))
+                return prev;
+              return [payload.new as AppNotification, ...prev];
+            });
+          }
+
+          if (payload.eventType === "DELETE") {
+            setNotifications((prev) =>
+              prev.filter((n) => n.id !== payload.old.id)
+            );
+          }
+
+          if (payload.eventType === "UPDATE") {
+            setNotifications((prev) =>
+              prev.map((n) =>
+                n.id === payload.new.id
+                  ? (payload.new as AppNotification)
+                  : n
+              )
+            );
+          }
         }
       )
       .subscribe();
@@ -99,82 +126,93 @@ export const NotificationProvider = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [userId]);
 
   /* =======================
-     ADD NOTIFICATION
-     (WITH DUPLICATE CHECK)
+     SEND
   ======================= */
-  const addNotification = async ({
-    title,
-    message,
-    type,
-  }: {
-    title: string;
-    message: string;
-    type: "price" | "weather" | "system";
-  }) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  const sendNotification = async (
+    title: string,
+    message: string,
+    type: "price" | "weather" | "system"
+  ) => {
+    if (!userId) return;
 
-    if (!user) return;
-
-    // 🚫 DUPLICATE PREVENTION (last 6 hours)
-    const { data: existing } = await supabase
-      .from("notifications")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("type", type)
-      .ilike("title", `%${title}%`)
-      .gte(
-        "created_at",
-        new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-      )
-      .limit(1);
-
-    if (existing && existing.length > 0) return;
-
-    // ✅ INSERT
     const { data, error } = await supabase
       .from("notifications")
       .insert({
-        user_id: user.id,
+        user_id: userId,
         title,
         message,
         type,
+        read: false,
       })
       .select()
       .single();
 
-    if (!error && data) {
-      setNotifications((prev) => [data, ...prev]);
+    if (error) {
+      console.error("❌ Send notification failed", error);
+      return;
+    }
+
+    if (data) {
+      setNotifications((prev) => [
+        data as AppNotification,
+        ...prev,
+      ]);
     }
   };
 
   /* =======================
-     MARK SINGLE AS READ
+     DELETE (FIXED)
+  ======================= */
+  const deleteNotification = async (id: string) => {
+    if (!userId) return;
+
+    // optimistic UI
+    setNotifications((prev) =>
+      prev.filter((n) => n.id !== id)
+    );
+
+    const { error } = await supabase
+      .from("notifications")
+      .delete()
+      .eq("id", id)
+      .eq("user_id", userId); // 🔐 RLS SAFE
+
+    if (error) {
+      console.error("❌ Delete failed", error);
+
+      // rollback UI if delete failed
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (data) setNotifications(data);
+    }
+  };
+
+  /* =======================
+     READ
   ======================= */
   const markAsRead = async (id: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) =>
+        n.id === id ? { ...n, read: true } : n
+      )
     );
 
     await supabase
       .from("notifications")
       .update({ read: true })
-      .eq("id", id);
+      .eq("id", id)
+      .eq("user_id", userId);
   };
 
-  /* =======================
-     MARK ALL AS READ
-  ======================= */
   const markAllAsRead = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
+    if (!userId) return;
 
     setNotifications((prev) =>
       prev.map((n) => ({ ...n, read: true }))
@@ -183,23 +221,22 @@ export const NotificationProvider = ({
     await supabase
       .from("notifications")
       .update({ read: true })
-      .eq("user_id", user.id)
-      .eq("read", false);
+      .eq("user_id", userId);
   };
 
-  /* =======================
-     UNREAD COUNT
-  ======================= */
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = notifications.filter(
+    (n) => !n.read
+  ).length;
 
   return (
     <NotificationContext.Provider
       value={{
         notifications,
-        addNotification,
         markAsRead,
         markAllAsRead,
+        deleteNotification,
         unreadCount,
+        sendNotification,
       }}
     >
       {children}
@@ -213,10 +250,9 @@ export const NotificationProvider = ({
 
 export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
-  if (!ctx) {
+  if (!ctx)
     throw new Error(
       "useNotifications must be used inside NotificationProvider"
     );
-  }
   return ctx;
 };

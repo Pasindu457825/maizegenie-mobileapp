@@ -2,59 +2,103 @@ import React from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   FlatList,
   StyleSheet,
+  TouchableOpacity,
+  Pressable,
+  Platform,
 } from "react-native";
-import { ArrowLeft, Bell } from "lucide-react-native";
+import { ArrowLeft, Bell, Trash2 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
-
-import { useNotifications } from "../../context/NotificationContext";
 import { useLanguage } from "../../context/LanguageContext";
-
-// ✅ ROOT NAVIGATION TYPE
+import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation";
 
-// 🔑 Typed navigation prop
-type RootNavProp = StackNavigationProp<RootStackParamList, "Notifications">;
+type RootNavProp = StackNavigationProp<
+  RootStackParamList,
+  "Notifications"
+>;
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<RootNavProp>();
+  const { language } = useLanguage();
+  const isSinhala = language === "sinhala";
 
   const {
     notifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
   } = useNotifications();
 
-  const { language } = useLanguage();
-  const isSinhala = language === "sinhala";
+  /* =======================
+     CONFIRM DELETE (WEB + MOBILE)
+  ======================= */
+  const confirmDelete = (id: string) => {
+    if (Platform.OS === "web") {
+      const ok = window.confirm(
+        isSinhala
+          ? "මෙම දැනුම්දීම මකා දැමීමට ඔබට විශ්වාසද?"
+          : "Are you sure you want to delete this notification?"
+      );
+      if (ok) deleteNotification(id);
+      return;
+    }
 
-  const renderItem = ({ item }: any) => {
-    const handlePress = async () => {
-      if (!item.read) {
-        await markAsRead(item.id);
-      }
-    };
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.8}
-        onPress={handlePress}
-        style={[
-          styles.card,
-          !item.read && styles.unreadCard,
-        ]}
-      >
-        <Text style={styles.title}>{item.title}</Text>
-        <Text style={styles.message}>{item.message}</Text>
-        <Text style={styles.time}>
-          {new Date(item.created_at).toLocaleString()}
-        </Text>
-      </TouchableOpacity>
-    );
+    // Mobile
+    import("react-native").then(({ Alert }) => {
+      Alert.alert(
+        isSinhala ? "දැනුම්දීම මකන්නද?" : "Delete notification?",
+        isSinhala
+          ? "මෙය මකා දැමීමට ඔබට විශ්වාසද?"
+          : "Are you sure you want to delete this notification?",
+        [
+          { text: isSinhala ? "නැහැ" : "Cancel", style: "cancel" },
+          {
+            text: isSinhala ? "මකන්න" : "Delete",
+            style: "destructive",
+            onPress: () => deleteNotification(id),
+          },
+        ]
+      );
+    });
   };
+
+  const renderItem = ({ item }: any) => (
+    <View
+      style={[
+        styles.card,
+        !item.read && styles.unreadCard,
+      ]}
+    >
+      <View style={styles.row}>
+        {/* READ AREA */}
+        <Pressable
+          style={{ flex: 1 }}
+          onPress={() => !item.read && markAsRead(item.id)}
+        >
+          <Text style={styles.title}>{item.title}</Text>
+          <Text style={styles.message}>{item.message}</Text>
+          <Text style={styles.time}>
+            {new Date(item.created_at).toLocaleString()}
+          </Text>
+        </Pressable>
+
+        {/* DELETE BUTTON */}
+        <Pressable
+          onPressIn={() => confirmDelete(item.id)} // 👈 WEB SAFE
+          style={styles.deleteBtn}
+        >
+          <Trash2
+            size={18}
+            color="#EF4444"
+            pointerEvents="none"
+          />
+        </Pressable>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -68,12 +112,14 @@ export default function NotificationsScreen() {
           {isSinhala ? "දැනුම්දීම්" : "Notifications"}
         </Text>
 
-        {notifications.length > 0 && (
+        {notifications.some((n) => !n.read) ? (
           <TouchableOpacity onPress={markAllAsRead}>
             <Text style={styles.clearText}>
               {isSinhala ? "සියල්ල කියවූවා" : "Mark all read"}
             </Text>
           </TouchableOpacity>
+        ) : (
+          <View style={{ width: 80 }} />
         )}
       </View>
 
@@ -91,9 +137,8 @@ export default function NotificationsScreen() {
         <FlatList
           data={notifications}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
           renderItem={renderItem}
-          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ padding: 16 }}
         />
       )}
     </View>
@@ -105,41 +150,44 @@ export default function NotificationsScreen() {
 ======================= */
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F0FDF4",
-  },
+  container: { flex: 1, backgroundColor: "#F0FDF4" },
+
   header: {
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 20,
     backgroundColor: "#FFFFFF",
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
+
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#065F46",
   },
+
   clearText: {
     fontSize: 12,
     color: "#10B981",
     fontWeight: "600",
   },
+
   empty: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
   },
+
   emptyText: {
     fontSize: 14,
     color: "#6B7280",
   },
+
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -148,22 +196,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
+
   unreadCard: {
     borderColor: "#10B981",
     borderWidth: 2,
     backgroundColor: "#ECFDF5",
   },
+
+  row: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+
+  deleteBtn: {
+    padding: 6,
+    cursor: Platform.OS === "web" ? "pointer" : "auto",
+  },
+
   title: {
     fontSize: 14,
     fontWeight: "bold",
     color: "#065F46",
-    marginBottom: 4,
   },
+
   message: {
     fontSize: 13,
     color: "#374151",
-    marginBottom: 6,
+    marginVertical: 4,
   },
+
   time: {
     fontSize: 11,
     color: "#6B7280",
