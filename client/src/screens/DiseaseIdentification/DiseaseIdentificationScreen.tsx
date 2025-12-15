@@ -399,6 +399,17 @@ const DiseaseIdentificationScreen = () => {
     return "🟢";
   };
 
+  // Convert class names like "gray_leaf_spot" → "Gray Leaf Spot"
+  const formatDiseaseName = (name: string) => {
+    return name
+      .replace(/_/g, " ") // replace underscores
+      .replace(/\s+/g, " ") // fix extra spaces
+      .trim()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#059669" />
@@ -710,8 +721,9 @@ const DiseaseIdentificationScreen = () => {
                         </View>
                         <View style={styles.predictionDetails}>
                           <Text style={styles.diseaseName}>
-                            {prediction.class_name}
+                            {formatDiseaseName(prediction.class_name)}
                           </Text>
+
                           <View style={styles.confidenceRow}>
                             <Text style={styles.confidenceLabel}>
                               {content[language].confidence}:
