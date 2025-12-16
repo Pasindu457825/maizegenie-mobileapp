@@ -31,12 +31,12 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React Native / Flutter (mobile), PWA (web)  
-- **Backend**: Flask / FastAPI (Python), Node.js (optional APIs)  
+- **Frontend**: React Native  
+- **Backend**: Flask / FastAPI (Python)
 - **Machine Learning**: TensorFlow, scikit-learn, Prophet, XGBoost, YOLO  
-- **Database**: Firebase / MongoDB  
+- **Database**: Superbase
 - **Explainability**: SHAP, LIME  
-- **Other Services**: Google Calendar API, gTTS/Coqui TTS (Sinhala/English voice)  
+- **Other Services**: Google Calendar API, gTTS/Coqui TTS (Sinhala/English voice) 
 
 ---
 
