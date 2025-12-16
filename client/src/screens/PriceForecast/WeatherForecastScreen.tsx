@@ -752,35 +752,6 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  useEffect(() => {
-    if (!hourlyData || hourlyData.length === 0) return;
-    if (sentRainAlert) return; // 🚫 already sent
-
-    const rainInfo = getFirstRainHour();
-    if (!rainInfo) return;
-
-    const { index, time } = rainInfo;
-
-    // ⏱️ Only if rain is within next 3 hours
-    if (index <= 3) {
-      const hourLabel = time.toLocaleString("en-US", {
-        hour: "numeric",
-        hour12: true,
-        timeZone: "Asia/Colombo",
-      });
-
-      sendNotification(
-        language === "sinhala" ? "⚠️ වැසි අනතුරු ඇඟවීම" : "⚠️ Rain Alert",
-        language === "sinhala"
-          ? `${hourLabel} වටා වැසි ඇතිවිය හැක. ඉක්මනින් වගා/අස්වැන්න ආරක්ෂා කර ගන්න.`
-          : `Rain may occur around ${hourLabel}. Protect farming and harvest.`,
-        "weather"
-      );
-
-      setSentRainAlert(true); // ✅ send only once
-    }
-  }, [hourlyData]);
-
   const getTrafficColor = (day: WeatherDay): "red" | "yellow" | "green" => {
     const rain = day.rain_mm || 0;
     const temp = day.temperature;
