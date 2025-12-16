@@ -27,7 +27,7 @@ const ProfileScreen = () => {
     const loadPredictionHistory = async () => {
         try {
             setLoading(true);
-            const response = await getFarmerPredictionHistory(10);
+            const response = await getFarmerPredictionHistory(1);
             setPredictions(response.predictions || []);
         } catch (error: any) {
             console.error('Failed to load prediction history:', error);
@@ -47,7 +47,7 @@ const ProfileScreen = () => {
         try {
             await Share.share({
                 message: prediction.shareable_text,
-                title: '🌾 Maize Yield Prediction Request',
+                title: ' Maize Yield Prediction Request',
             });
         } catch (error) {
             console.error('Share failed:', error);
@@ -107,11 +107,11 @@ const ProfileScreen = () => {
                 <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
 
-            {/* Prediction History Section */}
+            {/* Recent Prediction Section */}
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Leaf color="#10B981" size={24} />
-                    <Text style={styles.sectionTitle}>Prediction History</Text>
+                    <Text style={styles.sectionTitle}>Recent Prediction</Text>
                 </View>
 
                 {loading ? (
@@ -128,60 +128,62 @@ const ProfileScreen = () => {
                         </Text>
                     </View>
                 ) : (
-                    predictions.map((prediction, index) => (
-                        <View key={prediction.id || index} style={styles.predictionCard}>
-                            <View style={styles.predictionHeader}>
-                                <View style={styles.predictionInfo}>
-                                    <Text style={styles.predictionVariety}>
-                                        {prediction.variety}
-                                    </Text>
-                                    <View style={styles.predictionMeta}>
-                                        <Calendar color="#6B7280" size={14} />
-                                        <Text style={styles.predictionDate}>
-                                            {formatDate(prediction.created_at)}
+                    <View>
+                        {predictions.slice(0, 1).map((prediction, index) => (
+                            <View key={prediction.id || index} style={styles.predictionCard}>
+                                <View style={styles.predictionHeader}>
+                                    <View style={styles.predictionInfo}>
+                                        <Text style={styles.predictionVariety}>
+                                            {prediction.variety}
+                                        </Text>
+                                        <View style={styles.predictionMeta}>
+                                            <Calendar color="#6B7280" size={14} />
+                                            <Text style={styles.predictionDate}>
+                                                {formatDate(prediction.created_at)}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.shareButton}
+                                        onPress={() => handleSharePrediction(prediction)}
+                                    >
+                                        <Share2 color="#10B981" size={20} />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <View style={styles.predictionDetails}>
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.detailLabel}>District:</Text>
+                                        <Text style={styles.detailValue}>{prediction.district}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.detailLabel}>Season:</Text>
+                                        <Text style={styles.detailValue}>{prediction.season}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.detailLabel}>Land Size:</Text>
+                                        <Text style={styles.detailValue}>{prediction.land_size}</Text>
+                                    </View>
+                                    <View style={styles.detailRow}>
+                                        <Text style={styles.detailLabel}>Planting Date:</Text>
+                                        <Text style={styles.detailValue}>
+                                            {formatDate(prediction.planting_date)}
                                         </Text>
                                     </View>
                                 </View>
+
                                 <TouchableOpacity
-                                    style={styles.shareButton}
+                                    style={styles.shareTextButton}
                                     onPress={() => handleSharePrediction(prediction)}
                                 >
-                                    <Share2 color="#10B981" size={20} />
+                                    <Share2 color="#FFFFFF" size={16} />
+                                    <Text style={styles.shareTextButtonText}>
+                                        Share with Officer
+                                    </Text>
                                 </TouchableOpacity>
                             </View>
-
-                            <View style={styles.predictionDetails}>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>District:</Text>
-                                    <Text style={styles.detailValue}>{prediction.district}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>Season:</Text>
-                                    <Text style={styles.detailValue}>{prediction.season}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>Land Size:</Text>
-                                    <Text style={styles.detailValue}>{prediction.land_size}</Text>
-                                </View>
-                                <View style={styles.detailRow}>
-                                    <Text style={styles.detailLabel}>Planting Date:</Text>
-                                    <Text style={styles.detailValue}>
-                                        {formatDate(prediction.planting_date)}
-                                    </Text>
-                                </View>
-                            </View>
-
-                            <TouchableOpacity
-                                style={styles.shareTextButton}
-                                onPress={() => handleSharePrediction(prediction)}
-                            >
-                                <Share2 color="#FFFFFF" size={16} />
-                                <Text style={styles.shareTextButtonText}>
-                                    Share with Officer
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    ))
+                        ))}
+                    </View>
                 )}
             </View>
         </ScrollView>
