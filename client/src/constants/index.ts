@@ -14,7 +14,6 @@ export const ROUTES = {
     PRICEFORECAST: "PriceForecast",
     PESTIDENTIFIER: "PestIdentifier",
     DISEASEIDENTIFIER: "DiseaseIdentifier",
-    FERTILIZERADVISOR: "FertilizerAdvisor",
     PREDICTYIELD: "PredictYield",
     USERPROFILE: "UserProfile",
     ADMINPANEL: "AdminPanel",

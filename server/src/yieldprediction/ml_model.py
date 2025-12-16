@@ -48,7 +48,8 @@ def _build_feature_vector(data: Dict) -> List[float]:
     today = dt.date.today()
     days_since_planting = (today - planting_date).days
 
-    land_size = float(data.get("land_size_value") or 1.0)
+    # ML model expects land size in ACRES (training dataset used acres)
+    land_size = float(data.get("land_size_acres") or data.get("land_size_value") or 1.0)
 
     return [
         district_map.get(data["district"], 0),
