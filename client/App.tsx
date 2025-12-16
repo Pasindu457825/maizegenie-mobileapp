@@ -5,23 +5,23 @@ import { ErrorProvider } from "./src/utils/errorHandling";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import "react-native-gesture-handler";
 import RootNavigator from "./src/navigation";
-
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import "./global.css";
-
-
 import { LanguageProvider } from "./src/context/LanguageContext";
+import { NotificationProvider } from "./src/context/NotificationContext";
 
 export default function App() {
   return (
     <LanguageProvider>
       <ThemeProvider>
         <AppProvider>
-          <SafeAreaProvider>
-            <ErrorProvider>
-              <Root />
-            </ErrorProvider>
-          </SafeAreaProvider>
+          <NotificationProvider>
+            <SafeAreaProvider>
+              <ErrorProvider>
+                <Root />
+              </ErrorProvider>
+            </SafeAreaProvider>
+          </NotificationProvider>
         </AppProvider>
       </ThemeProvider>
     </LanguageProvider>
