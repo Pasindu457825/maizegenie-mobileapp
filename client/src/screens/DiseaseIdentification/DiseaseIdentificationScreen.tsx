@@ -767,22 +767,24 @@ const DiseaseIdentificationScreen = () => {
 
                 {/* Action Buttons */}
                 <View style={styles.resultActions}>
-                  <TouchableOpacity
-                    style={styles.detailsButton}
-                    onPress={() =>
-                      navigation.navigate("SeverityDetails", {
-                        image: imageUri,
-                        severity_score: result.severity_score,
-                        severity_label: result.severity_label,
-                        predictions: result.predictions,
-                      })
-                    }
-                  >
-                    <Text style={styles.detailsButtonText}>
-                      {content[language].viewDetails}
-                    </Text>
-                    <ChevronRight color="#FFFFFF" size={18} />
-                  </TouchableOpacity>
+                  {result?.predictions?.some((p) => p.confidence >= 0.4) && (
+                    <TouchableOpacity
+                      style={styles.detailsButton}
+                      onPress={() =>
+                        navigation.navigate("SeverityDetails", {
+                          image: imageUri,
+                          severity_score: result.severity_score,
+                          severity_label: result.severity_label,
+                          predictions: result.predictions,
+                        })
+                      }
+                    >
+                      <Text style={styles.detailsButtonText}>
+                        {content[language].viewDetails}
+                      </Text>
+                      <ChevronRight color="#FFFFFF" size={18} />
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
                     style={styles.resetButton}
