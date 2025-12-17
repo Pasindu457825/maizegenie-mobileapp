@@ -228,7 +228,7 @@ const DISEASE_INFO: Record<
     },
   },
 
-  gray_leaf_spot: {
+  gray_spot: {
     en: {
       name: "Gray Leaf Spot",
       overview:

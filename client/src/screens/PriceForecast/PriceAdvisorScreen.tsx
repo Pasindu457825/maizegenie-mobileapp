@@ -37,7 +37,7 @@ import {
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { useNotifications } from "../../context/NotificationContext";
 
 const { width } = Dimensions.get("window");
 
@@ -47,6 +47,13 @@ type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
   "PriceAdvisorScreen"
 >;
+
+type RootStackParamList = {
+  PriceForecastFormScreen: undefined;
+  WeatherForecastScreen: undefined;
+  PriceAdvisorScreen: { formData: any } | undefined;
+  Notifications: undefined;
+};
 
 interface RouteParams {
   formData?: {
@@ -78,8 +85,6 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-
-
 type QuestionKey =
   | "plant_now"
   | "delay_planting"
@@ -101,7 +106,9 @@ const PriceAdvisorScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
-
+  const { unreadCount } = useNotifications();
+  type RootNavProp = StackNavigationProp<RootStackParamList>;
+  const rootNavigation = useNavigation<RootNavProp>();
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
   const language: Language = globalLang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -708,8 +715,19 @@ const PriceAdvisorScreen: React.FC = () => {
         </View>
 
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity
+            style={styles.headerIconButton}
+            onPress={() => rootNavigation.navigate("Notifications")}
+          >
             <Bell color="#10B981" size={20} />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -1437,5 +1455,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
     fontWeight: "500",
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
   },
 });

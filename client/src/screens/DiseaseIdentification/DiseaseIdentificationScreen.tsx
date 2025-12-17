@@ -45,6 +45,8 @@ import * as Speech from "expo-speech";
 
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 
+import { Audio } from "expo-av";
+
 type NavProp = StackNavigationProp<
   DiseaseIdentifyStackParamList,
   "DiseaseDetection"
@@ -168,6 +170,18 @@ const DiseaseIdentificationScreen = () => {
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
+    if (Platform.OS !== "web") {
+      Audio.setAudioModeAsync({
+        allowsRecordingIOS: false,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     // Entrance animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -204,6 +218,8 @@ const DiseaseIdentificationScreen = () => {
       ])
     ).start();
   }, []);
+
+  const soundRef = useRef<Audio.Sound | null>(null);
 
   const requestPermissions = async (
     type: "camera" | "gallery"
@@ -353,18 +369,56 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
-  const speakDisease = (predictionName: string) => {
-    const text =
-      language === "si"
-        ? `${predictionName} රෝගය හමුවිය`
-        : `${predictionName} disease detected`;
+  const speakDisease = async (predictionName: string) => {
+    const cleanName = formatDiseaseName(predictionName).toLowerCase();
 
-    Speech.speak(text, {
-      language: language === "si" ? "si-LK" : "en-US",
-      rate: 0.9,
-      pitch: 1.0,
-    });
+    // 🔴 ALWAYS stop TTS first (iOS requirement)
+    Speech.stop();
+
+    // 🔴 Stop & unload previous audio if any
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+      } catch {}
+      soundRef.current = null;
+    }
+
+    // 🇱🇰 Sinhala → play recorded audio
+    if (language === "si" && sinhalaAudioMap[cleanName]) {
+      try {
+        const { sound } = await Audio.Sound.createAsync(
+          sinhalaAudioMap[cleanName],
+          { shouldPlay: true }
+        );
+        soundRef.current = sound;
+        return;
+      } catch (err) {
+        console.log("Sinhala audio failed, fallback to TTS", err);
+      }
+    }
+
+    // 🔊 English / fallback TTS (NOW WORKS ON iOS)
+    Speech.speak(
+      language === "si"
+        ? `${cleanName} රෝගය හමුවිය`
+        : `${cleanName} disease detected`,
+      {
+        language: language === "si" ? "si-LK" : "en-US",
+        rate: 0.9,
+        pitch: 1.0,
+      }
+    );
   };
+
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+      Speech.stop();
+    };
+  }, []);
 
   const resetScreen = () => {
     setImageUri(null);
@@ -397,6 +451,23 @@ const DiseaseIdentificationScreen = () => {
     if (sev.includes("high") || sev.includes("severe")) return "🔴";
     if (sev.includes("medium") || sev.includes("moderate")) return "🟡";
     return "🟢";
+  };
+
+  // Convert class names like "gray_leaf_spot" → "Gray Leaf Spot"
+  const formatDiseaseName = (name: string) => {
+    return name
+      .replace(/_/g, " ") // replace underscores
+      .replace(/\s+/g, " ") // fix extra spaces
+      .trim()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const sinhalaAudioMap: Record<string, any> = {
+    "gray spot": require("../../../assets/disease_sinhala_voices/gray_leaf_spot_si.wav"),
+    "common rust": require("../../../assets/disease_sinhala_voices/common_rust_si.wav"),
+    blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
 
   return (
@@ -710,8 +781,9 @@ const DiseaseIdentificationScreen = () => {
                         </View>
                         <View style={styles.predictionDetails}>
                           <Text style={styles.diseaseName}>
-                            {prediction.class_name}
+                            {formatDiseaseName(prediction.class_name)}
                           </Text>
+
                           <View style={styles.confidenceRow}>
                             <Text style={styles.confidenceLabel}>
                               {content[language].confidence}:
@@ -755,22 +827,24 @@ const DiseaseIdentificationScreen = () => {
 
                 {/* Action Buttons */}
                 <View style={styles.resultActions}>
-                  <TouchableOpacity
-                    style={styles.detailsButton}
-                    onPress={() =>
-                      navigation.navigate("SeverityDetails", {
-                        image: imageUri,
-                        severity_score: result.severity_score,
-                        severity_label: result.severity_label,
-                        predictions: result.predictions,
-                      })
-                    }
-                  >
-                    <Text style={styles.detailsButtonText}>
-                      {content[language].viewDetails}
-                    </Text>
-                    <ChevronRight color="#FFFFFF" size={18} />
-                  </TouchableOpacity>
+                  {result?.predictions?.some((p) => p.confidence >= 0.4) && (
+                    <TouchableOpacity
+                      style={styles.detailsButton}
+                      onPress={() =>
+                        navigation.navigate("SeverityDetails", {
+                          image: imageUri,
+                          severity_score: result.severity_score,
+                          severity_label: result.severity_label,
+                          predictions: result.predictions,
+                        })
+                      }
+                    >
+                      <Text style={styles.detailsButtonText}>
+                        {content[language].viewDetails}
+                      </Text>
+                      <ChevronRight color="#FFFFFF" size={18} />
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
                     style={styles.resetButton}
