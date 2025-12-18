@@ -38,10 +38,90 @@ import {
   ChevronRight,
   X,
 } from "lucide-react-native";
+import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type CircularProgressProps = {
+  percent: number;
+};
+
+const CircularProgress: React.FC<CircularProgressProps> = ({ percent }) => {
+  const size = 120;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const strokeDashoffset = circumference - (circumference * percent) / 100;
+
+  return (
+    <View style={{ alignItems: "center", marginVertical: 16 }}>
+      <Svg width={size} height={size}>
+        <Defs>
+          {/* Gradient definition */}
+          <LinearGradient
+            id="progressGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="0%"
+          >
+            <Stop offset="0%" stopColor="#22C55E" />
+            <Stop offset="40%" stopColor="#F59E0B" />
+            <Stop offset="70%" stopColor="#EC4899" />
+            <Stop offset="100%" stopColor="#8B5CF6" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Background circle */}
+        <Circle
+          stroke="#E5E7EB"
+          fill="none"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+        />
+
+        {/* Gradient progress circle */}
+        <Circle
+          stroke="url(#progressGradient)"
+          fill="none"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          rotation="-90"
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+
+      {/* Center Text */}
+      <View
+        style={{
+          position: "absolute",
+          alignItems: "center",
+          justifyContent: "center",
+          height: size,
+          width: size,
+        }}
+      >
+        <Text style={{ fontSize: 24, fontWeight: "bold", color: "#111827" }}>
+          {percent}%
+        </Text>
+        <Text style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>
+          සූදානම්
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 const { width } = Dimensions.get("window");
 
@@ -69,11 +149,22 @@ interface RouteParams {
 
 interface AdvisorFormData {
   district: string;
-  plantingDate: string;
+  plantingDate: string; // මෙතැන month string එක දානවා (e.g., "දෙසැම්බර්")
   seedVariety: string;
   area: string;
-  totalCost: string;
-  expectedYield: string;
+
+  // ✅ Decision-Support extra fields
+  budgetLevel: "low" | "medium" | "high";
+  experienceLevel: "new" | "some" | "experienced";
+  hasIrrigation: boolean;
+
+  readiness: {
+    seeds: boolean;
+    water: boolean;
+    land: boolean;
+    fertilizer: boolean;
+    capital: boolean;
+  };
 }
 
 // Dynamic API URL based on platform
@@ -105,8 +196,27 @@ const VARIETY_DURATION_WEEKS: Record<string, number> = {
 };
 
 const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
+const DISTRICTS = ["අනුරාධපුර", "මොණරාගල", "දඹුල්ල"];
+
+const MONTHS_SI = [
+  "ජනවාරි",
+  "පෙබරවාරි",
+  "මාර්තු",
+  "අප්‍රේල්",
+  "මැයි",
+  "ජූනි",
+  "ජූලි",
+  "අගෝස්තු",
+  "සැප්තැම්බර්",
+  "ඔක්තෝබර්",
+  "නොවැම්බර්",
+  "දෙසැම්බර්",
+];
 
 const PriceAdvisorScreen: React.FC = () => {
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDistrictPicker, setShowDistrictPicker] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const navigation = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
@@ -241,10 +351,18 @@ const PriceAdvisorScreen: React.FC = () => {
     plantingDate: "",
     seedVariety: "",
     area: "",
-    totalCost: params.formData?.cost ? String(params.formData.cost) : "",
-    expectedYield: params.formData?.yieldKg
-      ? String(params.formData.yieldKg)
-      : "",
+
+    budgetLevel: "medium",
+    experienceLevel: "new",
+    hasIrrigation: false,
+
+    readiness: {
+      seeds: false,
+      water: false,
+      land: false,
+      fertilizer: false,
+      capital: false,
+    },
   });
 
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionKey | null>(
@@ -375,138 +493,363 @@ const PriceAdvisorScreen: React.FC = () => {
     return "moderate" as const;
   };
 
-  const classifyProfitWindow = () => {
-    const area = parseFloat(form.area || "0");
-    const cost = parseFloat(form.totalCost || "0");
-    const yieldPer = parseFloat(form.expectedYield || "0");
+  const getReadinessScore = () => {
+    const r = form.readiness;
 
-    if (!area || !cost || !yieldPer) {
-      return "medium" as const;
-    }
+    const done =
+      (r.seeds ? 1 : 0) +
+      (r.water ? 1 : 0) +
+      (r.land ? 1 : 0) +
+      (r.fertilizer ? 1 : 0) +
+      (r.capital ? 1 : 0);
 
-    const assumedPricePerKg = 150;
-    const totalYield = area * yieldPer;
-    const revenue = totalYield * assumedPricePerKg;
-    const profit = revenue - cost;
+    const total = 5;
+    const percent = Math.round((done / total) * 100);
 
-    if (profit <= 0) return "bad" as const;
-    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-    if (margin >= 40) return "good" as const;
-    if (margin >= 15) return "medium" as const;
-    return "bad" as const;
+    return { done, total, percent };
   };
 
-const handleQuestionPress = (key: QuestionKey) => {
-  setSelectedQuestion(key);
-  const plantingClass = classifyPlantingWindow();
-  let answer = "";
+  const buildExplainableDecision = () => {
+    const plantingClass = classifyPlantingWindow();
+    const { done, total, percent } = getReadinessScore();
 
-  if (key === "start_now") {
-    answer =
-      plantingClass === "risky"
-        ? "දැනට වගාව ආරම්භ කිරීම අවදානම් ලෙස පෙනේ. වැසි සහ කාලගුණය ස්ථාවර වනතුරු ටික දවසක් රැඳී සිටීම වඩාත් ආරක්ෂිතය."
-        : plantingClass === "moderate"
-        ? "වගාව ආරම්භ කළ හැකි නමුත් මධ්‍යම මට්ටමේ අවදානමක් පවතී. ජල කළමනාකරණය සහ පස තත්ත්වය පිළිබඳ විශේෂ අවධානයක් යොමු කරන්න."
-        : "දැනට වගාව ආරම්භ කිරීමට හොඳ කාලයක් ලෙස පෙනේ. සාමාන්‍ය සැලසුම් සහිතව වගාව ආරම්භ කළ හැක.";
+    const district = (form.district || "").trim();
+    const month = (form.plantingDate || "").trim();
+    const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
+    const areaNum = parseFloat(form.area || "0") || 0;
+
+    const durationWeeks =
+      VARIETY_DURATION_WEEKS[seed] ?? VARIETY_DURATION_WEEKS["Unknown"];
+
+    // ---------- Decision (Ready / Caution / Prepare) ----------
+    // base risk from weather
+    let risk = 0;
+    if (plantingClass === "risky") risk += 3;
+    else if (plantingClass === "moderate") risk += 1;
+
+    // readiness
+    if (done <= 2) risk += 3;
+    else if (done === 3) risk += 1;
+
+    // irrigation effect
+    if (!form.hasIrrigation && !form.readiness.water) risk += 2;
+
+    // experience + budget
+    if (form.experienceLevel === "new" && form.budgetLevel === "low") risk += 2;
+
+    // unknown seed
+    if (seed === "Unknown") risk += 2;
+
+    // large area with weak readiness
+    if (areaNum >= 3 && done <= 3) risk += 1;
+
+    let category: "ready" | "caution" | "prepare" = "caution";
+    if (risk >= 7) category = "prepare";
+    else if (risk <= 3 && percent >= 80 && plantingClass !== "risky")
+      category = "ready";
+
+    // ---------- Build Explanation (Why) ----------
+    const why: string[] = [];
+
+    // Weather reason
+    if (plantingClass === "excellent") {
+      why.push("කාලගුණ තත්ත්වය සාමාන්‍යයෙන් වගාවට හිතකරයි.");
+    } else if (plantingClass === "moderate") {
+      why.push("කාලගුණ තත්ත්වය මධ්‍යම අවදානම් මට්ටමක පවතී.");
+    } else {
+      why.push(
+        "කාලගුණ තත්ත්වය අවදානම් ලෙස පෙනේ (වැසි/අකුණු/උෂ්ණත්ව අන්තයන් වැනි හේතු තිබිය හැක)."
+      );
+    }
+
+    // Context reasons
+    if (!district)
+      why.push(
+        "දිස්ත්‍රික්කය නොදැක්වූ නිසා district-wise උපදෙස් සම්පූර්ණ නොවේ."
+      );
+    else
+      why.push(`${district} දිස්ත්‍රික්කය සඳහා කන්න/කාලගුණ පසුබිම සලකා බැලේ.`);
+
+    if (!month)
+      why.push("මාසය නොදැක්වූ නිසා (මහ/යාල) කාලය පදනම් කරගත් තීරණය සීමිත වේ.");
+    else why.push(`ඔබ තෝරාගත් මාසය: ${month}.`);
+
+    // Seed reason
+    if (seed === "Unknown") {
+      why.push("බීජ වර්ගය Unknown ලෙස තිබීම නිසා අවදානම වැඩි වේ.");
+    } else {
+      why.push(
+        `${seed} වර්ගය සඳහා සාමාන්‍ය වගා කාලය සති ${durationWeeks}ක් පමණ වේ.`
+      );
+    }
+
+    // Advanced reasons
+    if (form.hasIrrigation)
+      why.push("වාරිමාර්ග/ජලය තිබීම නිසා වගාව ස්ථාවර කරගැනීම පහසුය.");
+    else
+      why.push(
+        "වාරිමාර්ග නොමැති නම් වැසි මත පමණක් විශ්වාස වීමෙන් අවදානම වැඩිවිය හැක."
+      );
+
+    if (form.experienceLevel === "new")
+      why.push("අත්දැකීම් අඩු නම් ආරම්භයේදී අවධානයෙන් පියවර ගන්න.");
+    if (form.budgetLevel === "low")
+      why.push(
+        "වියදම් පරාසය අඩු නම් මුල් වියදම් (බීජ/පොහොර/වැඩකරු) හොඳින් සැලසුම් කරන්න."
+      );
+
+    // ---------- Readiness breakdown ----------
+    const readinessLines: string[] = [];
+    readinessLines.push(`ඔබගේ වගා සූදානම්කම: ${done}/${total} (${percent}%).`);
+
+    const addCheckLine = (ok: boolean, label: string) =>
+      readinessLines.push(`${ok ? "✔️" : "❌"} ${label}`);
+
+    addCheckLine(form.readiness.seeds, "බීජ සූදානම්");
+    addCheckLine(form.readiness.water, "ජල සැලසුම");
+    addCheckLine(form.readiness.land, "භූමිය සකස් කිරීම");
+    addCheckLine(form.readiness.fertilizer, "පොහොර සැලසුම");
+    addCheckLine(form.readiness.capital, "මුල් වියදම් / මුදල් සැලසුම");
+
+    // ---------- Actionable next steps ----------
+    const actions: string[] = [];
+    if (!form.readiness.water && !form.hasIrrigation)
+      actions.push("ජල සැලසුම/backup plan එකක් සකස් කරන්න.");
+    if (!form.readiness.fertilizer)
+      actions.push("පොහොර සැලසුම (වර්ග/කාලසටහන) සකස් කරන්න.");
+    if (!form.readiness.capital)
+      actions.push("මුල් වියදම් සම්පූර්ණයෙන් සැලසුම් කරගන්න.");
+    if (seed === "Unknown")
+      actions.push("බීජ වර්ගය නිශ්චිතව තෝරාගන්න හෝ වෘත්තීය උපදෙස් ලබාගන්න.");
+    if (plantingClass === "risky")
+      actions.push(
+        "දින කිහිපයක් කාලගුණය නිරීක්ෂණය කර පසුව ආරම්භ කිරීම සලකා බලන්න."
+      );
+
+    if (actions.length === 0) {
+      actions.push(
+        "ඔබගේ සැලසුම හොඳයි. කාලගුණය සහ වෙළඳපොළ තත්ත්වය නිතර පරීක්ෂා කරමින් ආරම්භ කරන්න."
+      );
+    }
+
+    // ---------- Final Title + Tag ----------
+    let title = "අවධානයෙන් ආරම්භ කරන්න";
+    let tag: "good" | "info" | "warn" = "info";
+
+    if (category === "ready") {
+      title = "වගාව ආරම්භ කිරීමට සූදානම්";
+      tag = "good";
+    } else if (category === "prepare") {
+      title = "තවත් සූදානම් වීම වඩා හොඳයි";
+      tag = "warn";
+    }
+
+    // ---------- Final Text (Explainable answer) ----------
+    const text =
+      `තීරණය: ${title}\n\n` +
+      `හේතු:\n• ${why.join("\n• ")}\n\n` +
+      `${readinessLines.join("\n")}\n\n` +
+      `ඊළඟට කළ යුතු දේ:\n• ${actions.join("\n• ")}`;
+
+    return { text, tag };
+  };
+
+  const handleQuestionPress = (key: QuestionKey) => {
+    setSelectedQuestion(key);
+    const plantingClass = classifyPlantingWindow();
+    let answer = "";
+
+    if (key === "start_now") {
+      answer =
+        plantingClass === "risky"
+          ? "දැනට වගාව ආරම්භ කිරීම අවදානම්. කාලගුණය ස්ථාවර වනතුරු රැඳී සිටින්න."
+          : plantingClass === "moderate"
+          ? "වගාව ආරම්භ කළ හැක, නමුත් මධ්‍යම අවදානමක් ඇත."
+          : "දැනට වගාව ආරම්භ කිරීමට හොඳ කාලයක් ලෙස පෙනේ.";
+    }
+
+    if (key === "before_start") {
+      answer =
+        "වගාව ආරම්භ කිරීමට පෙර බීජ වර්ගය, ජල සැලසුම, භූමි සකස් කිරීම සහ මුල් වියදම් සැලසුම් කරගැනීම වැදගත්ය.";
+    }
+
+    if (key === "district_time") {
+      answer = form.district
+        ? `${form.district} දිස්ත්‍රික්කය සඳහා මේ කාලය ${
+            plantingClass === "risky" ? "අවදානම්" : "සාමාන්‍යයෙන් සුදුසු"
+          } ලෙස පෙනේ.`
+        : "මුලින්ම ඔබගේ දිස්ත්‍රික්කය ඇතුළත් කරන්න.";
+    }
+
+    if (key === "biggest_risk") {
+      answer =
+        "ප්‍රධාන අවදානම් වන්නේ කාලගුණය, ජල සැලසුම සහ බීජ වර්ගය නිසි ලෙස තෝරා නොගැනීමයි.";
+    }
+
+    if (key === "need_professional") {
+      answer =
+        plantingClass === "risky"
+          ? "ඔව්. මෙම තත්ත්වය සඳහා වෘත්තීය උපදෙස් ලබාගැනීම නිර්දේශ කරයි."
+          : "අත්‍යවශ්‍ය නොවේ, නමුත් අවශ්‍ය නම් වෘත්තීය උපදෙස් ලබාගත හැක.";
+    }
+
+    setQuickAnswer(answer);
+  };
+  type ToggleRowProps = {
+    label: string;
+    value: boolean;
+    onChange: (v: boolean) => void;
+  };
+
+  const ToggleRow: React.FC<ToggleRowProps> = ({ label, value, onChange }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => onChange(!value)}
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingVertical: 12,
+        }}
+      >
+        <Text style={{ fontSize: 14, color: "#065F46", fontWeight: "600" }}>
+          {label}
+        </Text>
+
+        <View
+          style={{
+            width: 44,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: value ? "#10B981" : "#E5E7EB",
+            justifyContent: "center",
+            paddingHorizontal: 3,
+          }}
+        >
+          <View
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: "#FFFFFF",
+              alignSelf: value ? "flex-end" : "flex-start",
+            }}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  type OptionRowProps<T extends string> = {
+    label: string;
+    options: T[];
+    value: T;
+    onChange: (v: T) => void;
+  };
+
+  function OptionRow<T extends string>({
+    label,
+    options,
+    value,
+    onChange,
+  }: OptionRowProps<T>) {
+    return (
+      <View style={{ marginTop: 12 }}>
+        <Text
+          style={{
+            fontSize: 13,
+            color: "#065F46",
+            fontWeight: "600",
+            marginBottom: 6,
+          }}
+        >
+          {label}
+        </Text>
+
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {options.map((opt) => {
+            const active = opt === value;
+            return (
+              <TouchableOpacity
+                key={opt}
+                onPress={() => onChange(opt)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 2,
+                  borderColor: active ? "#10B981" : "#D1FAE5",
+                  backgroundColor: active ? "#ECFDF5" : "#FFFFFF",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: active ? "#047857" : "#6B7280",
+                  }}
+                >
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
   }
 
-  if (key === "before_start") {
-    answer =
-      "වගාව ආරම්භ කිරීමට පෙර සුදුසු බීජ වර්ගය තෝරාගැනීම, පස සකස් කිරීම, ජල සැලසුම, පොහොර අවශ්‍යතාවය සහ මුල් වියදම් සැලසුම් කරගැනීම අත්‍යවශ්‍යය.";
-  }
+  type CheckItemProps = {
+    label: string;
+    state: boolean;
+    onChange: (v: boolean) => void;
+  };
 
-  if (key === "district_time") {
-    answer = form.district
-      ? `${form.district} දිස්ත්‍රික්කය සඳහා මේ කාලය ${
-          plantingClass === "risky"
-            ? "වගාව ආරම්භ කිරීමට අවදානම් ලෙස"
-            : "සාමාන්‍යයෙන් වගාවට සුදුසු ලෙස"
-        } පෙනේ. කාලගුණ වෙනස්වීම් පිළිබඳ නිරන්තරයෙන් අවධානයෙන් සිටින්න.`
-      : "කරුණාකර මුලින්ම ඔබගේ දිස්ත්‍රික්කය ඇතුළත් කරන්න.";
-  }
+  const CheckItem: React.FC<CheckItemProps> = ({ label, state, onChange }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => onChange(!state)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingVertical: 10,
+        }}
+      >
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: state ? "#10B981" : "#D1D5DB",
+            backgroundColor: state ? "#10B981" : "#FFFFFF",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {state && <CheckCircle color="#FFFFFF" size={14} />}
+        </View>
 
-  if (key === "biggest_risk") {
-    answer =
-      "වගාව ආරම්භ කිරීමේදී ඇති ප්‍රධාන අවදානම් වන්නේ අස්ථිර කාලගුණය, ජල සැලසුම නිසි ලෙස නොමැති වීම සහ වගාවට නොගැළපෙන බීජ වර්ග තෝරාගැනීමයි.";
-  }
-
-  if (key === "need_professional") {
-    answer =
-      plantingClass === "risky"
-        ? "ඔව්. මෙම තත්ත්වයේදී කෘෂිකර්ම නිලධාරියෙකු හෝ වෘත්තීය උපදේශකයෙකුගෙන් උපදෙස් ලබාගැනීම දැඩිව නිර්දේශ කරයි."
-        : "අත්‍යවශ්‍ය නොවුණත්, නවක ගොවියෙක් නම් හෝ සැලසුම් පිළිබඳ සැකයක් තිබේ නම් වෘත්තීය උපදෙස් ලබාගැනීම ප්‍රයෝජනවත් වේ.";
-  }
-
-  setQuickAnswer(answer);
-};
-
+        <Text
+          style={{
+            fontSize: 14,
+            color: "#374151",
+            fontWeight: "600",
+          }}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const runFullAdvisor = () => {
-    const area = parseFloat(form.area || "0");
-    const cost = parseFloat(form.totalCost || "0");
-    const yieldPer = parseFloat(form.expectedYield || "0");
-
-    const variety = form.seedVariety.trim() || "Unknown";
-    const durationWeeks =
-      VARIETY_DURATION_WEEKS[variety] || VARIETY_DURATION_WEEKS["Unknown"];
-
-    const plantingClass = classifyPlantingWindow();
-    const profitClass = classifyProfitWindow();
-
-    let tag: "good" | "warn" | "info" = "info";
-    let summaryLines: string[] = [];
-
-    if (profitClass === "good") {
-      tag = "good";
-      summaryLines.push(t.profitGood);
-    } else if (profitClass === "medium") {
-      tag = "info";
-      summaryLines.push(t.profitMedium);
-    } else {
-      tag = "warn";
-      summaryLines.push(t.profitBad);
-    }
-
-    if (plantingClass === "excellent") {
-      summaryLines.push(t.plantExcellent);
-    } else if (plantingClass === "moderate") {
-      summaryLines.push(t.plantModerate);
-    } else {
-      summaryLines.push(t.plantRisky);
-    }
-
-    if (area && yieldPer) {
-      const assumedPricePerKg = 150;
-      const totalYield = area * yieldPer;
-      const revenue = totalYield * assumedPricePerKg;
-      const profit = revenue - (cost || 0);
-      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-      const numericLine =
-        language === "si"
-          ? `මුළු අස්වැන්න ආසන්න වශයෙන් ${totalYield.toFixed(0)} ${
-              t.kg
-            }, ආදායම ${t.rs} ${revenue.toFixed(0)}, ලාභය ${
-              t.rs
-            } ${profit.toFixed(0)} (${margin.toFixed(1)}% ).`
-          : `Approx. total yield ${totalYield.toFixed(0)} ${t.kg}, revenue ${
-              t.rs
-            } ${revenue.toFixed(0)}, profit ${t.rs} ${profit.toFixed(
-              0
-            )} (${margin.toFixed(1)}%).`;
-
-      summaryLines.push(numericLine);
-    }
-
-    summaryLines.push(
-      language === "si"
-        ? `මෙම වර්ගය සඳහා සාමාන්‍ය වගා කාලය සති ${durationWeeks} ක් පමණ වේ.`
-        : `Typical crop duration for this variety is about ${durationWeeks} weeks.`
-    );
+    // ✅ New explainable decision text
+    const { text, tag } = buildExplainableDecision();
 
     setFullAdvisorTag(tag);
-    setFullAdvisorText(summaryLines.join(" "));
+    setFullAdvisorText(text);
 
     Animated.parallel([
       Animated.timing(formSlideAnim, {
@@ -545,92 +888,8 @@ const handleQuestionPress = (key: QuestionKey) => {
 
   const handleGoBack = () => navigation.goBack();
 
-  // Render Calendar
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(calendarDate);
-    const firstDay = getFirstDayOfMonth(calendarDate);
-    const days: (number | null)[] = [];
-
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-
-    return (
-      <Modal
-        visible={showCalendar}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCalendar(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.calendarModal}>
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity
-                onPress={() => {
-                  const newDate = new Date(calendarDate);
-                  newDate.setMonth(newDate.getMonth() - 1);
-                  setCalendarDate(newDate);
-                }}
-              >
-                <ChevronLeft color="#047857" size={24} />
-              </TouchableOpacity>
-
-              <Text style={styles.calendarTitle}>
-                {monthNames[calendarDate.getMonth()]}{" "}
-                {calendarDate.getFullYear()}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => {
-                  const newDate = new Date(calendarDate);
-                  newDate.setMonth(newDate.getMonth() + 1);
-                  setCalendarDate(newDate);
-                }}
-              >
-                <ChevronRight color="#047857" size={24} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.calendarDayNames}>
-              {dayNames.map((day, idx) => (
-                <Text key={idx} style={styles.dayName}>
-                  {day}
-                </Text>
-              ))}
-            </View>
-
-            <View style={styles.calendarGrid}>
-              {days.map((day, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.calendarDay,
-                    day === null && styles.calendarDayEmpty,
-                  ]}
-                  onPress={() => day && handleDateSelect(day)}
-                  disabled={day === null}
-                >
-                  {day && <Text style={styles.calendarDayText}>{day}</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowCalendar(false)}
-            >
-              <Text style={styles.modalCloseText}>{t.cancel}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   // Render Variety Picker
+
   const renderVarietyPicker = () => {
     return (
       <Modal
@@ -686,6 +945,140 @@ const handleQuestionPress = (key: QuestionKey) => {
         </View>
       </Modal>
     );
+  };
+
+  const renderDistrictPicker = () => (
+    <Modal visible={showDistrictPicker} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.varietyModal}>
+          <View style={styles.varietyHeader}>
+            <Text style={styles.varietyTitle}>දිස්ත්‍රික්කය තෝරන්න</Text>
+            <TouchableOpacity onPress={() => setShowDistrictPicker(false)}>
+              <X color="#6B7280" size={24} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.varietyList}>
+            {DISTRICTS.map((d) => (
+              <TouchableOpacity
+                key={d}
+                style={[
+                  styles.varietyItem,
+                  form.district === d && styles.varietyItemSelected,
+                ]}
+                onPress={() => {
+                  setForm((f) => ({ ...f, district: d }));
+                  setShowDistrictPicker(false);
+                }}
+              >
+                <Text style={styles.varietyItemText}>{d}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderMonthPicker = () => (
+    <Modal visible={showMonthPicker} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.varietyModal}>
+          <View style={styles.varietyHeader}>
+            <Text style={styles.varietyTitle}>මාසය තෝරන්න</Text>
+            <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
+              <X color="#6B7280" size={24} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.varietyList}>
+            {MONTHS_SI.map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[
+                  styles.varietyItem,
+                  form.plantingDate === m && styles.varietyItemSelected,
+                ]}
+                onPress={() => {
+                  setForm((f) => ({ ...f, plantingDate: m }));
+                  setShowMonthPicker(false);
+                }}
+              >
+                <Text style={styles.varietyItemText}>{m}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const saveMyPlan = async () => {
+    try {
+      const { done, total, percent } = getReadinessScore();
+
+      const plan = {
+        id: Date.now(),
+        savedAt: new Date().toISOString(),
+
+        // snapshot of inputs
+        form: form,
+
+        // readiness
+        readiness: {
+          done,
+          total,
+          percent,
+        },
+
+        // advisor output
+        decision: {
+          tag: fullAdvisorTag,
+          text: fullAdvisorText,
+        },
+      };
+
+      const existing = await AsyncStorage.getItem("savedPlans");
+      const plans = existing ? JSON.parse(existing) : [];
+
+      plans.unshift(plan); // latest first
+
+      await AsyncStorage.setItem("savedPlans", JSON.stringify(plans));
+
+      alert("✅ ඔබගේ වගා සැලසුම සුරකින ලදී!");
+    } catch (e) {
+      alert("❌ සැලසුම සුරකින්න නොහැකි විය.");
+    }
+  };
+
+  const loadLatestSavedPlan = async () => {
+    try {
+      const existing = await AsyncStorage.getItem("savedPlans");
+      if (!existing) {
+        alert("සුරකින ලද සැලසුමක් නොමැත.");
+        return;
+      }
+
+      const plans = JSON.parse(existing);
+      if (!plans.length) {
+        alert("සුරකින ලද සැලසුමක් නොමැත.");
+        return;
+      }
+
+      const latestPlan = plans[0]; // latest saved
+
+      // 🔑 Restore form
+      setForm(latestPlan.form);
+
+      // Show form again
+      setShowForm(true);
+      setFullAdvisorText(null);
+      setFullAdvisorTag(null);
+
+      alert("✅ සුරකින ලද සැලසුම නැවත පුරවන ලදී!");
+    } catch (e) {
+      alert("❌ සැලසුම නැවත ලබාගත නොහැකි විය.");
+    }
   };
 
   return (
@@ -869,6 +1262,12 @@ const handleQuestionPress = (key: QuestionKey) => {
                   },
                 ]}
               >
+                {/* Readiness Circular Progress */}
+                {(() => {
+                  const { percent } = getReadinessScore();
+                  return <CircularProgress percent={percent} />;
+                })()}
+
                 <View style={styles.resultHeader}>
                   {fullAdvisorTag === "good" && (
                     <CheckCircle color="#10B981" size={24} />
@@ -891,15 +1290,64 @@ const handleQuestionPress = (key: QuestionKey) => {
                 <Text style={[styles.resultText, { marginTop: 6 }]}>
                   {fullAdvisorText}
                 </Text>
-
+                {/* ✏️ Edit Inputs */}
                 <TouchableOpacity
                   style={styles.secondaryButton}
                   onPress={handleEditInputs}
                 >
                   <Text style={styles.secondaryButtonText}>{t.editInputs}</Text>
                 </TouchableOpacity>
+
+                {/* 💾 Save My Plan */}
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryButton,
+                    {
+                      marginTop: 10,
+                      backgroundColor: "#F0FDF4",
+                      borderColor: "#047857",
+                    },
+                  ]}
+                  onPress={saveMyPlan}
+                >
+                  <Text
+                    style={[styles.secondaryButtonText, { color: "#047857" }]}
+                  >
+                    💾 මගේ වගා සැලසුම සුරකින්න
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
+          </View>
+          {/* 👨‍🌾 Agri Officer Support — Always Visible */}
+          <View style={styles.section}>
+            <View style={styles.assistCard}>
+              <View
+                style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+              >
+                <View style={styles.assistIcon}>
+                  <Leaf color="#047857" size={22} />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.assistTitle}>කෘෂි නිලධාරි සහාය</Text>
+                  <Text style={styles.assistDesc}>
+                    ඔබගේ වගා සැලසුම පිළිබඳ වෘත්තීය උපදෙස් ලබාගන්න.
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.assistButton}
+                onPress={() =>
+                  navigation.navigate("Chat", { roomId: null, userId: "" })
+                }
+              >
+                <Text style={styles.assistButtonText}>
+                  💬 නිලධාරියෙකු සමඟ කතා කරන්න
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Full Advisor Form */}
@@ -914,23 +1362,30 @@ const handleQuestionPress = (key: QuestionKey) => {
                 }}
               >
                 <View style={styles.formCard}>
+                  {/* District */}
                   <Text style={styles.inputLabel}>{t.formDistrict}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.district}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, district: text }))
-                    }
-                    placeholder={
-                      language === "si" ? "උදා: අනුරාධපුර" : "e.g. Anuradhapura"
-                    }
-                    placeholderTextColor="#9CA3AF"
-                  />
-
-                  <Text style={styles.inputLabel}>{t.formPlantingDate}</Text>
                   <TouchableOpacity
                     style={styles.pickerInput}
-                    onPress={() => setShowCalendar(true)}
+                    onPress={() => setShowDistrictPicker(true)}
+                  >
+                    <Leaf color="#10B981" size={20} />
+                    <Text
+                      style={[
+                        styles.pickerText,
+                        !form.district && styles.pickerPlaceholder,
+                      ]}
+                    >
+                      {form.district || "දිස්ත්‍රික්කය තෝරන්න"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Month */}
+                  <Text style={styles.inputLabel}>
+                    වගාව ආරම්භ කිරීමට අදහස් කරන මාසය
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.pickerInput}
+                    onPress={() => setShowMonthPicker(true)}
                   >
                     <Calendar color="#10B981" size={20} />
                     <Text
@@ -939,10 +1394,11 @@ const handleQuestionPress = (key: QuestionKey) => {
                         !form.plantingDate && styles.pickerPlaceholder,
                       ]}
                     >
-                      {form.plantingDate || t.selectDate}
+                      {form.plantingDate || "මාසය තෝරන්න"}
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Seed Variety */}
                   <Text style={styles.inputLabel}>{t.formVariety}</Text>
                   <TouchableOpacity
                     style={styles.pickerInput}
@@ -959,6 +1415,7 @@ const handleQuestionPress = (key: QuestionKey) => {
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Land Area */}
                   <Text style={styles.inputLabel}>{t.formArea}</Text>
                   <TextInput
                     style={styles.input}
@@ -971,36 +1428,135 @@ const handleQuestionPress = (key: QuestionKey) => {
                     placeholderTextColor="#9CA3AF"
                   />
 
-                  <Text style={styles.inputLabel}>{t.formCost}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.totalCost}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, totalCost: text }))
-                    }
-                    keyboardType="numeric"
-                    placeholder="45000"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  {/* Advanced Toggle */}
+                  <View style={{ marginTop: 12 }}>
+                    <ToggleRow
+                      label="උසස් විකල්ප පෙන්වන්න"
+                      value={showAdvanced}
+                      onChange={setShowAdvanced}
+                    />
+                  </View>
 
-                  <Text style={styles.inputLabel}>{t.formYield}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.expectedYield}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, expectedYield: text }))
-                    }
-                    keyboardType="numeric"
-                    placeholder="1750"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  {/* Advanced Options */}
+                  {showAdvanced && (
+                    <View style={styles.advancedContainer}>
+                      <OptionRow
+                        label="වියදම් පරාසය"
+                        options={["low", "medium", "high"]}
+                        value={form.budgetLevel}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, budgetLevel: v }))
+                        }
+                      />
 
+                      <OptionRow
+                        label="අත්දැකීම් මට්ටම"
+                        options={["new", "some", "experienced"]}
+                        value={form.experienceLevel}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, experienceLevel: v }))
+                        }
+                      />
+
+                      <ToggleRow
+                        label="ජලය / වාරිමාර්ග ඇත"
+                        value={form.hasIrrigation}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, hasIrrigation: v }))
+                        }
+                      />
+                    </View>
+                  )}
+
+                  {/* Readiness Checklist */}
+                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+                    වගාවට සූදානම්ද?
+                  </Text>
+
+                  <View style={styles.checklistContainer}>
+                    <CheckItem
+                      label="බීජ ලබාගැනීම සූදානම්"
+                      state={form.readiness.seeds}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, seeds: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label="ජල සැලසුම ඇත"
+                      state={form.readiness.water}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, water: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label="භූමිය සකස් කර ඇත"
+                      state={form.readiness.land}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, land: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label="පොහොර සැලසුමක් ඇත"
+                      state={form.readiness.fertilizer}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, fertilizer: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label="මුල් වියදම් සැලසුම් කර ඇත"
+                      state={form.readiness.capital}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, capital: v },
+                        }))
+                      }
+                    />
+                  </View>
+
+                  {/* Run Advisor */}
                   <TouchableOpacity
-                    style={styles.primaryButton}
+                    style={[styles.primaryButton, { marginTop: 20 }]}
                     onPress={runFullAdvisor}
                   >
                     <Text style={styles.primaryButtonText}>
                       {t.btnRunFullAdvisor}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryButton,
+                      {
+                        marginTop: 12,
+                        width: "100%",
+                        backgroundColor: "#ECFEFF", // soft cyan/green
+                        borderColor: "#0EA5A4",
+                      },
+                    ]}
+                    onPress={loadLatestSavedPlan}
+                  >
+                    <Text
+                      style={[
+                        styles.secondaryButtonText,
+                        {
+                          color: "#0F766E",
+                          fontWeight: "600",
+                        },
+                      ]}
+                    >
+                      📂 සුරකින ලද සැලසුම නැවත පුරවන්න
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1008,21 +1564,13 @@ const handleQuestionPress = (key: QuestionKey) => {
             )}
           </View>
 
-          <TouchableOpacity
-            style={styles.chatButton}
-            onPress={() =>
-              navigation.navigate("Chat", { roomId: null, userId: "" })
-            }
-          >
-            <Text style={styles.chatText}>වෘත්තීය උපදෙස් ලබාගන්න</Text>
-          </TouchableOpacity>
-
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
 
-      {renderCalendar()}
       {renderVarietyPicker()}
+      {renderDistrictPicker()}
+      {renderMonthPicker()}
     </View>
   );
 };
@@ -1499,5 +2047,70 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontWeight: "700",
     fontSize: 16,
+  },
+  advancedContainer: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#F0FDF4",
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+  checklistContainer: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  assistCard: {
+    marginTop: 18,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#A7F3D0",
+  },
+
+  assistIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#D1FAE5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  assistTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+
+  assistDesc: {
+    fontSize: 13,
+    color: "#374151",
+    marginTop: 2,
+    lineHeight: 18,
+  },
+
+  assistButton: {
+    marginTop: 14,
+    backgroundColor: "#047857",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  assistButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
