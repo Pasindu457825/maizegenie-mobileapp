@@ -13,7 +13,11 @@ import {
   Modal,
   Platform,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+} from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import {
   ArrowLeft,
@@ -86,11 +90,11 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 type QuestionKey =
-  | "plant_now"
-  | "delay_planting"
-  | "weather_ok"
-  | "profit_now"
-  | "best_harvest_time";
+  | "start_now"
+  | "before_start"
+  | "district_time"
+  | "biggest_risk"
+  | "need_professional";
 
 const VARIETY_DURATION_WEEKS: Record<string, number> = {
   "Jet 999": 13,
@@ -103,7 +107,7 @@ const VARIETY_DURATION_WEEKS: Record<string, number> = {
 const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
 
 const PriceAdvisorScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
+  const navigation = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
   const { unreadCount } = useNotifications();
@@ -132,18 +136,18 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const T = {
     si: {
-      headerTitle: "වගා උපදෙස්",
-      headerSubtitle: "කාලගුණය, මිල සහ ලාභය පදනම් වූ උපදේශකය",
+      headerTitle: "වගාව ආරම්භ කිරීමට උපදෙස්",
+      headerSubtitle: "අලුතින් වගාව පටන් ගන්න ඔබට මගපෙන්වීම",
       location: "ස්ථානය",
       weather: "කාලගුණය",
       quickQuestionsTitle: "ඉක්මන් ප්‍රශ්න 5",
       fullFormTitle: "සම්පූර්ණ වගා උපදෙස් (උසස් මාදිලිය)",
       resultTitle: "ඔබ සඳහා වගා උපදෙස්",
-      q1: "මේ සතිය වගා කිරීමට හොඳද?",
-      q2: "වගා කිරීම සති 1–2 ක් කල්තබන්න ද?",
-      q3: "වර්තමාන කාලගුණය වගා කිරීම සඳහා සුදුසුවද?",
-      q4: "මේ සතියේ වගා කලොත් ලාභද?",
-      q5: "අස්වැන්න විකිණීමට හොඳම කාලය කවදාද?",
+      q1: "මං දැන් වගාව ආරම්භ කළොත් හොඳද?",
+      q2: "මට වගාව ආරම්භ කිරීමට පෙර දැනගත යුතු දේ මොනවාද?",
+      q3: "මගේ දිස්ත්‍රික්කය සඳහා මේ කාලය සුදුසුද?",
+      q4: "වගාව ආරම්භ කිරීමේදී වැඩිම අවදානම මොනවාද?",
+      q5: "වෘත්තීය උපදෙස් ලබාගන්න ඕනද?",
       formDistrict: "දිස්ත්‍රික්කය",
       formPlantingDate: "බීජ පැල කිරීමේ දිනය",
       formVariety: "බීජ වර්ගය",
@@ -179,18 +183,18 @@ const PriceAdvisorScreen: React.FC = () => {
       select: "තෝරන්න",
     },
     en: {
-      headerTitle: "Cultivation Advisor",
-      headerSubtitle: "Advice based on weather, prices and profit",
+      headerTitle: "Start Farming Advisor",
+      headerSubtitle: "Guidance for farmers starting cultivation",
       location: "Location",
       weather: "Weather",
       quickQuestionsTitle: "Quick Questions (5)",
       fullFormTitle: "Full Cultivation Advisor (Advanced)",
       resultTitle: "Advisor Result for You",
-      q1: "Is this a good week to plant?",
-      q2: "Should I delay planting 1–2 weeks?",
-      q3: "Is current weather suitable for planting?",
-      q4: "Will it be profitable if I plant this week?",
-      q5: "When is a good time to sell harvest?",
+      q1: "Is it okay to start farming now?",
+      q2: "What should I know before starting cultivation?",
+      q3: "Is this a suitable time for my district?",
+      q4: "What are the biggest risks when starting?",
+      q5: "Do I need professional advice?",
       formDistrict: "District",
       formPlantingDate: "Planting Date",
       formVariety: "Seed Variety",
@@ -393,67 +397,50 @@ const PriceAdvisorScreen: React.FC = () => {
     return "bad" as const;
   };
 
-  const handleQuestionPress = (key: QuestionKey) => {
-    setSelectedQuestion(key);
+const handleQuestionPress = (key: QuestionKey) => {
+  setSelectedQuestion(key);
+  const plantingClass = classifyPlantingWindow();
+  let answer = "";
 
-    const plantingClass = classifyPlantingWindow();
-    const profitClass = classifyProfitWindow();
+  if (key === "start_now") {
+    answer =
+      plantingClass === "risky"
+        ? "දැනට වගාව ආරම්භ කිරීම අවදානම් ලෙස පෙනේ. වැසි සහ කාලගුණය ස්ථාවර වනතුරු ටික දවසක් රැඳී සිටීම වඩාත් ආරක්ෂිතය."
+        : plantingClass === "moderate"
+        ? "වගාව ආරම්භ කළ හැකි නමුත් මධ්‍යම මට්ටමේ අවදානමක් පවතී. ජල කළමනාකරණය සහ පස තත්ත්වය පිළිබඳ විශේෂ අවධානයක් යොමු කරන්න."
+        : "දැනට වගාව ආරම්භ කිරීමට හොඳ කාලයක් ලෙස පෙනේ. සාමාන්‍ය සැලසුම් සහිතව වගාව ආරම්භ කළ හැක.";
+  }
 
-    let answer = "";
+  if (key === "before_start") {
+    answer =
+      "වගාව ආරම්භ කිරීමට පෙර සුදුසු බීජ වර්ගය තෝරාගැනීම, පස සකස් කිරීම, ජල සැලසුම, පොහොර අවශ්‍යතාවය සහ මුල් වියදම් සැලසුම් කරගැනීම අත්‍යවශ්‍යය.";
+  }
 
-    if (key === "plant_now") {
-      if (plantingClass === "excellent") answer = t.plantExcellent;
-      else if (plantingClass === "moderate") answer = t.plantModerate;
-      else answer = t.plantRisky;
-    }
+  if (key === "district_time") {
+    answer = form.district
+      ? `${form.district} දිස්ත්‍රික්කය සඳහා මේ කාලය ${
+          plantingClass === "risky"
+            ? "වගාව ආරම්භ කිරීමට අවදානම් ලෙස"
+            : "සාමාන්‍යයෙන් වගාවට සුදුසු ලෙස"
+        } පෙනේ. කාලගුණ වෙනස්වීම් පිළිබඳ නිරන්තරයෙන් අවධානයෙන් සිටින්න.`
+      : "කරුණාකර මුලින්ම ඔබගේ දිස්ත්‍රික්කය ඇතුළත් කරන්න.";
+  }
 
-    if (key === "delay_planting") {
-      if (plantingClass === "risky") {
-        answer =
-          language === "si"
-            ? "කාලගුණය හෝ උෂ්ණත්වය හේතුවෙන් වගා කිරීම සතියකටවත් ප්‍රමාද කිරීම සුදුසුය."
-            : "Due to temperature or rain, it is safer to delay planting by about one week.";
-      } else if (plantingClass === "moderate") {
-        answer =
-          language === "si"
-            ? "වගා කළ හැක, නමුත් අවදානම අඩු කරගැනීමට දිනය තෝරන විට වැසි පුරෝකථනය බලන්න."
-            : "You can plant, but check the rainfall forecast to reduce risk.";
-      } else {
-        answer =
-          language === "si"
-            ? "දැනට වගා කිරීම ප්‍රමාද කළ යුතු හේතුවක් නොපෙනේ."
-            : "There is no strong reason to delay planting this week.";
-      }
-    }
+  if (key === "biggest_risk") {
+    answer =
+      "වගාව ආරම්භ කිරීමේදී ඇති ප්‍රධාන අවදානම් වන්නේ අස්ථිර කාලගුණය, ජල සැලසුම නිසි ලෙස නොමැති වීම සහ වගාවට නොගැළපෙන බීජ වර්ග තෝරාගැනීමයි.";
+  }
 
-    if (key === "weather_ok") {
-      if (plantingClass === "excellent") answer = t.weatherGood;
-      else if (plantingClass === "moderate") {
-        answer =
-          language === "si"
-            ? "කාලගුණය සම්පූර්ණ සරිලන නොවුනද වගා කිරීම කළ හැක. වැසි සහ සුළඟ වැඩි දින වල වගා කිරීමෙන් වැලකින්න."
-            : "Weather is not perfect but acceptable. Avoid planting on days with very strong rain or wind.";
-      } else {
-        answer = t.weatherBad;
-      }
-    }
+  if (key === "need_professional") {
+    answer =
+      plantingClass === "risky"
+        ? "ඔව්. මෙම තත්ත්වයේදී කෘෂිකර්ම නිලධාරියෙකු හෝ වෘත්තීය උපදේශකයෙකුගෙන් උපදෙස් ලබාගැනීම දැඩිව නිර්දේශ කරයි."
+        : "අත්‍යවශ්‍ය නොවුණත්, නවක ගොවියෙක් නම් හෝ සැලසුම් පිළිබඳ සැකයක් තිබේ නම් වෘත්තීය උපදෙස් ලබාගැනීම ප්‍රයෝජනවත් වේ.";
+  }
 
-    if (key === "profit_now") {
-      if (profitClass === "good") {
-        answer = t.profitGood;
-      } else if (profitClass === "medium") {
-        answer = t.profitMedium;
-      } else {
-        answer = t.profitBad;
-      }
-    }
+  setQuickAnswer(answer);
+};
 
-    if (key === "best_harvest_time") {
-      answer = t.bestHarvestHint;
-    }
-
-    setQuickAnswer(answer);
-  };
 
   const runFullAdvisor = () => {
     const area = parseFloat(form.area || "0");
@@ -782,9 +769,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "plant_now" && styles.quickCardActive,
+                  selectedQuestion === "start_now" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("plant_now")}
+                onPress={() => handleQuestionPress("start_now")}
               >
                 <View style={styles.quickIconContainer}>
                   <Leaf color="#10B981" size={22} />
@@ -795,10 +782,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "delay_planting" &&
-                    styles.quickCardActive,
+                  selectedQuestion === "before_start" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("delay_planting")}
+                onPress={() => handleQuestionPress("before_start")}
               >
                 <View style={styles.quickIconContainer}>
                   <AlertTriangle color="#F59E0B" size={22} />
@@ -809,9 +795,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "weather_ok" && styles.quickCardActive,
+                  selectedQuestion === "district_time" &&
+                    styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("weather_ok")}
+                onPress={() => handleQuestionPress("district_time")}
               >
                 <View style={styles.quickIconContainer}>
                   <CloudSun color="#0EA5E9" size={22} />
@@ -822,9 +809,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "profit_now" && styles.quickCardActive,
+                  selectedQuestion === "biggest_risk" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("profit_now")}
+                onPress={() => handleQuestionPress("biggest_risk")}
               >
                 <View style={styles.quickIconContainer}>
                   <DollarSign color="#22C55E" size={22} />
@@ -835,10 +822,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "best_harvest_time" &&
+                  selectedQuestion === "need_professional" &&
                     styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("best_harvest_time")}
+                onPress={() => handleQuestionPress("need_professional")}
               >
                 <View style={styles.quickIconContainer}>
                   <TrendingUp color="#16A34A" size={22} />
@@ -1020,6 +1007,15 @@ const PriceAdvisorScreen: React.FC = () => {
               </Animated.View>
             )}
           </View>
+
+          <TouchableOpacity
+            style={styles.chatButton}
+            onPress={() =>
+              navigation.navigate("Chat", { roomId: null, userId: "" })
+            }
+          >
+            <Text style={styles.chatText}>වෘත්තීය උපදෙස් ලබාගන්න</Text>
+          </TouchableOpacity>
 
           <View style={{ height: 40 }} />
         </Animated.View>
@@ -1484,5 +1480,24 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  chatButton: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#047857",
+    padding: 18,
+    borderRadius: 14,
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  chatText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });
