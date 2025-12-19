@@ -60,7 +60,7 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 
 - Monaragala  
 - Anuradhapura  
-- Dambulla 
+- Thissamaharama 
 
 ---
 
