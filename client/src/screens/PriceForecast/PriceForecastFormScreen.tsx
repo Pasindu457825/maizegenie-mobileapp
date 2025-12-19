@@ -278,6 +278,7 @@ const PriceForecastFormScreen = () => {
       Polonnaruwa: "පොලොන්නරුව",
       Badulla: "බදුල්ල",
       Monaragala: "මොණරාගල",
+      Thissamaharama: "තිස්සමහාරාමය",
       Ratnapura: "රත්නපුර",
       Kegalle: "කෑගල්ල",
     };
@@ -935,7 +936,7 @@ const PriceForecastFormScreen = () => {
             <View style={styles.popupContainer}>
               <View style={styles.popupBox}>
                 <ScrollView>
-                  {["Anuradhapura", "Monaragala", "Dambulla"].map((d) => (
+                  {["Anuradhapura", "Monaragala", "Tissamaharama"].map((d) => (
                     <TouchableOpacity
                       key={d}
                       style={styles.popupItem}

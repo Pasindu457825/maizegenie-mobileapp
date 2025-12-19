@@ -404,8 +404,8 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const DISTRICTS =
     language === "si"
-      ? ["අනුරාධපුර", "මොණරාගල", "දඹුල්ල"]
-      : ["Anuradhapura", "Monaragala", "Dambulla"];
+      ? ["අනුරාධපුර", "මොණරාගල", "තිස්සමහාරාමය"]
+      : ["Anuradhapura", "Monaragala", "Tissamaharama"];
 
 
   const handleVarietySelect = (variety: string) => {
