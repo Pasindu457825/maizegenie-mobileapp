@@ -1,5 +1,4 @@
 // client/src/screens/PriceForecast/PriceAdvisorScreen.tsx
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -13,7 +12,11 @@ import {
   Modal,
   Platform,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  NavigationProp,
+} from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import {
   ArrowLeft,
@@ -30,14 +33,92 @@ import {
   TrendingUp,
   DollarSign,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   X,
 } from "lucide-react-native";
+import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type CircularProgressProps = {
+  percent: number;
+};
+
+const CircularProgress: React.FC<CircularProgressProps> = ({ percent }) => {
+  const size = 120;
+  const strokeWidth = 12;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+
+  const strokeDashoffset = circumference - (circumference * percent) / 100;
+
+  return (
+    <View style={{ alignItems: "center", marginVertical: 16 }}>
+      <Svg width={size} height={size}>
+        <Defs>
+          {/* Gradient definition */}
+          <LinearGradient
+            id="progressGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="0%"
+          >
+            <Stop offset="0%" stopColor="#22C55E" />
+            <Stop offset="40%" stopColor="#F59E0B" />
+            <Stop offset="70%" stopColor="#EC4899" />
+            <Stop offset="100%" stopColor="#8B5CF6" />
+          </LinearGradient>
+        </Defs>
+
+        {/* Background circle */}
+        <Circle
+          stroke="#E5E7EB"
+          fill="none"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+        />
+
+        {/* Gradient progress circle */}
+        <Circle
+          stroke="url(#progressGradient)"
+          fill="none"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={strokeWidth}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          rotation="-90"
+          origin={`${size / 2}, ${size / 2}`}
+        />
+      </Svg>
+
+      {/* Center Text */}
+      <View
+        style={{
+          position: "absolute",
+          alignItems: "center",
+          justifyContent: "center",
+          height: size,
+          width: size,
+        }}
+      >
+        <Text style={{ fontSize: 24, fontWeight: "bold", color: "#111827" }}>
+          {percent}%
+        </Text>
+        <Text style={{ fontSize: 13, color: "#374151", marginTop: 2 }}>
+          Ready
+        </Text>
+      </View>
+    </View>
+  );
+};
 
 const { width } = Dimensions.get("window");
 
@@ -65,11 +146,22 @@ interface RouteParams {
 
 interface AdvisorFormData {
   district: string;
-  plantingDate: string;
+  plantingDate: string; // මෙතැන month string එක දානවා (e.g., "දෙසැම්බර්")
   seedVariety: string;
   area: string;
-  totalCost: string;
-  expectedYield: string;
+
+  // ✅ Decision-Support extra fields
+  budgetLevel: "low" | "medium" | "high";
+  experienceLevel: "new" | "some" | "experienced";
+  hasIrrigation: boolean;
+
+  readiness: {
+    seeds: boolean;
+    water: boolean;
+    land: boolean;
+    fertilizer: boolean;
+    capital: boolean;
+  };
 }
 
 // Dynamic API URL based on platform
@@ -86,11 +178,11 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 type QuestionKey =
-  | "plant_now"
-  | "delay_planting"
-  | "weather_ok"
-  | "profit_now"
-  | "best_harvest_time";
+  | "start_now"
+  | "before_start"
+  | "district_time"
+  | "biggest_risk"
+  | "need_professional";
 
 const VARIETY_DURATION_WEEKS: Record<string, number> = {
   "Jet 999": 13,
@@ -103,7 +195,10 @@ const VARIETY_DURATION_WEEKS: Record<string, number> = {
 const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
 
 const PriceAdvisorScreen: React.FC = () => {
-  const navigation = useNavigation<NavProp>();
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showDistrictPicker, setShowDistrictPicker] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const navigation = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
   const { unreadCount } = useNotifications();
@@ -119,9 +214,8 @@ const PriceAdvisorScreen: React.FC = () => {
   const [formOpacityAnim] = useState(new Animated.Value(1));
 
   // Calendar & Variety Picker Modals
-  const [showCalendar, setShowCalendar] = useState(false);
   const [showVarietyPicker, setShowVarietyPicker] = useState(false);
-  const [calendarDate, setCalendarDate] = useState(new Date());
+  
 
   const {
     locationName,
@@ -132,18 +226,18 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const T = {
     si: {
-      headerTitle: "වගා උපදෙස්",
-      headerSubtitle: "කාලගුණය, මිල සහ ලාභය පදනම් වූ උපදේශකය",
+      headerTitle: "වගාව ආරම්භ කිරීමට උපදෙස්",
+      headerSubtitle: "අලුතින් වගාව පටන් ගන්න ඔබට මගපෙන්වීම",
       location: "ස්ථානය",
       weather: "කාලගුණය",
       quickQuestionsTitle: "ඉක්මන් ප්‍රශ්න 5",
       fullFormTitle: "සම්පූර්ණ වගා උපදෙස් (උසස් මාදිලිය)",
       resultTitle: "ඔබ සඳහා වගා උපදෙස්",
-      q1: "මේ සතිය වගා කිරීමට හොඳද?",
-      q2: "වගා කිරීම සති 1–2 ක් කල්තබන්න ද?",
-      q3: "වර්තමාන කාලගුණය වගා කිරීම සඳහා සුදුසුවද?",
-      q4: "මේ සතියේ වගා කලොත් ලාභද?",
-      q5: "අස්වැන්න විකිණීමට හොඳම කාලය කවදාද?",
+      q1: "මං දැන් වගාව ආරම්භ කළොත් හොඳද?",
+      q2: "මට වගාව ආරම්භ කිරීමට පෙර දැනගත යුතු දේ මොනවාද?",
+      q3: "මගේ දිස්ත්‍රික්කය සඳහා මේ කාලය සුදුසුද?",
+      q4: "වගාව ආරම්භ කිරීමේදී වැඩිම අවදානම මොනවාද?",
+      q5: "වෘත්තීය උපදෙස් ලබාගන්න ඕනද?",
       formDistrict: "දිස්ත්‍රික්කය",
       formPlantingDate: "බීජ පැල කිරීමේ දිනය",
       formVariety: "බීජ වර්ගය",
@@ -179,18 +273,18 @@ const PriceAdvisorScreen: React.FC = () => {
       select: "තෝරන්න",
     },
     en: {
-      headerTitle: "Cultivation Advisor",
-      headerSubtitle: "Advice based on weather, prices and profit",
+      headerTitle: "Start Farming Advisor",
+      headerSubtitle: "Guidance for farmers starting cultivation",
       location: "Location",
       weather: "Weather",
       quickQuestionsTitle: "Quick Questions (5)",
       fullFormTitle: "Full Cultivation Advisor (Advanced)",
       resultTitle: "Advisor Result for You",
-      q1: "Is this a good week to plant?",
-      q2: "Should I delay planting 1–2 weeks?",
-      q3: "Is current weather suitable for planting?",
-      q4: "Will it be profitable if I plant this week?",
-      q5: "When is a good time to sell harvest?",
+      q1: "Is it okay to start farming now?",
+      q2: "What should I know before starting cultivation?",
+      q3: "Is this a suitable time for my district?",
+      q4: "What are the biggest risks when starting?",
+      q5: "Do I need professional advice?",
       formDistrict: "District",
       formPlantingDate: "Planting Date",
       formVariety: "Seed Variety",
@@ -237,10 +331,18 @@ const PriceAdvisorScreen: React.FC = () => {
     plantingDate: "",
     seedVariety: "",
     area: "",
-    totalCost: params.formData?.cost ? String(params.formData.cost) : "",
-    expectedYield: params.formData?.yieldKg
-      ? String(params.formData.yieldKg)
-      : "",
+
+    budgetLevel: "medium",
+    experienceLevel: "new",
+    hasIrrigation: false,
+
+    readiness: {
+      seeds: false,
+      water: false,
+      land: false,
+      fertilizer: false,
+      capital: false,
+    },
   });
 
   const [selectedQuestion, setSelectedQuestion] = useState<QuestionKey | null>(
@@ -268,27 +370,8 @@ const PriceAdvisorScreen: React.FC = () => {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  // Calendar Helper Functions
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month + 1, 0).getDate();
-  };
 
-  const getFirstDayOfMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    return new Date(year, month, 1).getDay();
-  };
-
-  const formatDateForDisplay = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const monthNames =
+  const MONTHS_SI =
     language === "si"
       ? [
           "ජනවාරි",
@@ -319,20 +402,11 @@ const PriceAdvisorScreen: React.FC = () => {
           "December",
         ];
 
-  const dayNames =
+  const DISTRICTS =
     language === "si"
-      ? ["ඉරි", "සඳු", "අඟ", "බදා", "බ්‍රහ", "සිකු", "සෙන"]
-      : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      ? ["අනුරාධපුර", "මොණරාගල", "දඹුල්ල"]
+      : ["Anuradhapura", "Monaragala", "Dambulla"];
 
-  const handleDateSelect = (day: number) => {
-    const selected = new Date(
-      calendarDate.getFullYear(),
-      calendarDate.getMonth(),
-      day
-    );
-    setForm((f) => ({ ...f, plantingDate: formatDateForDisplay(selected) }));
-    setShowCalendar(false);
-  };
 
   const handleVarietySelect = (variety: string) => {
     setForm((f) => ({ ...f, seedVariety: variety }));
@@ -371,155 +445,488 @@ const PriceAdvisorScreen: React.FC = () => {
     return "moderate" as const;
   };
 
-  const classifyProfitWindow = () => {
-    const area = parseFloat(form.area || "0");
-    const cost = parseFloat(form.totalCost || "0");
-    const yieldPer = parseFloat(form.expectedYield || "0");
+  const getReadinessScore = () => {
+    const r = form.readiness;
 
-    if (!area || !cost || !yieldPer) {
-      return "medium" as const;
+    const done =
+      (r.seeds ? 1 : 0) +
+      (r.water ? 1 : 0) +
+      (r.land ? 1 : 0) +
+      (r.fertilizer ? 1 : 0) +
+      (r.capital ? 1 : 0);
+
+    const total = 5;
+    const percent = Math.round((done / total) * 100);
+
+    return { done, total, percent };
+  };
+
+  const buildExplainableDecision = () => {
+    const plantingClass = classifyPlantingWindow();
+    const { done, total, percent } = getReadinessScore();
+
+    const district = (form.district || "").trim();
+    const month = (form.plantingDate || "").trim();
+    const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
+    const areaNum = parseFloat(form.area || "0") || 0;
+
+    const durationWeeks =
+      VARIETY_DURATION_WEEKS[seed] ?? VARIETY_DURATION_WEEKS["Unknown"];
+
+    // ---------- Decision (Ready / Caution / Prepare) ----------
+    // base risk from weather
+    let risk = 0;
+    if (plantingClass === "risky") risk += 3;
+    else if (plantingClass === "moderate") risk += 1;
+
+    // readiness
+    if (done <= 2) risk += 3;
+    else if (done === 3) risk += 1;
+
+    // irrigation effect
+    if (!form.hasIrrigation && !form.readiness.water) risk += 2;
+
+    // experience + budget
+    if (form.experienceLevel === "new" && form.budgetLevel === "low") risk += 2;
+
+    // unknown seed
+    if (seed === "Unknown") risk += 2;
+
+    // large area with weak readiness
+    if (areaNum >= 3 && done <= 3) risk += 1;
+
+    let category: "ready" | "caution" | "prepare" = "caution";
+    if (risk >= 7) category = "prepare";
+    else if (risk <= 3 && percent >= 80 && plantingClass !== "risky")
+      category = "ready";
+
+    // ---------- Build Explanation (Why) ----------
+    const why: string[] = [];
+
+    // Weather reason
+    if (plantingClass === "excellent") {
+      why.push(
+        language === "si"
+          ? "කාලගුණ තත්ත්වය සාමාන්‍යයෙන් වගාවට හිතකරයි."
+          : "Weather conditions are generally favorable for cultivation."
+      );
+    } else if (plantingClass === "moderate") {
+      why.push(
+        language === "si"
+          ? "කාලගුණ තත්ත්වය මධ්‍යම අවදානම් මට්ටමක පවතී."
+          : "Weather conditions indicate a moderate level of risk."
+      );
+    } else {
+      why.push(
+        language === "si"
+          ? "කාලගුණ තත්ත්වය අවදානම් ලෙස පෙනේ (වැසි/අකුණු/උෂ්ණත්ව අන්තයන් වැනි හේතු තිබිය හැක)."
+          : "Weather conditions appear risky (possible factors include heavy rain, lightning, or extreme temperatures)."
+      );
     }
 
-    const assumedPricePerKg = 150;
-    const totalYield = area * yieldPer;
-    const revenue = totalYield * assumedPricePerKg;
-    const profit = revenue - cost;
+    // Context reasons
+    if (!district)
+      why.push(
+        language === "si"
+          ? "දිස්ත්‍රික්කය නොදැක්වූ නිසා district-wise උපදෙස් සම්පූර්ණ නොවේ."
+          : "District-specific guidance is incomplete because no district was selected."
+      );
+    else
+      why.push(
+        language === "si"
+          ? `${district} දිස්ත්‍රික්කය සඳහා කන්න/කාලගුණ පසුබිම සලකා බැලේ.`
+          : `Seasonal and climatic context has been considered for the ${district} district.`
+      );
 
-    if (profit <= 0) return "bad" as const;
-    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+    if (!month)
+      why.push(
+        language === "si"
+          ? "මාසය නොදැක්වූ නිසා (මහ/යාල) කාලය පදනම් කරගත් තීරණය සීමිත වේ."
+          : "The decision is limited because the planting month (Maha/Yala) was not specified."
+      );
+    else
+      why.push(
+        language === "si"
+          ? `ඔබ තෝරාගත් මාසය: ${month}.`
+          : `Selected planting month: ${month}.`
+      );
 
-    if (margin >= 40) return "good" as const;
-    if (margin >= 15) return "medium" as const;
-    return "bad" as const;
+    // Seed reason
+    if (seed === "Unknown") {
+      why.push(
+        language === "si"
+          ? "බීජ වර්ගය Unknown ලෙස තිබීම නිසා අවදානම වැඩි වේ."
+          : "Risk is higher because the seed variety is unknown."
+      );
+    } else {
+      why.push(
+        language === "si"
+          ? `${seed} වර්ගය සඳහා සාමාන්‍ය වගා කාලය සති ${durationWeeks}ක් පමණ වේ.`
+          : `The typical cultivation period for the ${seed} variety is about ${durationWeeks} weeks.`
+      );
+    }
+
+    // Advanced reasons
+    if (form.hasIrrigation)
+      why.push(
+        language === "si"
+          ? "වාරිමාර්ග/ජලය තිබීම නිසා වගාව ස්ථාවර කරගැනීම පහසුය."
+          : "Having irrigation or water access makes cultivation more stable."
+      );
+    else
+      why.push(
+        language === "si"
+          ? "වාරිමාර්ග නොමැති නම් වැසි මත පමණක් විශ්වාස වීමෙන් අවදානම වැඩිවිය හැක."
+          : "Without irrigation, relying solely on rainfall can increase risk."
+      );
+
+    if (form.experienceLevel === "new")
+      why.push(
+        language === "si"
+          ? "අත්දැකීම් අඩු නම් ආරම්භයේදී අවධානයෙන් පියවර ගන්න."
+          : "If experience is limited, proceed cautiously during the initial stage."
+      );
+
+    if (form.budgetLevel === "low")
+      why.push(
+        language === "si"
+          ? "වියදම් පරාසය අඩු නම් මුල් වියදම් (බීජ/පොහොර/වැඩකරු) හොඳින් සැලසුම් කරන්න."
+          : "With a low budget, carefully plan initial costs such as seeds, fertilizer, and labor."
+      );
+
+    // ---------- Readiness breakdown ----------
+    const readinessLines: string[] = [];
+
+    readinessLines.push(
+      language === "si"
+        ? `ඔබගේ වගා සූදානම්කම: ${done}/${total} (${percent}%).`
+        : `Your cultivation readiness: ${done}/${total} (${percent}%).`
+    );
+
+    const addCheckLine = (ok: boolean, label: string) =>
+      readinessLines.push(`${ok ? "✔️" : "❌"} ${label}`);
+
+    addCheckLine(
+      form.readiness.seeds,
+      language === "si" ? "බීජ සූදානම්" : "Seeds ready"
+    );
+
+    addCheckLine(
+      form.readiness.water,
+      language === "si" ? "ජල සැලසුම" : "Water plan"
+    );
+
+    addCheckLine(
+      form.readiness.land,
+      language === "si" ? "භූමිය සකස් කිරීම" : "Land preparation"
+    );
+
+    addCheckLine(
+      form.readiness.fertilizer,
+      language === "si" ? "පොහොර සැලසුම" : "Fertilizer plan"
+    );
+
+    addCheckLine(
+      form.readiness.capital,
+      language === "si"
+        ? "මුල් වියදම් / මුදල් සැලසුම"
+        : "Initial capital / budget plan"
+    );
+
+    // ---------- Actionable next steps ----------
+    const actions: string[] = [];
+
+    if (!form.readiness.water && !form.hasIrrigation)
+      actions.push(
+        language === "si"
+          ? "ජල සැලසුම/backup plan එකක් සකස් කරන්න."
+          : "Prepare a water plan or backup irrigation solution."
+      );
+
+    if (!form.readiness.fertilizer)
+      actions.push(
+        language === "si"
+          ? "පොහොර සැලසුම (වර්ග/කාලසටහන) සකස් කරන්න."
+          : "Prepare a fertilizer plan (type and schedule)."
+      );
+
+    if (!form.readiness.capital)
+      actions.push(
+        language === "si"
+          ? "මුල් වියදම් සම්පූර්ණයෙන් සැලසුම් කරගන්න."
+          : "Fully plan your initial capital requirements."
+      );
+
+    if (seed === "Unknown")
+      actions.push(
+        language === "si"
+          ? "බීජ වර්ගය නිශ්චිතව තෝරාගන්න හෝ වෘත්තීය උපදෙස් ලබාගන්න."
+          : "Select a specific seed variety or seek professional advice."
+      );
+
+    if (plantingClass === "risky")
+      actions.push(
+        language === "si"
+          ? "දින කිහිපයක් කාලගුණය නිරීක්ෂණය කර පසුව ආරම්භ කිරීම සලකා බලන්න."
+          : "Monitor weather conditions for a few days before starting cultivation."
+      );
+
+    if (actions.length === 0) {
+      actions.push(
+        language === "si"
+          ? "ඔබගේ සැලසුම හොඳයි. කාලගුණය සහ වෙළඳපොළ තත්ත්වය නිතර පරීක්ෂා කරමින් ආරම්භ කරන්න."
+          : "Your plan looks good. Start cultivation while regularly monitoring weather and market conditions."
+      );
+    }
+
+    // ---------- Final Title + Tag ----------
+    let title =
+      language === "si" ? "අවධානයෙන් ආරම්භ කරන්න" : "Start with caution";
+    let tag: "good" | "info" | "warn" = "info";
+
+    if (category === "ready") {
+      title =
+        language === "si"
+          ? "වගාව ආරම්භ කිරීමට සූදානම්"
+          : "Ready to start cultivation";
+      tag = "good";
+    } else if (category === "prepare") {
+      title =
+        language === "si"
+          ? "තවත් සූදානම් වීම වඩා හොඳයි"
+          : "Further preparation is recommended";
+      tag = "warn";
+    }
+
+    // ---------- Final Text (Explainable answer) ----------
+    const text =
+      `${language === "si" ? "තීරණය" : "Decision"}: ${title}\n\n` +
+      `${language === "si" ? "හේතු" : "Reasons"}:\n• ${why.join("\n• ")}\n\n` +
+      `${readinessLines.join("\n")}\n\n` +
+      `${
+        language === "si" ? "ඊළඟට කළ යුතු දේ" : "Next actions"
+      }:\n• ${actions.join("\n• ")}`;
+
+    return { text, tag };
   };
 
   const handleQuestionPress = (key: QuestionKey) => {
     setSelectedQuestion(key);
-
     const plantingClass = classifyPlantingWindow();
-    const profitClass = classifyProfitWindow();
-
     let answer = "";
 
-    if (key === "plant_now") {
-      if (plantingClass === "excellent") answer = t.plantExcellent;
-      else if (plantingClass === "moderate") answer = t.plantModerate;
-      else answer = t.plantRisky;
+    if (key === "start_now") {
+      answer =
+        plantingClass === "risky"
+          ? language === "si"
+            ? "දැනට වගාව ආරම්භ කිරීම අවදානම්. කාලගුණය ස්ථාවර වනතුරු රැඳී සිටින්න."
+            : "Starting cultivation now is risky. Wait until weather conditions stabilize."
+          : plantingClass === "moderate"
+          ? language === "si"
+            ? "වගාව ආරම්භ කළ හැක, නමුත් මධ්‍යම අවදානමක් ඇත."
+            : "You can start cultivation, but the risk level is moderate."
+          : language === "si"
+          ? "දැනට වගාව ආරම්භ කිරීමට හොඳ කාලයක් ලෙස පෙනේ."
+          : "This appears to be a good time to start cultivation.";
     }
 
-    if (key === "delay_planting") {
-      if (plantingClass === "risky") {
-        answer =
-          language === "si"
-            ? "කාලගුණය හෝ උෂ්ණත්වය හේතුවෙන් වගා කිරීම සතියකටවත් ප්‍රමාද කිරීම සුදුසුය."
-            : "Due to temperature or rain, it is safer to delay planting by about one week.";
-      } else if (plantingClass === "moderate") {
-        answer =
-          language === "si"
-            ? "වගා කළ හැක, නමුත් අවදානම අඩු කරගැනීමට දිනය තෝරන විට වැසි පුරෝකථනය බලන්න."
-            : "You can plant, but check the rainfall forecast to reduce risk.";
-      } else {
-        answer =
-          language === "si"
-            ? "දැනට වගා කිරීම ප්‍රමාද කළ යුතු හේතුවක් නොපෙනේ."
-            : "There is no strong reason to delay planting this week.";
-      }
+    if (key === "before_start") {
+      answer =
+        language === "si"
+          ? "වගාව ආරම්භ කිරීමට පෙර බීජ වර්ගය, ජල සැලසුම, භූමි සකස් කිරීම සහ මුල් වියදම් සැලසුම් කරගැනීම වැදගත්ය."
+          : "Before starting cultivation, it is important to plan seed variety, water management, land preparation, and initial costs.";
     }
 
-    if (key === "weather_ok") {
-      if (plantingClass === "excellent") answer = t.weatherGood;
-      else if (plantingClass === "moderate") {
-        answer =
-          language === "si"
-            ? "කාලගුණය සම්පූර්ණ සරිලන නොවුනද වගා කිරීම කළ හැක. වැසි සහ සුළඟ වැඩි දින වල වගා කිරීමෙන් වැලකින්න."
-            : "Weather is not perfect but acceptable. Avoid planting on days with very strong rain or wind.";
-      } else {
-        answer = t.weatherBad;
-      }
+    if (key === "district_time") {
+      answer = form.district
+        ? language === "si"
+          ? `${form.district} දිස්ත්‍රික්කය සඳහා මේ කාලය ${
+              plantingClass === "risky" ? "අවදානම්" : "සාමාන්‍යයෙන් සුදුසු"
+            } ලෙස පෙනේ.`
+          : `For the ${form.district} district, this period appears ${
+              plantingClass === "risky" ? "risky" : "generally suitable"
+            }.`
+        : language === "si"
+        ? "මුලින්ම ඔබගේ දිස්ත්‍රික්කය ඇතුළත් කරන්න."
+        : "Please select your district first.";
     }
 
-    if (key === "profit_now") {
-      if (profitClass === "good") {
-        answer = t.profitGood;
-      } else if (profitClass === "medium") {
-        answer = t.profitMedium;
-      } else {
-        answer = t.profitBad;
-      }
+    if (key === "biggest_risk") {
+      answer =
+        language === "si"
+          ? "ප්‍රධාන අවදානම් වන්නේ කාලගුණය, ජල සැලසුම සහ බීජ වර්ගය නිසි ලෙස තෝරා නොගැනීමයි."
+          : "The main risks include weather conditions, water planning, and improper seed selection.";
     }
 
-    if (key === "best_harvest_time") {
-      answer = t.bestHarvestHint;
+    if (key === "need_professional") {
+      answer =
+        plantingClass === "risky"
+          ? language === "si"
+            ? "ඔව්. මෙම තත්ත්වය සඳහා වෘත්තීය උපදෙස් ලබාගැනීම නිර්දේශ කරයි."
+            : "Yes. Professional advice is recommended for this situation."
+          : language === "si"
+          ? "අත්‍යවශ්‍ය නොවේ, නමුත් අවශ්‍ය නම් වෘත්තීය උපදෙස් ලබාගත හැක."
+          : "It is not essential, but professional advice can be obtained if needed.";
     }
 
     setQuickAnswer(answer);
   };
 
-  const runFullAdvisor = () => {
-    const area = parseFloat(form.area || "0");
-    const cost = parseFloat(form.totalCost || "0");
-    const yieldPer = parseFloat(form.expectedYield || "0");
+  type ToggleRowProps = {
+    label: string;
+    value: boolean;
+    onChange: (v: boolean) => void;
+  };
 
-    const variety = form.seedVariety.trim() || "Unknown";
-    const durationWeeks =
-      VARIETY_DURATION_WEEKS[variety] || VARIETY_DURATION_WEEKS["Unknown"];
+  const ToggleRow: React.FC<ToggleRowProps> = ({ label, value, onChange }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => onChange(!value)}
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingVertical: 12,
+        }}
+      >
+        <Text style={{ fontSize: 14, color: "#065F46", fontWeight: "600" }}>
+          {label}
+        </Text>
 
-    const plantingClass = classifyPlantingWindow();
-    const profitClass = classifyProfitWindow();
-
-    let tag: "good" | "warn" | "info" = "info";
-    let summaryLines: string[] = [];
-
-    if (profitClass === "good") {
-      tag = "good";
-      summaryLines.push(t.profitGood);
-    } else if (profitClass === "medium") {
-      tag = "info";
-      summaryLines.push(t.profitMedium);
-    } else {
-      tag = "warn";
-      summaryLines.push(t.profitBad);
-    }
-
-    if (plantingClass === "excellent") {
-      summaryLines.push(t.plantExcellent);
-    } else if (plantingClass === "moderate") {
-      summaryLines.push(t.plantModerate);
-    } else {
-      summaryLines.push(t.plantRisky);
-    }
-
-    if (area && yieldPer) {
-      const assumedPricePerKg = 150;
-      const totalYield = area * yieldPer;
-      const revenue = totalYield * assumedPricePerKg;
-      const profit = revenue - (cost || 0);
-      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-      const numericLine =
-        language === "si"
-          ? `මුළු අස්වැන්න ආසන්න වශයෙන් ${totalYield.toFixed(0)} ${
-              t.kg
-            }, ආදායම ${t.rs} ${revenue.toFixed(0)}, ලාභය ${
-              t.rs
-            } ${profit.toFixed(0)} (${margin.toFixed(1)}% ).`
-          : `Approx. total yield ${totalYield.toFixed(0)} ${t.kg}, revenue ${
-              t.rs
-            } ${revenue.toFixed(0)}, profit ${t.rs} ${profit.toFixed(
-              0
-            )} (${margin.toFixed(1)}%).`;
-
-      summaryLines.push(numericLine);
-    }
-
-    summaryLines.push(
-      language === "si"
-        ? `මෙම වර්ගය සඳහා සාමාන්‍ය වගා කාලය සති ${durationWeeks} ක් පමණ වේ.`
-        : `Typical crop duration for this variety is about ${durationWeeks} weeks.`
+        <View
+          style={{
+            width: 44,
+            height: 24,
+            borderRadius: 12,
+            backgroundColor: value ? "#10B981" : "#E5E7EB",
+            justifyContent: "center",
+            paddingHorizontal: 3,
+          }}
+        >
+          <View
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: "#FFFFFF",
+              alignSelf: value ? "flex-end" : "flex-start",
+            }}
+          />
+        </View>
+      </TouchableOpacity>
     );
+  };
+
+  type OptionRowProps<T extends string> = {
+    label: string;
+    options: T[];
+    value: T;
+    onChange: (v: T) => void;
+  };
+
+  function OptionRow<T extends string>({
+    label,
+    options,
+    value,
+    onChange,
+  }: OptionRowProps<T>) {
+    return (
+      <View style={{ marginTop: 12 }}>
+        <Text
+          style={{
+            fontSize: 13,
+            color: "#065F46",
+            fontWeight: "600",
+            marginBottom: 6,
+          }}
+        >
+          {label}
+        </Text>
+
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {options.map((opt) => {
+            const active = opt === value;
+            return (
+              <TouchableOpacity
+                key={opt}
+                onPress={() => onChange(opt)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 8,
+                  borderRadius: 999,
+                  borderWidth: 2,
+                  borderColor: active ? "#10B981" : "#D1FAE5",
+                  backgroundColor: active ? "#ECFDF5" : "#FFFFFF",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: "700",
+                    color: active ? "#047857" : "#6B7280",
+                  }}
+                >
+                  {opt}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    );
+  }
+
+  type CheckItemProps = {
+    label: string;
+    state: boolean;
+    onChange: (v: boolean) => void;
+  };
+
+  const CheckItem: React.FC<CheckItemProps> = ({ label, state, onChange }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => onChange(!state)}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 12,
+          paddingVertical: 10,
+        }}
+      >
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 6,
+            borderWidth: 2,
+            borderColor: state ? "#10B981" : "#D1D5DB",
+            backgroundColor: state ? "#10B981" : "#FFFFFF",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          {state && <CheckCircle color="#FFFFFF" size={14} />}
+        </View>
+
+        <Text
+          style={{
+            fontSize: 14,
+            color: "#374151",
+            fontWeight: "600",
+          }}
+        >
+          {label}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const runFullAdvisor = () => {
+    // ✅ New explainable decision text
+    const { text, tag } = buildExplainableDecision();
 
     setFullAdvisorTag(tag);
-    setFullAdvisorText(summaryLines.join(" "));
+    setFullAdvisorText(text);
 
     Animated.parallel([
       Animated.timing(formSlideAnim, {
@@ -558,92 +965,8 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const handleGoBack = () => navigation.goBack();
 
-  // Render Calendar
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(calendarDate);
-    const firstDay = getFirstDayOfMonth(calendarDate);
-    const days: (number | null)[] = [];
-
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-
-    return (
-      <Modal
-        visible={showCalendar}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowCalendar(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.calendarModal}>
-            <View style={styles.calendarHeader}>
-              <TouchableOpacity
-                onPress={() => {
-                  const newDate = new Date(calendarDate);
-                  newDate.setMonth(newDate.getMonth() - 1);
-                  setCalendarDate(newDate);
-                }}
-              >
-                <ChevronLeft color="#047857" size={24} />
-              </TouchableOpacity>
-
-              <Text style={styles.calendarTitle}>
-                {monthNames[calendarDate.getMonth()]}{" "}
-                {calendarDate.getFullYear()}
-              </Text>
-
-              <TouchableOpacity
-                onPress={() => {
-                  const newDate = new Date(calendarDate);
-                  newDate.setMonth(newDate.getMonth() + 1);
-                  setCalendarDate(newDate);
-                }}
-              >
-                <ChevronRight color="#047857" size={24} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.calendarDayNames}>
-              {dayNames.map((day, idx) => (
-                <Text key={idx} style={styles.dayName}>
-                  {day}
-                </Text>
-              ))}
-            </View>
-
-            <View style={styles.calendarGrid}>
-              {days.map((day, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.calendarDay,
-                    day === null && styles.calendarDayEmpty,
-                  ]}
-                  onPress={() => day && handleDateSelect(day)}
-                  disabled={day === null}
-                >
-                  {day && <Text style={styles.calendarDayText}>{day}</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TouchableOpacity
-              style={styles.modalCloseButton}
-              onPress={() => setShowCalendar(false)}
-            >
-              <Text style={styles.modalCloseText}>{t.cancel}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    );
-  };
-
   // Render Variety Picker
+
   const renderVarietyPicker = () => {
     return (
       <Modal
@@ -699,6 +1022,166 @@ const PriceAdvisorScreen: React.FC = () => {
         </View>
       </Modal>
     );
+  };
+
+  const renderDistrictPicker = () => (
+    <Modal visible={showDistrictPicker} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.varietyModal}>
+          <View style={styles.varietyHeader}>
+            <Text style={styles.varietyTitle}>
+              {language === "si" ? "දිස්ත්‍රික්කය තෝරන්න" : "Select district"}
+            </Text>
+            <TouchableOpacity onPress={() => setShowDistrictPicker(false)}>
+              <X color="#6B7280" size={24} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.varietyList}>
+            {DISTRICTS.map((d) => (
+              <TouchableOpacity
+                key={d}
+                style={[
+                  styles.varietyItem,
+                  form.district === d && styles.varietyItemSelected,
+                ]}
+                onPress={() => {
+                  setForm((f) => ({ ...f, district: d }));
+                  setShowDistrictPicker(false);
+                }}
+              >
+                <Text style={styles.varietyItemText}>{d}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const renderMonthPicker = () => (
+    <Modal visible={showMonthPicker} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.varietyModal}>
+          <View style={styles.varietyHeader}>
+            <Text style={styles.varietyTitle}>මාසය තෝරන්න</Text>
+            <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
+              <X color="#6B7280" size={24} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.varietyList}>
+            {MONTHS_SI.map((m) => (
+              <TouchableOpacity
+                key={m}
+                style={[
+                  styles.varietyItem,
+                  form.plantingDate === m && styles.varietyItemSelected,
+                ]}
+                onPress={() => {
+                  setForm((f) => ({ ...f, plantingDate: m }));
+                  setShowMonthPicker(false);
+                }}
+              >
+                <Text style={styles.varietyItemText}>{m}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const saveMyPlan = async () => {
+    try {
+      const { done, total, percent } = getReadinessScore();
+
+      const plan = {
+        id: Date.now(),
+        savedAt: new Date().toISOString(),
+
+        // snapshot of inputs
+        form: form,
+
+        // readiness
+        readiness: {
+          done,
+          total,
+          percent,
+        },
+
+        // advisor output
+        decision: {
+          tag: fullAdvisorTag,
+          text: fullAdvisorText,
+        },
+      };
+
+      const existing = await AsyncStorage.getItem("savedPlans");
+      const plans = existing ? JSON.parse(existing) : [];
+
+      plans.unshift(plan); // latest first
+
+      await AsyncStorage.setItem("savedPlans", JSON.stringify(plans));
+
+      alert(
+        language === "si"
+          ? "✅ ඔබගේ වගා සැලසුම සුරකින ලදී!"
+          : "✅ Your cultivation plan has been saved!"
+      );
+    } catch (e) {
+      alert(
+        language === "si"
+          ? "❌ සැලසුම සුරකින්න නොහැකි විය."
+          : "❌ Failed to save the plan."
+      );
+    }
+  };
+
+  const loadLatestSavedPlan = async () => {
+    try {
+      const existing = await AsyncStorage.getItem("savedPlans");
+      if (!existing) {
+        alert(
+          language === "si"
+            ? "සුරකින ලද සැලසුමක් නොමැත."
+            : "No saved plan found."
+        );
+        return;
+      }
+
+      const plans = JSON.parse(existing);
+      if (!plans.length) {
+        alert(
+          language === "si"
+            ? "සුරකින ලද සැලසුමක් නොමැත."
+            : "No saved plan found."
+        );
+        return;
+      }
+
+      const latestPlan = plans[0]; // latest saved
+
+      // 🔑 Restore form
+      setForm(latestPlan.form);
+
+      // Show form again
+      setShowForm(true);
+      setFullAdvisorText(null);
+      setFullAdvisorTag(null);
+
+      alert(
+        language === "si"
+          ? "✅ සුරකින ලද සැලසුම නැවත පුරවන ලදී!"
+          : "✅ Saved plan has been restored!"
+      );
+    } catch (e) {
+      alert(
+        language === "si"
+          ? "❌ සැලසුම නැවත ලබාගත නොහැකි විය."
+          : "❌ Failed to restore the saved plan."
+      );
+    }
   };
 
   return (
@@ -782,9 +1265,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "plant_now" && styles.quickCardActive,
+                  selectedQuestion === "start_now" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("plant_now")}
+                onPress={() => handleQuestionPress("start_now")}
               >
                 <View style={styles.quickIconContainer}>
                   <Leaf color="#10B981" size={22} />
@@ -795,10 +1278,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "delay_planting" &&
-                    styles.quickCardActive,
+                  selectedQuestion === "before_start" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("delay_planting")}
+                onPress={() => handleQuestionPress("before_start")}
               >
                 <View style={styles.quickIconContainer}>
                   <AlertTriangle color="#F59E0B" size={22} />
@@ -809,9 +1291,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "weather_ok" && styles.quickCardActive,
+                  selectedQuestion === "district_time" &&
+                    styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("weather_ok")}
+                onPress={() => handleQuestionPress("district_time")}
               >
                 <View style={styles.quickIconContainer}>
                   <CloudSun color="#0EA5E9" size={22} />
@@ -822,9 +1305,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "profit_now" && styles.quickCardActive,
+                  selectedQuestion === "biggest_risk" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("profit_now")}
+                onPress={() => handleQuestionPress("biggest_risk")}
               >
                 <View style={styles.quickIconContainer}>
                   <DollarSign color="#22C55E" size={22} />
@@ -835,10 +1318,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "best_harvest_time" &&
+                  selectedQuestion === "need_professional" &&
                     styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("best_harvest_time")}
+                onPress={() => handleQuestionPress("need_professional")}
               >
                 <View style={styles.quickIconContainer}>
                   <TrendingUp color="#16A34A" size={22} />
@@ -882,6 +1365,12 @@ const PriceAdvisorScreen: React.FC = () => {
                   },
                 ]}
               >
+                {/* Readiness Circular Progress */}
+                {(() => {
+                  const { percent } = getReadinessScore();
+                  return <CircularProgress percent={percent} />;
+                })()}
+
                 <View style={styles.resultHeader}>
                   {fullAdvisorTag === "good" && (
                     <CheckCircle color="#10B981" size={24} />
@@ -904,15 +1393,75 @@ const PriceAdvisorScreen: React.FC = () => {
                 <Text style={[styles.resultText, { marginTop: 6 }]}>
                   {fullAdvisorText}
                 </Text>
-
+                {/* ✏️ Edit Inputs */}
                 <TouchableOpacity
                   style={styles.secondaryButton}
                   onPress={handleEditInputs}
                 >
                   <Text style={styles.secondaryButtonText}>{t.editInputs}</Text>
                 </TouchableOpacity>
+
+                {/* 💾 Save My Plan */}
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryButton,
+                    {
+                      marginTop: 10,
+                      backgroundColor: "#F0FDF4",
+                      borderColor: "#047857",
+                    },
+                  ]}
+                  onPress={saveMyPlan}
+                >
+                  <Text
+                    style={[styles.secondaryButtonText, { color: "#047857" }]}
+                  >
+                    {language === "si"
+                      ? "💾 මගේ වගා සැලසුම සුරකින්න"
+                      : "💾 Save my cultivation plan"}
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
+          </View>
+          {/* 👨‍🌾 Agri Officer Support — Always Visible */}
+          <View style={styles.section}>
+            <View style={styles.assistCard}>
+              <View
+                style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+              >
+                <View style={styles.assistIcon}>
+                  <Leaf color="#047857" size={22} />
+                </View>
+
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.assistTitle}>
+                    {language === "si"
+                      ? "කෘෂි නිලධාරි සහාය"
+                      : "Agricultural Officer Support"}
+                  </Text>
+
+                  <Text style={styles.assistDesc}>
+                    {language === "si"
+                      ? "ඔබගේ වගා සැලසුම පිළිබඳ වෘත්තීය උපදෙස් ලබාගන්න."
+                      : "Get professional guidance for your cultivation plan."}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.assistButton}
+                onPress={() =>
+                  navigation.navigate("Chat", { roomId: null, userId: "" })
+                }
+              >
+                <Text style={styles.assistButtonText}>
+                  {language === "si"
+                    ? "💬 නිලධාරියෙකු සමඟ කතා කරන්න"
+                    : "💬 Chat with an Agricultural Officer"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Full Advisor Form */}
@@ -927,23 +1476,35 @@ const PriceAdvisorScreen: React.FC = () => {
                 }}
               >
                 <View style={styles.formCard}>
+                  {/* District */}
                   <Text style={styles.inputLabel}>{t.formDistrict}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.district}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, district: text }))
-                    }
-                    placeholder={
-                      language === "si" ? "උදා: අනුරාධපුර" : "e.g. Anuradhapura"
-                    }
-                    placeholderTextColor="#9CA3AF"
-                  />
-
-                  <Text style={styles.inputLabel}>{t.formPlantingDate}</Text>
                   <TouchableOpacity
                     style={styles.pickerInput}
-                    onPress={() => setShowCalendar(true)}
+                    onPress={() => setShowDistrictPicker(true)}
+                  >
+                    <Leaf color="#10B981" size={20} />
+                    <Text
+                      style={[
+                        styles.pickerText,
+                        !form.district && styles.pickerPlaceholder,
+                      ]}
+                    >
+                      {form.district ||
+                        (language === "si"
+                          ? "දිස්ත්‍රික්කය තෝරන්න"
+                          : "Select district")}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Month */}
+                  <Text style={styles.inputLabel}>
+                    {language === "si"
+                      ? "වගාව ආරම්භ කිරීමට අදහස් කරන මාසය"
+                      : "Planned month to start cultivation"}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.pickerInput}
+                    onPress={() => setShowMonthPicker(true)}
                   >
                     <Calendar color="#10B981" size={20} />
                     <Text
@@ -952,10 +1513,12 @@ const PriceAdvisorScreen: React.FC = () => {
                         !form.plantingDate && styles.pickerPlaceholder,
                       ]}
                     >
-                      {form.plantingDate || t.selectDate}
+                      {form.plantingDate ||
+                        (language === "si" ? "මාසය තෝරන්න" : "Select month")}
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Seed Variety */}
                   <Text style={styles.inputLabel}>{t.formVariety}</Text>
                   <TouchableOpacity
                     style={styles.pickerInput}
@@ -972,6 +1535,7 @@ const PriceAdvisorScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
 
+                  {/* Land Area */}
                   <Text style={styles.inputLabel}>{t.formArea}</Text>
                   <TextInput
                     style={styles.input}
@@ -984,36 +1548,172 @@ const PriceAdvisorScreen: React.FC = () => {
                     placeholderTextColor="#9CA3AF"
                   />
 
-                  <Text style={styles.inputLabel}>{t.formCost}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.totalCost}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, totalCost: text }))
-                    }
-                    keyboardType="numeric"
-                    placeholder="45000"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  {/* Advanced Toggle */}
+                  <View style={{ marginTop: 12 }}>
+                    <ToggleRow
+                      label={
+                        language === "si"
+                          ? "උසස් විකල්ප පෙන්වන්න"
+                          : "Show advanced options"
+                      }
+                      value={showAdvanced}
+                      onChange={setShowAdvanced}
+                    />
+                  </View>
 
-                  <Text style={styles.inputLabel}>{t.formYield}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form.expectedYield}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, expectedYield: text }))
-                    }
-                    keyboardType="numeric"
-                    placeholder="1750"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                  {/* Advanced Options */}
+                  {showAdvanced && (
+                    <View style={styles.advancedContainer}>
+                      <OptionRow
+                        label={
+                          language === "si" ? "වියදම් පරාසය" : "Budget level"
+                        }
+                        options={["low", "medium", "high"]}
+                        value={form.budgetLevel}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, budgetLevel: v }))
+                        }
+                      />
+                      <OptionRow
+                        label={
+                          language === "si"
+                            ? "අත්දැකීම් මට්ටම"
+                            : "Experience level"
+                        }
+                        options={["new", "some", "experienced"]}
+                        value={form.experienceLevel}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, experienceLevel: v }))
+                        }
+                      />
 
+                      <ToggleRow
+                        label={
+                          language === "si"
+                            ? "ජලය / වාරිමාර්ග ඇත"
+                            : "Water / irrigation available"
+                        }
+                        value={form.hasIrrigation}
+                        onChange={(v) =>
+                          setForm((f) => ({ ...f, hasIrrigation: v }))
+                        }
+                      />
+                    </View>
+                  )}
+
+                  {/* Readiness Checklist */}
+                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>
+                    {language === "si"
+                      ? "වගාවට සූදානම්ද?"
+                      : "Are you ready to cultivate?"}
+                  </Text>
+
+                  <View style={styles.checklistContainer}>
+                    <CheckItem
+                      label={
+                        language === "si"
+                          ? "බීජ ලබාගැනීම සූදානම්"
+                          : "Seeds are ready"
+                      }
+                      state={form.readiness.seeds}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, seeds: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label={
+                        language === "si"
+                          ? "ජල සැලසුම ඇත"
+                          : "Water plan available"
+                      }
+                      state={form.readiness.water}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, water: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label={
+                        language === "si"
+                          ? "භූමිය සකස් කර ඇත"
+                          : "Land is prepared"
+                      }
+                      state={form.readiness.land}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, land: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label={
+                        language === "si"
+                          ? "පොහොර සැලසුමක් ඇත"
+                          : "Fertilizer plan available"
+                      }
+                      state={form.readiness.fertilizer}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, fertilizer: v },
+                        }))
+                      }
+                    />
+                    <CheckItem
+                      label={
+                        language === "si"
+                          ? "මුල් වියදම් සැලසුම් කර ඇත"
+                          : "Initial costs planned"
+                      }
+                      state={form.readiness.capital}
+                      onChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          readiness: { ...f.readiness, capital: v },
+                        }))
+                      }
+                    />
+                  </View>
+
+                  {/* Run Advisor */}
                   <TouchableOpacity
-                    style={styles.primaryButton}
+                    style={[styles.primaryButton, { marginTop: 20 }]}
                     onPress={runFullAdvisor}
                   >
                     <Text style={styles.primaryButtonText}>
                       {t.btnRunFullAdvisor}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryButton,
+                      {
+                        marginTop: 12,
+                        width: "100%",
+                        backgroundColor: "#ECFEFF", // soft cyan/green
+                        borderColor: "#0EA5A4",
+                      },
+                    ]}
+                    onPress={loadLatestSavedPlan}
+                  >
+                    <Text
+                      style={[
+                        styles.secondaryButtonText,
+                        {
+                          color: "#0F766E",
+                          fontWeight: "600",
+                        },
+                      ]}
+                    >
+                      {language === "si"
+                        ? "📂 සුරකින ලද සැලසුම නැවත පුරවන්න"
+                        : "📂 Reload saved plan"}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -1025,8 +1725,9 @@ const PriceAdvisorScreen: React.FC = () => {
         </Animated.View>
       </ScrollView>
 
-      {renderCalendar()}
       {renderVarietyPicker()}
+      {renderDistrictPicker()}
+      {renderMonthPicker()}
     </View>
   );
 };
@@ -1484,5 +2185,89 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  chatButton: {
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#047857",
+    padding: 18,
+    borderRadius: 14,
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  chatText: {
+    color: "#FFF",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  advancedContainer: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#F0FDF4",
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+  checklistContainer: {
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  assistCard: {
+    marginTop: 18,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#A7F3D0",
+  },
+
+  assistIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#D1FAE5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  assistTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+
+  assistDesc: {
+    fontSize: 13,
+    color: "#374151",
+    marginTop: 2,
+    lineHeight: 18,
+  },
+
+  assistButton: {
+    marginTop: 14,
+    backgroundColor: "#047857",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+
+  assistButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
 });
