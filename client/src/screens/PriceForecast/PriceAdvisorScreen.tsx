@@ -147,7 +147,6 @@ interface RouteParams {
 
 interface AdvisorFormData {
   district: string;
-  plantingDate: string; // මෙතැන month string එක දානවා (e.g., "දෙසැම්බර්")
   plantingDateExact: string;
   seedVariety: string;
   area: string;
@@ -214,7 +213,6 @@ const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
 const PriceAdvisorScreen: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
-  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const navigation = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
@@ -353,7 +351,6 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const [form, setForm] = useState<AdvisorFormData>({
     district: "",
-    plantingDate: "",
     plantingDateExact: "",
     seedVariety: "",
     area: "",
@@ -396,36 +393,28 @@ const PriceAdvisorScreen: React.FC = () => {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  const MONTHS_SI =
-    language === "si"
-      ? [
-          "ජනවාරි",
-          "පෙබරවාරි",
-          "මාර්තු",
-          "අප්‍රේල්",
-          "මැයි",
-          "ජූනි",
-          "ජූලි",
-          "අගෝස්තු",
-          "සැප්තැම්බර්",
-          "ඔක්තෝබර්",
-          "නොවැම්බර්",
-          "දෙසැම්බර්",
-        ]
-      : [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
+  const getMonthLabelFromISO = (iso: string) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+
+  // month index 0-11
+  const idx = d.getMonth();
+
+  const monthsSi = [
+    "ජනවාරි","පෙබරවාරි","මාර්තු","අප්‍රේල්","මැයි","ජූනි",
+    "ජූලි","අගෝස්තු","සැප්තැම්බර්","ඔක්තෝබර්","නොවැම්බර්","දෙසැම්බර්",
+  ];
+
+  const monthsEn = [
+    "January","February","March","April","May","June",
+    "July","August","September","October","November","December",
+  ];
+
+  return language === "si" ? monthsSi[idx] : monthsEn[idx];
+};
+
+
 
   const DISTRICTS =
     language === "si"
@@ -497,7 +486,7 @@ const PriceAdvisorScreen: React.FC = () => {
     const { done, total, percent } = getReadinessScore();
 
     const district = (form.district || "").trim();
-    const month = (form.plantingDate || "").trim();
+   const month = getMonthLabelFromISO(form.plantingDateExact);
     const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
     const areaNum = parseFloat(form.area || "0") || 0;
 
@@ -1206,38 +1195,7 @@ const PriceAdvisorScreen: React.FC = () => {
     </Modal>
   );
 
-  const renderMonthPicker = () => (
-    <Modal visible={showMonthPicker} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.varietyModal}>
-          <View style={styles.varietyHeader}>
-            <Text style={styles.varietyTitle}>මාසය තෝරන්න</Text>
-            <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
-              <X color="#6B7280" size={24} />
-            </TouchableOpacity>
-          </View>
 
-          <ScrollView style={styles.varietyList}>
-            {MONTHS_SI.map((m) => (
-              <TouchableOpacity
-                key={m}
-                style={[
-                  styles.varietyItem,
-                  form.plantingDate === m && styles.varietyItemSelected,
-                ]}
-                onPress={() => {
-                  setForm((f) => ({ ...f, plantingDate: m }));
-                  setShowMonthPicker(false);
-                }}
-              >
-                <Text style={styles.varietyItemText}>{m}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
 
   const getPriceMessage = (
     label: string,
@@ -1783,28 +1741,6 @@ const PriceAdvisorScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Month */}
-                  <Text style={styles.inputLabel}>
-                    {language === "si"
-                      ? "වගාව ආරම්භ කිරීමට අදහස් කරන මාසය"
-                      : "Planned month to start cultivation"}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.pickerInput}
-                    onPress={() => setShowMonthPicker(true)}
-                  >
-                    <Calendar color="#10B981" size={20} />
-                    <Text
-                      style={[
-                        styles.pickerText,
-                        !form.plantingDate && styles.pickerPlaceholder,
-                      ]}
-                    >
-                      {form.plantingDate ||
-                        (language === "si" ? "මාසය තෝරන්න" : "Select month")}
-                    </Text>
-                  </TouchableOpacity>
-
                   {/* Exact Planting Date */}
                   <Text style={styles.inputLabel}>
                     {language === "si"
@@ -2087,7 +2023,6 @@ const PriceAdvisorScreen: React.FC = () => {
 
       {renderVarietyPicker()}
       {renderDistrictPicker()}
-      {renderMonthPicker()}
     </View>
   );
 };
