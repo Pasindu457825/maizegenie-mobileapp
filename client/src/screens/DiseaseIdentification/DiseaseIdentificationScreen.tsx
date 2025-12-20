@@ -110,7 +110,7 @@ const DiseaseIdentificationScreen = () => {
       low: "අඩු",
       severity: "දැඩි තත්ත්වය",
       detectionStatus: "හඳුනාගැනීමේ තත්ත්වය",
-      healthy: "සෞඛ්‍ය සම්පන්න",
+      healthy: "සෞඛ්‍ය සම්පන්න කොළයකි",
       location: "ස්ථානය",
       status: "තත්ත්වය",
     },
