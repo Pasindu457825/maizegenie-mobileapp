@@ -13,7 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, MessageSquare, Mic, Send, AlertCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useApp } from "../../context/AppContext";
+import { useApp } from "../../../context/AppContext";
 
 const getApiUrl = () => {
     if (Platform.OS === "android") {

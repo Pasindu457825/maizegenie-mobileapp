@@ -3,17 +3,17 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 // Farmer Screens
 import YieldPredictionLoadingScreen from "../screens/YieldPrediction/YieldPredictionLoadingScreen";
-import YieldPredictionFormScreen from "../screens/YieldPrediction/YieldPredictionFormScreen";
-import YieldPredictionResultsScreen from "../screens/YieldPrediction/YieldPredictionResultsScreen";
+import YieldPredictionFormScreen from "../screens/YieldPrediction/YieldPredictionFarmerFormScreen";
+import YieldPredictionResultsScreen from "../screens/YieldPrediction/YieldPredictionFarmerResultsScreen";
 
 // Officer Screens
 import YieldPredictionOfficerFormScreen from "../screens/YieldPrediction/YieldPredictionOfficerFormScreen";
 import YieldPredictionOfficerResultsScreen from "../screens/YieldPrediction/YieldPredictionOfficerResultsScreen";
 
 // Fertilizer Advisor Screens - Farmer Side
-import FertilizerAdvisorLandingScreen from "../screens/FertilizerAdvisor/FertilizerAdvisorLandingScreen";
-import NLPAdvisoryInputScreen from "../screens/NLPAdvisory/NLPAdvisoryInputScreen";
-import NLPAdvisoryResultsScreen from "../screens/NLPAdvisory/NLPAdvisoryResultsScreen";
+import FertilizerAdvisorLandingScreen from "../screens/FertilizerAdvisor/FertilizerAdvisorFarmerLandingScreen";
+import NLPAdvisoryInputScreen from "../screens/FertilizerAdvisor/NLPAdvisoryFarmer/NLPAdvisoryFarmerInputScreen";
+import NLPAdvisoryResultsScreen from "../screens/FertilizerAdvisor/NLPAdvisoryFarmer/NLPAdvisoryFarmerResultsScreen";
 
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
