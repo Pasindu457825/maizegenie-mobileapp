@@ -1505,184 +1505,211 @@ const PriceAdvisorScreen: React.FC = () => {
 
           {/* Advisor Result */}
           {/* ✅ Unified Advisor Card (NO REMOVALS) */}
-{(fullAdvisorText || priceWindowResult || harvestAdvisoryResult || priceWindowLoading || harvestAdvisoryLoading) && (
-  <View style={styles.unifiedCard}>
+{/* Advisor Result - Combined Single Card */}
+          {(fullAdvisorText || priceWindowResult || harvestAdvisoryResult || priceWindowLoading || harvestAdvisoryLoading) && (
+            <View style={styles.section}>
+              <View style={styles.unifiedAdvisorCard}>
+                {/* Header with Icon */}
+                <View style={styles.advisorHeader}>
+                  <View style={styles.advisorIconContainer}>
+                    <Leaf color="#FFFFFF" size={28} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.advisorMainTitle}>
+                      {language === "si" ? "වගා උපදේශක ප්‍රතිඵලය" : "Cultivation Advisory Result"}
+                    </Text>
+                    <Text style={styles.advisorSubtitle}>
+                      {language === "si" ? "සම්පූර්ණ විශ්ලේෂණය සහ නිර්දේශ" : "Complete Analysis & Recommendations"}
+                    </Text>
+                  </View>
+                </View>
 
-    {/* Title */}
-    <View style={styles.unifiedTitleRow}>
-      <Leaf color="#10B981" size={22} />
-      <Text style={styles.unifiedTitleText}>
-        {language === "si" ? "එකතු කළ වගා උපදේශක" : "Unified Cultivation Advisor"}
-      </Text>
-    </View>
+                {/* Readiness Progress at Top */}
+                {fullAdvisorText && (
+                  <>
+                    {(() => {
+                      const { percent } = getReadinessScore();
+                      return <CircularProgress percent={percent} />;
+                    })()}
 
-    {/* ---------------------------------------
-        1) Main Explainable Advisor (KEEP SAME)
-       --------------------------------------- */}
-    {fullAdvisorText && (
-      <View
-        style={[
-          styles.resultCard,
-          {
-            borderLeftColor:
-              fullAdvisorTag === "good"
-                ? "#10B981"
-                : fullAdvisorTag === "warn"
-                ? "#EF4444"
-                : "#F59E0B",
-            marginBottom: 12,
-          },
-        ]}
-      >
-        {/* Readiness Circular Progress */}
-        {(() => {
-          const { percent } = getReadinessScore();
-          return <CircularProgress percent={percent} />;
-        })()}
+                    {/* Decision Badge */}
+                    <View style={[
+                      styles.decisionBadge,
+                      {
+                        backgroundColor: fullAdvisorTag === "good" ? "#ECFDF5" : 
+                                       fullAdvisorTag === "warn" ? "#FEF2F2" : "#FEF3C7"
+                      }
+                    ]}>
+                      {fullAdvisorTag === "good" && <CheckCircle color="#10B981" size={20} />}
+                      {fullAdvisorTag === "warn" && <AlertTriangle color="#EF4444" size={20} />}
+                      {fullAdvisorTag === "info" && <TrendingUp color="#F59E0B" size={20} />}
+                      
+                      <Text style={[
+                        styles.decisionText,
+                        {
+                          color: fullAdvisorTag === "good" ? "#065F46" :
+                                 fullAdvisorTag === "warn" ? "#991B1B" : "#92400E"
+                        }
+                      ]}>
+                        {fullAdvisorTag === "good"
+                          ? t.advisorTagGood
+                          : fullAdvisorTag === "warn"
+                          ? t.advisorTagWarn
+                          : t.advisorTagInfo}
+                      </Text>
+                    </View>
 
-        <View style={styles.resultHeader}>
-          {fullAdvisorTag === "good" && <CheckCircle color="#10B981" size={24} />}
-          {fullAdvisorTag === "warn" && <AlertTriangle color="#EF4444" size={24} />}
-          {fullAdvisorTag === "info" && <TrendingUp color="#F59E0B" size={24} />}
+                    {/* Main Advisory Text */}
+                    <View style={styles.advisorySection}>
+                      <Text style={styles.advisoryText}>{fullAdvisorText}</Text>
+                    </View>
 
-          <Text style={styles.resultHeaderText}>
-            {fullAdvisorTag === "good"
-              ? t.advisorTagGood
-              : fullAdvisorTag === "warn"
-              ? t.advisorTagWarn
-              : t.advisorTagInfo}
-          </Text>
-        </View>
+                    {/* Divider */}
+                    <View style={styles.sectionDivider} />
+                  </>
+                )}
 
-        <Text style={styles.resultText}>{t.fullResultSummary}</Text>
-        <Text style={[styles.resultText, { marginTop: 6 }]}>{fullAdvisorText}</Text>
+                {/* Price Window Section */}
+                <View style={styles.advisorySection}>
+                  <View style={styles.sectionTitleRow}>
+                    <DollarSign color="#0EA5E9" size={20} />
+                    <Text style={styles.sectionTitleText}>
+                      {language === "si" ? "මිල අනාවැකි" : "Price Forecast"}
+                    </Text>
+                  </View>
 
-        {/* ✏️ Edit Inputs */}
-        <TouchableOpacity style={styles.secondaryButton} onPress={handleEditInputs}>
-          <Text style={styles.secondaryButtonText}>{t.editInputs}</Text>
-        </TouchableOpacity>
+                  {priceWindowLoading ? (
+                    <Text style={styles.loadingText}>
+                      {language === "si" ? "ගණනය කරමින්..." : "Calculating..."}
+                    </Text>
+                  ) : priceWindowResult?.best_option ? (
+                    <View style={styles.infoBox}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>
+                          {language === "si" ? "හොඳම වගා සතිය:" : "Best planting week:"}
+                        </Text>
+                        <Text style={styles.infoValue}>{priceWindowResult.best_option.planting_week}</Text>
+                      </View>
+                      
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>
+                          {language === "si" ? "අස්වැන්න සතිය:" : "Harvest week:"}
+                        </Text>
+                        <Text style={styles.infoValue}>{priceWindowResult.best_option.harvest_week}</Text>
+                      </View>
 
-        {/* 💾 Save My Plan */}
-        <TouchableOpacity
-          style={[
-            styles.secondaryButton,
-            {
-              marginTop: 10,
-              backgroundColor: "#F0FDF4",
-              borderColor: "#047857",
-            },
-          ]}
-          onPress={saveMyPlan}
-        >
-          <Text style={[styles.secondaryButtonText, { color: "#047857" }]}>
-            {language === "si" ? "💾 මගේ වගා සැලසුම සුරකින්න" : "💾 Save my cultivation plan"}
-          </Text>
-        </TouchableOpacity>
-      </View>
-    )}
+                      <View style={[styles.infoRow, { marginTop: 8 }]}>
+                        <View style={[
+                          styles.strengthBadge,
+                          {
+                            backgroundColor: priceWindowResult.best_option.label === "STRONG" ? "#DCFCE7" :
+                                           priceWindowResult.best_option.label === "WEAK" ? "#FEE2E2" : "#FEF3C7"
+                          }
+                        ]}>
+                          <Text style={[
+                            styles.strengthText,
+                            {
+                              color: priceWindowResult.best_option.label === "STRONG" ? "#166534" :
+                                     priceWindowResult.best_option.label === "WEAK" ? "#991B1B" : "#92400E"
+                            }
+                          ]}>
+                            {priceWindowResult.best_option.label}
+                          </Text>
+                        </View>
+                        <Text style={styles.confidenceText}>
+                          {language === "si" ? "විශ්වාසය:" : "Confidence:"} {priceWindowResult.best_option.confidence}
+                        </Text>
+                      </View>
 
-    {/* ---------------------------------------
-        2) Price Window Advisory (KEEP SAME)
-       --------------------------------------- */}
-    <View style={[styles.resultCard, { borderLeftColor: "#0EA5E9", marginBottom: 12 }]}>
-      <View style={styles.resultHeader}>
-        <DollarSign color="#0EA5E9" size={24} />
-        <Text style={styles.resultHeaderText}>
-          {language === "si" ? "මිල මත පදනම් වගා කාලය" : "Price-Based Planting Window"}
-        </Text>
-      </View>
+                      <Text style={styles.noteText}>
+                        {language === "si"
+                          ? "සටහන: පසුගිය දත්ත මත පදනම් වූ මිල ප්‍රවණතා"
+                          : "Note: Based on historical price patterns"}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.noDataText}>
+                      {language === "si"
+                        ? "මෙම දිස්ත්‍රික්කය සඳහා දත්ත නොමැත"
+                        : "No data available for this location"}
+                    </Text>
+                  )}
+                </View>
 
-      {priceWindowLoading ? (
-        <Text style={styles.resultText}>
-          {language === "si" ? "ගණනය කරමින්..." : "Calculating..."}
-        </Text>
-      ) : priceWindowResult?.best_option ? (
-        <>
-          <Text style={styles.resultText}>
-            {language === "si"
-              ? `හොඳම වගා සතිය: ${priceWindowResult.best_option.planting_week}`
-              : `Best planting week: ${priceWindowResult.best_option.planting_week}`}
-          </Text>
+                {/* Divider */}
+                {form.plantingDateExact && <View style={styles.sectionDivider} />}
 
-          <Text style={[styles.resultText, { marginTop: 6 }]}>
-            {language === "si"
-              ? `අස්වැන්න ලැබෙන සතිය: ${priceWindowResult.best_option.harvest_week}`
-              : `Expected harvest week: ${priceWindowResult.best_option.harvest_week}`}
-          </Text>
+                {/* Harvest Advisory Section */}
+                {form.plantingDateExact && (
+                  <View style={styles.advisorySection}>
+                    <View style={styles.sectionTitleRow}>
+                      <Calendar color="#22C55E" size={20} />
+                      <Text style={styles.sectionTitleText}>
+                        {language === "si" ? "අස්වැන්න උපදෙස්" : "Harvest Advisory"}
+                      </Text>
+                    </View>
 
-          <Text style={[styles.resultText, { marginTop: 6, fontWeight: "700" }]}>
-            {language === "si"
-              ? `ශක්තිය: ${priceWindowResult.best_option.label} • විශ්වාසය: ${priceWindowResult.best_option.confidence}`
-              : `Strength: ${priceWindowResult.best_option.label} • Confidence: ${priceWindowResult.best_option.confidence}`}
-          </Text>
+                    {harvestAdvisoryLoading ? (
+                      <Text style={styles.loadingText}>
+                        {language === "si" ? "ගණනය කරමින්..." : "Calculating..."}
+                      </Text>
+                    ) : harvestAdvisoryResult ? (
+                      <View style={styles.infoBox}>
+                        <View style={[styles.recommendationBadge, {
+                          backgroundColor: harvestAdvisoryResult.signal === "HOLD" ? "#FEF3C7" : "#DCFCE7"
+                        }]}>
+                          <Text style={[styles.recommendationText, {
+                            color: harvestAdvisoryResult.signal === "HOLD" ? "#92400E" : "#166534"
+                          }]}>
+                            {harvestAdvisoryResult.recommended_action}
+                          </Text>
+                        </View>
 
-          <Text style={[styles.resultText, { marginTop: 10, color: "#6B7280" }]}>
-            {language === "si"
-              ? "සටහන: මෙය පසුගිය දත්ත මත පදනම්ව මිල වැඩිවූ කාල වර්තමානයක් පමණක් පෙන්වයි."
-              : "Note: This highlights historical high-value periods (not an exact price prediction)."}
-          </Text>
-        </>
-      ) : (
-        <Text style={styles.resultText}>
-          {language === "si"
-            ? "මෙම දිස්ත්‍රික්කය සඳහා ප්‍රමාණවත් දත්ත නොමැත."
-            : "Not enough historical data for this location."}
-        </Text>
-      )}
-    </View>
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>
+                            {language === "si" ? "මූලික අස්වැන්න සතිය:" : "Base harvest week:"}
+                          </Text>
+                          <Text style={styles.infoValue}>{harvestAdvisoryResult.base_harvest_week}</Text>
+                        </View>
 
-    {/* ---------------------------------------
-        3) Harvest Advisory (KEEP SAME)
-       --------------------------------------- */}
-    <View style={[styles.resultCard, { borderLeftColor: "#22C55E" }]}>
-      <View style={styles.resultHeader}>
-        <Calendar color="#22C55E" size={24} />
-        <Text style={styles.resultHeaderText}>
-          {language === "si" ? "අස්වැන්න වෙලාව අනුව මිල උපදෙස්" : "Harvest-time price advisory"}
-        </Text>
-      </View>
+                        <View style={styles.infoRow}>
+                          <Text style={styles.infoLabel}>
+                            {language === "si" ? "හොඳම විකුණුම් සතිය:" : "Best selling week:"}
+                          </Text>
+                          <Text style={[styles.infoValue, { color: "#22C55E", fontWeight: "700" }]}>
+                            {harvestAdvisoryResult.best_harvest_week}
+                          </Text>
+                        </View>
 
-      {!form.plantingDateExact ? (
-        <Text style={styles.resultText}>
-          {language === "si" ? "නිශ්චිත දිනය තෝරලා Run කරන්න." : "Select an exact date and run the advisor."}
-        </Text>
-      ) : harvestAdvisoryLoading ? (
-        <Text style={styles.resultText}>
-          {language === "si" ? "ගණනය කරමින්..." : "Calculating..."}
-        </Text>
-      ) : harvestAdvisoryResult ? (
-        <>
-          <Text style={styles.resultText}>
-            {language === "si"
-              ? `නිර්දේශය: ${harvestAdvisoryResult.recommended_action}`
-              : `Recommendation: ${harvestAdvisoryResult.recommended_action}`}
-          </Text>
+                        <Text style={styles.messageText}>
+                          {harvestAdvisoryResult.message_si || harvestAdvisoryResult.message}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.noDataText}>
+                        {language === "si" ? "තොරතුරු නොමැත" : "No data available"}
+                      </Text>
+                    )}
+                  </View>
+                )}
 
-          <Text style={[styles.resultText, { marginTop: 6 }]}>
-            {language === "si"
-              ? `අස්වැන්න ලැබෙන සතිය (Base): ${harvestAdvisoryResult.base_harvest_week}`
-              : `Base harvest week: ${harvestAdvisoryResult.base_harvest_week}`}
-          </Text>
+                {/* Action Buttons */}
+                {fullAdvisorText && (
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity style={styles.editButton} onPress={handleEditInputs}>
+                      <Text style={styles.editButtonText}>{t.editInputs}</Text>
+                    </TouchableOpacity>
 
-          <Text style={[styles.resultText, { marginTop: 6, fontWeight: "700" }]}>
-            {language === "si"
-              ? `හොඳම harvest සතිය: ${harvestAdvisoryResult.best_harvest_week} • Signal: ${harvestAdvisoryResult.signal}`
-              : `Best harvest week: ${harvestAdvisoryResult.best_harvest_week} • Signal: ${harvestAdvisoryResult.signal}`}
-          </Text>
-
-          <Text style={[styles.resultText, { marginTop: 8, color: "#6B7280" }]}>
-            {harvestAdvisoryResult.message_si}
-          </Text>
-        </>
-      ) : (
-        <Text style={styles.resultText}>
-          {language === "si" ? "මෙම තොරතුරු ලබාගත නොහැක." : "Unable to fetch advisory."}
-        </Text>
-      )}
-    </View>
-
-  </View>
-)}
+                    <TouchableOpacity style={styles.saveButton} onPress={saveMyPlan}>
+                      <Text style={styles.saveButtonText}>
+                        {language === "si" ? "💾 සුරකින්න" : "💾 Save Plan"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
 
           {/* 👨‍🌾 Agri Officer Support — Always Visible */}
           <View style={styles.section}>
@@ -2629,5 +2656,189 @@ unifiedTitleText: {
   fontWeight: "800",
   color: "#065F46",
 },
+
+
+
+
+ unifiedAdvisorCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  advisorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#E5E7EB",
+  },
+  advisorIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#10B981",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  advisorMainTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#065F46",
+    letterSpacing: 0.3,
+  },
+  advisorSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  decisionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginVertical: 12,
+    alignSelf: "center",
+  },
+  decisionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  advisorySection: {
+    marginTop: 16,
+  },
+  advisoryText: {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontStyle: "italic",
+    marginTop: 8,
+  },
+  infoBox: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 8,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 6,
+  },
+  strengthBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  strengthText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  confidenceText: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  noteText: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginTop: 10,
+    fontStyle: "italic",
+    lineHeight: 16,
+  },
+  noDataText: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+    marginTop: 8,
+  },
+  recommendationBadge: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    marginBottom: 12,
+    alignSelf: "flex-start",
+  },
+  recommendationText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  messageText: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 10,
+    lineHeight: 19,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+  editButtonText: {
+    color: "#374151",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#ECFDF5",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#10B981",
+  },
+  saveButtonText: {
+    color: "#047857",
+    fontSize: 14,
+    fontWeight: "700",
+  },
 
 });
