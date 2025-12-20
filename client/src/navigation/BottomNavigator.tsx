@@ -8,7 +8,6 @@ import PriceForecastStack from "./PriceForecastStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
 import YieldPredictionStack from "./YieldPredictionStack";
-import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
 import AdminStack from "./AdminStack";
 import { ROUTES } from "../constants";
 
@@ -16,8 +15,8 @@ export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
-  [ROUTES.TABS.PRICEFORECAST]: undefined;
   [ROUTES.TABS.PREDICTYIELD]: undefined;
+  [ROUTES.TABS.PRICEFORECAST]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
   [ROUTES.TABS.ADMINPANEL]: undefined;
 };
@@ -81,7 +80,7 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 🌾 Yield */}
+      {/* 🌽 Yield */}
       <Tab.Screen
         name={ROUTES.TABS.PREDICTYIELD}
         component={YieldPredictionStack}
