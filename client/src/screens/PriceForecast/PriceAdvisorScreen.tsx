@@ -34,6 +34,7 @@ import {
   DollarSign,
   Calendar,
   X,
+  Archive,
 } from "lucide-react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
@@ -428,7 +429,6 @@ const PriceAdvisorScreen: React.FC = () => {
     year: number,
     lang: "si" | "en"
   ) => {
-
     const simple = new Date(year, 0, 1 + (isoWeek - 1) * 7);
 
     // shift to Monday
@@ -487,7 +487,6 @@ const PriceAdvisorScreen: React.FC = () => {
     const p = parseISOToMonthWeek(plantingDateISO, lang);
     if (!p) return null;
 
- 
     // 1️⃣ Planting advice (month + week-of-month)
     const plantingLine =
       lang === "si"
@@ -499,7 +498,6 @@ const PriceAdvisorScreen: React.FC = () => {
             p.weekOfMonth,
             "en"
           )} week of ${p.monthLabel} ${p.year}.`;
-
 
     // 2️⃣ Harvest + selling advice (IMPORTANT FIX)
     let harvestLine = "";
@@ -542,7 +540,7 @@ const PriceAdvisorScreen: React.FC = () => {
         : `Market trends indicate that ${marketLineWord}.`;
 
     // 4️⃣ Confidence (optional)
- 
+
     const confLine = confidence
       ? lang === "si"
         ? `විශ්වාසය: ${confidence}`
@@ -1446,6 +1444,109 @@ const PriceAdvisorScreen: React.FC = () => {
     }
   };
 
+  type StorageAdvice = {
+    required: boolean;
+    duration_weeks: number;
+    reason: string;
+    message_si: string;
+  };
+
+  const StorageAdviceCard = ({
+    storageAdvice,
+    language,
+  }: {
+    storageAdvice?: StorageAdvice;
+    language: "si" | "en";
+  }) => {
+    if (!storageAdvice || !storageAdvice.required) return null;
+
+    const title =
+      language === "si" ? "ගබඩා කිරීම සුදුසුයි" : "Storage is recommended";
+    const weeksLine =
+      language === "si"
+        ? `සති ${storageAdvice.duration_weeks}ක් පමණ ගබඩා කර තබාගත යුතුයි`
+        : `You may need to store for about ${storageAdvice.duration_weeks} weeks`;
+
+    const note =
+      language === "si"
+        ? "වියලි ස්ථානයක් තෝරන්න • වායු ගමනාගමනය හොඳ විය යුතුයි"
+        : "Choose a dry place • Ensure good ventilation";
+
+    return (
+      <View style={styles.storageCard}>
+        <View style={styles.storageHeader}>
+          <View style={styles.storageIconWrap}>
+            <Archive size={18} color="#92400E" />
+          </View>
+          <Text style={styles.storageTitle}>{title}</Text>
+        </View>
+
+        <Text style={styles.storageWeeks}>{weeksLine}</Text>
+
+        <Text style={styles.storageMsg}>{storageAdvice.message_si}</Text>
+
+        <View style={styles.storageNoteBox}>
+          <Text style={styles.storageNoteText}>⚠️ {note}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const HarvestTimelineBar = ({
+    language,
+    delayWeeks,
+    baseWeek,
+    bestWeek,
+  }: {
+    language: "si" | "en";
+    delayWeeks?: number;
+    baseWeek?: number;
+    bestWeek?: number;
+  }) => {
+    if (!baseWeek || !bestWeek) return null;
+
+    const leftTitle = language === "si" ? "දැන් Harvest" : "Harvest now";
+    const rightTitle =
+      language === "si" ? "හොඳ මිල Harvest" : "Best price harvest";
+    const midTitle =
+      language === "si"
+        ? `සති ${delayWeeks ?? Math.max(bestWeek - baseWeek, 0)}ක් පමා කරන්න`
+        : `Delay ${delayWeeks ?? Math.max(bestWeek - baseWeek, 0)} weeks`;
+
+    return (
+      <View style={styles.timelineCard}>
+        <View style={styles.timelineRow}>
+          {/* Left */}
+          <View style={styles.timelineStep}>
+            <Text style={styles.timelineIcon}>🌱</Text>
+            <Text style={styles.timelineTitle}>{leftTitle}</Text>
+            <Text style={styles.timelineWeek}>
+              {language === "si" ? `සතිය ${baseWeek}` : `Week ${baseWeek}`}
+            </Text>
+          </View>
+
+          {/* Middle */}
+          <View style={styles.timelineMiddle}>
+            <View style={styles.timelineLine} />
+            <View style={styles.timelinePill}>
+              <Text style={styles.timelinePillText}>⏳ {midTitle}</Text>
+            </View>
+            <View style={styles.timelineArrow} />
+          </View>
+
+          {/* Right */}
+          <View style={[styles.timelineStep, styles.timelineStepBest]}>
+            <Text style={styles.timelineIcon}>🌽</Text>
+            <Text style={styles.timelineTitle}>{rightTitle}</Text>
+            <Text style={styles.timelineWeek}>
+              {language === "si" ? `සතිය ${bestWeek}` : `Week ${bestWeek}`}
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -1591,6 +1692,12 @@ const PriceAdvisorScreen: React.FC = () => {
                 <Text style={styles.quickTitle}>{t.q5}</Text>
               </TouchableOpacity>
             </View>
+            {/* 🔽 QUICK ANSWER DISPLAY (ADD THIS) */}
+            {selectedQuestion && quickAnswer && (
+              <View style={styles.quickAnswerBox}>
+                <Text style={styles.quickAnswerText}>{quickAnswer}</Text>
+              </View>
+            )}
           </View>
 
           {/* Advisor Result */}
@@ -1618,6 +1725,68 @@ const PriceAdvisorScreen: React.FC = () => {
                         : "Complete Analysis & Recommendations"}
                     </Text>
                   </View>
+                </View>
+
+                <View style={styles.combinedSummary}>
+                  {/* Top badges */}
+                  <View style={styles.badgeRow}>
+                    {priceWindowResult?.best_option?.label && (
+                      <View
+                        style={[
+                          styles.badge,
+                          priceWindowResult.best_option.label === "STRONG"
+                            ? styles.badgeStrong
+                            : priceWindowResult.best_option.label === "MODERATE"
+                            ? styles.badgeModerate
+                            : styles.badgeWeak,
+                        ]}
+                      >
+                        <Text style={styles.badgeText}>
+                          {priceWindowResult.best_option.label}
+                        </Text>
+                      </View>
+                    )}
+
+                    {priceWindowResult?.best_option?.confidence && (
+                      <View style={[styles.badge, styles.badgeConfidence]}>
+                        <Text style={styles.badgeText}>
+                          Confidence: {priceWindowResult.best_option.confidence}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Main recommendation */}
+                  <Text style={styles.mainActionText}>
+                    {harvestAdvisoryResult?.recommended_action ??
+                      (language === "si"
+                        ? "අස්වැන්න සති කිහිපයකින් ප්‍රමාද කිරීම සුදුසුය"
+                        : "Delaying harvest is recommended")}
+                  </Text>
+
+                  {/* ✅ Graphical timeline (NEW) */}
+                  <HarvestTimelineBar
+                    language={language}
+                    delayWeeks={
+                      harvestAdvisoryResult?.best_option?.delay_weeks ??
+                      harvestAdvisoryResult?.delay_weeks
+                    }
+                    baseWeek={harvestAdvisoryResult?.base_harvest_week}
+                    bestWeek={harvestAdvisoryResult?.best_harvest_week}
+                  />
+
+                  {/* Reason / explanation */}
+                  {(farmerHarvestText || farmerPriceText) && (
+                    <Text style={styles.reasonText}>
+                      {farmerHarvestText ?? farmerPriceText}
+                    </Text>
+                  )}
+
+                  {/* ✅ Storage advice card (NEW) */}
+                  <StorageAdviceCard
+                    storageAdvice={harvestAdvisoryResult?.storage_advice}
+                    language={language}
+                  />
                 </View>
 
                 {/* Readiness Progress at Top */}
@@ -1682,91 +1851,6 @@ const PriceAdvisorScreen: React.FC = () => {
                     <View style={styles.sectionDivider} />
                   </>
                 )}
-
-                <View style={styles.combinedSummary}>
-                  {/* Top badges */}
-                  <View style={styles.badgeRow}>
-                    {priceWindowResult?.best_option?.label && (
-                      <View
-                        style={[
-                          styles.badge,
-                          priceWindowResult.best_option.label === "STRONG"
-                            ? styles.badgeStrong
-                            : priceWindowResult.best_option.label === "MODERATE"
-                            ? styles.badgeModerate
-                            : styles.badgeWeak,
-                        ]}
-                      >
-                        <Text style={styles.badgeText}>
-                          {priceWindowResult.best_option.label}
-                        </Text>
-                      </View>
-                    )}
-
-                    {priceWindowResult?.best_option?.confidence && (
-                      <View style={[styles.badge, styles.badgeConfidence]}>
-                        <Text style={styles.badgeText}>
-                          Confidence: {priceWindowResult.best_option.confidence}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Main recommendation */}
-                  <Text style={styles.mainActionText}>
-                    {harvestAdvisoryResult?.recommended_action ??
-                      (language === "si"
-                        ? "අස්වැන්න සති කිහිපයකින් ප්‍රමාද කිරීම සුදුසුය"
-                        : "Delaying harvest is recommended")}
-                  </Text>
-
-                  {/* Week timeline */}
-                  <View style={styles.weekGrid}>
-                    {priceWindowResult?.best_option?.planting_week && (
-                      <View style={styles.weekItem}>
-                        <Text style={styles.weekLabel}>
-                          {language === "si" ? "වගා සතිය" : "Planting week"}
-                        </Text>
-                        <Text style={styles.weekValue}>
-                          {priceWindowResult.best_option.planting_week}
-                        </Text>
-                      </View>
-                    )}
-
-                    {harvestAdvisoryResult?.base_harvest_week && (
-                      <View style={styles.weekItem}>
-                        <Text style={styles.weekLabel}>
-                          {language === "si"
-                            ? "සාමාන්‍ය harvest"
-                            : "Base harvest"}
-                        </Text>
-                        <Text style={styles.weekValue}>
-                          {harvestAdvisoryResult.base_harvest_week}
-                        </Text>
-                      </View>
-                    )}
-
-                    {harvestAdvisoryResult?.best_harvest_week && (
-                      <View style={styles.weekItem}>
-                        <Text style={styles.weekLabel}>
-                          {language === "si"
-                            ? "නිර්දේශිත harvest"
-                            : "Recommended harvest"}
-                        </Text>
-                        <Text style={styles.weekValue}>
-                          {harvestAdvisoryResult.best_harvest_week}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Reason / explanation */}
-                  {(farmerHarvestText || farmerPriceText) && (
-                    <Text style={styles.reasonText}>
-                      {farmerHarvestText ?? farmerPriceText}
-                    </Text>
-                  )}
-                </View>
 
                 {/* Action Buttons */}
                 {fullAdvisorText && (
@@ -2724,27 +2808,163 @@ const styles = StyleSheet.create({
     color: "#064E3B",
     marginBottom: 14,
   },
-  weekGrid: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 12,
-  },
-  weekItem: {
-    alignItems: "center",
-  },
-  weekLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  weekValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-  },
   reasonText: {
     fontSize: 13,
     color: "#374151",
     textAlign: "center",
     lineHeight: 18,
+  },
+  storageCard: {
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1.5,
+    borderColor: "#FCD34D",
+  },
+  storageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  storageIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#FEF3C7",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FCD34D",
+  },
+  storageTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#92400E",
+    flex: 1,
+  },
+  storageWeeks: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#78350F",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  storageMsg: {
+    fontSize: 13,
+    color: "#451A03",
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  storageNoteBox: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: "#FEF3C7",
+  },
+  storageNoteText: {
+    fontSize: 12,
+    color: "#92400E",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  timelineCard: {
+    marginTop: 12,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+  },
+  timelineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  timelineStep: {
+    width: 110,
+    alignItems: "center",
+  },
+  timelineStepBest: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  timelineIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  timelineTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#065F46",
+    textAlign: "center",
+  },
+  timelineWeek: {
+    marginTop: 2,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#111827",
+    textAlign: "center",
+  },
+  timelineMiddle: {
+    flex: 1,
+    alignItems: "center",
+    position: "relative",
+    height: 54,
+    justifyContent: "center",
+  },
+  timelineLine: {
+    position: "absolute",
+    height: 4,
+    left: 10,
+    right: 10,
+    borderRadius: 999,
+    backgroundColor: "#10B981",
+    opacity: 0.25,
+  },
+  timelinePill: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#10B981",
+  },
+  timelinePillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#047857",
+  },
+  timelineArrow: {
+    position: "absolute",
+    right: 6,
+    width: 0,
+    height: 0,
+    borderTopWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftWidth: 10,
+    borderTopColor: "transparent",
+    borderBottomColor: "transparent",
+    borderLeftColor: "#10B981",
+    opacity: 0.75,
+  },
+  quickAnswerBox: {
+    padding: 14,
+    backgroundColor: "#ECFDF5", // light green
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+    marginTop: 16,
+  },
+
+  quickAnswerText: {
+    fontSize: 14,
+    color: "#065F46",
+    lineHeight: 20,
   },
 });
