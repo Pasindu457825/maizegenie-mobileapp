@@ -42,6 +42,12 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { Bell } from "lucide-react-native";
 
+const getHourlyIcon = (mm: number) => {
+  if (mm >= 3) return <AlertTriangle size={18} color="#dc2626" />; // danger
+  if (mm >= 1) return <CloudRain size={18} color="#2563eb" />; // rain
+  return <Sun size={18} color="#f59e0b" />; // good
+};
+
 // ✨ FIXED: Get language type from context
 type Language = "sinhala" | "english";
 
@@ -140,6 +146,8 @@ const WeatherForecastScreen = () => {
   const navigation = useNavigation();
   const { language } = useLanguage();
   const { unreadCount } = useNotifications();
+  const { sendNotification } = useNotifications();
+  const [sentRainAlert, setSentRainAlert] = useState(false);
 
   const locationHook: any = useUniversalLocation("si");
   const {
@@ -161,6 +169,10 @@ const WeatherForecastScreen = () => {
   );
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // 🕒 HOURLY RAIN DATA (NEW)
+  const [hourlyData, setHourlyData] = useState<
+    { time: string; precipitation: number }[]
+  >([]);
 
   // ✨ UPDATED: Generate 7-day weather summary text - ENGLISH ONLY
   const generateWeatherSummary = (
@@ -483,6 +495,99 @@ const WeatherForecastScreen = () => {
     return language === "sinhala" ? si[date.getDay()] : en[date.getDay()];
   };
 
+  const getFirstRainHour = () => {
+    if (!hourlyData || hourlyData.length === 0) return null;
+
+    const index = hourlyData.findIndex((h) => h.precipitation >= 1);
+    if (index === -1) return null;
+
+    return {
+      index,
+      time: new Date(hourlyData[index].time),
+    };
+  };
+
+  // 🚜 HOURLY ACTION BANNER (ADD THIS)
+  const HourlyActionBanner = () => {
+    if (!hourlyData || hourlyData.length === 0) return null;
+
+    const rainInfo = getFirstRainHour();
+
+    // No rain at all
+    if (!rainInfo) {
+      return (
+        <View
+          style={{
+            marginHorizontal: 20,
+            marginBottom: 12,
+            backgroundColor: "#F0FDF4",
+            borderRadius: 16,
+            padding: 14,
+            borderLeftWidth: 6,
+            borderLeftColor: "#10B981",
+          }}
+        >
+          <Text style={{ fontSize: 14, fontWeight: "800", color: "#065F46" }}>
+            {language === "sinhala"
+              ? "🟢 ඉදිරි පැය කිහිපය වැසි නොමැත – වගා වැඩ සඳහා සුදුසුයි"
+              : "🟢 No rain expected in the next few hours – suitable for farming"}
+          </Text>
+        </View>
+      );
+    }
+
+    const { index, time } = rainInfo;
+
+    const hourLabel = time.toLocaleString("en-US", {
+      hour: "numeric",
+      hour12: true,
+      timeZone: "Asia/Colombo",
+    });
+
+    // ⏱️ Decision levels
+    let bg = "#FFFBEB";
+    let border = "#f59e0b";
+    let text =
+      language === "sinhala"
+        ? `⚠️ ${hourLabel} පමණ වැසි ඇතිවිය හැක – එයට පෙර වැඩ සූදානම් කරන්න`
+        : `⚠️ Rain expected around ${hourLabel} – prepare work before that`;
+
+    if (index <= 2) {
+      // Rain very soon (1–2 hours)
+      bg = "#FEF2F2";
+      border = "#ef4444";
+      text =
+        language === "sinhala"
+          ? `⛔ ${hourLabel}ට පෙර වැසි පටන්ගන්න පුළුවන් – දැන්ම අස්වැන්න ආවරණය කරන්න`
+          : `⛔ Rain may start before ${hourLabel} – protect harvest immediately`;
+    }
+
+    return (
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginBottom: 12,
+          backgroundColor: bg,
+          borderRadius: 16,
+          padding: 14,
+          borderLeftWidth: 6,
+          borderLeftColor: border,
+          elevation: 2,
+        }}
+      >
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "800",
+            color: "#1F2937",
+          }}
+        >
+          {text}
+        </Text>
+      </View>
+    );
+  };
+
   // 🌾 FARMING ADVICE LOGIC FOR CORN
   const getFarmingAdvice = (predictions: WeatherDay[]): FarmingAdvice[] => {
     const advice: FarmingAdvice[] = [];
@@ -540,6 +645,111 @@ const WeatherForecastScreen = () => {
       }
     });
     return advice;
+  };
+
+  // 🕒 HOURLY RISK HELPER
+  const getHourlyRisk = (mm: number): "red" | "yellow" | "green" => {
+    if (mm >= 3) return "red";
+    if (mm >= 1) return "yellow";
+    return "green";
+  };
+
+  const getHourlyLabel = (mm: number) => {
+    if (mm >= 3) return language === "sinhala" ? "අවදානම්" : "Risky";
+    if (mm >= 1) return language === "sinhala" ? "වැසි" : "Rain";
+    return language === "sinhala" ? "හොඳයි" : "Good";
+  };
+
+  // 🕒 HOURLY RAIN STRIP (DOT GRAPH)
+  const HourlyRainStrip = () => {
+    if (!hourlyData || hourlyData.length === 0) return null;
+
+    return (
+      <View
+        style={{
+          marginHorizontal: 20,
+          marginTop: 10,
+          marginBottom: 10,
+          backgroundColor: "#fff",
+          borderRadius: 16,
+          padding: 14,
+          elevation: 3,
+        }}
+      >
+        <Text style={{ fontSize: 14, fontWeight: "800", color: "#047857" }}>
+          {language === "sinhala"
+            ? "⏱️ ඉදිරි පැය – වගාවට කොහොමද?"
+            : "⏱️ Next few hours – farming suitability"}
+        </Text>
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            marginTop: 14,
+          }}
+        >
+          {hourlyData.slice(0, 12).map((h, idx) => {
+            const risk = getHourlyRisk(h.precipitation);
+
+            const bgColor =
+              risk === "red"
+                ? "#FEE2E2"
+                : risk === "yellow"
+                ? "#FEF9C3"
+                : "#DCFCE7";
+
+            // ⏰ ACTUAL TIME (Asia/Colombo)
+            const hourLabel = new Date(h.time).toLocaleString("en-US", {
+              hour: "numeric",
+              hour12: true,
+              timeZone: "Asia/Colombo",
+            });
+
+            return (
+              <View key={idx} style={{ alignItems: "center", width: 44 }}>
+                {/* ICON CIRCLE */}
+                <View
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: bgColor,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginBottom: 4,
+                  }}
+                >
+                  {getHourlyIcon(h.precipitation)}
+                </View>
+
+                {/* TIME */}
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: "600",
+                    color: "#374151",
+                  }}
+                >
+                  {hourLabel}
+                </Text>
+
+                {/* STATUS */}
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#6B7280",
+                    marginTop: 2,
+                  }}
+                >
+                  {getHourlyLabel(h.precipitation)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+    );
   };
 
   const getTrafficColor = (day: WeatherDay): "red" | "yellow" | "green" => {
@@ -1080,6 +1290,32 @@ const WeatherForecastScreen = () => {
     }
   }, [latitude, longitude]);
 
+  // 🕒 FETCH HOURLY RAIN (NEXT 12 HOURS)
+  useEffect(() => {
+    if (latitude == null || longitude == null) return;
+
+    const fetchHourlyRain = async () => {
+      try {
+        const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&hourly=precipitation&forecast_hours=12&timezone=Asia/Colombo`;
+
+        const res = await fetch(hourlyUrl);
+        const json = await res.json();
+
+        if (json?.hourly?.time && json?.hourly?.precipitation) {
+          const hourly = json.hourly.time.map((t: string, i: number) => ({
+            time: t,
+            precipitation: json.hourly.precipitation[i] || 0,
+          }));
+          setHourlyData(hourly);
+        }
+      } catch (e) {
+        console.log("Hourly rain fetch error", e);
+      }
+    };
+
+    fetchHourlyRain();
+  }, [latitude, longitude]);
+
   useEffect(() => {
     if (!loading && weatherData) {
       Animated.parallel([
@@ -1174,6 +1410,12 @@ const WeatherForecastScreen = () => {
         }
       >
         <EnhancedCurrentWeatherCard />
+
+        {/* 🕒 HOURLY RAIN STRIP */}
+        <HourlyRainStrip />
+
+        {/* 🚜 HOURLY ACTION BANNER */}
+        <HourlyActionBanner />
 
         {/* DAILY WEATHER SUMMARY BANNER */}
         {predictions.length > 0 && (
@@ -1589,21 +1831,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#EF4444",
   },
   badge: {
-  position: "absolute",
-  top: 4,
-  right: 4,
-  backgroundColor: "#EF4444",
-  borderRadius: 10,
-  minWidth: 16,
-  height: 16,
-  paddingHorizontal: 4,
-  alignItems: "center",
-  justifyContent: "center",
-},
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-badgeText: {
-  color: "#FFFFFF",
-  fontSize: 10,
-  fontWeight: "bold",
-},
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
 });

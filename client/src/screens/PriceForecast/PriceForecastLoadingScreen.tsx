@@ -580,8 +580,8 @@ const PriceForecastLoadingScreen = () => {
                   </Text>
                   <Text style={styles.cardDescription}>
                     {language === "si"
-                      ? "හොඳම වගා සතිය"
-                      : "Find best planting week"}
+                      ? "වගාව ආරම්භ කිරීමට අවශ්‍ය මූලික උපදෙස්"
+                      : "Essential guidance to start cultivation"}
                   </Text>
                 </View>
                 <View style={styles.cardArrow}>
@@ -942,23 +942,23 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   badge: {
-  position: "absolute",
-  top: 4,
-  right: 4,
-  backgroundColor: "#EF4444",
-  borderRadius: 10,
-  paddingHorizontal: 5,
-  minWidth: 16,
-  height: 16,
-  alignItems: "center",
-  justifyContent: "center",
-},
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-badgeText: {
-  color: "#FFFFFF",
-  fontSize: 10,
-  fontWeight: "bold",
-},
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
 });
 
 export default PriceForecastLoadingScreen;

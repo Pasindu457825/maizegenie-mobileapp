@@ -54,6 +54,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { Modal } from "react-native";
 
 // 🔥 ADD THIS HERE (top of file, after imports)
 
@@ -277,6 +278,7 @@ const PriceForecastFormScreen = () => {
       Polonnaruwa: "පොලොන්නරුව",
       Badulla: "බදුල්ල",
       Monaragala: "මොණරාගල",
+      Thissamaharama: "තිස්සමහාරාමය",
       Ratnapura: "රත්නපුර",
       Kegalle: "කෑගල්ල",
     };
@@ -925,11 +927,16 @@ const PriceForecastFormScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {showDistrictPopup && (
+          <Modal
+            visible={showDistrictPopup}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowDistrictPopup(false)}
+          >
             <View style={styles.popupContainer}>
               <View style={styles.popupBox}>
                 <ScrollView>
-                  {["Anuradhapura", "Monaragala", "Dambulla"].map((d) => (
+                  {["Anuradhapura", "Monaragala", "Tissamaharama"].map((d) => (
                     <TouchableOpacity
                       key={d}
                       style={styles.popupItem}
@@ -953,7 +960,7 @@ const PriceForecastFormScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          )}
+          </Modal>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
@@ -1452,23 +1459,23 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   badge: {
-  position: "absolute",
-  top: 4,
-  right: 4,
-  backgroundColor: "#EF4444",
-  borderRadius: 10,
-  minWidth: 16,
-  height: 16,
-  paddingHorizontal: 4,
-  alignItems: "center",
-  justifyContent: "center",
-},
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-badgeText: {
-  color: "#FFFFFF",
-  fontSize: 10,
-  fontWeight: "bold",
-},
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
 });
 
 export default PriceForecastFormScreen;
