@@ -18,6 +18,17 @@ router = APIRouter(
 # --------------------------------------------------
 model = PriceWindowModel()
 
+# --------------------------------------------------
+# ✅ NEW — Seed maturity (weeks) mapping
+# --------------------------------------------------
+SEED_MATURITY_WEEKS = {
+    "GT 709": 16,
+    "GT 200": 15,
+    "Pacific 808": 17,
+    "Jet 999": 16,
+    "Commando": 15,
+    "Local Variety": 14
+}
 
 # --------------------------------------------------
 # Utility: Date → ISO Week
@@ -94,17 +105,18 @@ def best_planting(
 
 
 # --------------------------------------------------
-# 3) NEW — Date-based historical harvest advisory
+# 3) ✅ UPDATED — Date-based harvest advisory (seed-aware)
 # --------------------------------------------------
 @router.get("/by-date")
 def price_window_by_date(
     location: str = Query(..., description="District / location name"),
     planting_date: str = Query(..., description="YYYY-MM-DD"),
-    duration_weeks: int = Query(14, ge=8, le=20)
+    seed_variety: str = Query("Local Variety", description="Maize seed variety")
 ):
     """
     Date-based advisory:
     - Converts planting date → week
+    - Determines harvest duration from seed variety
     - Calculates harvest week
     - Compares harvest week vs +2 / +4 weeks (historical patterns)
     - NO price forecasting
@@ -113,14 +125,17 @@ def price_window_by_date(
     # 1) Date → planting week
     planting_week = date_to_week(planting_date)
 
-    # 2) Base harvest week
+    # 2) ✅ Seed-based harvest duration
+    duration_weeks = SEED_MATURITY_WEEKS.get(seed_variety, 14)
+
+    # 3) Base harvest week
     base_harvest_week = calculate_harvest_week(
         planting_week, duration_weeks
     )
 
     options = []
 
-    # Compare current, +2 weeks, +4 weeks
+    # 4) Compare current, +2 weeks, +4 weeks
     for delay in [0, 2, 4]:
         harvest_week = ((base_harvest_week + delay - 1) % 52) + 1
         row = model.get_week_row(location, harvest_week)
@@ -138,23 +153,27 @@ def price_window_by_date(
     if not options:
         return {"error": "No historical data available"}
 
-    # Best historical option
+    # 5) Best historical option
     best = max(options, key=lambda x: x["score"])
 
+    # -------------------------------
     # Recommendation logic
+    # -------------------------------
     if best["delay_weeks"] == 0 and best["label"] == "STRONG":
         action = "Harvest now"
         message_si = (
-            "පසුගිය අවුරුදු ගණනාවක data අනුව, "
+            "පසුගිය අවුරුදු ගණනාවක දත්ත අනුව, "
             "මේ කාලේ harvest වුණාම බඩ ඉරිඟු මිල "
             "සාමාන්‍යයෙන් වැඩි වෙලා තියෙනවා."
         )
+
     elif best["delay_weeks"] > 0:
         action = f"Delay harvest by {best['delay_weeks']} weeks"
         message_si = (
-            f"පසුගිය data අනුව, සති {best['delay_weeks']}ක් පස්සේ "
+            f"පසුගිය දත්ත අනුව, සති {best['delay_weeks']}ක් පස්සේ "
             "harvest වුණාම මිල වැඩි වෙලා තියෙන අවස්ථා වැඩියි."
         )
+
     else:
         action = "Harvest and store"
         message_si = (
@@ -162,8 +181,35 @@ def price_window_by_date(
             "ඒ නිසා වහාම විකුනන්න එපා. store කරලා පස්සේ විකුනන්න."
         )
 
+    # -------------------------------
+    # Storage advice
+    # -------------------------------
+    if best["delay_weeks"] > 0:
+        storage_advice = {
+            "required": True,
+            "duration_weeks": best["delay_weeks"],
+            "reason": "DELAYED_HARVEST",
+            "message_si": (
+                f"සති {best['delay_weeks']}ක් පමා කර විකුනන නිසා, "
+                "වියලි සහ හොඳ වායු සරණි සහිත ගබඩාවක් "
+                "භාවිතා කිරීම සුදුසුයි."
+            )
+        }
+    else:
+        storage_advice = {
+            "required": False,
+            "duration_weeks": 0,
+            "reason": "IMMEDIATE_SALE",
+            "message_si": "වහාම harvest කර විකුනන්න පුළුවන්."
+        }
+
+    # -------------------------------
+    # RETURN
+    # -------------------------------
     return {
         "location": location,
+        "seed_variety": seed_variety,
+        "duration_weeks": duration_weeks,
         "planting_date": planting_date,
         "planting_week": planting_week,
         "base_harvest_week": base_harvest_week,
@@ -171,5 +217,6 @@ def price_window_by_date(
         "best_harvest_week": best["harvest_week"],
         "signal": best["label"],
         "message_si": message_si,
+        "storage_advice": storage_advice,
         "options_checked": options
     }

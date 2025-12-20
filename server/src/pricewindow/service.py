@@ -1,5 +1,17 @@
 from datetime import datetime
 
+# --------------------------------------------------
+# ✅ Seed maturity (weeks) — SINGLE SOURCE OF TRUTH
+# --------------------------------------------------
+SEED_MATURITY_WEEKS = {
+    "GT 709": 16,
+    "GT 200": 15,
+    "Pacific 808": 17,
+    "Jet 999": 16,
+    "Commando": 15,
+    "Local Variety": 14
+}
+
 
 # --------------------------------------------------
 # Utility: Date → ISO week
@@ -24,47 +36,60 @@ def calculate_harvest_week(planting_week: int, duration_weeks: int) -> int:
 
 
 # --------------------------------------------------
-# 1) Single planting recommendation (UNCHANGED)
+# Utility: resolve duration from seed
+# --------------------------------------------------
+def resolve_duration_weeks(seed_variety: str | None) -> int:
+    """
+    Resolve biologically-correct harvest duration from seed variety.
+    """
+    return SEED_MATURITY_WEEKS.get(seed_variety, 14)
+
+
+# --------------------------------------------------
+# 1) Single planting recommendation
 # --------------------------------------------------
 def build_recommendation(
     model,
     location: str,
     planting_week: int,
-    duration_weeks: int
+    seed_variety: str | None
 ):
     """
     Build historical price-window recommendation for a given
     planting week (NO price forecasting).
     """
-    harvest_week = calculate_harvest_week(planting_week, duration_weeks)
-    row = model.get_week_row(location, harvest_week)
 
+    duration_weeks = resolve_duration_weeks(seed_variety)
+    harvest_week = calculate_harvest_week(planting_week, duration_weeks)
+
+    row = model.get_week_row(location, harvest_week)
     if row is None:
         return None
 
     label = row["Label"]
     confidence = row["Confidence"]
 
-    # Sinhala messages (historical pattern based)
     msg_si = {
         "STRONG": (
-            "පසුගිය අවුරුදු ගණනාවක data අනුව, "
+            "පසුගිය අවුරුදු ගණනාවක දත්ත අනුව, "
             "මේ කාලයේ harvest වුණාම බඩ ඉරිඟු මිල "
             "සාමාන්‍යයෙන් වැඩි වෙලා තියෙනවා."
         ),
         "MODERATE": (
-            "පසුගිය data අනුව, මේ කාලයේ "
-            "මිල සාමාන්‍ය මට්ටමේ පවතිනවා."
+            "පසුගිය දත්ත අනුව, "
+            "මේ කාලයේ මිල සාමාන්‍ය මට්ටමේ පවතිනවා."
         ),
         "WEAK": (
-            "පසුගිය data බලද්දි, මේ කාලයේ "
-            "harvest වුණාම බඩ ඉරිඟු මිල "
-            "අඩු වෙලා තියෙන අවස්ථා වැඩියි."
+            "පසුගිය දත්ත බලද්දි, "
+            "මේ කාලයේ harvest වුණාම "
+            "බඩ ඉරිඟු මිල අඩු වෙලා තියෙන අවස්ථා වැඩියි."
         )
     }[label]
 
     return {
         "location": location,
+        "seed_variety": seed_variety,
+        "duration_weeks": duration_weeks,
         "planting_week": planting_week,
         "harvest_week": harvest_week,
         "label": label,
@@ -75,28 +100,28 @@ def build_recommendation(
 
 
 # --------------------------------------------------
-# 2) Best planting week finder (UNCHANGED)
+# 2) Best planting week finder
 # --------------------------------------------------
 def best_planting_window(
     model,
     location: str,
     start_week: int,
-    duration_weeks: int,
+    seed_variety: str | None,
     lookahead_weeks: int = 6
 ):
     """
     Evaluate the next N planting weeks and return:
-    - best planting option (highest HighPriceScore)
+    - best planting option
     - all evaluated alternatives
     """
 
+    duration_weeks = resolve_duration_weeks(seed_variety)
     options = []
 
     for i in range(lookahead_weeks):
         planting_week = ((start_week + i - 1) % 52) + 1
         harvest_week = calculate_harvest_week(
-            planting_week,
-            duration_weeks
+            planting_week, duration_weeks
         )
 
         row = model.get_week_row(location, harvest_week)
@@ -114,33 +139,29 @@ def best_planting_window(
     if not options:
         return None, []
 
-    options.sort(
-        key=lambda x: x["high_price_score"],
-        reverse=True
-    )
-
-    best_option = options[0]
-    return best_option, options
+    options.sort(key=lambda x: x["high_price_score"], reverse=True)
+    return options[0], options
 
 
 # --------------------------------------------------
-# 3) NEW — Date-based harvest time advisory
+# 3) Date-based harvest time advisory
 # --------------------------------------------------
 def harvest_time_advisory(
     model,
     location: str,
     planting_date: str,
-    duration_weeks: int
+    seed_variety: str | None
 ):
     """
     Historical harvest-time advisory:
     - planting_date → planting_week
-    - calculate harvest week
+    - seed_variety → duration_weeks
     - compare harvest week vs +2 / +4 weeks
-    - NO price prediction (historical pattern only)
     """
 
     planting_week = date_to_week(planting_date)
+    duration_weeks = resolve_duration_weeks(seed_variety)
+
     base_harvest_week = calculate_harvest_week(
         planting_week, duration_weeks
     )
@@ -150,7 +171,6 @@ def harvest_time_advisory(
     for delay in [0, 2, 4]:
         harvest_week = ((base_harvest_week + delay - 1) % 52) + 1
         row = model.get_week_row(location, harvest_week)
-
         if row is None:
             continue
 
@@ -166,33 +186,42 @@ def harvest_time_advisory(
 
     best = max(options, key=lambda x: x["score"])
 
-    # Decision + Sinhala advisory
+    # Decision logic
     if best["delay_weeks"] == 0 and best["label"] == "STRONG":
         action = "Harvest now"
         message_si = (
-            "පසුගිය අවුරුදු ගණනාවක data අනුව, "
-            "මේ කාලේ harvest වුණාම බඩ ඉරිඟු මිල "
-            "සාමාන්‍යයෙන් වැඩි වෙලා තියෙනවා."
+            "පසුගිය දත්ත අනුව මේ කාලයේ harvest වුණාම "
+            "බඩ ඉරිඟු මිල සාමාන්‍යයෙන් වැඩි වෙලා තියෙනවා."
         )
-
     elif best["delay_weeks"] > 0:
         action = f"Delay harvest by {best['delay_weeks']} weeks"
         message_si = (
-            f"පසුගිය data අනුව, සති {best['delay_weeks']}ක් පස්සේ "
-            "harvest වුණාම බඩ ඉරිඟු මිල "
-            "වැඩි වෙලා තියෙන අවස්ථා වැඩියි."
+            f"පසුගිය දත්ත අනුව සති {best['delay_weeks']}ක් "
+            "පමා කර harvest වුණාම මිල වැඩි වෙලා තියෙනවා."
         )
-
     else:
         action = "Harvest and store"
         message_si = (
-            "මේ කාලේ harvest වුණාම historically මිල අඩුයි. "
-            "ඒ නිසා වහාම විකුනන්න එපා. "
-            "store කරලා පස්සේ හොඳ මිල කාලයක් එනකන් ඉඳලා විකුනන්න."
+            "මේ කාලයේ harvest වුණාම historically මිල අඩුයි. "
+            "store කරලා පස්සේ හොඳ මිල කාලයක විකිණීම සුදුසුයි."
         )
+
+    storage_advice = {
+        "required": best["delay_weeks"] > 0,
+        "duration_weeks": best["delay_weeks"],
+        "reason": "DELAYED_HARVEST" if best["delay_weeks"] > 0 else "IMMEDIATE_SALE",
+        "message_si": (
+            f"සති {best['delay_weeks']}ක් පමා කර විකුනන නිසා "
+            "වියලි සහ හොඳ වායු සරණි සහිත ගබඩාවක් භාවිතා කරන්න."
+            if best["delay_weeks"] > 0
+            else "වහාම harvest කර විකුනන්න පුළුවන්."
+        )
+    }
 
     return {
         "location": location,
+        "seed_variety": seed_variety,
+        "duration_weeks": duration_weeks,
         "planting_date": planting_date,
         "planting_week": planting_week,
         "base_harvest_week": base_harvest_week,
@@ -200,5 +229,6 @@ def harvest_time_advisory(
         "best_harvest_week": best["harvest_week"],
         "signal": best["label"],
         "message_si": message_si,
+        "storage_advice": storage_advice,
         "options_checked": options
     }

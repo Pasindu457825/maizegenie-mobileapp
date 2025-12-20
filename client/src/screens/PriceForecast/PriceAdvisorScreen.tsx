@@ -181,10 +181,12 @@ type QuestionKey =
   | "need_professional";
 
 const VARIETY_DURATION_WEEKS: Record<string, number> = {
-  "Jet 999": 13,
-  "GT 709": 14,
-  "808": 16,
-  "Pacific 999": 15,
+  "GT 709": 16,
+  "GT 200": 15,
+  "Pacific 808": 17,
+  "Jet 999": 16,
+  Commando: 15,
+  "Local Variety": 14,
   Unknown: 14,
 };
 
@@ -203,7 +205,15 @@ const toApiLocation = (district: string) => {
   return DISTRICT_TO_API_LOCATION[d] || d; // fallback
 };
 
-const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
+const SEED_VARIETIES = [
+  "GT 709",
+  "GT 200",
+  "Pacific 808",
+  "Jet 999",
+  "Commando",
+  "Local Variety",
+  "Unknown",
+];
 
 const PriceAdvisorScreen: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -338,6 +348,23 @@ const PriceAdvisorScreen: React.FC = () => {
     "good" | "warn" | "info" | null
   >(null);
 
+  // ✅ Extract best option from backend response (supports multiple shapes)
+  const getHarvestBest = (res: any) => {
+    if (!res) return null;
+
+    // If backend returns best_option directly
+    if (res.best_option) return res.best_option;
+
+    // If backend returns options_checked array
+    if (Array.isArray(res.options_checked) && res.options_checked.length > 0) {
+      return res.options_checked.reduce((best: any, cur: any) =>
+        (cur.score ?? 0) > (best.score ?? 0) ? cur : best
+      );
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -393,6 +420,30 @@ const PriceAdvisorScreen: React.FC = () => {
 
     return language === "si" ? monthsSi[idx] : monthsEn[idx];
   };
+
+  // ===============================
+  // STEP 1: COMPUTED VALUES (MOVE HERE)
+  // ===============================
+
+  const harvestBest = getHarvestBest(harvestAdvisoryResult);
+
+  const computedDelayWeeks =
+    harvestBest?.delay_weeks ??
+    harvestAdvisoryResult?.delay_weeks ??
+    (harvestAdvisoryResult?.base_harvest_week &&
+    harvestAdvisoryResult?.best_harvest_week
+      ? Math.max(
+          harvestAdvisoryResult?.best_harvest_week -
+            harvestAdvisoryResult?.base_harvest_week,
+          0
+        )
+      : 0);
+
+  const computedBaseWeek =
+    harvestAdvisoryResult?.base_harvest_week ?? harvestBest?.harvest_week;
+
+  const computedBestWeek =
+    harvestAdvisoryResult?.best_harvest_week ?? harvestBest?.harvest_week;
 
   // ✅ Week ordinal for Sinhala / English
   const weekOrdinal = (n: number, lang: "si" | "en") => {
@@ -474,6 +525,9 @@ const PriceAdvisorScreen: React.FC = () => {
     bestHarvestWeek?: number; // priceWindowResult.best_option.harvest_week OR harvestAdvisoryResult.best_harvest_week
     harvestSignalLabel?: string; // STRONG / MODERATE / WEAK / HOLD
     confidence?: string; // "High"
+    delayWeeks?: number; // ✅ NEW
+    baseHarvestWeek?: number; // ✅ optional, if backend provides
+    plantingWeekOfYear?: number;
   }) => {
     const {
       lang,
@@ -482,6 +536,7 @@ const PriceAdvisorScreen: React.FC = () => {
       bestHarvestWeek,
       harvestSignalLabel,
       confidence,
+      plantingWeekOfYear,
     } = args;
 
     const p = parseISOToMonthWeek(plantingDateISO, lang);
@@ -503,29 +558,62 @@ const PriceAdvisorScreen: React.FC = () => {
     let harvestLine = "";
 
     if (bestHarvestWeek && bestHarvestWeek >= 1 && bestHarvestWeek <= 52) {
-      // Assume base harvest ≈ 4 weeks before best selling week
-      const baseHarvestWeek = Math.max(bestHarvestWeek - 4, 1);
+      const dly = Math.max(args.delayWeeks ?? 0, 0);
 
-      const base = isoWeekToMonthWeekLabel(baseHarvestWeek, p.year, lang);
-      const best = isoWeekToMonthWeekLabel(bestHarvestWeek, p.year, lang);
+      // If backend sent baseHarvestWeek, use it. Otherwise derive using delayWeeks.
+      const baseHarvestWeek =
+        args.baseHarvestWeek ?? Math.max(bestHarvestWeek - dly, 1);
+
+      // planting week-of-year (fallback: derive from date if backend didn't send)
+      const plantingWeek = plantingWeekOfYear ?? undefined;
+
+      // if harvest week number is smaller than planting week number, it's likely next year
+      const baseYear =
+        plantingWeek != null && baseHarvestWeek < plantingWeek
+          ? p.year + 1
+          : p.year;
+
+      const bestYear =
+        plantingWeek != null && bestHarvestWeek < plantingWeek
+          ? p.year + 1
+          : p.year;
+
+      const base = isoWeekToMonthWeekLabel(baseHarvestWeek, baseYear, lang);
+      const best = isoWeekToMonthWeekLabel(bestHarvestWeek, bestYear, lang);
 
       harvestLine =
         lang === "si"
-          ? `මූලික අස්වැන්න ${base.year} ${base.monthLabel} මාසයේ ${weekOrdinal(
-              base.weekOfMonth,
-              "si"
-            )} සතියේදී ලැබීමට ඉඩ ඇත. නමුත් පසුගිය වසරවල දත්ත අනුව, සති 4ක් පමණ ප්‍රමාද කරලා ${
-              best.year
-            } ${best.monthLabel} මාසයේ ${weekOrdinal(
-              best.weekOfMonth,
-              "si"
-            )} සතියේ (සතිය ${bestHarvestWeek}) අස්වැන්න විකිණීම වඩා ලාභදායී බව පෙනේ.`
-          : `Harvest may occur around the ${weekOrdinal(
+          ? dly === 0
+            ? `මූලික අස්වැන්න ${base.year} ${
+                base.monthLabel
+              } මාසයේ ${weekOrdinal(
+                base.weekOfMonth,
+                "si"
+              )} සතියේදී ලැබීමට ඉඩ ඇත. මෙම සතියේදී අස්වැන්න විකිණීම සුදුසුයි.`
+            : `මූලික අස්වැන්න ${base.year} ${
+                base.monthLabel
+              } මාසයේ ${weekOrdinal(
+                base.weekOfMonth,
+                "si"
+              )} සතියේදී ලැබීමට ඉඩ ඇත. නමුත් පසුගිය වසරවල දත්ත අනුව, සති ${dly}ක් පමණ ප්‍රමාද කරලා ${
+                best.year
+              } ${best.monthLabel} මාසයේ ${weekOrdinal(
+                best.weekOfMonth,
+                "si"
+              )} සතියේ (සතිය ${bestHarvestWeek}) අස්වැන්න විකිණීම වඩා ලාභදායී බව පෙනේ.`
+          : dly === 0
+          ? `Harvest is expected around the ${weekOrdinal(
               base.weekOfMonth,
               "en"
             )} week of ${base.monthLabel} ${
               base.year
-            }. However, historical data suggests delaying harvest by about 4 weeks and selling around week ${bestHarvestWeek} for better returns.`;
+            }. Selling during this period is suitable.`
+          : `Harvest is expected around the ${weekOrdinal(
+              base.weekOfMonth,
+              "en"
+            )} week of ${base.monthLabel} ${
+              base.year
+            }. However, historical data suggests delaying harvest by about ${dly} weeks and selling around week ${bestHarvestWeek} for better returns.`;
     }
 
     // 3️⃣ Market signal explanation
@@ -561,10 +649,12 @@ const PriceAdvisorScreen: React.FC = () => {
       ? buildFarmerFriendlyPlanText({
           lang: language,
           plantingDateISO: form.plantingDateExact,
-          bestPlantingWeek: priceWindowResult.best_option.planting_week,
-          bestHarvestWeek: priceWindowResult.best_option.harvest_week,
-          harvestSignalLabel: priceWindowResult.best_option.label,
-          confidence: priceWindowResult.best_option.confidence,
+          bestHarvestWeek: computedBestWeek,
+          baseHarvestWeek: computedBaseWeek,
+          delayWeeks: computedDelayWeeks,
+          harvestSignalLabel: harvestAdvisoryResult?.signal,
+          confidence: harvestBest?.confidence,
+          plantingWeekOfYear: harvestAdvisoryResult?.planting_week,
         })
       : null;
 
@@ -574,8 +664,13 @@ const PriceAdvisorScreen: React.FC = () => {
       ? buildFarmerFriendlyPlanText({
           lang: language,
           plantingDateISO: form.plantingDateExact,
-          bestHarvestWeek: harvestAdvisoryResult.best_harvest_week,
+          bestHarvestWeek: computedBestWeek,
+          baseHarvestWeek: computedBaseWeek,
+          delayWeeks: computedDelayWeeks,
+          plantingWeekOfYear: harvestAdvisoryResult?.planting_week,
           harvestSignalLabel: harvestAdvisoryResult.signal,
+          confidence:
+            harvestBest?.confidence ?? harvestAdvisoryResult?.confidence,
         })
       : null;
 
@@ -965,16 +1060,16 @@ const PriceAdvisorScreen: React.FC = () => {
   const fetchBestPlantingWindow = async ({
     location,
     startWeek,
-    durationWeeks,
+    seedVariety,
   }: {
     location: string;
     startWeek: number;
-    durationWeeks: number;
+    seedVariety: string;
   }) => {
     const params = new URLSearchParams({
       location,
       start_week: String(startWeek),
-      duration_weeks: String(durationWeeks),
+      seed_variety: seedVariety,
       lookahead_weeks: "6",
     });
 
@@ -992,16 +1087,16 @@ const PriceAdvisorScreen: React.FC = () => {
   const fetchHarvestAdvisoryByDate = async ({
     location,
     plantingDate,
-    durationWeeks,
+    seedVariety,
   }: {
     location: string;
     plantingDate: string; // "YYYY-MM-DD"
-    durationWeeks: number;
+    seedVariety: string;
   }) => {
     const params = new URLSearchParams({
       location,
       planting_date: plantingDate,
-      duration_weeks: String(durationWeeks),
+      seed_variety: seedVariety,
     });
 
     const url = `${API_URL}/price-window/by-date?${params.toString()}`;
@@ -1184,7 +1279,7 @@ const PriceAdvisorScreen: React.FC = () => {
       const priceRes = await fetchBestPlantingWindow({
         location: apiLocation,
         startWeek,
-        durationWeeks,
+        seedVariety: seed,
       });
 
       setPriceWindowResult(priceRes);
@@ -1204,7 +1299,7 @@ const PriceAdvisorScreen: React.FC = () => {
         const adv = await fetchHarvestAdvisoryByDate({
           location: apiLocation,
           plantingDate: form.plantingDateExact,
-          durationWeeks,
+          seedVariety: seed,
         });
 
         setHarvestAdvisoryResult(adv);
@@ -1758,21 +1853,25 @@ const PriceAdvisorScreen: React.FC = () => {
 
                   {/* Main recommendation */}
                   <Text style={styles.mainActionText}>
-                    {harvestAdvisoryResult?.recommended_action ??
-                      (language === "si"
-                        ? "අස්වැන්න සති කිහිපයකින් ප්‍රමාද කිරීම සුදුසුය"
-                        : "Delaying harvest is recommended")}
+                    {computedDelayWeeks == null
+                      ? language === "si"
+                        ? "අස්වැන්න පිළිබඳ නිර්දේශ ලබාගැනෙමින්..."
+                        : "Loading harvest recommendation..."
+                      : computedDelayWeeks === 0
+                      ? language === "si"
+                        ? "දැන් Harvest කිරීම සුදුසුයි"
+                        : "Harvest now"
+                      : language === "si"
+                      ? `අස්වැන්න සති ${computedDelayWeeks}ක් පමා කරන්න`
+                      : `Delay harvest by ${computedDelayWeeks} weeks`}
                   </Text>
 
                   {/* ✅ Graphical timeline (NEW) */}
                   <HarvestTimelineBar
                     language={language}
-                    delayWeeks={
-                      harvestAdvisoryResult?.best_option?.delay_weeks ??
-                      harvestAdvisoryResult?.delay_weeks
-                    }
-                    baseWeek={harvestAdvisoryResult?.base_harvest_week}
-                    bestWeek={harvestAdvisoryResult?.best_harvest_week}
+                    delayWeeks={computedDelayWeeks}
+                    baseWeek={computedBaseWeek}
+                    bestWeek={computedBestWeek}
                   />
 
                   {/* Reason / explanation */}
@@ -2955,11 +3054,11 @@ const styles = StyleSheet.create({
   },
   quickAnswerBox: {
     padding: 14,
-    backgroundColor: "#ECFDF5", // light green
+    backgroundColor: "#ECFDF5",
     borderRadius: 12,
     borderLeftWidth: 4,
     borderLeftColor: "#10B981",
-    marginTop: 16,
+    marginTop: 20,
   },
 
   quickAnswerText: {
