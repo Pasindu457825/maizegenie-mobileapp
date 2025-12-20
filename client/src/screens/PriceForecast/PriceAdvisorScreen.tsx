@@ -37,7 +37,6 @@ import {
 } from "lucide-react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
-import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -124,11 +123,6 @@ const CircularProgress: React.FC<CircularProgressProps> = ({ percent }) => {
 const { width } = Dimensions.get("window");
 
 type Language = "si" | "en";
-
-type NavProp = StackNavigationProp<
-  PriceForecastStackParamList,
-  "PriceAdvisorScreen"
->;
 
 type RootStackParamList = {
   PriceForecastFormScreen: undefined;
@@ -223,16 +217,13 @@ const PriceAdvisorScreen: React.FC = () => {
   const language: Language = globalLang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
-
   const [showForm, setShowForm] = useState(true);
   const [formSlideAnim] = useState(new Animated.Value(0));
   const [formOpacityAnim] = useState(new Animated.Value(1));
-
   // Calendar & Variety Picker Modals
   const [showVarietyPicker, setShowVarietyPicker] = useState(false);
   const [priceWindowResult, setPriceWindowResult] = useState<any | null>(null);
   const [priceWindowLoading, setPriceWindowLoading] = useState(false);
-
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
   const [harvestAdvisoryResult, setHarvestAdvisoryResult] = useState<
@@ -262,7 +253,6 @@ const PriceAdvisorScreen: React.FC = () => {
       q4: "වගාව ආරම්භ කිරීමේදී වැඩිම අවදානම මොනවාද?",
       q5: "වෘත්තීය උපදෙස් ලබාගන්න ඕනද?",
       formDistrict: "දිස්ත්‍රික්කය",
-      formPlantingDate: "බීජ පැල කිරීමේ දිනය",
       formVariety: "බීජ වර්ගය",
       formArea: "වැවිලි භූමි ප්‍රමාණය (ha / acre)",
       formCost: "මුළු වියදම (රු.)",
@@ -270,19 +260,6 @@ const PriceAdvisorScreen: React.FC = () => {
       btnRunFullAdvisor: "සම්පූර්ණ වගා උපදෙස් ලබාගන්න",
       noQuestionSelected: "කරුණාකර ප්‍රශ්නයක් තෝරන්න හෝ පෝරමය පුරවන්න.",
       weatherLoading: "කාලගුණ දත්ත ලබාගැනෙමින්...",
-      plantExcellent: "මේ සතිය වගා කිරීමට ඉතා හොඳ වේ.",
-      plantModerate: "වගා කළ හැක, නමුත් අවදානම් මට්ටම මධ්‍යමයි.",
-      plantRisky: "වගා කිරීම සඳහා අනෙකුත් සතියක් හොඳයි.",
-      weatherGood: "කාලගුණය වගා කිරීමට සුදුසු පරාසය තුළ තිබේ.",
-      weatherBad:
-        "උෂ්ණත්වය හෝ වැසි තත්ත්වය හේතුවෙන් වගා කිරීම සඳහා සුදුසු නොවේ.",
-      profitGood: "ආදායම වියදමට සාපේක්ෂව ඉතා හොඳි. වගා කිරීම ලාභදායීය.",
-      profitMedium: "ලාභ ඇත, නමුත් අඩුයි. ගබඩා, ණය වාරික වැනි සාධක සලකා බලන්න.",
-      profitBad:
-        "වගා කිරීමෙන් ලාභයට වඩා වියදම් වැඩි වීමට ඉඩ ඇත. වගා කිරීමෙන් වැලකෙන්න.",
-      bestHarvestHint:
-        "අස්වැන්නෙන් සති 1–3 ක් ඇතුළත වෙළඳපල තත්ත්වය පරීක්ෂා කර විකිණීමට සැලසුම් කරන්න.",
-      fullResultSummary: "සම්පූර්ණ විශ්ලේෂණය පදනම් වූ නිර්දේශය පහතින් දැක්වේ.",
       rs: "රු.",
       kg: "කි.ග්‍රෑ",
       notAvailable: "දත්ත නොමැත",
@@ -309,30 +286,12 @@ const PriceAdvisorScreen: React.FC = () => {
       q4: "What are the biggest risks when starting?",
       q5: "Do I need professional advice?",
       formDistrict: "District",
-      formPlantingDate: "Planting Date",
       formVariety: "Seed Variety",
       formArea: "Farm Area (ha / acre)",
-      formCost: "Total Cost (Rs.)",
       formYield: "Expected Yield (kg / unit area)",
       btnRunFullAdvisor: "Run Full Advisor",
       noQuestionSelected: "Select a question or fill the form to see advice.",
       weatherLoading: "Fetching weather data...",
-      plantExcellent: "This week looks excellent for planting.",
-      plantModerate: "You can plant, but risk is moderate.",
-      plantRisky: "Better to choose another week for planting.",
-      weatherGood: "Weather is within a good range for maize planting.",
-      weatherBad:
-        "Temperature or rain conditions are not ideal for planting now.",
-      profitGood:
-        "Expected revenue is clearly higher than cost. Planting is profitable.",
-      profitMedium:
-        "There is some profit, but not very high. Consider storage, cash flow, etc.",
-      profitBad:
-        "Costs may exceed revenue. It may be better to avoid planting now.",
-      bestHarvestHint:
-        "Plan to sell within 1–3 weeks after harvest depending on market signals.",
-      fullResultSummary:
-        "Below is the recommendation based on your detailed inputs.",
       rs: "Rs.",
       kg: "kg",
       notAvailable: "N/A",
@@ -464,14 +423,12 @@ const PriceAdvisorScreen: React.FC = () => {
     return { year, monthLabel, weekOfMonth: wom };
   };
 
-  // ✅ ISO week number -> "month + week-of-month" label (approx using a year)
   const isoWeekToMonthWeekLabel = (
     isoWeek: number,
     year: number,
     lang: "si" | "en"
   ) => {
-    // convert ISO week to an approximate date (Monday of that week)
-    // NOTE: this is "good enough" for farmer-friendly text; backend unchanged.
+
     const simple = new Date(year, 0, 1 + (isoWeek - 1) * 7);
 
     // shift to Monday
@@ -480,7 +437,6 @@ const PriceAdvisorScreen: React.FC = () => {
     simple.setDate(simple.getDate() + diffToMon);
 
     const monthIdx = simple.getMonth();
-    const monthStart = new Date(simple.getFullYear(), monthIdx, 1);
     const wom = getWeekOfMonth(simple);
 
     const iso = `${simple.getFullYear()}-${String(monthIdx + 1).padStart(
@@ -512,101 +468,96 @@ const PriceAdvisorScreen: React.FC = () => {
   };
 
   const buildFarmerFriendlyPlanText = (args: {
-  lang: "si" | "en";
-  plantingDateISO: string; // form.plantingDateExact
-  bestPlantingWeek?: number; // priceWindowResult.best_option.planting_week
-  bestHarvestWeek?: number; // priceWindowResult.best_option.harvest_week OR harvestAdvisoryResult.best_harvest_week
-  harvestSignalLabel?: string; // STRONG / MODERATE / WEAK / HOLD
-  confidence?: string; // "High"
-}) => {
-  const {
-    lang,
-    plantingDateISO,
-    bestPlantingWeek,
-    bestHarvestWeek,
-    harvestSignalLabel,
-    confidence,
-  } = args;
+    lang: "si" | "en";
+    plantingDateISO: string; // form.plantingDateExact
+    bestPlantingWeek?: number; // priceWindowResult.best_option.planting_week
+    bestHarvestWeek?: number; // priceWindowResult.best_option.harvest_week OR harvestAdvisoryResult.best_harvest_week
+    harvestSignalLabel?: string; // STRONG / MODERATE / WEAK / HOLD
+    confidence?: string; // "High"
+  }) => {
+    const {
+      lang,
+      plantingDateISO,
+      bestPlantingWeek,
+      bestHarvestWeek,
+      harvestSignalLabel,
+      confidence,
+    } = args;
 
-  const p = parseISOToMonthWeek(plantingDateISO, lang);
-  if (!p) return null;
+    const p = parseISOToMonthWeek(plantingDateISO, lang);
+    if (!p) return null;
 
-  // --------------------------------------------------
-  // 1️⃣ Planting advice (month + week-of-month)
-  // --------------------------------------------------
-  const plantingLine =
-    lang === "si"
-      ? `${p.year} ${p.monthLabel} මාසයේ ${weekOrdinal(
-          p.weekOfMonth,
-          "si"
-        )} සතියේ ඔබ වගාව ආරම්භ කිරීම සුදුසුය.`
-      : `It is suitable to start cultivation in the ${weekOrdinal(
-          p.weekOfMonth,
-          "en"
-        )} week of ${p.monthLabel} ${p.year}.`;
-
-  // --------------------------------------------------
-  // 2️⃣ Harvest + selling advice (IMPORTANT FIX)
-  // --------------------------------------------------
-  let harvestLine = "";
-
-  if (bestHarvestWeek && bestHarvestWeek >= 1 && bestHarvestWeek <= 52) {
-    // Assume base harvest ≈ 4 weeks before best selling week
-    const baseHarvestWeek = Math.max(bestHarvestWeek - 4, 1);
-
-    const base = isoWeekToMonthWeekLabel(baseHarvestWeek, p.year, lang);
-    const best = isoWeekToMonthWeekLabel(bestHarvestWeek, p.year, lang);
-
-    harvestLine =
+ 
+    // 1️⃣ Planting advice (month + week-of-month)
+    const plantingLine =
       lang === "si"
-        ? `මූලික අස්වැන්න ${base.year} ${base.monthLabel} මාසයේ ${weekOrdinal(
-            base.weekOfMonth,
+        ? `${p.year} ${p.monthLabel} මාසයේ ${weekOrdinal(
+            p.weekOfMonth,
             "si"
-          )} සතියේදී ලැබීමට ඉඩ ඇත. නමුත් පසුගිය වසරවල දත්ත අනුව, සති 4ක් පමණ ප්‍රමාද කරලා ${best.year} ${best.monthLabel} මාසයේ ${weekOrdinal(
-            best.weekOfMonth,
-            "si"
-          )} සතියේ (සතිය ${bestHarvestWeek}) අස්වැන්න විකිණීම වඩා ලාභදායී බව පෙනේ.`
-        : `Harvest may occur around the ${weekOrdinal(
-            base.weekOfMonth,
+          )} සතියේ ඔබ වගාව ආරම්භ කිරීම සුදුසුය.`
+        : `It is suitable to start cultivation in the ${weekOrdinal(
+            p.weekOfMonth,
             "en"
-          )} week of ${base.monthLabel} ${base.year}. However, historical data suggests delaying harvest by about 4 weeks and selling around week ${bestHarvestWeek} for better returns.`;
-  }
+          )} week of ${p.monthLabel} ${p.year}.`;
 
-  // --------------------------------------------------
-  // 3️⃣ Market signal explanation
-  // --------------------------------------------------
-  const marketLineWord = signalToFarmerWord(
-    harvestSignalLabel || "MODERATE",
-    lang
-  );
 
-  const marketLine =
-    lang === "si"
-      ? `මෙම නිර්දේශය ${marketLineWord} බව පසුගිය වෙළඳපොළ ප්‍රවණතා පෙන්වයි.`
-      : `Market trends indicate that ${marketLineWord}.`;
+    // 2️⃣ Harvest + selling advice (IMPORTANT FIX)
+    let harvestLine = "";
 
-  // --------------------------------------------------
-  // 4️⃣ Confidence (optional)
-  // --------------------------------------------------
-  const confLine = confidence
-    ? lang === "si"
-      ? `විශ්වාසය: ${confidence}`
-      : `Confidence: ${confidence}`
-    : "";
+    if (bestHarvestWeek && bestHarvestWeek >= 1 && bestHarvestWeek <= 52) {
+      // Assume base harvest ≈ 4 weeks before best selling week
+      const baseHarvestWeek = Math.max(bestHarvestWeek - 4, 1);
 
-  // --------------------------------------------------
-  // 5️⃣ Final output
-  // --------------------------------------------------
-  const lines = [plantingLine, harvestLine, marketLine, confLine].filter(
-    Boolean
-  );
+      const base = isoWeekToMonthWeekLabel(baseHarvestWeek, p.year, lang);
+      const best = isoWeekToMonthWeekLabel(bestHarvestWeek, p.year, lang);
 
-  return lines.join("\n");
-};
+      harvestLine =
+        lang === "si"
+          ? `මූලික අස්වැන්න ${base.year} ${base.monthLabel} මාසයේ ${weekOrdinal(
+              base.weekOfMonth,
+              "si"
+            )} සතියේදී ලැබීමට ඉඩ ඇත. නමුත් පසුගිය වසරවල දත්ත අනුව, සති 4ක් පමණ ප්‍රමාද කරලා ${
+              best.year
+            } ${best.monthLabel} මාසයේ ${weekOrdinal(
+              best.weekOfMonth,
+              "si"
+            )} සතියේ (සතිය ${bestHarvestWeek}) අස්වැන්න විකිණීම වඩා ලාභදායී බව පෙනේ.`
+          : `Harvest may occur around the ${weekOrdinal(
+              base.weekOfMonth,
+              "en"
+            )} week of ${base.monthLabel} ${
+              base.year
+            }. However, historical data suggests delaying harvest by about 4 weeks and selling around week ${bestHarvestWeek} for better returns.`;
+    }
 
-  // ================================
+    // 3️⃣ Market signal explanation
+    const marketLineWord = signalToFarmerWord(
+      harvestSignalLabel || "MODERATE",
+      lang
+    );
+
+    const marketLine =
+      lang === "si"
+        ? `මෙම නිර්දේශය ${marketLineWord} බව පසුගිය වෙළඳපොළ ප්‍රවණතා පෙන්වයි.`
+        : `Market trends indicate that ${marketLineWord}.`;
+
+    // 4️⃣ Confidence (optional)
+ 
+    const confLine = confidence
+      ? lang === "si"
+        ? `විශ්වාසය: ${confidence}`
+        : `Confidence: ${confidence}`
+      : "";
+
+    // 5️⃣ Final output
+    const lines = [plantingLine, harvestLine, marketLine, confLine].filter(
+      Boolean
+    );
+
+    return lines.join("\n");
+  };
+
   // Farmer-friendly Price Text
-  // ================================
   const farmerPriceText =
     priceWindowResult?.best_option && form.plantingDateExact
       ? buildFarmerFriendlyPlanText({
@@ -619,9 +570,7 @@ const PriceAdvisorScreen: React.FC = () => {
         })
       : null;
 
-  // ================================
   // Farmer-friendly Harvest Text
-  // ================================
   const farmerHarvestText =
     harvestAdvisoryResult && form.plantingDateExact
       ? buildFarmerFriendlyPlanText({
@@ -869,7 +818,6 @@ const PriceAdvisorScreen: React.FC = () => {
         : "Initial capital / budget plan"
     );
 
-    // ---------- Actionable next steps ----------
     const actions: string[] = [];
 
     if (!form.readiness.water && !form.hasIrrigation)
@@ -1229,9 +1177,7 @@ const PriceAdvisorScreen: React.FC = () => {
     const durationWeeks =
       VARIETY_DURATION_WEEKS[seed] ?? VARIETY_DURATION_WEEKS["Unknown"];
 
-    // --------------------------------------------------
     // 1️⃣ Price Window (existing – KEEP)
-    // --------------------------------------------------
     try {
       setPriceWindowLoading(true);
 
@@ -1251,9 +1197,8 @@ const PriceAdvisorScreen: React.FC = () => {
       setPriceWindowLoading(false);
     }
 
-    // --------------------------------------------------
     // 2️⃣ NEW — Date-based harvest advisory (ADD)
-    // --------------------------------------------------
+
     try {
       setHarvestAdvisoryLoading(true);
 
@@ -1317,7 +1262,6 @@ const PriceAdvisorScreen: React.FC = () => {
   const handleGoBack = () => navigation.goBack();
 
   // Render Variety Picker
-
   const renderVarietyPicker = () => {
     return (
       <Modal
@@ -1409,31 +1353,6 @@ const PriceAdvisorScreen: React.FC = () => {
       </View>
     </Modal>
   );
-
-  const getPriceMessage = (
-    label: string,
-    confidence: string,
-    language: "si" | "en"
-  ) => {
-    if (language === "si") {
-      if (label === "STRONG") {
-        return "පසුගිය වසර වල දත්ත අනුව, මේ කාලයේදී බඩ ඉරිඟු මිල සාමාන්‍යයෙන් ඉහළ අගයක් ගෙන තිබේ. මේ කාලයෙහි අස්වැන්න ලැබෙන ලෙස වගා කිරීමෙන් ලාභ ලැබීමේ ඉඩ වැඩියි.";
-      }
-      if (label === "WEAK") {
-        return "අස්වැන්න ලැබෙන කාලයේදී බඩ ඉරිඟු මිල අඩු වීමේ ප්‍රවණතාවයක් පෙනේ. එබැවින් profit අඩුවීමට හෝ පාඩු වීමට ඉඩ ඇත.";
-      }
-      return "පසුගිය දත්ත අනුව, මේ කාලයේදී බඩ ඉරිඟු මිල මධ්‍යම මට්ටමේ පවතී. වෙළඳපොළ තත්ත්වයන් අනුව ලාභය වෙනස් විය හැක.";
-    }
-
-    // English
-    if (label === "STRONG") {
-      return "Based on historical data, maize prices tend to be higher during this harvest period. Planting to harvest in this window offers a higher chance of profit.";
-    }
-    if (label === "WEAK") {
-      return "Historically, maize prices are lower during this harvest period. There is a higher risk of reduced profit or loss.";
-    }
-    return "Based on historical patterns, maize prices are moderate during this period. Profitability may vary depending on market conditions.";
-  };
 
   const saveMyPlan = async () => {
     try {
@@ -1675,8 +1594,6 @@ const PriceAdvisorScreen: React.FC = () => {
           </View>
 
           {/* Advisor Result */}
-          {/* ✅ Unified Advisor Card (NO REMOVALS) */}
-          {/* Advisor Result - Combined Single Card */}
           {(fullAdvisorText ||
             priceWindowResult ||
             harvestAdvisoryResult ||
@@ -1766,248 +1683,90 @@ const PriceAdvisorScreen: React.FC = () => {
                   </>
                 )}
 
-                {/* Price Window Section */}
-                <View style={styles.advisorySection}>
-                  <View style={styles.sectionTitleRow}>
-                    <DollarSign color="#0EA5E9" size={20} />
-                    <Text style={styles.sectionTitleText}>
-                      {language === "si" ? "මිල අනාවැකි" : "Price Forecast"}
-                    </Text>
+                <View style={styles.combinedSummary}>
+                  {/* Top badges */}
+                  <View style={styles.badgeRow}>
+                    {priceWindowResult?.best_option?.label && (
+                      <View
+                        style={[
+                          styles.badge,
+                          priceWindowResult.best_option.label === "STRONG"
+                            ? styles.badgeStrong
+                            : priceWindowResult.best_option.label === "MODERATE"
+                            ? styles.badgeModerate
+                            : styles.badgeWeak,
+                        ]}
+                      >
+                        <Text style={styles.badgeText}>
+                          {priceWindowResult.best_option.label}
+                        </Text>
+                      </View>
+                    )}
+
+                    {priceWindowResult?.best_option?.confidence && (
+                      <View style={[styles.badge, styles.badgeConfidence]}>
+                        <Text style={styles.badgeText}>
+                          Confidence: {priceWindowResult.best_option.confidence}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
-                  {priceWindowLoading ? (
-                    <Text style={styles.loadingText}>
-                      {language === "si" ? "ගණනය කරමින්..." : "Calculating..."}
-                    </Text>
-                  ) : priceWindowResult?.best_option ? (
-                    <View style={styles.infoBox}>
-                      {/* 🟢 Farmer-friendly explanation */}
-                      {farmerPriceText && (
-                        <View style={{ marginBottom: 14 }}>
-                          <Text
-                            style={{
-                              fontSize: 14,
-                              fontWeight: "700",
-                              color: "#065F46",
-                              marginBottom: 6,
-                            }}
-                          >
-                            {language === "si"
-                              ? "ගොවියාට තේරෙන නිර්දේශය"
-                              : "Farmer-Friendly Advice"}
-                          </Text>
+                  {/* Main recommendation */}
+                  <Text style={styles.mainActionText}>
+                    {harvestAdvisoryResult?.recommended_action ??
+                      (language === "si"
+                        ? "අස්වැන්න සති කිහිපයකින් ප්‍රමාද කිරීම සුදුසුය"
+                        : "Delaying harvest is recommended")}
+                  </Text>
 
-                          <Text
-                            style={{
-                              fontSize: 13,
-                              color: "#374151",
-                              lineHeight: 18,
-                            }}
-                          >
-                            {farmerPriceText}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* 🔽 Technical details (optional / secondary) */}
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>
-                          {language === "si"
-                            ? "හොඳම වගා සතිය (technical):"
-                            : "Best planting week (technical):"}
+                  {/* Week timeline */}
+                  <View style={styles.weekGrid}>
+                    {priceWindowResult?.best_option?.planting_week && (
+                      <View style={styles.weekItem}>
+                        <Text style={styles.weekLabel}>
+                          {language === "si" ? "වගා සතිය" : "Planting week"}
                         </Text>
-                        <Text style={styles.infoValue}>
+                        <Text style={styles.weekValue}>
                           {priceWindowResult.best_option.planting_week}
                         </Text>
                       </View>
+                    )}
 
-                      <View style={styles.infoRow}>
-                        <Text style={styles.infoLabel}>
+                    {harvestAdvisoryResult?.base_harvest_week && (
+                      <View style={styles.weekItem}>
+                        <Text style={styles.weekLabel}>
                           {language === "si"
-                            ? "අස්වැන්න සතිය (technical):"
-                            : "Harvest week (technical):"}
+                            ? "සාමාන්‍ය harvest"
+                            : "Base harvest"}
                         </Text>
-                        <Text style={styles.infoValue}>
-                          {priceWindowResult.best_option.harvest_week}
-                        </Text>
-                      </View>
-
-                      {/* Strength + confidence */}
-                      <View style={[styles.infoRow, { marginTop: 10 }]}>
-                        <View
-                          style={[
-                            styles.strengthBadge,
-                            {
-                              backgroundColor:
-                                priceWindowResult.best_option.label === "STRONG"
-                                  ? "#DCFCE7"
-                                  : priceWindowResult.best_option.label ===
-                                    "WEAK"
-                                  ? "#FEE2E2"
-                                  : "#FEF3C7",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.strengthText,
-                              {
-                                color:
-                                  priceWindowResult.best_option.label ===
-                                  "STRONG"
-                                    ? "#166534"
-                                    : priceWindowResult.best_option.label ===
-                                      "WEAK"
-                                    ? "#991B1B"
-                                    : "#92400E",
-                              },
-                            ]}
-                          >
-                            {priceWindowResult.best_option.label}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.confidenceText}>
-                          {language === "si" ? "විශ්වාසය:" : "Confidence:"}{" "}
-                          {priceWindowResult.best_option.confidence}
+                        <Text style={styles.weekValue}>
+                          {harvestAdvisoryResult.base_harvest_week}
                         </Text>
                       </View>
+                    )}
 
-                      <Text style={styles.noteText}>
-                        {language === "si"
-                          ? "සටහන: පසුගිය වසරවල මිල දත්ත මත පදනම් වූ අනාවැකි"
-                          : "Note: Forecast based on historical price patterns"}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.noDataText}>
-                      {language === "si"
-                        ? "මෙම දිස්ත්‍රික්කය සඳහා දත්ත නොමැත"
-                        : "No data available for this location"}
+                    {harvestAdvisoryResult?.best_harvest_week && (
+                      <View style={styles.weekItem}>
+                        <Text style={styles.weekLabel}>
+                          {language === "si"
+                            ? "නිර්දේශිත harvest"
+                            : "Recommended harvest"}
+                        </Text>
+                        <Text style={styles.weekValue}>
+                          {harvestAdvisoryResult.best_harvest_week}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Reason / explanation */}
+                  {(farmerHarvestText || farmerPriceText) && (
+                    <Text style={styles.reasonText}>
+                      {farmerHarvestText ?? farmerPriceText}
                     </Text>
                   )}
                 </View>
-
-                {/* Divider */}
-                {form.plantingDateExact && (
-                  <View style={styles.sectionDivider} />
-                )}
-
-                {/* Harvest Advisory Section */}
-                {form.plantingDateExact && (
-                  <View style={styles.advisorySection}>
-                    <View style={styles.sectionTitleRow}>
-                      <Calendar color="#22C55E" size={20} />
-                      <Text style={styles.sectionTitleText}>
-                        {language === "si"
-                          ? "අස්වැන්න උපදෙස්"
-                          : "Harvest Advisory"}
-                      </Text>
-                    </View>
-
-                    {/* 🟢 Farmer-friendly harvest explanation */}
-                    {farmerHarvestText && (
-                      <View style={{ marginBottom: 12 }}>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "700",
-                            color: "#065F46",
-                            marginBottom: 6,
-                          }}
-                        >
-                          {language === "si"
-                            ? "ගොවියාට තේරෙන අස්වැන්න උපදෙස්"
-                            : "Farmer-Friendly Harvest Advice"}
-                        </Text>
-
-                        <Text
-                          style={{
-                            fontSize: 13,
-                            color: "#374151",
-                            lineHeight: 18,
-                          }}
-                        >
-                          {farmerHarvestText}
-                        </Text>
-                      </View>
-                    )}
-
-                    {harvestAdvisoryLoading ? (
-                      <Text style={styles.loadingText}>
-                        {language === "si"
-                          ? "ගණනය කරමින්..."
-                          : "Calculating..."}
-                      </Text>
-                    ) : harvestAdvisoryResult ? (
-                      <View style={styles.infoBox}>
-                        <View
-                          style={[
-                            styles.recommendationBadge,
-                            {
-                              backgroundColor:
-                                harvestAdvisoryResult.signal === "HOLD"
-                                  ? "#FEF3C7"
-                                  : "#DCFCE7",
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.recommendationText,
-                              {
-                                color:
-                                  harvestAdvisoryResult.signal === "HOLD"
-                                    ? "#92400E"
-                                    : "#166534",
-                              },
-                            ]}
-                          >
-                            {harvestAdvisoryResult.recommended_action}
-                          </Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                          <Text style={styles.infoLabel}>
-                            {language === "si"
-                              ? "මූලික අස්වැන්න සතිය:"
-                              : "Base harvest week:"}
-                          </Text>
-                          <Text style={styles.infoValue}>
-                            {harvestAdvisoryResult.base_harvest_week}
-                          </Text>
-                        </View>
-
-                        <View style={styles.infoRow}>
-                          <Text style={styles.infoLabel}>
-                            {language === "si"
-                              ? "හොඳම විකුණුම් සතිය:"
-                              : "Best selling week:"}
-                          </Text>
-                          <Text
-                            style={[
-                              styles.infoValue,
-                              { color: "#22C55E", fontWeight: "700" },
-                            ]}
-                          >
-                            {harvestAdvisoryResult.best_harvest_week}
-                          </Text>
-                        </View>
-
-                        <Text style={styles.messageText}>
-                          {harvestAdvisoryResult.message_si ||
-                            harvestAdvisoryResult.message}
-                        </Text>
-                      </View>
-                    ) : (
-                      <Text style={styles.noDataText}>
-                        {language === "si"
-                          ? "තොරතුරු නොමැත"
-                          : "No data available"}
-                      </Text>
-                    )}
-                  </View>
-                )}
 
                 {/* Action Buttons */}
                 {fullAdvisorText && (
@@ -2540,7 +2299,6 @@ const styles = StyleSheet.create({
     width: (width - 20 * 2 - 12) / 2,
     minHeight: 70,
   },
-
   quickCardActive: {
     borderColor: "#10B981",
     backgroundColor: "#ECFDF5",
@@ -2559,7 +2317,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#D1FAE5",
   },
-
   quickTitle: {
     fontSize: 12,
     color: "#065F46",
@@ -2567,37 +2324,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
     lineHeight: 16,
-  },
-
-  resultCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 18,
-    borderLeftWidth: 5,
-    borderColor: "#E5E7EB",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  resultHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
-  },
-  resultHeaderText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#065F46",
-    letterSpacing: 0.2,
-  },
-  resultText: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 21,
   },
   formCard: {
     backgroundColor: "#FFFFFF",
@@ -2681,79 +2407,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-  },
-  calendarModal: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    width: "100%",
-    maxWidth: 400,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  calendarHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#065F46",
-  },
-  calendarDayNames: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 10,
-  },
-  dayName: {
-    width: 40,
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  calendarDay: {
-    width: "14.28%",
-    aspectRatio: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 8,
-  },
-  calendarDayEmpty: {
-    backgroundColor: "transparent",
-  },
-  calendarDayText: {
-    fontSize: 14,
-    color: "#065F46",
-    fontWeight: "500",
-  },
-  modalCloseButton: {
-    marginTop: 16,
-    backgroundColor: "#F3F4F6",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  modalCloseText: {
-    color: "#6B7280",
-    fontSize: 14,
-    fontWeight: "600",
   },
   varietyModal: {
     backgroundColor: "#FFFFFF",
@@ -2839,7 +2498,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   badgeText: {
     color: "#FFFFFF",
     fontSize: 10,
@@ -2888,7 +2546,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#A7F3D0",
   },
-
   assistIcon: {
     width: 42,
     height: 42,
@@ -2897,20 +2554,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   assistTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: "#065F46",
   },
-
   assistDesc: {
     fontSize: 13,
     color: "#374151",
     marginTop: 2,
     lineHeight: 18,
   },
-
   assistButton: {
     marginTop: 14,
     backgroundColor: "#047857",
@@ -2923,39 +2577,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-
   assistButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },
-  unifiedCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 2,
-    borderColor: "#D1FAE5",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-
-  unifiedTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    marginBottom: 12,
-  },
-
-  unifiedTitleText: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: "#065F46",
-  },
-
   unifiedAdvisorCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -3041,67 +2667,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#065F46",
   },
-  loadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontStyle: "italic",
-    marginTop: 8,
-  },
-  infoBox: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 8,
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 6,
-  },
-  strengthBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-  },
-  strengthText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
   confidenceText: {
     fontSize: 12,
     color: "#6B7280",
     fontWeight: "500",
-  },
-  noteText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginTop: 10,
-    fontStyle: "italic",
-    lineHeight: 16,
-  },
-  noDataText: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    fontStyle: "italic",
-    marginTop: 8,
-  },
-  recommendationBadge: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-    marginBottom: 12,
-    alignSelf: "flex-start",
-  },
-  recommendationText: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  messageText: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginTop: 10,
-    lineHeight: 19,
   },
   actionButtons: {
     flexDirection: "row",
@@ -3135,5 +2704,47 @@ const styles = StyleSheet.create({
     color: "#047857",
     fontSize: 14,
     fontWeight: "700",
+  },
+  combinedSummary: {
+    marginTop: 8,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  badgeStrong: { backgroundColor: "#DCFCE7" },
+  badgeModerate: { backgroundColor: "#FEF3C7" },
+  badgeWeak: { backgroundColor: "#FEE2E2" },
+  badgeConfidence: { backgroundColor: "#E0F2FE" },
+  mainActionText: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    color: "#064E3B",
+    marginBottom: 14,
+  },
+  weekGrid: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 12,
+  },
+  weekItem: {
+    alignItems: "center",
+  },
+  weekLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  weekValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  reasonText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+    lineHeight: 18,
   },
 });
