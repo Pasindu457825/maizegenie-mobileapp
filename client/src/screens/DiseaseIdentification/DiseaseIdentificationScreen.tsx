@@ -123,7 +123,7 @@ const DiseaseIdentificationScreen = () => {
       uploadOption: "Upload Photo",
       detectButton: "Detect Disease",
       analyzing: "Analyzing image...",
-      resultTitle: "Detected Diseases",
+      resultTitle: "Diseases Detected ",
       noDiseases: "No diseases detected! 🎉",
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
@@ -470,6 +470,25 @@ const DiseaseIdentificationScreen = () => {
     blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
 
+  const primaryPrediction = result?.predictions?.[0] || null;
+  const diseaseName = primaryPrediction
+    ? formatDiseaseName(primaryPrediction.class_name)
+    : "";
+  const confidencePct = primaryPrediction
+    ? Math.round(primaryPrediction.confidence * 100)
+    : 0;
+
+  const getDiseaseNameSi = (rawClassName: string) => {
+    const key = formatDiseaseName(rawClassName).toLowerCase();
+
+    if (key.includes("blight")) return "කොළ බ්ලයිට් රෝගය";
+    if (key.includes("common rust")) return "සාමාන්‍ය රස්ට් රෝගය";
+    if (key.includes("gray") && key.includes("spot")) return "අළු කොළ ලප රෝගය";
+
+    // fallback (if unknown)
+    return diseaseName;
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#059669" />
@@ -735,94 +754,96 @@ const DiseaseIdentificationScreen = () => {
               ]}
             >
               <View style={styles.resultCard}>
-                {/* Result Header */}
-                <View style={styles.resultHeader}>
-                  <View style={styles.resultTitleContainer}>
-                    <CheckCircle color="#059669" size={24} />
-                    <Text style={styles.resultTitle}>
-                      {content[language].resultTitle}
-                    </Text>
-                  </View>
-                  <Text style={styles.resultSubtitle}>
-                    {content[language].successMessage}
-                  </Text>
-                </View>
+                {/* Result Header (CENTER + SINGLE LANGUAGE) */}
+                <View style={[styles.resultHeader, { alignItems: "center" }]}>
+                  {primaryPrediction && (
+                    <>
+                      {/* Title + Mic */}
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 10,
+                          width: "100%",
+                        }}
+                      >
+                        <Text
+                          style={[styles.resultTitle, { textAlign: "center" }]}
+                        >
+                          {language === "si"
+                            ? getDiseaseNameSi(primaryPrediction.class_name)
+                            : diseaseName}{" "}
+                          {content[language].resultTitle}
+                        </Text>
 
-                {/* Severity Indicator */}
-                <View style={styles.severityContainer}>
-                  <View
-                    style={[
-                      styles.severityBadge,
-                      {
-                        backgroundColor: getSeverityColor(
-                          result.severity_label
-                        ),
-                      },
-                    ]}
-                  >
-                    <Shield color="#FFFFFF" size={16} />
-                    <Text style={styles.severityText}>
-                      {getSeverityIcon(result.severity_label)}{" "}
-                      {content[language].severity}: {result.severity_label}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Predictions List */}
-                <View style={styles.predictionsList}>
-                  {result.predictions.map((prediction, index) => (
-                    <View
-                      key={`${prediction.class_id}-${index}`}
-                      style={styles.predictionCard}
-                    >
-                      <View style={styles.predictionInfo}>
-                        <View style={styles.diseaseIcon}>
-                          <Leaf color="#059669" size={18} />
-                        </View>
-                        <View style={styles.predictionDetails}>
-                          <Text style={styles.diseaseName}>
-                            {formatDiseaseName(prediction.class_name)}
-                          </Text>
-
-                          <View style={styles.confidenceRow}>
-                            <Text style={styles.confidenceLabel}>
-                              {content[language].confidence}:
-                            </Text>
-                            <Text style={styles.confidenceLevel}>
-                              {getConfidenceLevel(prediction.confidence)}
-                            </Text>
-                          </View>
-                        </View>
-                      </View>
-
-                      <View style={styles.predictionActions}>
                         <TouchableOpacity
                           style={styles.speakButton}
-                          onPress={() => speakDisease(prediction.class_name)}
+                          onPress={() =>
+                            speakDisease(primaryPrediction.class_name)
+                          }
+                          activeOpacity={0.85}
                         >
                           <Mic color="#059669" size={18} />
                         </TouchableOpacity>
-
-                        <View style={styles.confidenceContainer}>
-                          <View
-                            style={[
-                              styles.confidenceBar,
-                              {
-                                backgroundColor: getConfidenceColor(
-                                  prediction.confidence
-                                ),
-                                width: `${prediction.confidence * 100}%`,
-                              },
-                            ]}
-                          />
-                        </View>
-
-                        <Text style={styles.confidencePercentage}>
-                          {Math.round(prediction.confidence * 100)}%
-                        </Text>
                       </View>
-                    </View>
-                  ))}
+
+                      {/* Disease detected line (same language only) */}
+                      <Text
+                        style={[
+                          styles.resultSubtitle,
+                          { textAlign: "center", marginTop: 8 },
+                        ]}
+                      >
+                        {language === "si"
+                          ? "රෝගය හඳුනාගත්තා"
+                          : "Disease detected"}
+                      </Text>
+
+                      {/* Confidence line (same language only) */}
+                      <Text
+                        style={[
+                          styles.resultSubtitle,
+                          {
+                            textAlign: "center",
+                            marginTop: 8,
+                            color: "#64748B",
+                          },
+                        ]}
+                      >
+                        {content[language].confidence}:{" "}
+                        {getConfidenceLevel(primaryPrediction.confidence)} (
+                        {confidencePct}%)
+                      </Text>
+
+                      {/* Severity badge (center) */}
+                      <View
+                        style={{
+                          marginTop: 14,
+                          alignItems: "center",
+                          width: "100%",
+                        }}
+                      >
+                        <View
+                          style={[
+                            styles.severityBadge,
+                            {
+                              backgroundColor: getSeverityColor(
+                                result.severity_label
+                              ),
+                              alignSelf: "center",
+                            },
+                          ]}
+                        >
+                          <Shield color="#FFFFFF" size={16} />
+                          <Text style={styles.severityText}>
+                            {content[language].severity}:{" "}
+                            {result.severity_label}
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  )}
                 </View>
 
                 {/* Action Buttons */}
