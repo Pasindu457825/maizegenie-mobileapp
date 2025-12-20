@@ -86,7 +86,7 @@ const DiseaseIdentificationScreen = () => {
       uploadOption: "ඡායාරූපයක් උඩුගත කරන්න",
       detectButton: "රෝග හඳුනා ගන්න",
       analyzing: "රූපය විශ්ලේෂණය කරමින්...",
-      resultTitle: "හඳුනාගත් රෝග",
+      resultTitle: "රෝගය හමුවිය",
       noDiseases: "රෝග හමු නොවීය! 🎉",
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
@@ -470,6 +470,10 @@ const DiseaseIdentificationScreen = () => {
     blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
 
+  const isHealthyPrediction =
+    result?.predictions?.length === 1 &&
+    result.predictions[0].class_name.toLowerCase() === "health";
+
   const primaryPrediction = result?.predictions?.[0] || null;
   const diseaseName = primaryPrediction
     ? formatDiseaseName(primaryPrediction.class_name)
@@ -481,9 +485,9 @@ const DiseaseIdentificationScreen = () => {
   const getDiseaseNameSi = (rawClassName: string) => {
     const key = formatDiseaseName(rawClassName).toLowerCase();
 
-    if (key.includes("blight")) return "කොළ බ්ලයිට් රෝගය";
-    if (key.includes("common rust")) return "සාමාන්‍ය රස්ට් රෝගය";
-    if (key.includes("gray") && key.includes("spot")) return "අළු කොළ ලප රෝගය";
+    if (key.includes("blight")) return "කොළ බ්ලයිට්";
+    if (key.includes("common rust")) return "කොමන් රස්ට්";
+    if (key.includes("gray") && key.includes("spot")) return "අළු ලප";
 
     // fallback (if unknown)
     return diseaseName;
@@ -743,7 +747,7 @@ const DiseaseIdentificationScreen = () => {
           )}
 
           {/* Results Section */}
-          {result && result.predictions.length > 0 && (
+          {result && result.predictions.length > 0 && !isHealthyPrediction && (
             <Animated.View
               style={[
                 styles.resultSection,
@@ -882,29 +886,30 @@ const DiseaseIdentificationScreen = () => {
           )}
 
           {/* No Diseases Found */}
-          {result && result.predictions.length === 0 && (
-            <View style={styles.healthyCard}>
-              <View style={styles.healthyIconContainer}>
-                <CheckCircle color="#059669" size={40} />
-              </View>
-              <Text style={styles.healthyTitle}>
-                {content[language].healthy}!
-              </Text>
-              <Text style={styles.healthySubtitle}>
-                {language === "si"
-                  ? "ඔබේ කොළය සෞඛ්‍ය සම්පන්න තත්ත්වයේ පවතී"
-                  : "Your leaf appears to be in healthy condition"}
-              </Text>
-              <TouchableOpacity
-                style={styles.healthyButton}
-                onPress={resetScreen}
-              >
-                <Text style={styles.healthyButtonText}>
-                  {content[language].tryAgain}
+          {result &&
+            (result.predictions.length === 0 || isHealthyPrediction) && (
+              <View style={styles.healthyCard}>
+                <View style={styles.healthyIconContainer}>
+                  <CheckCircle color="#059669" size={40} />
+                </View>
+                <Text style={styles.healthyTitle}>
+                  {content[language].healthy}!
                 </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                <Text style={styles.healthySubtitle}>
+                  {language === "si"
+                    ? "ඔබේ කොළය සෞඛ්‍ය සම්පන්න තත්ත්වයේ පවතී"
+                    : "Your leaf appears to be in healthy condition"}
+                </Text>
+                <TouchableOpacity
+                  style={styles.healthyButton}
+                  onPress={resetScreen}
+                >
+                  <Text style={styles.healthyButtonText}>
+                    {content[language].tryAgain}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
           {/* Bottom Spacing */}
           <View style={styles.bottomSpacer} />
