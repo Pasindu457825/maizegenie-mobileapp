@@ -52,7 +52,7 @@ const YieldPredictionLoadingScreen = () => {
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
       fertilizerTitle: "පොහොර උපදේශ",
-      fertilizerDesc: "ඉදිරි දිනවල",
+      fertilizerDesc: "පුද්ගලාරෝපිත පොහොර නිර්දේශ ලබා ගන්න",
       fertilizerRecommendation: "පොහොර නිර්දේශ",
       fertilizerRecommendationDesc: "ඉදිරි දිනවල",
       farmerRequests: "ගොවි ඉල්ලීම්",
@@ -65,7 +65,7 @@ const YieldPredictionLoadingScreen = () => {
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
       fertilizerTitle: "Fertilizer Advices",
-      fertilizerDesc: "Coming soon",
+      fertilizerDesc: "Get personalized fertilizer recommendations",
       fertilizerRecommendation: "Fertilizer Recommendation",
       fertilizerRecommendationDesc: "Coming soon",
       farmerRequests: "Farmer Requests",
@@ -156,7 +156,7 @@ const YieldPredictionLoadingScreen = () => {
               {/* Card 2: Fertilizer Advices */}
               <TouchableOpacity
                 style={styles.roleCard}
-                onPress={() => handleComingSoon(content[language].fertilizerTitle)}
+                onPress={() => navigation.navigate("FertilizerAdvisorLanding")}
                 activeOpacity={0.7}
               >
                 <View style={styles.roleIconCircle}>
