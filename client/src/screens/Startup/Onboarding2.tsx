@@ -16,6 +16,7 @@ import {
   Droplets,
   TrendingUp,
   Zap,
+  Leaf,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -27,19 +28,21 @@ type LanguageType = "sinhala" | "english";
 const translations = {
   sinhala: {
     title: "🌾 ස්මාර්ට් ගොවි මිතුරු",
-    description: "කාලගුණ, මිල සහ පෝෂක උපදෙස්",
+    description: "වගා අස්වැන්න, කාලගුණ, මිල සහ පෝෂක උපදෙස්",
     next: "ආරම්භ කරමු",
-    feature1: "☀️ 7-දින කාලගුණ පුරෝකථනය",
-    feature2: "💰 සජීවී වෙළඳ මිල",
-    feature3: "🌱 පෝෂක නිර්දේශ",
+    feature1: "🌽 අස්වැන්න පුරෝකථනය",
+    feature2: "🌱 පෝෂක නිර්දේශ",
+    feature3: "☀️ 7-දින කාලගුණ පුරෝකථනය",
+    feature4: "💰 මිල තොරතුරු",
   },
   english: {
     title: "🌾 Smart Farming Assistant",
     description: "Weather, prices, and fertilizer guidance",
     next: "Get Started",
-    feature1: "☀️ 7-Day Weather Forecast",
-    feature2: "💰 Live Market Prices",
-    feature3: "🌱 Fertilizer Recommendations",
+    feature1: "🌽 Yield Prediction",
+    feature2: "🌱 Fertilizer Advisory",
+    feature3: "☀️ Weather Analysis",
+    feature4: "💰 Market Price Info",
   },
 };
 
@@ -177,11 +180,11 @@ export default function Onboarding2({ navigation, route }: any) {
         ]}
       >
         <View style={styles.illustrationBg}>
-          {/* ✨ Rotating Weather Icon */}
+          {/* ✨ Rotating Leaf Icon for Agriculture */}
           <Animated.View
             style={[styles.weatherIconWrapper, { transform: [{ rotate }] }]}
           >
-            <Cloud size={76} color="#8B6914" strokeWidth={1.5} />
+            <Leaf size={76} color="#8B6914" strokeWidth={1.5} />
           </Animated.View>
 
           {/* ✨ Floating Icons Around */}
@@ -192,7 +195,7 @@ export default function Onboarding2({ navigation, route }: any) {
             ]}
           >
             <View style={styles.iconBadge1}>
-              <DollarSign size={28} color="#92400e" strokeWidth={2} />
+              <TrendingUp size={28} color="#92400e" strokeWidth={2} />
             </View>
           </Animated.View>
 
@@ -212,7 +215,7 @@ export default function Onboarding2({ navigation, route }: any) {
             style={[styles.statsBadge, { transform: [{ scale: pulseAnim }] }]}
           >
             <Text style={styles.statsIcon}>📊</Text>
-            <Text style={styles.statsText}>Real-time</Text>
+            
           </Animated.View>
         </View>
       </Animated.View>
@@ -251,6 +254,13 @@ export default function Onboarding2({ navigation, route }: any) {
               <Droplets size={18} color="#92400e" />
             </View>
             <Text style={styles.featureText}>{t.feature3}</Text>
+          </View>
+
+          <View style={styles.featureItem}>
+            <View style={styles.featureIcon}>
+              <DollarSign size={18} color="#92400e" />
+            </View>
+            <Text style={styles.featureText}>{t.feature4}</Text>
           </View>
         </View>
       </Animated.View>
