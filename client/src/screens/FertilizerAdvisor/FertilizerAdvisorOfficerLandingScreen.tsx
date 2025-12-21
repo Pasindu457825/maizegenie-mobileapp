@@ -11,6 +11,7 @@ import { useNavigation } from "@react-navigation/native";
 import { ArrowLeft, Users, MessageCircle, FileText, AlertCircle, Sparkles } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 type Language = "si" | "en";
 
@@ -44,7 +45,8 @@ const content = {
 export default function FertilizerAdvisorOfficerLandingScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
-    const [language, setLanguage] = useState<Language>("en");
+    const { language: lang } = useLanguage();
+    const language: Language = lang === "sinhala" ? "si" : "en";
 
     // Check if user is an officer
     useEffect(() => {
@@ -139,14 +141,6 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                         <Text style={styles.headerTitle}>{t.title}</Text>
                         <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
                     </View>
-                    <TouchableOpacity
-                        style={styles.langButton}
-                        onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-                    >
-                        <Text style={styles.langText}>
-                            {language === "si" ? "EN" : "සිං"}
-                        </Text>
-                    </TouchableOpacity>
                 </View>
             </LinearGradient>
 

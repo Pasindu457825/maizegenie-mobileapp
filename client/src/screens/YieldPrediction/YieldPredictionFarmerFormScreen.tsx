@@ -19,6 +19,7 @@ import * as Location from "expo-location";
 import { fetchWeatherByCoordinates, getLocationCoordinates } from "../../services/weatherApi";
 import { predictYieldFarmer, FarmerPredictionRequest } from "../../services/yieldPredictionApi";
 import { useApp } from "../../context/AppContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -343,12 +344,12 @@ const RAINFALL_CONDITIONS_EN = [
 const YieldPredictionFormScreen = () => {
     const navigation = useNavigation<NavProp>();
     const route = useRoute();
-    const { role, language: initialLanguage } = route.params as {
+    const { role } = route.params as {
         role: "farmer" | "officer";
-        language: Language;
     };
 
-    const [language, setLanguage] = useState<Language>(initialLanguage);
+    const { language: lang } = useLanguage();
+    const language: Language = lang === "sinhala" ? "si" : "en";
     const [district, setDistrict] = useState("");
     const [location, setLocation] = useState("");
     const [plantingDate, setPlantingDate] = useState<Date | null>(null);
@@ -792,12 +793,6 @@ const YieldPredictionFormScreen = () => {
                     <Text style={styles.headerTitle}>{content[language].title}</Text>
                     <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
                 </View>
-                <TouchableOpacity
-                    style={styles.langButton}
-                    onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-                >
-                    <Text style={styles.langText}>{language === "si" ? "EN" : "සිං"}</Text>
-                </TouchableOpacity>
             </View>
 
             {/* Location & Weather Bar */}

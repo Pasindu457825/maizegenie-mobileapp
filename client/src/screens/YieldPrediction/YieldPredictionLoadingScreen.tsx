@@ -14,6 +14,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
 import { Leaf, Users, Package } from "lucide-react-native";
 import { useApp } from "../../context/AppContext";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
@@ -24,7 +25,8 @@ type NavProp = StackNavigationProp<
 
 const YieldPredictionLoadingScreen = () => {
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<"si" | "en">("si");
+  const { language: lang } = useLanguage();
+  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const { user } = useApp();
@@ -133,14 +135,6 @@ const YieldPredictionLoadingScreen = () => {
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView

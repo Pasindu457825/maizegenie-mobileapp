@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   View,
   Text,
@@ -33,12 +34,12 @@ type NavProp = StackNavigationProp<
 const YieldPredictionResultsScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const { data, language: initialLanguage } = route.params as {
+  const { data } = route.params as {
     data: any;
-    language: "si" | "en";
   };
 
-  const [language, setLanguage] = useState<"si" | "en">(initialLanguage);
+  const { language: lang } = useLanguage();
+  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
 
   React.useEffect(() => {
@@ -137,14 +138,6 @@ const YieldPredictionResultsScreen = () => {
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
