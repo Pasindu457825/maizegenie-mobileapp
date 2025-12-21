@@ -174,103 +174,73 @@ const WeatherForecastScreen = () => {
     { time: string; precipitation: number }[]
   >([]);
 
-  // ✨ UPDATED: Generate 7-day weather summary text - ENGLISH ONLY
-  const generateWeatherSummary = (
-    predictions: WeatherDay[],
-    lang: Language
-  ): string => {
-    if (!predictions || predictions.length === 0) return "";
+  // ✨ UPDATED: Generate 7-day weather summary text -
 
-    const weatherSummaryContent =
-      lang === "sinhala"
-        ? {
-            intro: "ඉදිරි දින 7 සඳහා කාලගුණ පුරෝකථනය මෙන්න.",
-            today: "අද",
-            tomorrow: "හෙට",
-            nextDays: "ඊළඟ දින 5 සඳහා",
-            temp: "උෂ්ණත්වය",
-            rain: "වර්ෂාව",
-            mm: "මි.මී.",
-            celsius: "සෙල්සියස්",
-            good: "වගා කිරීමට හොඳ තත්ත්වය",
-            caution: "අවධානයෙන් කටයුතු කරන්න",
-            risky: "අවදානම් තත්ත්වය",
-            average: "සාමාන්‍ය",
-            total: "මුළු",
-            farmingDays: "වගා කිරීමට සුදුසු දින",
-          }
-        : {
-            intro: "Here is the weather forecast for the next 7 days.",
-            today: "Today",
-            tomorrow: "Tomorrow",
-            nextDays: "For the next 5 days",
-            temp: "temperature",
-            rain: "rainfall",
-            mm: "millimeters",
-            celsius: "celsius",
-            good: "good farming conditions",
-            caution: "caution advised",
-            risky: "risky conditions",
-            average: "Average",
-            total: "total",
-            farmingDays: "farming days",
-          };
+  const generateWeeklyFarmerVoice = (
+  predictions: WeatherDay[],
+  language: Language
+): string => {
+  if (!predictions || predictions.length === 0) return "";
 
-    const content = weatherSummaryContent;
-    let summary = content.intro + " ";
+  let goodDays = 0;
+  let rainRiskDays = 0;
+  let dryDays = 0;
 
-    // Today's forecast
-    const today = predictions[0];
-    if (today) {
-      summary += `${content.today}: ${Math.round(
-        today.temperature_min
-      )}-${Math.round(today.temperature_max)} ${content.celsius}, ${
-        content.rain
-      } ${(today.rain_mm || 0).toFixed(1)} ${content.mm}. `;
+  predictions.slice(0, 7).forEach((day) => {
+    const rain = day.rain_mm ?? 0;
+    const temp = day.temperature ?? 0;
 
-      if ((today.rain_mm ?? 0) > 25) {
-        summary += content.risky + ". ";
-      } else if ((today.rain_mm ?? 0) >= 5 && today.temperature >= 25) {
-        summary += content.good + ". ";
-      } else {
-        summary += content.caution + ". ";
-      }
+    if (rain >= 30) {
+      rainRiskDays++;
+    } else if (rain < 2 && temp >= 33) {
+      dryDays++;
+    } else if (rain >= 5 && rain <= 20 && temp >= 24 && temp <= 32) {
+      goodDays++;
+    }
+  });
+
+  // 🌾 Farmer-friendly Sinhala advisory
+  if (language === "sinhala") {
+    if (rainRiskDays >= 3) {
+      return (
+        "ඊළඟ සතිය තුළ වැසි වැඩි දින කිහිපයක් තියෙනවා. " +
+        "ඒ නිසා මේ සතිය වගා කටයුතු සඳහා සුදුසු නැහැ. " +
+        "දැනට තියෙන වගා සහ අස්වැන්න ආරක්ෂා කරගන්න."
+      );
     }
 
-    // Tomorrow's forecast
-    const tomorrow = predictions[1];
-    if (tomorrow) {
-      summary += `${content.tomorrow}: ${Math.round(
-        tomorrow.temperature_min
-      )}-${Math.round(tomorrow.temperature_max)} ${content.celsius}, ${
-        content.rain
-      } ${(tomorrow.rain_mm || 0).toFixed(1)} ${content.mm}. `;
+    if (dryDays >= 3) {
+      return (
+        "ඊළඟ සතිය වියළි කාලගුණයක් වගේ පෙනෙනවා. " +
+        "වැසි අඩු නිසා වගාවට වතුර දීම අවශ්‍ය වෙයි. " +
+        "වතුර දීම සඳහා කලින්ම සැලසුම් කරගන්න."
+      );
     }
 
-    // Next 5 days summary
-    summary += content.nextDays + ": ";
-    const next5Days = predictions.slice(2, 7);
-    if (next5Days.length > 0) {
-      const avgTemp =
-        next5Days.reduce((sum, d) => sum + d.temperature, 0) / next5Days.length;
-      const totalRain = next5Days.reduce((sum, d) => sum + (d.rain_mm || 0), 0);
-      const goodDays = next5Days.filter(
-        (d) =>
-          (d.rain_mm ?? 0) >= 5 &&
-          (d.rain_mm ?? 0) <= 25 &&
-          d.temperature >= 25 &&
-          d.temperature <= 33
-      ).length;
-
-      summary += `${content.average} ${content.temp} ${Math.round(avgTemp)} ${
-        content.celsius
-      }, ${content.total} ${content.rain} ${totalRain.toFixed(1)} ${
-        content.mm
-      }. ${goodDays} ${content.farmingDays}.`;
+    if (goodDays >= 4) {
+      return (
+        "ඊළඟ සතිය වගා කටයුතු සඳහා හොඳ සතියක්. " +
+        "වැසිත් උෂ්ණත්වයත් වගාවට සුදුසුයි. " +
+        "බීජ දමන්න සහ වගා වැඩ කරගෙන යන්න පුළුවන්."
+      );
     }
 
-    return summary;
-  };
+    return (
+      "ඊළඟ සතිය මිශ්‍ර කාලගුණයක් තියෙනවා. " +
+      "කොහොම වෙයිද කියලා දවසින් දවස වෙනස් වෙන්න පුළුවන්. " +
+      "ඒ නිසා කාලගුණය නිතර බලලා අවධානයෙන් වගා කටයුතු කරන්න."
+    );
+  }
+
+  // 🌍 English fallback
+  if (rainRiskDays >= 3)
+    return "Heavy rainfall is expected during the coming week. Avoid farming activities and protect existing crops.";
+  if (dryDays >= 3)
+    return "Dry conditions are expected next week. Plan irrigation in advance.";
+  if (goodDays >= 4)
+    return "The coming week is suitable for farming activities. You may proceed with cultivation.";
+  return "Mixed weather conditions are expected. Monitor the forecast daily and proceed with caution.";
+};
 
   // ✨ FIXED: Speak weather forecast - ENGLISH ONLY
   const speakWeatherForecast = async (predictions: WeatherDay[]) => {
@@ -279,7 +249,7 @@ const WeatherForecastScreen = () => {
       await Speech.stop();
       setIsSpeaking(true);
 
-      const summary = generateWeatherSummary(predictions, language);
+      const summary = generateWeeklyFarmerVoice(predictions, language);
 
       if (!summary) {
         console.log("No summary to speak");
@@ -301,7 +271,10 @@ const WeatherForecastScreen = () => {
         },
       };
 
-      console.log("Speaking with language:", language === "sinhala" ? "Sinhala" : "English");
+      console.log(
+        "Speaking with language:",
+        language === "sinhala" ? "Sinhala" : "English"
+      );
       console.log("Summary:", summary.substring(0, 50) + "...");
 
       await Speech.speak(summary, speechOptions);
