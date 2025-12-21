@@ -9,7 +9,6 @@ from .officer_engine import OfficerAdvisoryEngine
 
 router = APIRouter(prefix="/api/v1/rule-based-advisory", tags=["Rule-Based Fertilizer Advisory"])
 
-# Initialize Rule-Based engines (singleton)
 rule_based_engine = FertilizerRuleBasedEngine()
 officer_engine = OfficerAdvisoryEngine()
 
@@ -17,10 +16,9 @@ officer_engine = OfficerAdvisoryEngine()
 @router.post("/analyze", response_model=FertilizerAdvisoryResponse)
 async def analyze_farmer_input(request: FertilizerAdvisoryRequest):
     """
-    Analyze farmer's natural language input and provide fertilizer recommendations
-    
-    Supports both Sinhala and English input
-    Uses keyword-based rules for lightweight processing
+    Farmer: Analyze natural language input and provide fertilizer recommendations
+    - language from client is respected (si/en)
+    - fallback detect_language used only if missing/invalid
     """
     try:
         if not request.farmer_input or len(request.farmer_input.strip()) < 3:
@@ -28,10 +26,12 @@ async def analyze_farmer_input(request: FertilizerAdvisoryRequest):
                 status_code=400,
                 detail="Input text is too short. Please describe your crop condition."
             )
-        
-        # Process the input
-        result = rule_based_engine.process_farmer_input(request.farmer_input)
-        
+
+        result = rule_based_engine.process_farmer_input(
+            request.farmer_input,
+            language=request.language
+        )
+
         return FertilizerAdvisoryResponse(
             success=True,
             language=result["language"],
@@ -43,9 +43,10 @@ async def analyze_farmer_input(request: FertilizerAdvisoryRequest):
             detected_issues=result["detected_issues"],
             observation=result.get("observation"),
             cause=result.get("cause"),
-            reasoning=result.get("reasoning")
+            reasoning=result.get("reasoning"),
+            extra=None,
         )
-    
+
     except HTTPException:
         raise
     except Exception as e:
@@ -58,25 +59,15 @@ async def analyze_farmer_input(request: FertilizerAdvisoryRequest):
 @router.post("/officer/analyze", response_model=OfficerAdvisoryResponse)
 async def analyze_officer_input(request: OfficerAdvisoryRequest):
     """
-    Analyze officer's structured input and provide detailed fertilizer recommendations
-    
-    Supports structured form inputs with enhanced analytics
-    Provides cost analysis, application schedules, and detailed reasoning
+    Officer: Structured input (we will improve later; not changing now)
     """
     try:
         if not request.growth_stage:
-            raise HTTPException(
-                status_code=400,
-                detail="Growth stage is required."
-            )
-        
+            raise HTTPException(status_code=400, detail="Growth stage is required.")
+
         if request.field_size <= 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Field size must be greater than 0."
-            )
-        
-        # Process the structured input
+            raise HTTPException(status_code=400, detail="Field size must be greater than 0.")
+
         result = officer_engine.process_officer_input({
             "language": request.language,
             "growth_stage": request.growth_stage,
@@ -86,21 +77,17 @@ async def analyze_officer_input(request: OfficerAdvisoryRequest):
             "weather_condition": request.weather_condition,
             "location": request.location
         })
-        
+
         return OfficerAdvisoryResponse(**result)
-    
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing officer input: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error processing officer input: {str(e)}")
 
 
 @router.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {
         "status": "ok",
         "service": "Rule-Based Fertilizer Advisory",

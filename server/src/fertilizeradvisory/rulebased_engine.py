@@ -1,297 +1,316 @@
 """
-Simple keyword-based rule engine for fertilizer advisory
-Supports Sinhala and English
+Improved keyword-based rule engine for fertilizer advisory
+- Supports Sinhala and English
+- Single Source of Truth (backend)
+- Handles overlaps with scoring + priority
 """
-from typing import Dict, List, Tuple
+
+from typing import Dict, List, Tuple, Optional
 import re
 
-
 class FertilizerRuleBasedEngine:
-    """Lightweight rule-based engine using keyword matching"""
-    
     def __init__(self):
-        # Sinhala keyword mappings
+        # -----------------------
+        # Keyword lexicons
+        # -----------------------
+        # Keep these focused to reduce false positives.
+        # Avoid super-generic words that match everything.
         self.sinhala_keywords = {
-            "nitrogen_deficiency": ["කහ", "කහපාට", "කොළ කහ", "කහවෙලා", "කහවුනා"],
-            "phosphorus_deficiency": ["දම්", "දම්පාට", "දම්වෙලා", "තද කොළ"],
-            "potassium_deficiency": ["දුර්වල", "දුබල", "අඩු වර්ධනය", "මෙඩ"],
-            "rain_high": ["වර්ෂාව", "වැස්ස", "වැහි", "වැහි වැඩි", "වර්ෂාව වැඩි"],
-            "rain_low": ["වියළි", "වැස්ස නැහැ", "වර්ෂාව අඩු"],
-            "soil_dry": ["පස වියළි", "වියළි පස", "පස වියළී"],
-            "soil_wet": ["පස තෙත", "තෙත පස", "පස තෙමී"],
-            "weak_plants": ["දුර්වල", "දුබල", "බලය නැහැ", "වර්ධනය අඩු"],
-            "yellow_leaves": ["කහ කොළ", "කොළ කහ", "කහපාට කොළ"],
-            "small_plants": ["පොඩි", "කුඩා", "වර්ධනය අඩු"],
+            # nutrient deficiency signals
+            "yellow_leaves": ["කොළ කහ", "කහ කොළ", "කහපාට කොළ", "කොළ කහයි", "කහවෙලා"],
+            "pale_leaves": ["පැහැති", "වර්ණ අඩු", "වර්ණය අඩු"],
+            "purple_leaves": ["දම්", "දම්පාට", "දම්වෙලා"],
+            "edge_burn": ["කොළ අග පිළිස්ස", "කොළ අග දහන", "කොළ අග වියළ"],
+            "weak_plants": ["පැළ දුර්වල", "ශාක දුර්වල", "දුර්වලයි", "දුබලයි"],
+            "stunted_growth": ["වර්ධනය අඩු", "වර්ධනය නෑ", "පොඩි පැළ", "කුඩා පැළ"],
+
+            # weather/soil signals
+            "rain_high": ["වැහි වැඩි", "වර්ෂාව වැඩි", "අධික වර්ෂාව", "ගංවතුර", "ජලයෙන් පිරී"],
+            "rain_low": ["වැස්ස අඩු", "වැස්ස නැහැ", "වර්ෂාව අඩු", "වියළි කාලය"],
+            "soil_dry": ["වියලි පස", "පස වියළි", "බිම වියලි", "වියළි පස"],
+            "soil_wet": ["පස තෙත", "තෙත පස", "පස තෙමී", "ජලයෙන් පිරුණු පස"],
         }
-        
-        # English keyword mappings
+
         self.english_keywords = {
-            "nitrogen_deficiency": ["yellow", "pale", "yellowing", "chlorosis"],
-            "phosphorus_deficiency": ["purple", "dark green", "stunted", "slow growth"],
-            "potassium_deficiency": ["weak", "brown edges", "burnt tips", "weak stems"],
-            "rain_high": ["rain", "heavy rain", "rainfall", "wet", "flooding"],
+            # nutrient deficiency signals
+            "yellow_leaves": ["yellow leaves", "yellowing leaves", "leaves yellow", "chlorosis"],
+            "pale_leaves": ["pale leaves", "light green leaves", "loss of greenness"],
+            "purple_leaves": ["purple leaves", "purple", "dark green with purple"],
+            "edge_burn": ["leaf tips burning", "burnt tips", "brown edges", "leaf edge burn"],
+            "weak_plants": ["plants weak", "weak plants", "weak stem", "weak"],
+            "stunted_growth": ["stunted", "slow growth", "small plants", "poor growth"],
+
+            # weather/soil signals
+            "rain_high": ["heavy rain", "flooding", "waterlogged", "too much rain"],
             "rain_low": ["dry", "no rain", "drought", "low rainfall"],
-            "soil_dry": ["dry soil", "soil dry", "hard soil"],
-            "soil_wet": ["wet soil", "waterlogged", "soggy"],
-            "weak_plants": ["weak", "weak plants", "poor growth"],
-            "yellow_leaves": ["yellow leaves", "pale leaves"],
-            "small_plants": ["small", "stunted", "slow growth"],
+            "soil_dry": ["dry soil", "soil is dry", "hard soil"],
+            "soil_wet": ["wet soil", "waterlogged soil", "soggy soil"],
         }
-        
-        # Fertilizer recommendations based on detected issues
-        self.recommendations = {
-            "nitrogen_deficiency": {
-                "fertilizer": "Urea",
-                "amount_per_acre": "50-60 kg",
-                "npk": "N",
-                "timing": "Apply in split doses",
-                "si": "යුරියා",
-                "si_amount": "අක්කරයකට කිලෝ 50-60",
+
+        # -----------------------
+        # Fertilizer recommendations (farmer-friendly)
+        # -----------------------
+        self.recommendation_templates = {
+            "nitrogen": {
+                "en": {"fertilizer": "Urea", "amount": "50-60 kg per acre", "timing": "Apply in split doses"},
+                "si": {"fertilizer": "යුරියා", "amount": "අක්කරයකට කිලෝ 50-60", "timing": "කොටස් වශයෙන් යොදන්න"},
+                "priority": "high",
+                "reason_en": "Helps recover leaf greenness and vegetative growth",
+                "reason_si": "කොළ වල හරිත වර්ණය සහ ශාක වර්ධනය නැවත සකස් කරයි",
             },
-            "phosphorus_deficiency": {
-                "fertilizer": "TSP (Triple Super Phosphate)",
-                "amount_per_acre": "30-40 kg",
-                "npk": "P",
-                "timing": "Apply at planting",
-                "si": "ටී.එස්.පී",
-                "si_amount": "අක්කරයකට කිලෝ 30-40",
+            "phosphorus": {
+                "en": {"fertilizer": "TSP (Triple Super Phosphate)", "amount": "30-40 kg per acre", "timing": "Prefer at planting or early stage"},
+                "si": {"fertilizer": "ටී.එස්.පී", "amount": "අක්කරයකට කිලෝ 30-40", "timing": "රෝපණ අවධියේ/මුල් අවධියේදී වඩාත් සුදුසුයි"},
+                "priority": "medium",
+                "reason_en": "Supports roots and early establishment",
+                "reason_si": "මුල් ශක්තිමත් කරයි සහ මුල් වර්ධනයට උදව් කරයි",
             },
-            "potassium_deficiency": {
-                "fertilizer": "MOP (Muriate of Potash)",
-                "amount_per_acre": "40-50 kg",
-                "npk": "K",
-                "timing": "Apply during vegetative stage",
-                "si": "එම්.ඕ.පී",
-                "si_amount": "අක්කරයකට කිලෝ 40-50",
+            "potassium": {
+                "en": {"fertilizer": "MOP (Muriate of Potash)", "amount": "40-50 kg per acre", "timing": "Apply during vegetative stage"},
+                "si": {"fertilizer": "එම්.ඕ.පී", "amount": "අක්කරයකට කිලෝ 40-50", "timing": "ශාක වර්ධන අවධියේදී යොදන්න"},
+                "priority": "medium",
+                "reason_en": "Improves plant strength and reduces edge burn risk",
+                "reason_si": "ශාක ශක්තිමත් කරයි සහ කොළ අග පිළිස්සීම අඩු කරයි",
             },
         }
-    
+
+    # -----------------------
+    # Language
+    # -----------------------
     def detect_language(self, text: str) -> str:
-        """Detect if text is Sinhala or English"""
-        sinhala_chars = re.findall(r'[\u0D80-\u0DFF]', text)
+        sinhala_chars = re.findall(r"[\u0D80-\u0DFF]", text)
         return "si" if len(sinhala_chars) > 5 else "en"
-    
-    def extract_issues(self, text: str, language: str) -> Dict[str, bool]:
-        """Extract agricultural issues from text using keyword matching"""
-        text_lower = text.lower()
-        issues = {}
-        
-        keywords = self.sinhala_keywords if language == "si" else self.english_keywords
-        
-        for issue_type, keywords_list in keywords.items():
-            issues[issue_type] = any(keyword in text_lower for keyword in keywords_list)
-        
-        return issues
-    
-    def generate_recommendations(
-        self, issues: Dict[str, bool], language: str
-    ) -> Dict:
-        """Generate fertilizer recommendations based on detected issues"""
-        recommendations = []
-        warnings = []
-        
-        # Check for nutrient deficiencies
-        if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
-            rec = self.recommendations["nitrogen_deficiency"]
-            recommendations.append({
-                "type": "nitrogen",
-                "fertilizer": rec["si"] if language == "si" else rec["fertilizer"],
-                "amount": rec["si_amount"] if language == "si" else rec["amount_per_acre"],
-                "timing": rec["timing"],
-                "priority": "high"
-            })
-        
-        if issues.get("phosphorus_deficiency"):
-            rec = self.recommendations["phosphorus_deficiency"]
-            recommendations.append({
-                "type": "phosphorus",
-                "fertilizer": rec["si"] if language == "si" else rec["fertilizer"],
-                "amount": rec["si_amount"] if language == "si" else rec["amount_per_acre"],
-                "timing": rec["timing"],
-                "priority": "medium"
-            })
-        
-        if issues.get("potassium_deficiency") or issues.get("weak_plants"):
-            rec = self.recommendations["potassium_deficiency"]
-            recommendations.append({
-                "type": "potassium",
-                "fertilizer": rec["si"] if language == "si" else rec["fertilizer"],
-                "amount": rec["si_amount"] if language == "si" else rec["amount_per_acre"],
-                "timing": rec["timing"],
-                "priority": "medium"
-            })
-        
-        # Weather-based warnings
-        if issues.get("rain_high"):
-            warnings.append({
-                "type": "rain_delay",
-                "severity": "high",
-                "message_en": "Heavy rain detected. Delay fertilizer application to avoid nutrient loss.",
-                "message_si": "අධික වර්ෂාපතනයක් හඳුනාගෙන ඇත. පෝෂක අහිමි වීම වැළැක්වීමට පොහොර යෙදීම ප්‍රමාද කරන්න."
-            })
-        
-        if issues.get("soil_dry"):
-            warnings.append({
-                "type": "split_application",
-                "severity": "medium",
-                "message_en": "Dry soil detected. Consider split application and water after fertilizing.",
-                "message_si": "වියළි පස හඳුනාගෙන ඇත. බෙදා යෙදීම සලකා බලන්න සහ පොහොර දැමීමෙන් පසු ජලය දෙන්න."
-            })
-        
-        # Apply today decision
-        apply_today = not issues.get("rain_high")
-        
+
+    # -----------------------
+    # Match keywords -> signals
+    # -----------------------
+    def _match_signals(self, text: str, language: str) -> Dict[str, bool]:
+        tl = text.lower()
+        lex = self.sinhala_keywords if language == "si" else self.english_keywords
+        out: Dict[str, bool] = {}
+        for signal, kws in lex.items():
+            out[signal] = any(kw.lower() in tl for kw in kws)
+        return out
+
+    # -----------------------
+    # Score + Decide issues
+    # -----------------------
+    def _score_deficiencies(self, signals: Dict[str, bool]) -> Dict[str, int]:
+        """
+        Map signals into deficiency scores with simple weights
+        This reduces overlap issues (Root Cause #3).
+        """
+        score = {"nitrogen": 0, "phosphorus": 0, "potassium": 0}
+
+        # Nitrogen
+        if signals.get("yellow_leaves"):
+            score["nitrogen"] += 3
+        if signals.get("pale_leaves"):
+            score["nitrogen"] += 2
+        if signals.get("stunted_growth"):
+            score["nitrogen"] += 1
+
+        # Phosphorus
+        if signals.get("purple_leaves"):
+            score["phosphorus"] += 3
+        if signals.get("stunted_growth"):
+            score["phosphorus"] += 2
+
+        # Potassium
+        if signals.get("edge_burn"):
+            score["potassium"] += 3
+        if signals.get("weak_plants"):
+            score["potassium"] += 2
+
+        return score
+
+    def _pick_primary_deficiency(self, scores: Dict[str, int]) -> Optional[str]:
+        best = max(scores.items(), key=lambda x: x[1])
+        if best[1] <= 0:
+            return None
+        return best[0]
+
+    # -----------------------
+    # Build response fields
+    # -----------------------
+    def _build_warnings(self, signals: Dict[str, bool]) -> Tuple[List[dict], bool]:
+        warnings: List[dict] = []
+        apply_today = True
+
+        if signals.get("rain_high") or signals.get("soil_wet"):
+            apply_today = False
+            warnings.append(
+                {
+                    "type": "rain_delay",
+                    "severity": "high",
+                    "message_en": "Heavy rain / waterlogged soil detected. Delay fertilizer application to avoid nutrient loss.",
+                    "message_si": "අධික වැසි / ජලයෙන් පිරුණු පස හඳුනාගෙන ඇත. පෝෂක අහිමි වීම වැළැක්වීමට පොහොර යෙදීම ප්‍රමාද කරන්න.",
+                }
+            )
+
+        if signals.get("soil_dry") or signals.get("rain_low"):
+            warnings.append(
+                {
+                    "type": "dry_soil",
+                    "severity": "medium",
+                    "message_en": "Dry conditions detected. Consider split application and water after fertilizing.",
+                    "message_si": "වියළි තත්ත්ව හඳුනාගෙන ඇත. පොහොර කොටස් වශයෙන් යෙදීම සලකා බලන්න සහ පොහොර දැමීමෙන් පසු ජලය දෙන්න.",
+                }
+            )
+
+        return warnings, apply_today
+
+    def _build_reasoning(self, language: str, primary: Optional[str], signals: Dict[str, bool]) -> Dict[str, Optional[str]]:
+        if not primary and not any(signals.values()):
+            return {"observation": None, "cause": None, "reasoning": None}
+
+        # Observation
+        obs_parts_si = []
+        obs_parts_en = []
+        if signals.get("yellow_leaves") or signals.get("pale_leaves"):
+            obs_parts_si.append("කොළ කහ/පැහැති වීම")
+            obs_parts_en.append("yellow/pale leaves")
+        if signals.get("edge_burn"):
+            obs_parts_si.append("කොළ අග පිළිස්සීම/වියළීම")
+            obs_parts_en.append("leaf tip/edge burn")
+        if signals.get("weak_plants"):
+            obs_parts_si.append("පැළ දුර්වල වීම")
+            obs_parts_en.append("weak plants")
+        if signals.get("stunted_growth"):
+            obs_parts_si.append("වර්ධනය අඩු වීම")
+            obs_parts_en.append("stunted/slow growth")
+        if signals.get("rain_high"):
+            obs_parts_si.append("අධික වැසි")
+            obs_parts_en.append("heavy rain")
+        if signals.get("soil_dry"):
+            obs_parts_si.append("වියලි පස")
+            obs_parts_en.append("dry soil")
+
+        observation = (
+            ("ඔබ විස්තර කළ ලක්ෂණ: " + ", ".join(obs_parts_si)) if language == "si" else ("Symptoms described: " + ", ".join(obs_parts_en))
+        )
+
+        # Cause
+        if not primary:
+            cause = "—" if language == "si" else "—"
+        else:
+            if language == "si":
+                cause_map = {
+                    "nitrogen": "නයිට්‍රජන් (N) ඌනතාවය නිසා කොළ කහ/පැහැති විය හැක.",
+                    "phosphorus": "පොස්පරස් (P) ඌනතාවය නිසා මුල්/මුල් වර්ධනය සහ වර්ධනය අඩු විය හැක.",
+                    "potassium": "පොටෑසියම් (K) ඌනතාවය නිසා කොළ අග පිළිස්සීම සහ ශාක දුර්වල වීම විය හැක.",
+                }
+            else:
+                cause_map = {
+                    "nitrogen": "Nitrogen (N) deficiency can cause yellow/pale leaves.",
+                    "phosphorus": "Phosphorus (P) deficiency can reduce early growth and root development.",
+                    "potassium": "Potassium (K) deficiency can cause edge burn and weak plants.",
+                }
+            cause = cause_map.get(primary, "—")
+
+        reasoning = (
+            "DOA සහ CIC නිල උපදෙස් අනුව, හඳුනාගත් ලක්ෂණ වලට ගැළපෙන පොහොර අනුපිළිවෙලක් යෝජනා කර ඇත."
+            if language == "si"
+            else "Based on DOA & CIC guidance, a suitable fertilizer plan is suggested for the detected symptoms."
+        )
+
+        return {"observation": observation, "cause": cause, "reasoning": reasoning}
+
+    def _build_advice_text(self, language: str, recommendations: List[dict], warnings: List[dict], apply_today: bool) -> str:
+        if language == "si":
+            if not recommendations:
+                base = "දැනට ප්‍රධාන පොහොර ඌනතාවයක් පැහැදිලි ලෙස හඳුනාගත නොහැක. නිරීක්ෂණය දිගටම කරගෙන යන්න."
+            else:
+                base = "ඔබගේ වගාව සඳහා නිර්දේශ:"
+            lines = [base]
+            for r in recommendations:
+                lines.append(f"• {r['fertilizer']} - {r['amount']} ({r['timing']})")
+
+            if warnings:
+                lines.append("⚠️ අවවාද:")
+                for w in warnings:
+                    lines.append(f"• {w['message_si']}")
+
+            lines.append("✅ අද පොහොර යෙදීම සුදුසුයි." if apply_today else "❌ අද පොහොර යෙදීම නිර්දේශ නොකරයි.")
+            return "\n".join(lines)
+
+        # EN
+        if not recommendations:
+            base = "No major fertilizer deficiency clearly detected. Continue monitoring."
+        else:
+            base = "Recommendations for your crop:"
+        lines = [base]
+        for r in recommendations:
+            lines.append(f"• {r['fertilizer']} - {r['amount']} ({r['timing']})")
+
+        if warnings:
+            lines.append("⚠️ Warnings:")
+            for w in warnings:
+                lines.append(f"• {w['message_en']}")
+
+        lines.append("✅ Safe to apply fertilizer today." if apply_today else "❌ Not recommended to apply fertilizer today.")
+        return "\n".join(lines)
+
+    # -----------------------
+    # Public entry
+    # -----------------------
+    def process_farmer_input(self, text: str, language: Optional[str] = None) -> Dict:
+        # Language = explicit > fallback detection (Root Cause #4 fix)
+        lang = language if language in ("si", "en") else self.detect_language(text)
+
+        signals = self._match_signals(text, lang)
+        scores = self._score_deficiencies(signals)
+        primary = self._pick_primary_deficiency(scores)
+
+        recommendations: List[dict] = []
+        detected_issues: List[str] = []
+
+        if primary:
+            tpl = self.recommendation_templates[primary]
+            recommendations.append(
+                {
+                    "type": primary,
+                    "fertilizer": tpl[lang]["fertilizer"],
+                    "amount": tpl[lang]["amount"],
+                    "timing": tpl[lang]["timing"],
+                    "priority": tpl["priority"],
+                    "reason": tpl["reason_si"] if lang == "si" else tpl["reason_en"],
+                }
+            )
+            detected_issues.append(f"{primary}_deficiency")
+
+        # Weather/soil warnings + apply_today gate
+        warnings, apply_today = self._build_warnings(signals)
+
+        # WHY fields
+        why = self._build_reasoning(lang, primary, signals)
+
+        advice = self._build_advice_text(lang, recommendations, warnings, apply_today)
+
+        # # Add detected environment issues (for transparency)
+            # if signals.get("rain_high"):
+            #     detected_issues.append("rain_high")
+            # if signals.get("soil_dry"):
+            #     detected_issues.append("soil_dry")
+            # if signals.get("soil_wet"):
+            #     detected_issues.append("soil_wet")
+            # if signals.get("rain_low"):
+            #     detected_issues.append("rain_low")
+
+        # Note:
+        # Environment signals are intentionally NOT added to detected_issues
+        # for farmer responses to avoid confusion.
+        # (They are still reflected via warnings & apply_today flag.)
+
         return {
+            "language": lang,
+            "input_text": text,
+            "advice": advice,
             "recommendations": recommendations,
             "warnings": warnings,
             "apply_today": apply_today,
-            "detected_issues": [k for k, v in issues.items() if v]
-        }
-    
-    def process_farmer_input(self, text: str) -> Dict:
-        """Main processing function"""
-        # Detect language
-        language = self.detect_language(text)
-        
-        # Extract issues
-        issues = self.extract_issues(text, language)
-        
-        # Generate recommendations
-        result = self.generate_recommendations(issues, language)
-        result["language"] = language
-        result["input_text"] = text
-        
-        # Generate reasoning (WHY explanations)
-        reasoning_data = self._generate_reasoning(issues, language)
-        result.update(reasoning_data)
-        
-        # Generate natural language advice
-        advice = self._generate_advice(result, language)
-        result["advice"] = advice
-        
-        return result
-    
-    def _generate_advice(self, result: Dict, language: str) -> str:
-        """Generate human-friendly advice text"""
-        recommendations = result["recommendations"]
-        warnings = result["warnings"]
-        
-        if language == "si":
-            if not recommendations:
-                return "ඔබගේ වගාව සෞඛ්‍ය සම්පන්න බව පෙනේ. නිත්‍ය නිරීක්ෂණය දිගටම කරගෙන යන්න."
-            
-            advice_parts = ["ඔබගේ වගාව සඳහා පහත නිර්දේශ:"]
-            
-            for rec in recommendations:
-                advice_parts.append(
-                    f"\n• {rec['fertilizer']} - {rec['amount']} ({rec['timing']})"
-                )
-            
-            if warnings:
-                advice_parts.append("\n\n⚠️ අවවාද:")
-                for warn in warnings:
-                    advice_parts.append(f"\n• {warn['message_si']}")
-            
-            if result["apply_today"]:
-                advice_parts.append("\n\n✅ අද පොහොර යෙදීම සුදුසුයි.")
-            else:
-                advice_parts.append("\n\n❌ අද පොහොර යෙදීම නිර්දේශ නොකරයි.")
-            
-            return "".join(advice_parts)
-        else:
-            if not recommendations:
-                return "Your crop appears healthy. Continue regular monitoring."
-            
-            advice_parts = ["Recommendations for your crop:"]
-            
-            for rec in recommendations:
-                advice_parts.append(
-                    f"\n• {rec['fertilizer']} - {rec['amount']} ({rec['timing']})"
-                )
-            
-            if warnings:
-                advice_parts.append("\n\n⚠️ Warnings:")
-                for warn in warnings:
-                    advice_parts.append(f"\n• {warn['message_en']}")
-            
-            if result["apply_today"]:
-                advice_parts.append("\n\n✅ Safe to apply fertilizer today.")
-            else:
-                advice_parts.append("\n\n❌ Not recommended to apply fertilizer today.")
-            
-            return "".join(advice_parts)
-    
-    def _generate_reasoning(self, issues: Dict[str, bool], language: str) -> Dict:
-        """Generate observation, cause, and reasoning explanations"""
-        detected = [k for k, v in issues.items() if v]
-        
-        if not detected:
-            return {
-                "observation": None,
-                "cause": None,
-                "reasoning": None
-            }
-        
-        if language == "si":
-            # Observation - What we see
-            obs_parts = []
-            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
-                obs_parts.append("කොළ කහ වීම හෝ කහපැහැති වීම")
-            if issues.get("weak_plants"):
-                obs_parts.append("ශාක දුර්වල වීම")
-            if issues.get("rain_high"):
-                obs_parts.append("අධික වර්ෂාපතනය")
-            if issues.get("soil_dry"):
-                obs_parts.append("පස වියළි වීම")
-            
-            observation = f"ඔබ විස්තර කළ ලක්ෂණ: {', '.join(obs_parts)}" if obs_parts else None
-            
-            # Cause - Why it's happening
-            cause_parts = []
-            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
-                cause_parts.append("නයිට්‍රජන් (N) ඌනතාවය නිසා කොළ කහ වේ")
-            if issues.get("weak_plants"):
-                cause_parts.append("පොටෑසියම් (K) අඩුවීම නිසා ශාක දුර්වල වේ")
-            if issues.get("rain_high"):
-                cause_parts.append("වැස්ස නිසා පොහොර සෝදා යා හැක")
-            if issues.get("soil_dry"):
-                cause_parts.append("වියළි පස නිසා පෝෂක අවශෝෂණය අඩු වේ")
-            
-            cause = ". ".join(cause_parts) if cause_parts else None
-            
-            # Reasoning - What to do and why
-            reasoning = "DOA සහ CIC නිල දත්ත අනුව, හඳුනාගත් ඌනතා නිවැරදි කිරීම සඳහා නිර්දේශිත පොහොර යෙදීම අවශ්‍ය වේ."
-            
-        else:
-            # English
-            obs_parts = []
-            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
-                obs_parts.append("yellowing or pale leaves")
-            if issues.get("weak_plants"):
-                obs_parts.append("weak plants")
-            if issues.get("rain_high"):
-                obs_parts.append("heavy rainfall")
-            if issues.get("soil_dry"):
-                obs_parts.append("dry soil")
-            
-            observation = f"Symptoms described: {', '.join(obs_parts)}" if obs_parts else None
-            
-            cause_parts = []
-            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
-                cause_parts.append("Nitrogen (N) deficiency causes leaf yellowing")
-            if issues.get("weak_plants"):
-                cause_parts.append("Potassium (K) deficiency weakens plants")
-            if issues.get("rain_high"):
-                cause_parts.append("Heavy rain can wash away fertilizers")
-            if issues.get("soil_dry"):
-                cause_parts.append("Dry soil reduces nutrient absorption")
-            
-            cause = ". ".join(cause_parts) if cause_parts else None
-            
-            reasoning = "Based on DOA and CIC official guidelines, applying recommended fertilizers is necessary to correct the detected deficiencies."
-        
-        return {
-            "observation": observation,
-            "cause": cause,
-            "reasoning": reasoning
+            "detected_issues": detected_issues,
+            "observation": why.get("observation"),
+            "cause": why.get("cause"),
+            "reasoning": why.get("reasoning"),
         }

@@ -1,44 +1,54 @@
 """
-Pydantic schemas for Rule-Based Fertilizer Advisory
+Pydantic schemas for Rule-Based Fertilizer Advisory (Farmer + Officer)
+
+IMPORTANT:
+- router.py expects: FertilizerAdvisoryRequest / FertilizerAdvisoryResponse
+- Farmer client sends: farmer_input + language
 """
-from pydantic import BaseModel
-from typing import List, Optional
+
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal, Any
 
 
-class FertilizerAdvisoryRequest(BaseModel):
-    """Request schema for fertilizer advisory"""
-    farmer_input: str
-    location: Optional[str] = None
-    crop_stage: Optional[str] = None
+Language = Literal["si", "en"]
 
 
-class RecommendationItem(BaseModel):
-    """Single fertilizer recommendation"""
-    type: str
+class FertilizerRecommendation(BaseModel):
+    type: str  # nitrogen / phosphorus / potassium / balanced / etc.
     fertilizer: str
     amount: str
     timing: str
-    priority: str
+    priority: str  # high / medium / low
+    reason: Optional[str] = None
 
 
-class WarningItem(BaseModel):
-    """Warning message"""
+class AdvisoryWarning(BaseModel):
     type: str
-    severity: str
+    severity: str  # high / medium / low
     message_en: str
     message_si: str
 
 
+class FertilizerAdvisoryRequest(BaseModel):
+    farmer_input: str = Field(..., min_length=3)
+    language: Optional[Language] = None  # if missing, backend will auto-detect (fallback)
+
+
 class FertilizerAdvisoryResponse(BaseModel):
-    """Response schema for fertilizer advisory"""
     success: bool
-    language: str
+    language: Language
     input_text: str
+
     advice: str
-    recommendations: List[RecommendationItem]
-    warnings: List[WarningItem]
+    recommendations: List[FertilizerRecommendation]
+    warnings: List[AdvisoryWarning]
     apply_today: bool
     detected_issues: List[str]
+
+    # explainability / WHY fields (optional)
     observation: Optional[str] = None
     cause: Optional[str] = None
     reasoning: Optional[str] = None
+
+    # OPTIONAL: allow backend to send extra helper fields safely later
+    extra: Optional[Any] = None
