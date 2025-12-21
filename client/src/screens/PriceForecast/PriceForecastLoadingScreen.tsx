@@ -132,7 +132,7 @@ const PriceForecastLoadingScreen = () => {
       priceTitle: "🌽 ඉරිඟු මිල",
       weatherTitle: "🌦️ කාලගුණය",
       priceDesc: "හොඳම මිල දැන ගන්න",
-      weatherDesc: "7 දින පුරෝකථනය",
+      weatherDesc: "අද සහ ඉදිරි දින 7 සඳහා පුරෝකථනය",
     },
     en: {
       title: "🌾 Smart Farming",
@@ -145,7 +145,7 @@ const PriceForecastLoadingScreen = () => {
       priceTitle: "🌽 Corn Prices",
       weatherTitle: "🌦️ Weather",
       priceDesc: "Get Best Prices",
-      weatherDesc: "7-Day Forecast",
+      weatherDesc: "Today and the Next 7-Day Forecast",
     },
   };
 

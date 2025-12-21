@@ -174,11 +174,12 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 type QuestionKey =
-  | "start_now"
-  | "before_start"
-  | "district_time"
-  | "biggest_risk"
-  | "need_professional";
+  | "best_time"
+  | "suitable_soil"
+  | "major_pests"
+  | "fertilizers"
+  | "management_practice";
+
 
 const VARIETY_DURATION_WEEKS: Record<string, number> = {
   "GT 709": 16,
@@ -258,11 +259,11 @@ const PriceAdvisorScreen: React.FC = () => {
       quickQuestionsTitle: "ඉක්මන් ප්‍රශ්න 5",
       fullFormTitle: "සම්පූර්ණ වගා උපදෙස් (උසස් මාදිලිය)",
       resultTitle: "ඔබ සඳහා වගා උපදෙස්",
-      q1: "මං දැන් වගාව ආරම්භ කළොත් හොඳද?",
-      q2: "මට වගාව ආරම්භ කිරීමට පෙර දැනගත යුතු දේ මොනවාද?",
-      q3: "මගේ දිස්ත්‍රික්කය සඳහා මේ කාලය සුදුසුද?",
-      q4: "වගාව ආරම්භ කිරීමේදී වැඩිම අවදානම මොනවාද?",
-      q5: "වෘත්තීය උපදෙස් ලබාගන්න ඕනද?",
+      q1: "බඩ ඉරිඟු වගා කිරීමට හොඳම කාලය කුමක්ද?",
+      q2: "බඩ ඉරිඟු වගාවට සුදුසු පස වර්ගය මොනවාද?",
+      q3: "බඩ ඉරිඟු වගාවේ සාමාන්‍යයෙන් හමුවන ප්‍රධාන පළිබෝධ මොනවාද?",
+      q4: "බඩ ඉරිඟු වගාවට භාවිතා කරන මූලික පොහොර වර්ග මොනවාද?",
+      q5: "හොඳ බඩ ඉරිඟු අස්වැන්නක් ලබාගැනීමට වැදගත් කළමනාකරණ ක්‍රියාව කුමක්ද?",
       formDistrict: "දිස්ත්‍රික්කය",
       formVariety: "බීජ වර්ගය",
       formArea: "වැවිලි භූමි ප්‍රමාණය (ha / acre)",
@@ -291,11 +292,11 @@ const PriceAdvisorScreen: React.FC = () => {
       quickQuestionsTitle: "Quick Questions (5)",
       fullFormTitle: "Full Cultivation Advisor (Advanced)",
       resultTitle: "Advisor Result for You",
-      q1: "Is it okay to start farming now?",
-      q2: "What should I know before starting cultivation?",
-      q3: "Is this a suitable time for my district?",
-      q4: "What are the biggest risks when starting?",
-      q5: "Do I need professional advice?",
+      q1: "What is the best time to cultivate maize?",
+      q2: "What type of soil is suitable for maize cultivation?",
+      q3: "What are the common major pests found in maize cultivation?",
+      q4: "What are the main fertilizers used for maize cultivation?",
+      q5: "What is an important management practice to obtain a good maize yield?",
       formDistrict: "District",
       formVariety: "Seed Variety",
       formArea: "Farm Area (ha / acre)",
@@ -987,67 +988,53 @@ const PriceAdvisorScreen: React.FC = () => {
     return { text, tag };
   };
 
-  const handleQuestionPress = (key: QuestionKey) => {
-    setSelectedQuestion(key);
-    const plantingClass = classifyPlantingWindow();
-    let answer = "";
+const handleQuestionPress = (key: QuestionKey) => {
+  setSelectedQuestion(key);
+  const plantingClass = classifyPlantingWindow();
+  let answer = "";
 
-    if (key === "start_now") {
-      answer =
-        plantingClass === "risky"
-          ? language === "si"
-            ? "දැනට වගාව ආරම්භ කිරීම අවදානම්. කාලගුණය ස්ථාවර වනතුරු රැඳී සිටින්න."
-            : "Starting cultivation now is risky. Wait until weather conditions stabilize."
-          : plantingClass === "moderate"
-          ? language === "si"
-            ? "වගාව ආරම්භ කළ හැක, නමුත් මධ්‍යම අවදානමක් ඇත."
-            : "You can start cultivation, but the risk level is moderate."
-          : language === "si"
-          ? "දැනට වගාව ආරම්භ කිරීමට හොඳ කාලයක් ලෙස පෙනේ."
-          : "This appears to be a good time to start cultivation.";
-    }
+  // Q1: Best time to cultivate maize
+  if (key === "best_time") {
+    answer =
+      language === "si"
+        ? "බඩ ඉරිඟු වගා කිරීමට මහ කන්නය (ඔක්තෝබර් සිට දෙසැම්බර්) සහ යාල කන්නය (මාර්තු සිට අප්‍රේල්) වඩාත් සුදුසුය. මහ කන්නයේදී ස්වභාවික වැසි ලැබෙන නිසා බීජ පැළවීම සහ ශාක වර්ධනය හොඳින් සිදුවේ. යාල කන්නයේදී වගාව කරන විට වාරි ජලය නිසි ලෙස ලබාදීම අත්‍යවශ්‍ය වේ."
+        : "The Maha season (October to December) and Yala season (March to April) are the best periods to cultivate maize. During the Maha season, natural rainfall supports good germination and plant growth. In the Yala season, proper irrigation is essential for successful cultivation.";
+  }
 
-    if (key === "before_start") {
-      answer =
-        language === "si"
-          ? "වගාව ආරම්භ කිරීමට පෙර බීජ වර්ගය, ජල සැලසුම, භූමි සකස් කිරීම සහ මුල් වියදම් සැලසුම් කරගැනීම වැදගත්ය."
-          : "Before starting cultivation, it is important to plan seed variety, water management, land preparation, and initial costs.";
-    }
+  // Q2: Suitable soil for maize
+  if (key === "suitable_soil") {
+    answer =
+      language === "si"
+        ? "බඩ ඉරිඟු වගාවට හොඳ ජල නිකාසය ඇති, සාරවත් පසක් අවශ්‍ය වේ. Loam හෝ Sandy Loam පස මුල් වර්ධනයට සහ ශාක ශක්තිමත්ව වැඩීමට ඉතා සුදුසුය. ජලය රැඳෙන පස වල වගාව කිරීමෙන් මුල් කුණුවී අස්වැන්න අඩුවිය හැක."
+        : "Maize requires fertile soil with good drainage. Loam or sandy loam soils support strong root development and healthy plant growth. Avoid waterlogged soils, as they can damage roots and reduce yield.";
+  }
 
-    if (key === "district_time") {
-      answer = form.district
-        ? language === "si"
-          ? `${form.district} දිස්ත්‍රික්කය සඳහා මේ කාලය ${
-              plantingClass === "risky" ? "අවදානම්" : "සාමාන්‍යයෙන් සුදුසු"
-            } ලෙස පෙනේ.`
-          : `For the ${form.district} district, this period appears ${
-              plantingClass === "risky" ? "risky" : "generally suitable"
-            }.`
-        : language === "si"
-        ? "මුලින්ම ඔබගේ දිස්ත්‍රික්කය ඇතුළත් කරන්න."
-        : "Please select your district first.";
-    }
+  // Q3: Major pests in maize cultivation
+  if (key === "major_pests") {
+    answer =
+      language === "si"
+        ? "බඩ ඉරිඟු වගාවේ ප්‍රධාන පළිබෝධයක් වන්නේ Fall Armyworm (සේනා කීඩෑවා) ය. මෙම කීඩෑවා කොළ සහ කඳ කා ශාකයට දැඩි හානි සිදු කරයි. වගාව නිතර නිරීක්ෂණය කර ආරම්භයේම පාලනය කළහොත් අස්වැන්න ආරක්ෂා කරගත හැක."
+        : "The major pest affecting maize is the Fall Armyworm. It damages leaves and stems and spreads rapidly if not controlled. Regular field monitoring and early control help protect the crop and reduce losses.";
+  }
 
-    if (key === "biggest_risk") {
-      answer =
-        language === "si"
-          ? "ප්‍රධාන අවදානම් වන්නේ කාලගුණය, ජල සැලසුම සහ බීජ වර්ගය නිසි ලෙස තෝරා නොගැනීමයි."
-          : "The main risks include weather conditions, water planning, and improper seed selection.";
-    }
+  // Q4: Fertilizers used for maize
+  if (key === "fertilizers") {
+    answer =
+      language === "si"
+        ? "බඩ ඉරිඟු වගාවට ප්‍රධානව Urea, TSP සහ MOP පොහොර භාවිතා කරයි. බීජ වපුරන විට TSP සහ MOP යෙදීම ශාක මුල් ශක්තිමත්ව වර්ධනයට උපකාරී වේ. පසුව යුරියා නිසි වේලාවට යෙදීමෙන් ශාක ශක්තිමත් වී හොඳ අස්වැන්නක් ලැබේ."
+        : "Maize cultivation mainly uses Urea, TSP, and MOP fertilizers. TSP and MOP are applied at planting to support early root growth. Urea applied at later stages helps plants grow strong and produce better yields.";
+  }
 
-    if (key === "need_professional") {
-      answer =
-        plantingClass === "risky"
-          ? language === "si"
-            ? "ඔව්. මෙම තත්ත්වය සඳහා වෘත්තීය උපදෙස් ලබාගැනීම නිර්දේශ කරයි."
-            : "Yes. Professional advice is recommended for this situation."
-          : language === "si"
-          ? "අත්‍යවශ්‍ය නොවේ, නමුත් අවශ්‍ය නම් වෘත්තීය උපදෙස් ලබාගත හැක."
-          : "It is not essential, but professional advice can be obtained if needed.";
-    }
+  // Q5: Important management practice
+  if (key === "management_practice") {
+    answer =
+      language === "si"
+        ? "හොඳ බඩ ඉරිඟු අස්වැන්නක් සඳහා නිසි කාලයට වගාව ආරම්භ කිරීම ඉතා වැදගත්ය. ශාක වර්ධනයට අවශ්‍ය පෝෂක ලබාදීමට පොහොර නිවැරදි ප්‍රමාණයෙන් හා නිසි වේලාවට යෙදිය යුතුය. එමෙන්ම සේනා දළඹුවා වැනි පළිබෝධ කාලින්ම නිරීක්ෂණය කර පාලනය කළහොත් අස්වැන්න ගුණාත්මකව රැකගත හැක."
+        : "Starting maize cultivation at the correct time is essential for a good yield. Fertilizers must be applied in the right amounts and at proper growth stages. Early monitoring and control of pests such as Fall Armyworm help ensure a healthy and high-quality harvest.";
+  }
 
-    setQuickAnswer(answer);
-  };
+  setQuickAnswer(answer);
+};
 
   const getCurrentWeekNum = () => {
     const now = new Date();
@@ -1723,9 +1710,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "start_now" && styles.quickCardActive,
+                  selectedQuestion === "best_time" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("start_now")}
+                onPress={() => handleQuestionPress("best_time")}
               >
                 <View style={styles.quickIconContainer}>
                   <Leaf color="#10B981" size={22} />
@@ -1736,9 +1723,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "before_start" && styles.quickCardActive,
+                  selectedQuestion === "suitable_soil" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("before_start")}
+                onPress={() => handleQuestionPress("suitable_soil")}
               >
                 <View style={styles.quickIconContainer}>
                   <AlertTriangle color="#F59E0B" size={22} />
@@ -1749,10 +1736,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "district_time" &&
+                  selectedQuestion === "major_pests" &&
                     styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("district_time")}
+                onPress={() => handleQuestionPress("major_pests")}
               >
                 <View style={styles.quickIconContainer}>
                   <CloudSun color="#0EA5E9" size={22} />
@@ -1763,9 +1750,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "biggest_risk" && styles.quickCardActive,
+                  selectedQuestion === "fertilizers" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("biggest_risk")}
+                onPress={() => handleQuestionPress("fertilizers")}
               >
                 <View style={styles.quickIconContainer}>
                   <DollarSign color="#22C55E" size={22} />
@@ -1776,10 +1763,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "need_professional" &&
+                  selectedQuestion === "management_practice" &&
                     styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("need_professional")}
+                onPress={() => handleQuestionPress("management_practice")}
               >
                 <View style={styles.quickIconContainer}>
                   <TrendingUp color="#16A34A" size={22} />
