@@ -39,6 +39,7 @@ from yieldprediction.router import router as yield_router
 from yieldprediction.farmer_router import router as farmer_yield_router
 from yieldprediction.officer_router import router as officer_yield_router
 from priceforecast.price_prediction_router import router as price_forecast_router
+from fertilizeradvisory.router import router as fertilizer_advisory_router
 
 
 
@@ -90,3 +91,4 @@ app.include_router(yield_router)
 app.include_router(farmer_yield_router)  # Farmer prediction endpoint
 app.include_router(officer_yield_router)
 app.include_router(price_forecast_router)
+app.include_router(fertilizer_advisory_router)  # Rule-Based Fertilizer Advisory

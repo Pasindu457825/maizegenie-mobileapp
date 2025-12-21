@@ -9,13 +9,16 @@ import {
     Share,
     Alert,
     ActivityIndicator,
+    Clipboard,
 } from 'react-native';
 import { useApp } from '../context/AppContext';
 import { getFarmerPredictionHistory } from '../services/yieldPredictionApi';
-import { User, Calendar, MapPin, Leaf, Share2, LogOut } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import { User, Calendar, MapPin, Leaf, LogOut, Copy, Share2 } from 'lucide-react-native';
 
 const ProfileScreen = () => {
     const { user, signOut } = useApp();
+    const navigation = useNavigation<any>();
     const [predictions, setPredictions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -43,15 +46,43 @@ const ProfileScreen = () => {
         loadPredictionHistory();
     };
 
-    const handleSharePrediction = async (prediction: any) => {
+    const handleCopyPrediction = (prediction: any) => {
         try {
-            await Share.share({
-                message: prediction.shareable_text,
-                title: ' Maize Yield Prediction Request',
-            });
+            Clipboard.setString(prediction.shareable_text);
+            Alert.alert('Copied!', 'Prediction details copied to clipboard');
         } catch (error) {
-            console.error('Share failed:', error);
+            console.error('Copy failed:', error);
+            Alert.alert('Error', 'Failed to copy prediction details');
         }
+    };
+
+    const handleShareWithOfficer = (prediction: any) => {
+        const contextMessage = `🌾 Maize Yield Prediction Request
+
+📝 Farmer Details:
+Name: ${user?.full_name || 'Farmer'}
+District: ${prediction.district}
+
+🌱 Crop Information:
+Variety: ${prediction.variety || 'N/A'}
+Season: ${prediction.season}
+Land Size: ${prediction.land_size || 'N/A'}
+Planting Date: ${formatDate(prediction.planting_date)}
+
+I would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
+
+        navigation.navigate('PredictYield', {
+            screen: 'AgriculturalAdvisoryChat',
+            params: {
+                prefilledMessage: contextMessage,
+                context: 'yield_prediction',
+                advisoryType: 'yield',
+                advisoryData: {
+                    prediction: prediction,
+                    farmer: user,
+                },
+            },
+        });
     };
 
     const handleLogout = () => {
@@ -145,9 +176,9 @@ const ProfileScreen = () => {
                                     </View>
                                     <TouchableOpacity
                                         style={styles.shareButton}
-                                        onPress={() => handleSharePrediction(prediction)}
+                                        onPress={() => handleCopyPrediction(prediction)}
                                     >
-                                        <Share2 color="#10B981" size={20} />
+                                        <Copy color="#10B981" size={20} />
                                     </TouchableOpacity>
                                 </View>
 
@@ -174,7 +205,7 @@ const ProfileScreen = () => {
 
                                 <TouchableOpacity
                                     style={styles.shareTextButton}
-                                    onPress={() => handleSharePrediction(prediction)}
+                                    onPress={() => handleShareWithOfficer(prediction)}
                                 >
                                     <Share2 color="#FFFFFF" size={16} />
                                     <Text style={styles.shareTextButtonText}>
