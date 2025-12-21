@@ -180,7 +180,6 @@ type QuestionKey =
   | "fertilizers"
   | "management_practice";
 
-
 const VARIETY_DURATION_WEEKS: Record<string, number> = {
   "GT 709": 16,
   "GT 200": 15,
@@ -988,53 +987,53 @@ const PriceAdvisorScreen: React.FC = () => {
     return { text, tag };
   };
 
-const handleQuestionPress = (key: QuestionKey) => {
-  setSelectedQuestion(key);
-  const plantingClass = classifyPlantingWindow();
-  let answer = "";
+  const handleQuestionPress = (key: QuestionKey) => {
+    setSelectedQuestion(key);
+    const plantingClass = classifyPlantingWindow();
+    let answer = "";
 
-  // Q1: Best time to cultivate maize
-  if (key === "best_time") {
-    answer =
-      language === "si"
-        ? "බඩ ඉරිඟු වගා කිරීමට මහ කන්නය (ඔක්තෝබර් සිට දෙසැම්බර්) සහ යාල කන්නය (මාර්තු සිට අප්‍රේල්) වඩාත් සුදුසුය. මහ කන්නයේදී ස්වභාවික වැසි ලැබෙන නිසා බීජ පැළවීම සහ ශාක වර්ධනය හොඳින් සිදුවේ. යාල කන්නයේදී වගාව කරන විට වාරි ජලය නිසි ලෙස ලබාදීම අත්‍යවශ්‍ය වේ."
-        : "The Maha season (October to December) and Yala season (March to April) are the best periods to cultivate maize. During the Maha season, natural rainfall supports good germination and plant growth. In the Yala season, proper irrigation is essential for successful cultivation.";
-  }
+    // Q1: Best time to cultivate maize
+    if (key === "best_time") {
+      answer =
+        language === "si"
+          ? "බඩ ඉරිඟු වගා කිරීමට මහ කන්නය (ඔක්තෝබර් සිට දෙසැම්බර්) සහ යාල කන්නය (මාර්තු සිට අප්‍රේල්) වඩාත් සුදුසුය. මහ කන්නයේදී ස්වභාවික වැසි ලැබෙන නිසා බීජ පැළවීම සහ ශාක වර්ධනය හොඳින් සිදුවේ. යාල කන්නයේදී වගාව කරන විට වාරි ජලය නිසි ලෙස ලබාදීම අත්‍යවශ්‍ය වේ."
+          : "The Maha season (October to December) and Yala season (March to April) are the best periods to cultivate maize. During the Maha season, natural rainfall supports good germination and plant growth. In the Yala season, proper irrigation is essential for successful cultivation.";
+    }
 
-  // Q2: Suitable soil for maize
-  if (key === "suitable_soil") {
-    answer =
-      language === "si"
-        ? "බඩ ඉරිඟු වගාවට හොඳ ජල නිකාසය ඇති, සාරවත් පසක් අවශ්‍ය වේ. Loam හෝ Sandy Loam පස මුල් වර්ධනයට සහ ශාක ශක්තිමත්ව වැඩීමට ඉතා සුදුසුය. ජලය රැඳෙන පස වල වගාව කිරීමෙන් මුල් කුණුවී අස්වැන්න අඩුවිය හැක."
-        : "Maize requires fertile soil with good drainage. Loam or sandy loam soils support strong root development and healthy plant growth. Avoid waterlogged soils, as they can damage roots and reduce yield.";
-  }
+    // Q2: Suitable soil for maize
+    if (key === "suitable_soil") {
+      answer =
+        language === "si"
+          ? "බඩ ඉරිඟු වගාවට හොඳ ජල නිකාසය ඇති, සාරවත් පසක් අවශ්‍ය වේ. Loam හෝ Sandy Loam පස මුල් වර්ධනයට සහ ශාක ශක්තිමත්ව වැඩීමට ඉතා සුදුසුය. ජලය රැඳෙන පස වල වගාව කිරීමෙන් මුල් කුණුවී අස්වැන්න අඩුවිය හැක."
+          : "Maize requires fertile soil with good drainage. Loam or sandy loam soils support strong root development and healthy plant growth. Avoid waterlogged soils, as they can damage roots and reduce yield.";
+    }
 
-  // Q3: Major pests in maize cultivation
-  if (key === "major_pests") {
-    answer =
-      language === "si"
-        ? "බඩ ඉරිඟු වගාවේ ප්‍රධාන පළිබෝධයක් වන්නේ Fall Armyworm (සේනා කීඩෑවා) ය. මෙම කීඩෑවා කොළ සහ කඳ කා ශාකයට දැඩි හානි සිදු කරයි. වගාව නිතර නිරීක්ෂණය කර ආරම්භයේම පාලනය කළහොත් අස්වැන්න ආරක්ෂා කරගත හැක."
-        : "The major pest affecting maize is the Fall Armyworm. It damages leaves and stems and spreads rapidly if not controlled. Regular field monitoring and early control help protect the crop and reduce losses.";
-  }
+    // Q3: Major pests in maize cultivation
+    if (key === "major_pests") {
+      answer =
+        language === "si"
+          ? "බඩ ඉරිඟු වගාවේ ප්‍රධාන පළිබෝධයක් වන්නේ Fall Armyworm (සේනා කීඩෑවා) ය. මෙම කීඩෑවා කොළ සහ කඳ කා ශාකයට දැඩි හානි සිදු කරයි. වගාව නිතර නිරීක්ෂණය කර ආරම්භයේම පාලනය කළහොත් අස්වැන්න ආරක්ෂා කරගත හැක."
+          : "The major pest affecting maize is the Fall Armyworm. It damages leaves and stems and spreads rapidly if not controlled. Regular field monitoring and early control help protect the crop and reduce losses.";
+    }
 
-  // Q4: Fertilizers used for maize
-  if (key === "fertilizers") {
-    answer =
-      language === "si"
-        ? "බඩ ඉරිඟු වගාවට ප්‍රධානව Urea, TSP සහ MOP පොහොර භාවිතා කරයි. බීජ වපුරන විට TSP සහ MOP යෙදීම ශාක මුල් ශක්තිමත්ව වර්ධනයට උපකාරී වේ. පසුව යුරියා නිසි වේලාවට යෙදීමෙන් ශාක ශක්තිමත් වී හොඳ අස්වැන්නක් ලැබේ."
-        : "Maize cultivation mainly uses Urea, TSP, and MOP fertilizers. TSP and MOP are applied at planting to support early root growth. Urea applied at later stages helps plants grow strong and produce better yields.";
-  }
+    // Q4: Fertilizers used for maize
+    if (key === "fertilizers") {
+      answer =
+        language === "si"
+          ? "බඩ ඉරිඟු වගාවට ප්‍රධානව Urea, TSP සහ MOP පොහොර භාවිතා කරයි. බීජ වපුරන විට TSP සහ MOP යෙදීම ශාක මුල් ශක්තිමත්ව වර්ධනයට උපකාරී වේ. පසුව යුරියා නිසි වේලාවට යෙදීමෙන් ශාක ශක්තිමත් වී හොඳ අස්වැන්නක් ලැබේ."
+          : "Maize cultivation mainly uses Urea, TSP, and MOP fertilizers. TSP and MOP are applied at planting to support early root growth. Urea applied at later stages helps plants grow strong and produce better yields.";
+    }
 
-  // Q5: Important management practice
-  if (key === "management_practice") {
-    answer =
-      language === "si"
-        ? "හොඳ බඩ ඉරිඟු අස්වැන්නක් සඳහා නිසි කාලයට වගාව ආරම්භ කිරීම ඉතා වැදගත්ය. ශාක වර්ධනයට අවශ්‍ය පෝෂක ලබාදීමට පොහොර නිවැරදි ප්‍රමාණයෙන් හා නිසි වේලාවට යෙදිය යුතුය. එමෙන්ම සේනා දළඹුවා වැනි පළිබෝධ කාලින්ම නිරීක්ෂණය කර පාලනය කළහොත් අස්වැන්න ගුණාත්මකව රැකගත හැක."
-        : "Starting maize cultivation at the correct time is essential for a good yield. Fertilizers must be applied in the right amounts and at proper growth stages. Early monitoring and control of pests such as Fall Armyworm help ensure a healthy and high-quality harvest.";
-  }
+    // Q5: Important management practice
+    if (key === "management_practice") {
+      answer =
+        language === "si"
+          ? "හොඳ බඩ ඉරිඟු අස්වැන්නක් සඳහා නිසි කාලයට වගාව ආරම්භ කිරීම ඉතා වැදගත්ය. ශාක වර්ධනයට අවශ්‍ය පෝෂක ලබාදීමට පොහොර නිවැරදි ප්‍රමාණයෙන් හා නිසි වේලාවට යෙදිය යුතුය. එමෙන්ම සේනා දළඹුවා වැනි පළිබෝධ කාලින්ම නිරීක්ෂණය කර පාලනය කළහොත් අස්වැන්න ගුණාත්මකව රැකගත හැක."
+          : "Starting maize cultivation at the correct time is essential for a good yield. Fertilizers must be applied in the right amounts and at proper growth stages. Early monitoring and control of pests such as Fall Armyworm help ensure a healthy and high-quality harvest.";
+    }
 
-  setQuickAnswer(answer);
-};
+    setQuickAnswer(answer);
+  };
 
   const getCurrentWeekNum = () => {
     const now = new Date();
@@ -1587,13 +1586,67 @@ const handleQuestionPress = (key: QuestionKey) => {
   }) => {
     if (!baseWeek || !bestWeek) return null;
 
-    const leftTitle = language === "si" ? "දැන් Harvest" : "Harvest now";
-    const rightTitle =
-      language === "si" ? "හොඳ මිල Harvest" : "Best price harvest";
+    const dly = delayWeeks ?? Math.max(bestWeek - baseWeek, 0);
+
+    // ✅ Convert ISO week -> { year, monthLabel, weekOfMonth }
+    // using your existing helper: isoWeekToMonthWeekLabel()
+    const base = isoWeekToMonthWeekLabel(
+      baseWeek,
+      new Date().getFullYear(),
+      language
+    );
+    const best = isoWeekToMonthWeekLabel(
+      bestWeek,
+      new Date().getFullYear(),
+      language
+    );
+
+    // ✅ Option 3 copy (Sinhala/English)
+const leftLine1 =
+  language === "si"
+    ? `${base.year} ${base.monthLabel} ${weekOrdinal(
+        base.weekOfMonth,
+        "si"
+      )} සතියේ `
+    : `If you sell in the ${weekOrdinal(
+        base.weekOfMonth,
+        "en"
+      )} week of ${base.monthLabel} ${base.year}`;
+
+const leftLine2 =
+  language === "si"
+    ? "මිල සාමාන්‍යයි"
+    : "the market price will be moderate";
+
+// optional: keep week number for system clarity
+//const leftSub =
+ // language === "si"
+ //   ? `(Week ${baseWeek})`
+  //  : `(Week ${baseWeek})`;
+
+
     const midTitle =
       language === "si"
-        ? `සති ${delayWeeks ?? Math.max(bestWeek - baseWeek, 0)}ක් පමා කරන්න`
-        : `Delay ${delayWeeks ?? Math.max(bestWeek - baseWeek, 0)} weeks`;
+        ? `සති ${dly}ක් කල් දැමුවහොත්`
+        : `delay cultivation by ${dly} weeks`;
+
+    const rightLine1 =
+      language === "si"
+        ? `${best.year} ${best.monthLabel} ${weekOrdinal(
+            best.weekOfMonth,
+            "si"
+          )} සතියේ`
+        : `In the ${weekOrdinal(best.weekOfMonth, "en")} week of ${
+            best.monthLabel
+          } ${best.year}`;
+
+    const rightLine2 =
+      language === "si"
+        ? "හොඳම විකුණුම් මිල"
+        : "you can get the best selling price";
+
+ //   const rightSub =
+  //    language === "si" ? `(Week ${bestWeek})` : `(Week ${bestWeek})`;
 
     return (
       <View style={styles.timelineCard}>
@@ -1601,10 +1654,11 @@ const handleQuestionPress = (key: QuestionKey) => {
           {/* Left */}
           <View style={styles.timelineStep}>
             <Text style={styles.timelineIcon}>🌱</Text>
-            <Text style={styles.timelineTitle}>{leftTitle}</Text>
-            <Text style={styles.timelineWeek}>
-              {language === "si" ? `සතිය ${baseWeek}` : `Week ${baseWeek}`}
-            </Text>
+
+            <Text style={styles.timelineTitle}>{leftLine1}</Text>
+            <Text style={styles.timelineDesc}>{leftLine2}</Text>
+
+        {/*    <Text style={styles.timelineWeek}>{leftSub}</Text> */}
           </View>
 
           {/* Middle */}
@@ -1619,10 +1673,11 @@ const handleQuestionPress = (key: QuestionKey) => {
           {/* Right */}
           <View style={[styles.timelineStep, styles.timelineStepBest]}>
             <Text style={styles.timelineIcon}>🌽</Text>
-            <Text style={styles.timelineTitle}>{rightTitle}</Text>
-            <Text style={styles.timelineWeek}>
-              {language === "si" ? `සතිය ${bestWeek}` : `Week ${bestWeek}`}
-            </Text>
+
+            <Text style={styles.timelineTitle}>{rightLine1}</Text>
+            <Text style={styles.timelineDesc}>{rightLine2}</Text>
+
+       {/*    <Text style={styles.timelineWeek}>{rightSub}</Text> */}
           </View>
         </View>
       </View>
@@ -1723,7 +1778,8 @@ const handleQuestionPress = (key: QuestionKey) => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "suitable_soil" && styles.quickCardActive,
+                  selectedQuestion === "suitable_soil" &&
+                    styles.quickCardActive,
                 ]}
                 onPress={() => handleQuestionPress("suitable_soil")}
               >
@@ -1736,8 +1792,7 @@ const handleQuestionPress = (key: QuestionKey) => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "major_pests" &&
-                    styles.quickCardActive,
+                  selectedQuestion === "major_pests" && styles.quickCardActive,
                 ]}
                 onPress={() => handleQuestionPress("major_pests")}
               >
@@ -2956,89 +3011,123 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
   },
-  timelineCard: {
-    marginTop: 12,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: "#ECFDF5",
-    borderWidth: 1.5,
-    borderColor: "#A7F3D0",
-  },
-  timelineRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  timelineStep: {
-    width: 110,
-    alignItems: "center",
-  },
-  timelineStepBest: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: "#D1FAE5",
-  },
-  timelineIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  timelineTitle: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#065F46",
-    textAlign: "center",
-  },
-  timelineWeek: {
-    marginTop: 2,
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#111827",
-    textAlign: "center",
-  },
-  timelineMiddle: {
-    flex: 1,
-    alignItems: "center",
-    position: "relative",
-    height: 54,
-    justifyContent: "center",
-  },
-  timelineLine: {
-    position: "absolute",
-    height: 4,
-    left: 10,
-    right: 10,
-    borderRadius: 999,
-    backgroundColor: "#10B981",
-    opacity: 0.25,
-  },
-  timelinePill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1.5,
-    borderColor: "#10B981",
-  },
-  timelinePillText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#047857",
-  },
-  timelineArrow: {
-    position: "absolute",
-    right: 6,
-    width: 0,
-    height: 0,
-    borderTopWidth: 6,
-    borderBottomWidth: 6,
-    borderLeftWidth: 10,
-    borderTopColor: "transparent",
-    borderBottomColor: "transparent",
-    borderLeftColor: "#10B981",
-    opacity: 0.75,
-  },
+timelineCard: {
+  marginTop: 12,
+  marginBottom: 12,
+  paddingVertical: 12,      // 🔧 top/bottom balance
+  paddingHorizontal: 14,
+  borderRadius: 16,
+  backgroundColor: "#ECFDF5",
+  borderWidth: 1.5,
+  borderColor: "#A7F3D0",
+},
+
+timelineRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",   // ✅ center everything
+  gap: 8,                     // ✅ controlled spacing
+},
+
+
+timelineStep: {
+  flex: 1,                    // ✅ responsive width
+  minHeight: 104,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingVertical: 6,
+  paddingHorizontal: 6,       // 🔧 side empty space reduce
+},
+
+timelineStepBest: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 14,
+  paddingVertical: 8,         // 🔧 slightly more than left
+  paddingHorizontal: 8,
+  borderWidth: 1,
+  borderColor: "#D1FAE5",
+},
+timelineIcon: {
+  fontSize: 20,
+  marginBottom: 2,            // 🔧 from 4 → 2
+},
+
+timelineTitle: {
+  fontSize: 12,
+  fontWeight: "800",
+  color: "#065F46",
+  textAlign: "center",
+  lineHeight: 16,           // 🔧 text spacing consistency
+},
+
+timelineDesc: {
+  fontSize: 12,
+  fontWeight: "700",
+  color: "#065F46",
+  textAlign: "center",
+  lineHeight: 16,
+  marginTop: 2,             // 🔧 controlled gap between lines
+},
+
+timelineWeek: {
+  marginTop: 2,
+  fontSize: 11,
+  fontWeight: "700",
+  color: "#6B7280",         // 🔧 de-emphasize week label
+  textAlign: "center",
+},
+
+timelineMiddle: {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  position: "relative",
+  height: 52,
+  marginHorizontal: 6,      // ⬅️ from 4 → 6 (breathing space)
+},
+timelineLine: {
+  position: "absolute",
+  height: 4,
+  left: 10,
+  right: 10,
+  borderRadius: 999,
+  backgroundColor: "#10B981",
+  opacity: 0.25,
+},
+timelinePill: {
+  paddingHorizontal: 14,     // ⬅️ from 12 → 14
+  paddingVertical: 6,
+  minWidth: 100,             // ⬅️ from 82 → 100 (MAIN FIX)
+  borderRadius: 999,
+  backgroundColor: "#FFFFFF",
+  borderWidth: 1.5,
+  borderColor: "#10B981",
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+timelinePillText: {
+  fontSize: 11,
+  fontWeight: "800",
+  color: "#047857",
+  lineHeight: 14,
+  textAlign: "center",
+},
+
+timelineArrow: {
+  position: "absolute",
+  right: -6,                // ⬅️ from 2 → -6 (push arrow outward)
+  width: 0,
+  height: 0,
+  borderTopWidth: 6,
+  borderBottomWidth: 6,
+  borderLeftWidth: 10,
+  borderTopColor: "transparent",
+  borderBottomColor: "transparent",
+  borderLeftColor: "#10B981",
+  opacity: 0.6,
+},
+
   quickAnswerBox: {
     padding: 14,
     backgroundColor: "#ECFDF5",
