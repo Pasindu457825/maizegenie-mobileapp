@@ -168,6 +168,7 @@ const WeatherForecastScreen = () => {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [hasUserRetried, setHasUserRetried] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   // 🕒 HOURLY RAIN DATA (NEW)
   const [hourlyData, setHourlyData] = useState<
@@ -1349,22 +1350,38 @@ const WeatherForecastScreen = () => {
     );
   }
 
-  if (error || !weatherData)
+  if ((error || !weatherData) && hasUserRetried)
     return (
       <View style={styles.centered}>
         <AlertCircle size={64} color="#ef4444" />
         <Text style={styles.errorText}>{content[language].error}</Text>
+
         <TouchableOpacity
           style={styles.retryBtn}
-          onPress={() =>
-            fetchWeatherData(latitude ?? DEFAULT_LAT, longitude ?? DEFAULT_LON)
-          }
+          onPress={() => {
+            setHasUserRetried(true);
+            fetchWeatherData(latitude ?? DEFAULT_LAT, longitude ?? DEFAULT_LON);
+          }}
         >
           <RefreshCw size={20} color="#fff" />
           <Text style={styles.retryTxt}>{content[language].retry}</Text>
         </TouchableOpacity>
       </View>
     );
+
+  // ✅ ADD THIS SAFETY GUARD
+  if (!weatherData) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingTxt}>
+          {language === "sinhala"
+            ? "කාලගුණ දත්ත සකස් වෙමින්..."
+            : "Preparing weather data..."}
+        </Text>
+      </View>
+    );
+  }
 
   const predictions = weatherData.predictions;
   const farmingAdvice = getFarmingAdvice(predictions);
