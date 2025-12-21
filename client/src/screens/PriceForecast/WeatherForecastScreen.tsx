@@ -181,22 +181,40 @@ const WeatherForecastScreen = () => {
   ): string => {
     if (!predictions || predictions.length === 0) return "";
 
-    const weatherSummaryContent = {
-      intro: "Here is the weather forecast for the next 7 days.",
-      today: "Today",
-      tomorrow: "Tomorrow",
-      nextDays: "For the next 5 days",
-      temp: "temperature",
-      rain: "rainfall",
-      mm: "millimeters",
-      celsius: "celsius",
-      good: "good farming conditions",
-      caution: "caution advised",
-      risky: "risky conditions",
-      average: "Average",
-      total: "total",
-      farmingDays: "farming days",
-    };
+    const weatherSummaryContent =
+      lang === "sinhala"
+        ? {
+            intro: "ඉදිරි දින 7 සඳහා කාලගුණ පුරෝකථනය මෙන්න.",
+            today: "අද",
+            tomorrow: "හෙට",
+            nextDays: "ඊළඟ දින 5 සඳහා",
+            temp: "උෂ්ණත්වය",
+            rain: "වර්ෂාව",
+            mm: "මි.මී.",
+            celsius: "සෙල්සියස්",
+            good: "වගා කිරීමට හොඳ තත්ත්වය",
+            caution: "අවධානයෙන් කටයුතු කරන්න",
+            risky: "අවදානම් තත්ත්වය",
+            average: "සාමාන්‍ය",
+            total: "මුළු",
+            farmingDays: "වගා කිරීමට සුදුසු දින",
+          }
+        : {
+            intro: "Here is the weather forecast for the next 7 days.",
+            today: "Today",
+            tomorrow: "Tomorrow",
+            nextDays: "For the next 5 days",
+            temp: "temperature",
+            rain: "rainfall",
+            mm: "millimeters",
+            celsius: "celsius",
+            good: "good farming conditions",
+            caution: "caution advised",
+            risky: "risky conditions",
+            average: "Average",
+            total: "total",
+            farmingDays: "farming days",
+          };
 
     const content = weatherSummaryContent;
     let summary = content.intro + " ";
@@ -271,8 +289,8 @@ const WeatherForecastScreen = () => {
 
       const speechOptions: any = {
         pitch: 1,
-        rate: 0.85,
-        language: "en",
+        rate: language === "sinhala" ? 0.85 : 0.9,
+        language: language === "sinhala" ? "si-LK" : "en-US",
         onDone: () => {
           console.log("Speech finished");
           setIsSpeaking(false);
@@ -283,7 +301,7 @@ const WeatherForecastScreen = () => {
         },
       };
 
-      console.log("Speaking with language: English");
+      console.log("Speaking with language:", language === "sinhala" ? "Sinhala" : "English");
       console.log("Summary:", summary.substring(0, 50) + "...");
 
       await Speech.speak(summary, speechOptions);
