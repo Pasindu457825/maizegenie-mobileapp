@@ -1,13 +1,13 @@
 """
-Simple keyword-based NLP engine for fertilizer advisory
+Simple keyword-based rule engine for fertilizer advisory
 Supports Sinhala and English
 """
 from typing import Dict, List, Tuple
 import re
 
 
-class FertilizerNLPEngine:
-    """Lightweight NLP engine using keyword matching"""
+class FertilizerRuleBasedEngine:
+    """Lightweight rule-based engine using keyword matching"""
     
     def __init__(self):
         # Sinhala keyword mappings
@@ -161,6 +161,10 @@ class FertilizerNLPEngine:
         result["language"] = language
         result["input_text"] = text
         
+        # Generate reasoning (WHY explanations)
+        reasoning_data = self._generate_reasoning(issues, language)
+        result.update(reasoning_data)
+        
         # Generate natural language advice
         advice = self._generate_advice(result, language)
         result["advice"] = advice
@@ -216,3 +220,78 @@ class FertilizerNLPEngine:
                 advice_parts.append("\n\n❌ Not recommended to apply fertilizer today.")
             
             return "".join(advice_parts)
+    
+    def _generate_reasoning(self, issues: Dict[str, bool], language: str) -> Dict:
+        """Generate observation, cause, and reasoning explanations"""
+        detected = [k for k, v in issues.items() if v]
+        
+        if not detected:
+            return {
+                "observation": None,
+                "cause": None,
+                "reasoning": None
+            }
+        
+        if language == "si":
+            # Observation - What we see
+            obs_parts = []
+            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
+                obs_parts.append("කොළ කහ වීම හෝ කහපැහැති වීම")
+            if issues.get("weak_plants"):
+                obs_parts.append("ශාක දුර්වල වීම")
+            if issues.get("rain_high"):
+                obs_parts.append("අධික වර්ෂාපතනය")
+            if issues.get("soil_dry"):
+                obs_parts.append("පස වියළි වීම")
+            
+            observation = f"ඔබ විස්තර කළ ලක්ෂණ: {', '.join(obs_parts)}" if obs_parts else None
+            
+            # Cause - Why it's happening
+            cause_parts = []
+            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
+                cause_parts.append("නයිට්‍රජන් (N) ඌනතාවය නිසා කොළ කහ වේ")
+            if issues.get("weak_plants"):
+                cause_parts.append("පොටෑසියම් (K) අඩුවීම නිසා ශාක දුර්වල වේ")
+            if issues.get("rain_high"):
+                cause_parts.append("වැස්ස නිසා පොහොර සෝදා යා හැක")
+            if issues.get("soil_dry"):
+                cause_parts.append("වියළි පස නිසා පෝෂක අවශෝෂණය අඩු වේ")
+            
+            cause = ". ".join(cause_parts) if cause_parts else None
+            
+            # Reasoning - What to do and why
+            reasoning = "DOA සහ CIC නිල දත්ත අනුව, හඳුනාගත් ඌනතා නිවැරදි කිරීම සඳහා නිර්දේශිත පොහොර යෙදීම අවශ්‍ය වේ."
+            
+        else:
+            # English
+            obs_parts = []
+            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
+                obs_parts.append("yellowing or pale leaves")
+            if issues.get("weak_plants"):
+                obs_parts.append("weak plants")
+            if issues.get("rain_high"):
+                obs_parts.append("heavy rainfall")
+            if issues.get("soil_dry"):
+                obs_parts.append("dry soil")
+            
+            observation = f"Symptoms described: {', '.join(obs_parts)}" if obs_parts else None
+            
+            cause_parts = []
+            if issues.get("nitrogen_deficiency") or issues.get("yellow_leaves"):
+                cause_parts.append("Nitrogen (N) deficiency causes leaf yellowing")
+            if issues.get("weak_plants"):
+                cause_parts.append("Potassium (K) deficiency weakens plants")
+            if issues.get("rain_high"):
+                cause_parts.append("Heavy rain can wash away fertilizers")
+            if issues.get("soil_dry"):
+                cause_parts.append("Dry soil reduces nutrient absorption")
+            
+            cause = ". ".join(cause_parts) if cause_parts else None
+            
+            reasoning = "Based on DOA and CIC official guidelines, applying recommended fertilizers is necessary to correct the detected deficiencies."
+        
+        return {
+            "observation": observation,
+            "cause": cause,
+            "reasoning": reasoning
+        }

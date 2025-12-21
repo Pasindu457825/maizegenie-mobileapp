@@ -1,5 +1,5 @@
 """
-Pydantic schemas for NLP Fertilizer Advisory
+Pydantic schemas for Rule-Based Fertilizer Advisory
 """
 from pydantic import BaseModel
 from typing import List, Optional
@@ -39,3 +39,6 @@ class FertilizerAdvisoryResponse(BaseModel):
     warnings: List[WarningItem]
     apply_today: bool
     detected_issues: List[str]
+    observation: Optional[str] = None
+    cause: Optional[str] = None
+    reasoning: Optional[str] = None
