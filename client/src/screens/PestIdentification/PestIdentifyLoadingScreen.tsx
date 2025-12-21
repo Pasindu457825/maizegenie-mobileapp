@@ -28,6 +28,7 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from 'expo-image-picker';
 import axios from "axios";
 import { PestIdentifyStackParamList } from "src/navigation/PestIdentifyStack";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
@@ -56,7 +57,6 @@ const API_URL = getApiUrl();
 
 const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [result, setResult] = useState<Prediction[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -64,7 +64,8 @@ const PestIdentificationScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [leafAnim] = useState(new Animated.Value(0));
-
+const { language: appLang } = useLanguage();
+const language: Language = appLang === "sinhala" ? "si" : "en";
   const content = {
     si: {
       title: "🐛 පළිබෝධ හඳුනාගැනීම",
@@ -306,15 +307,7 @@ const PestIdentificationScreen = () => {
             <CloudSun color="#DC2626" size={20} />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.langButtonHeader}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
-          </TouchableOpacity>
+          
         </View>
       </View>
 
