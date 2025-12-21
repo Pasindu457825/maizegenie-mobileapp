@@ -177,70 +177,70 @@ const WeatherForecastScreen = () => {
   // ✨ UPDATED: Generate 7-day weather summary text -
 
   const generateWeeklyFarmerVoice = (
-  predictions: WeatherDay[],
-  language: Language
-): string => {
-  if (!predictions || predictions.length === 0) return "";
+    predictions: WeatherDay[],
+    language: Language
+  ): string => {
+    if (!predictions || predictions.length === 0) return "";
 
-  let goodDays = 0;
-  let rainRiskDays = 0;
-  let dryDays = 0;
+    let goodDays = 0;
+    let rainRiskDays = 0;
+    let dryDays = 0;
 
-  predictions.slice(0, 7).forEach((day) => {
-    const rain = day.rain_mm ?? 0;
-    const temp = day.temperature ?? 0;
+    predictions.slice(0, 7).forEach((day) => {
+      const rain = day.rain_mm ?? 0;
+      const temp = day.temperature ?? 0;
 
-    if (rain >= 30) {
-      rainRiskDays++;
-    } else if (rain < 2 && temp >= 33) {
-      dryDays++;
-    } else if (rain >= 5 && rain <= 20 && temp >= 24 && temp <= 32) {
-      goodDays++;
-    }
-  });
+      if (rain >= 30) {
+        rainRiskDays++;
+      } else if (rain < 2 && temp >= 33) {
+        dryDays++;
+      } else if (rain >= 5 && rain <= 20 && temp >= 24 && temp <= 32) {
+        goodDays++;
+      }
+    });
 
-  // 🌾 Farmer-friendly Sinhala advisory
-  if (language === "sinhala") {
-    if (rainRiskDays >= 3) {
+    // 🌾 Farmer-friendly Sinhala advisory
+    if (language === "sinhala") {
+      if (rainRiskDays >= 3) {
+        return (
+          "ඊළඟ සතිය තුළ වැසි වැඩි දින කිහිපයක් තියෙනවා. " +
+          "ඒ නිසා මේ සතිය වගා කටයුතු සඳහා සුදුසු නැහැ. " +
+          "දැනට තියෙන වගා සහ අස්වැන්න ආරක්ෂා කරගන්න."
+        );
+      }
+
+      if (dryDays >= 3) {
+        return (
+          "ඊළඟ සතිය වියළි කාලගුණයක් වගේ පෙනෙනවා. " +
+          "වැසි අඩු නිසා වගාවට වතුර දීම අවශ්‍ය වෙයි. " +
+          "වතුර දීම සඳහා කලින්ම සැලසුම් කරගන්න."
+        );
+      }
+
+      if (goodDays >= 4) {
+        return (
+          "ඊළඟ සතිය වගා කටයුතු සඳහා හොඳ සතියක්. " +
+          "වැසිත් උෂ්ණත්වයත් වගාවට සුදුසුයි. " +
+          "බීජ දමන්න සහ වගා වැඩ කරගෙන යන්න පුළුවන්."
+        );
+      }
+
       return (
-        "ඊළඟ සතිය තුළ වැසි වැඩි දින කිහිපයක් තියෙනවා. " +
-        "ඒ නිසා මේ සතිය වගා කටයුතු සඳහා සුදුසු නැහැ. " +
-        "දැනට තියෙන වගා සහ අස්වැන්න ආරක්ෂා කරගන්න."
+        "ඊළඟ සතිය මිශ්‍ර කාලගුණයක් තියෙනවා. " +
+        "කොහොම වෙයිද කියලා දවසින් දවස වෙනස් වෙන්න පුළුවන්. " +
+        "ඒ නිසා කාලගුණය නිතර බලලා අවධානයෙන් වගා කටයුතු කරන්න."
       );
     }
 
-    if (dryDays >= 3) {
-      return (
-        "ඊළඟ සතිය වියළි කාලගුණයක් වගේ පෙනෙනවා. " +
-        "වැසි අඩු නිසා වගාවට වතුර දීම අවශ්‍ය වෙයි. " +
-        "වතුර දීම සඳහා කලින්ම සැලසුම් කරගන්න."
-      );
-    }
-
-    if (goodDays >= 4) {
-      return (
-        "ඊළඟ සතිය වගා කටයුතු සඳහා හොඳ සතියක්. " +
-        "වැසිත් උෂ්ණත්වයත් වගාවට සුදුසුයි. " +
-        "බීජ දමන්න සහ වගා වැඩ කරගෙන යන්න පුළුවන්."
-      );
-    }
-
-    return (
-      "ඊළඟ සතිය මිශ්‍ර කාලගුණයක් තියෙනවා. " +
-      "කොහොම වෙයිද කියලා දවසින් දවස වෙනස් වෙන්න පුළුවන්. " +
-      "ඒ නිසා කාලගුණය නිතර බලලා අවධානයෙන් වගා කටයුතු කරන්න."
-    );
-  }
-
-  // 🌍 English fallback
-  if (rainRiskDays >= 3)
-    return "Heavy rainfall is expected during the coming week. Avoid farming activities and protect existing crops.";
-  if (dryDays >= 3)
-    return "Dry conditions are expected next week. Plan irrigation in advance.";
-  if (goodDays >= 4)
-    return "The coming week is suitable for farming activities. You may proceed with cultivation.";
-  return "Mixed weather conditions are expected. Monitor the forecast daily and proceed with caution.";
-};
+    // 🌍 English fallback
+    if (rainRiskDays >= 3)
+      return "Heavy rainfall is expected during the coming week. Avoid farming activities and protect existing crops.";
+    if (dryDays >= 3)
+      return "Dry conditions are expected next week. Plan irrigation in advance.";
+    if (goodDays >= 4)
+      return "The coming week is suitable for farming activities. You may proceed with cultivation.";
+    return "Mixed weather conditions are expected. Monitor the forecast daily and proceed with caution.";
+  };
 
   // ✨ FIXED: Speak weather forecast - ENGLISH ONLY
   const speakWeatherForecast = async (predictions: WeatherDay[]) => {
@@ -667,17 +667,26 @@ const WeatherForecastScreen = () => {
           elevation: 3,
         }}
       >
-        <Text style={{ fontSize: 14, fontWeight: "800", color: "#047857" }}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "800",
+            color: "#047857",
+          }}
+        >
           {language === "sinhala"
             ? "⏱️ ඉදිරි පැය – වගාවට කොහොමද?"
             : "⏱️ Next few hours – farming suitability"}
         </Text>
 
-        <View
-          style={{
+        {/* ✅ HORIZONTAL SCROLL FIX */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginTop: 14 }}
+          contentContainerStyle={{
             flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 14,
+            paddingRight: 12,
           }}
         >
           {hourlyData.slice(0, 12).map((h, idx) => {
@@ -698,7 +707,14 @@ const WeatherForecastScreen = () => {
             });
 
             return (
-              <View key={idx} style={{ alignItems: "center", width: 44 }}>
+              <View
+                key={idx}
+                style={{
+                  alignItems: "center",
+                  width: 56, // ✅ mobile friendly width
+                  marginRight: 6, // ✅ spacing between hours
+                }}
+              >
                 {/* ICON CIRCLE */}
                 <View
                   style={{
@@ -738,7 +754,7 @@ const WeatherForecastScreen = () => {
               </View>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
     );
   };
@@ -1378,6 +1394,12 @@ const WeatherForecastScreen = () => {
       stroke: "#e5e7eb",
       strokeWidth: 1,
     },
+    propsForLabels: {
+      fontSize: 10, // 👈 Y-axis 1.0 mm size
+    },
+    propsForVerticalLabels: {
+      fontSize: 10, // 👈 X-axis day labels
+    },
   };
 
   return (
@@ -1477,17 +1499,22 @@ const WeatherForecastScreen = () => {
             <CloudRain size={20} color="#0ea5e9" />
             <Text style={styles.chartTitle}>{content[language].rainTrend}</Text>
           </View>
-          <BarChart
-            data={rainChartData}
-            width={screenWidth - 40}
-            height={220}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            showValuesOnTopOfBars={true}
-            fromZero={true}
-            yAxisSuffix=" mm"
-            yAxisLabel=""
-          />
+          <View style={styles.chartClip}>
+            <View style={{ paddingRight: 8 }}>
+              <BarChart
+                data={rainChartData}
+                width={screenWidth - 56}
+                height={210}
+                chartConfig={chartConfig}
+                style={styles.chart}
+                showValuesOnTopOfBars={true}
+                fromZero={true}
+                yAxisSuffix=" mm"
+                yAxisLabel=""
+                verticalLabelRotation={-15}
+              />
+            </View>
+          </View>
           <Text style={styles.chartNote}>
             {language === "sinhala"
               ? "* 5-25mm වර්ෂාව බඩ ඉරිඟු වගාවට හිතකරයි"
@@ -1838,5 +1865,10 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  chartClip: {
+    width: "100%",
+    overflow: "hidden",
+    borderRadius: 12, // styles.chart borderRadius එකට match කරලා
   },
 });
