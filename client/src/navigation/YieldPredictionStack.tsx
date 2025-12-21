@@ -12,8 +12,13 @@ import YieldPredictionOfficerResultsScreen from "../screens/YieldPrediction/Yiel
 
 // Fertilizer Advisor Screens - Farmer Side
 import FertilizerAdvisorLandingScreen from "../screens/FertilizerAdvisor/FertilizerAdvisorFarmerLandingScreen";
-import NLPAdvisoryInputScreen from "../screens/FertilizerAdvisor/NLPAdvisoryFarmer/NLPAdvisoryFarmerInputScreen";
-import NLPAdvisoryResultsScreen from "../screens/FertilizerAdvisor/NLPAdvisoryFarmer/NLPAdvisoryFarmerResultsScreen";
+import RuleBasedAdvisoryInputScreen from "../screens/FertilizerAdvisor/RuleBasedAdvisoryFarmer/FertilizerAdvisoryFarmerInputScreen";
+import RuleBasedAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBasedAdvisoryFarmer/FertilizerAdvisoryFarmerResultsScreen";
+
+// Fertilizer Advisor Screens - Officer Side
+import FertilizerAdvisorOfficerLandingScreen from "../screens/FertilizerAdvisor/FertilizerAdvisorOfficerLandingScreen";
+import OfficerAdvisoryInputScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryInputScreen";
+import OfficerAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryResultsScreen";
 
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
@@ -22,8 +27,11 @@ export type YieldPredictionStackParamList = {
   YieldPredictionOfficerFormScreen: { language: 'si' | 'en' };
   YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en' };
   FertilizerAdvisorLanding: undefined;
-  NLPAdvisoryInputScreen: undefined;
-  NLPAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
+  FertilizerAdvisorOfficerLanding: undefined;
+  RuleBasedAdvisoryInputScreen: undefined;
+  RuleBasedAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
+  OfficerAdvisoryInputScreen: undefined;
+  OfficerAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -59,12 +67,24 @@ export default function YieldPredictionStack() {
         component={FertilizerAdvisorLandingScreen}
       />
       <Stack.Screen
-        name="NLPAdvisoryInputScreen"
-        component={NLPAdvisoryInputScreen}
+        name="FertilizerAdvisorOfficerLanding"
+        component={FertilizerAdvisorOfficerLandingScreen}
       />
       <Stack.Screen
-        name="NLPAdvisoryResultsScreen"
-        component={NLPAdvisoryResultsScreen}
+        name="RuleBasedAdvisoryInputScreen"
+        component={RuleBasedAdvisoryInputScreen}
+      />
+      <Stack.Screen
+        name="RuleBasedAdvisoryResultsScreen"
+        component={RuleBasedAdvisoryResultsScreen}
+      />
+      <Stack.Screen
+        name="OfficerAdvisoryInputScreen"
+        component={OfficerAdvisoryInputScreen}
+      />
+      <Stack.Screen
+        name="OfficerAdvisoryResultsScreen"
+        component={OfficerAdvisoryResultsScreen}
       />
     </Stack.Navigator>
   );
