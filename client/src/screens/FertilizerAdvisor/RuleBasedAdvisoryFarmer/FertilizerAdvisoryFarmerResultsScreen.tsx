@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Info,
   Package,
+  MessageCircle,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -40,6 +41,8 @@ const content = {
     newAnalysis: "නව විශ්ලේෂණයක්",
     yourInput: "ඔබේ ආදානය",
     officialSource: "මූලාශ්‍ර ආධාරකය: DOA/CIC (Rule-Based)",
+    contactOfficer: "කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගන්න",
+    contactOfficerDesc: "ඔබේ ප්‍රතිඵල සහ තොරතුරු නිලධාරියෙකු සමඟ බෙදා ගන්න",
   },
   en: {
     title: "Fertilizer Advisory",
@@ -64,6 +67,8 @@ const content = {
     newAnalysis: "New Analysis",
     yourInput: "Your Input",
     officialSource: "Reference: DOA/CIC (Rule-Based)",
+    contactOfficer: "Get Advice from Agricultural Officer",
+    contactOfficerDesc: "Share your results and get personalized guidance",
   },
 };
 
@@ -80,6 +85,27 @@ export default function RuleBasedAdvisoryResultsScreen() {
   const t = content[language];
 
   const canApplyToday = data.apply_today === true;
+
+  const handleContactOfficer = () => {
+    // Prepare context message to share with officer
+    const contextMessage = language === "si"
+      ? `🌾 පොහොර උපදේශ ප්‍රතිඵල\n\n📝 මගේ ආදානය:\n${data.farmer_input || data.input_text}\n\n💡 ලැබුණු නිර්දේශ:\n${data.advice}\n\n⚠️ අවවාද: ${data.warnings?.length || 0}\n✅ අද යෙදීම: ${canApplyToday ? "සුදුසුයි" : "නිර්දේශ නොකරයි"}\n\nකරුණාකර මට වැඩිදුර උපදෙස් දෙන්න.`
+      : `🌾 Fertilizer Advisory Results\n\n📝 My Input:\n${data.farmer_input || data.input_text}\n\n💡 Recommendations Received:\n${data.advice}\n\n⚠️ Warnings: ${data.warnings?.length || 0}\n✅ Apply Today: ${canApplyToday ? "Yes" : "No"}\n\nPlease provide me with further guidance.`;
+
+    // Navigate to Agricultural Advisory Chat screen with pre-filled message
+    navigation.navigate("AgriculturalAdvisoryChat", {
+      prefilledMessage: contextMessage,
+      context: "fertilizer_advisory",
+      advisoryType: "fertilizer",
+      advisoryData: {
+        input: data.farmer_input || data.input_text,
+        recommendations: data.recommendations,
+        warnings: data.warnings,
+        apply_today: canApplyToday,
+        language: language,
+      },
+    });
+  };
 
   const getPriorityColor = (priority: string) => {
     const p = (priority || "").toLowerCase();
@@ -259,6 +285,21 @@ export default function RuleBasedAdvisoryResultsScreen() {
           <Text style={styles.sourceText}>{t.officialSource}</Text>
         </View>
 
+        <TouchableOpacity style={styles.contactOfficerButton} onPress={handleContactOfficer}>
+          <LinearGradient
+            colors={["#3b82f6", "#2563eb"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.contactOfficerGradient}
+          >
+            <MessageCircle color="#ffffff" size={20} />
+            <View style={styles.contactOfficerTextContainer}>
+              <Text style={styles.contactOfficerButtonText}>{t.contactOfficer}</Text>
+              <Text style={styles.contactOfficerButtonDesc}>{t.contactOfficerDesc}</Text>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.newAnalysisButton} onPress={() => navigation.goBack()}>
           <Text style={styles.newAnalysisButtonText}>{t.newAnalysis}</Text>
         </TouchableOpacity>
@@ -362,6 +403,26 @@ const styles = StyleSheet.create({
     borderColor: "#BFDBFE",
   },
   sourceText: { fontSize: 12, color: "#1E40AF", fontWeight: "700", marginLeft: 8 },
+
+  contactOfficerButton: {
+    borderRadius: 16,
+    overflow: "hidden",
+    marginBottom: 12,
+    shadowColor: "#3b82f6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  contactOfficerGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
+  },
+  contactOfficerTextContainer: { flex: 1 },
+  contactOfficerButtonText: { fontSize: 16, fontWeight: "700", color: "#ffffff", marginBottom: 2 },
+  contactOfficerButtonDesc: { fontSize: 12, color: "#DBEAFE" },
 
   newAnalysisButton: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 2, borderColor: "#10B981" },
   newAnalysisButtonText: { fontSize: 16, fontWeight: "700", color: "#10B981" },
