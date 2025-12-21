@@ -138,85 +138,87 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                 <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
 
-            {/* Recent Prediction Section */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Leaf color="#10B981" size={24} />
-                    <Text style={styles.sectionTitle}>Recent Prediction</Text>
-                </View>
+            {/* Recent Yield Predictions Section - Farmers Only */}
+            {user?.role === 'farmer' && (
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Leaf color="#10B981" size={24} />
+                        <Text style={styles.sectionTitle}>Recent Yield Predictions</Text>
+                    </View>
 
-                {loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#10B981" />
-                        <Text style={styles.loadingText}>Loading predictions...</Text>
-                    </View>
-                ) : predictions.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Leaf color="#D1D5DB" size={48} />
-                        <Text style={styles.emptyText}>No predictions yet</Text>
-                        <Text style={styles.emptySubtext}>
-                            Start by creating a yield prediction
-                        </Text>
-                    </View>
-                ) : (
-                    <View>
-                        {predictions.slice(0, 1).map((prediction, index) => (
-                            <View key={prediction.id || index} style={styles.predictionCard}>
-                                <View style={styles.predictionHeader}>
-                                    <View style={styles.predictionInfo}>
-                                        <Text style={styles.predictionVariety}>
-                                            {prediction.variety}
-                                        </Text>
-                                        <View style={styles.predictionMeta}>
-                                            <Calendar color="#6B7280" size={14} />
-                                            <Text style={styles.predictionDate}>
-                                                {formatDate(prediction.created_at)}
+                    {loading ? (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color="#10B981" />
+                            <Text style={styles.loadingText}>Loading predictions...</Text>
+                        </View>
+                    ) : predictions.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Leaf color="#D1D5DB" size={48} />
+                            <Text style={styles.emptyText}>No predictions yet</Text>
+                            <Text style={styles.emptySubtext}>
+                                Start by creating a yield prediction
+                            </Text>
+                        </View>
+                    ) : (
+                        <View>
+                            {predictions.slice(0, 1).map((prediction, index) => (
+                                <View key={prediction.id || index} style={styles.predictionCard}>
+                                    <View style={styles.predictionHeader}>
+                                        <View style={styles.predictionInfo}>
+                                            <Text style={styles.predictionVariety}>
+                                                {prediction.variety}
+                                            </Text>
+                                            <View style={styles.predictionMeta}>
+                                                <Calendar color="#6B7280" size={14} />
+                                                <Text style={styles.predictionDate}>
+                                                    {formatDate(prediction.created_at)}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <TouchableOpacity
+                                            style={styles.shareButton}
+                                            onPress={() => handleCopyPrediction(prediction)}
+                                        >
+                                            <Copy color="#10B981" size={20} />
+                                        </TouchableOpacity>
+                                    </View>
+
+                                    <View style={styles.predictionDetails}>
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>District:</Text>
+                                            <Text style={styles.detailValue}>{prediction.district}</Text>
+                                        </View>
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>Season:</Text>
+                                            <Text style={styles.detailValue}>{prediction.season}</Text>
+                                        </View>
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>Land Size:</Text>
+                                            <Text style={styles.detailValue}>{prediction.land_size}</Text>
+                                        </View>
+                                        <View style={styles.detailRow}>
+                                            <Text style={styles.detailLabel}>Planting Date:</Text>
+                                            <Text style={styles.detailValue}>
+                                                {formatDate(prediction.planting_date)}
                                             </Text>
                                         </View>
                                     </View>
+
                                     <TouchableOpacity
-                                        style={styles.shareButton}
-                                        onPress={() => handleCopyPrediction(prediction)}
+                                        style={styles.shareTextButton}
+                                        onPress={() => handleShareWithOfficer(prediction)}
                                     >
-                                        <Copy color="#10B981" size={20} />
+                                        <Share2 color="#FFFFFF" size={16} />
+                                        <Text style={styles.shareTextButtonText}>
+                                            Share with Officer
+                                        </Text>
                                     </TouchableOpacity>
                                 </View>
-
-                                <View style={styles.predictionDetails}>
-                                    <View style={styles.detailRow}>
-                                        <Text style={styles.detailLabel}>District:</Text>
-                                        <Text style={styles.detailValue}>{prediction.district}</Text>
-                                    </View>
-                                    <View style={styles.detailRow}>
-                                        <Text style={styles.detailLabel}>Season:</Text>
-                                        <Text style={styles.detailValue}>{prediction.season}</Text>
-                                    </View>
-                                    <View style={styles.detailRow}>
-                                        <Text style={styles.detailLabel}>Land Size:</Text>
-                                        <Text style={styles.detailValue}>{prediction.land_size}</Text>
-                                    </View>
-                                    <View style={styles.detailRow}>
-                                        <Text style={styles.detailLabel}>Planting Date:</Text>
-                                        <Text style={styles.detailValue}>
-                                            {formatDate(prediction.planting_date)}
-                                        </Text>
-                                    </View>
-                                </View>
-
-                                <TouchableOpacity
-                                    style={styles.shareTextButton}
-                                    onPress={() => handleShareWithOfficer(prediction)}
-                                >
-                                    <Share2 color="#FFFFFF" size={16} />
-                                    <Text style={styles.shareTextButtonText}>
-                                        Share with Officer
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        ))}
-                    </View>
-                )}
-            </View>
+                            ))}
+                        </View>
+                    )}
+                </View>
+            )}
         </ScrollView>
     );
 };
