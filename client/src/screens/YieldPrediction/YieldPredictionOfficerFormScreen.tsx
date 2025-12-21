@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   View,
   Text,
@@ -85,9 +86,12 @@ const NPK_STATUS = ["High", "Medium", "Low"];
 const YieldPredictionOfficerFormScreenNew = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const { language: initialLanguage } = route.params as { language: Language };
+  const { role } = route.params as {
+    role: "farmer" | "officer";
+  };
 
-  const [language, setLanguage] = useState<Language>(initialLanguage);
+  const { language: lang } = useLanguage();
+  const language: Language = lang === "sinhala" ? "si" : "en";
 
   // Location & Basic Info
   const [district, setDistrict] = useState("");
@@ -413,14 +417,6 @@ const YieldPredictionOfficerFormScreenNew = () => {
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
