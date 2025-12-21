@@ -12,9 +12,9 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
   Short-term price predictions (1–4 weeks) using SARIMAX/ARIMA + Prophet + ML ensemble (with planned LSTM/GRU extension), combined with district/GPS + live weather context, best-week detection, profit analysis  and notifications. Outputs include traffic-light signals and recommendations (Sell Now / Store / Sell Later / Wait), with bilingual (සිංහල/English) UI, trend charts, and a smart entry/loading gateway linked to Weather Forecast + Cultivation Advisor. 
 
 - 🌱 **Yield Prediction & Fertilizer Advisory**
-  Role-based outputs (Farmer & Agri Officer) of yield prediction using localized collected dataset with including vertiety, soil parameters, climeate, and cultivation practices parameters. (Calendar reminder feature to harvest period and fetilization periods.)
-  SHAP and LIME visualizations to explain factor influence on yield predictions, with downloadable analytical reports for Agricultural Officers.
-  Natural Language Support rule-based fertilizer intelligence engine to to generate advices to farmers.(Safe Urea/MOP dose recommendations with Sinhala/English TTS.)
+  - Role-based outputs (Farmer & Agri Officer) of yield prediction using localized collected dataset with including vertiety, soil parameters, climeate, and cultivation practices parameters. (Calendar reminder feature to harvest period and fetilization periods.)
+  - SHAP and LIME visualizations to explain factor influence on yield predictions, with downloadable analytical reports for Agricultural Officers.
+  - Natural Language Support rule-based fertilizer intelligence engine to to generate advices to farmers.(Safe Urea/MOP dose recommendations with Sinhala/English TTS.)
 
 - 🐛 **Pest Identification**  
   Offline AI-based detection of maize pests (e.g., Fall Armyworm) using YOLO models with AR life cycle visualization.  
