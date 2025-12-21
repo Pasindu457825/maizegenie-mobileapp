@@ -11,9 +11,10 @@ import {
     ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, MessageSquare, Mic, Send, AlertCircle } from "lucide-react-native";
+import { ArrowLeft, MessageSquare, Mic, Send, AlertCircle, Sprout, CloudRain, Droplets } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../../context/AppContext";
+import { growthStages, matchSymptoms, getWeatherAdvisory } from "../../../data/fertilizerKnowledgeBase";
 
 const getApiUrl = () => {
     if (Platform.OS === "android") {
@@ -29,40 +30,44 @@ type Language = "si" | "en";
 const content = {
     si: {
         title: "පොහොර උපදේශ",
-        subtitle: "NLP සහායක",
-        placeholder: "ඔබේ වගාවේ තත්ත්වය විස්තර කරන්න...\n\nඋදාහරණ:\n• කොළ කහ පාට වෙලා\n• වර්ෂාව වැඩියි\n• පස වියළී",
-        examples: "උදාහරණ:",
-        example1: "කොළ කහ පාට වෙලා, වර්ෂාව වැඩියි",
-        example2: "පස වියළී, පැල දුර්වල",
-        example3: "වර්ධනය අඩුයි",
+        subtitle: "නීති පදනම් සහායක",
+        mainLabel: "ඔබගේ වගා තත්ත්වය ඔබේ වචන වලින් කියන්න",
+        placeholder: "උදාහරණයක් ලෙස:\n\n• දවස් 25ක් වගා කරලා. කොළ කහයි. වැස්ස අඩුයි.\n\n• මල් එන වෙලාව. කොළ අග දහනවා වගේ.\n\n• බිම වියලි. පැළ දුර්වලයි. මුල් දුර්වල.",
+        quickTags: "ඉක්මන් උපකාර (විකල්ප):",
         analyze: "විශ්ලේෂණය කරන්න",
         analyzing: "විශ්ලේෂණය වෙමින්...",
         voiceInput: "හඬ ආදානය",
         howItWorks: "මෙය ක්‍රියා කරන්නේ කෙසේද?",
-        howItWorksDesc: "ඔබේ වගාවේ ගැටළු විස්තර කරන්න. අපගේ NLP පද්ධතිය ඔබේ භාෂාව තේරුම් ගෙන ස්වයංක්‍රීයව පොහොර නිර්දේශ ලබා දෙයි.",
+        howItWorksDesc: "ඔබේ වචන වලින් කියන්න. අපේ නීති පදනම් පද්ධතිය ඔබේ භාෂාව තේරුම් ගෙන DOA සහ CIC නිල දත්ත අනුව පොහොර නිර්දේශ ලබා දෙයි.",
+        exampleRotate1: "දවස් 25ක් වගා කරලා. කොළ කහයි. වැස්ස අඩුයි.",
+        exampleRotate2: "මල් එන වෙලාව. කොළ අග දහනවා වගේ.",
+        exampleRotate3: "බිම වියලි. පැළ දුර්වලයි.",
     },
     en: {
         title: "Fertilizer Advisory",
-        subtitle: "NLP Assistant",
-        placeholder: "Describe your crop condition...\n\nExamples:\n• Leaves are yellow\n• Heavy rain\n• Soil is dry",
-        examples: "Examples:",
-        example1: "Leaves are yellow and rain is high",
-        example2: "Soil is dry, plants are weak",
-        example3: "Slow growth",
+        subtitle: "Rule-Based Assistant",
+        mainLabel: "Describe your crop condition in your own words",
+        placeholder: "For example:\n\n• 25 days planted. Leaves yellow. Less rain.\n\n• Flowering time. Leaf tips burning.\n\n• Soil dry. Plants weak.",
+        quickTags: "Quick helpers (optional):",
         analyze: "Analyze",
         analyzing: "Analyzing...",
         voiceInput: "Voice Input",
         howItWorks: "How it works?",
-        howItWorksDesc: "Describe your crop problems. Our NLP system understands your language and automatically provides fertilizer recommendations.",
+        howItWorksDesc: "Describe in your words. Our rule-based system understands your language and provides DOA & CIC official fertilizer recommendations.",
+        exampleRotate1: "25 days planted. Leaves yellow. Less rain.",
+        exampleRotate2: "Flowering time. Leaf tips burning.",
+        exampleRotate3: "Soil dry. Plants weak.",
     },
 };
 
-export default function NLPAdvisoryInputScreen() {
+export default function RuleBasedAdvisoryInputScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const [language, setLanguage] = useState<Language>("en");
     const [inputText, setInputText] = useState("");
     const [loading, setLoading] = useState(false);
+    const [selectedQuickTag, setSelectedQuickTag] = useState<string>("");
+    const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
     // Check if user is a farmer
     useEffect(() => {
@@ -129,6 +134,33 @@ export default function NLPAdvisoryInputScreen() {
 
     const t = content[language];
 
+    // Rotate placeholder examples every 5 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setPlaceholderIndex((prev) => (prev + 1) % 3);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const getRotatingPlaceholder = () => {
+        const examples = [
+            t.exampleRotate1,
+            t.exampleRotate2,
+            t.exampleRotate3,
+        ];
+        return examples[placeholderIndex];
+    };
+
+    const handleQuickTag = (tag: string) => {
+        setSelectedQuickTag(tag);
+        // Optionally append to input
+        if (inputText && !inputText.includes(tag)) {
+            setInputText(inputText + " " + tag);
+        } else if (!inputText) {
+            setInputText(tag);
+        }
+    };
+
     const handleAnalyze = async () => {
         if (!inputText.trim()) {
             Alert.alert(
@@ -143,21 +175,29 @@ export default function NLPAdvisoryInputScreen() {
         setLoading(true);
 
         try {
-            const response = await fetch(`${API_URL}/api/v1/nlp-advisory/analyze`, {
+            // Rule-Based: Send raw farmer text for backend to infer everything
+            const payload = {
+                farmer_input: inputText,
+                language: language,
+                // Backend will infer: growth_stage, symptoms, weather, deficiencies
+            };
+
+            const response = await fetch(`${API_URL}/api/v1/rule-based-advisory/analyze`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    farmer_input: inputText,
-                }),
+                body: JSON.stringify(payload),
             });
 
             const result = await response.json();
 
             if (response.ok) {
-                navigation.navigate("NLPAdvisoryResultsScreen", {
-                    data: result,
+                navigation.navigate("RuleBasedAdvisoryResultsScreen", {
+                    data: {
+                        ...result,
+                        farmer_input: inputText,
+                    },
                     language,
                 });
             } else {
@@ -226,13 +266,15 @@ export default function NLPAdvisoryInputScreen() {
                     </View>
                 </View>
 
+                {/* PRIMARY RULE-BASED INPUT */}
                 <View style={styles.inputSection}>
-                    <Text style={styles.label}>
-                        {language === "si" ? "ඔබේ වගාවේ තත්ත්වය" : "Your Crop Condition"}
-                    </Text>
+                    <View style={styles.labelWithIcon}>
+                        <MessageSquare color="#10b981" size={20} />
+                        <Text style={styles.mainLabel}>{t.mainLabel}</Text>
+                    </View>
                     <TextInput
-                        style={styles.textInput}
-                        placeholder={t.placeholder}
+                        style={styles.textInputLarge}
+                        placeholder={getRotatingPlaceholder()}
                         placeholderTextColor="#9CA3AF"
                         multiline
                         numberOfLines={8}
@@ -242,26 +284,46 @@ export default function NLPAdvisoryInputScreen() {
                     />
                 </View>
 
-                <View style={styles.examplesSection}>
-                    <Text style={styles.examplesTitle}>{t.examples}</Text>
-                    <TouchableOpacity
-                        style={styles.exampleChip}
-                        onPress={() => useExample(t.example1)}
-                    >
-                        <Text style={styles.exampleText}>{t.example1}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.exampleChip}
-                        onPress={() => useExample(t.example2)}
-                    >
-                        <Text style={styles.exampleText}>{t.example2}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.exampleChip}
-                        onPress={() => useExample(t.example3)}
-                    >
-                        <Text style={styles.exampleText}>{t.example3}</Text>
-                    </TouchableOpacity>
+                {/* OPTIONAL QUICK TAGS (not mandatory) */}
+                <View style={styles.quickTagsSection}>
+                    <Text style={styles.quickTagsTitle}>{t.quickTags}</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <TouchableOpacity
+                            style={styles.quickTag}
+                            onPress={() => handleQuickTag(language === "si" ? "දවස් 0-20" : "Days 0-20")}
+                        >
+                            <Text style={styles.quickTagIcon}>🌱</Text>
+                            <Text style={styles.quickTagText}>{language === "si" ? "දවස් 0-20" : "Days 0-20"}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.quickTag}
+                            onPress={() => handleQuickTag(language === "si" ? "දවස් 20-60" : "Days 20-60")}
+                        >
+                            <Text style={styles.quickTagIcon}>🌿</Text>
+                            <Text style={styles.quickTagText}>{language === "si" ? "දවස් 20-60" : "Days 20-60"}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.quickTag}
+                            onPress={() => handleQuickTag(language === "si" ? "දවස් 60-90" : "Days 60-90")}
+                        >
+                            <Text style={styles.quickTagIcon}>🌽</Text>
+                            <Text style={styles.quickTagText}>{language === "si" ? "දවස් 60-90" : "Days 60-90"}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.quickTag}
+                            onPress={() => handleQuickTag(language === "si" ? "කොළ කහයි" : "Yellow leaves")}
+                        >
+                            <Text style={styles.quickTagIcon}>🍂</Text>
+                            <Text style={styles.quickTagText}>{language === "si" ? "කොළ කහයි" : "Yellow leaves"}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.quickTag}
+                            onPress={() => handleQuickTag(language === "si" ? "වියලි පස" : "Dry soil")}
+                        >
+                            <Text style={styles.quickTagIcon}>🏜️</Text>
+                            <Text style={styles.quickTagText}>{language === "si" ? "වියලි පස" : "Dry soil"}</Text>
+                        </TouchableOpacity>
+                    </ScrollView>
                 </View>
 
                 <TouchableOpacity
@@ -463,5 +525,57 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#ffffff",
+    },
+    labelWithIcon: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: 12,
+        gap: 8,
+    },
+    mainLabel: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#1F2937",
+        flex: 1,
+    },
+    textInputLarge: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        padding: 20,
+        fontSize: 16,
+        color: "#1F2937",
+        borderWidth: 2,
+        borderColor: "#10b981",
+        minHeight: 180,
+        lineHeight: 24,
+    },
+    quickTagsSection: {
+        marginBottom: 20,
+    },
+    quickTagsTitle: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#6B7280",
+        marginBottom: 12,
+    },
+    quickTag: {
+        backgroundColor: "#F3F4F6",
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        marginRight: 10,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    quickTagIcon: {
+        fontSize: 16,
+    },
+    quickTagText: {
+        fontSize: 13,
+        color: "#374151",
+        fontWeight: "500",
     },
 });

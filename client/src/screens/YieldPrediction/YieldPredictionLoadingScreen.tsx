@@ -28,7 +28,10 @@ const YieldPredictionLoadingScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const { user } = useApp();
+
+  // Role-based authentication using Supabase user data
   const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
 
   useEffect(() => {
     Animated.parallel([
@@ -54,7 +57,7 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerTitle: "පොහොර උපදේශ",
       fertilizerDesc: "පුද්ගලාරෝපිත පොහොර නිර්දේශ ලබා ගන්න",
       fertilizerRecommendation: "පොහොර නිර්දේශ",
-      fertilizerRecommendationDesc: "ඉදිරි දිනවල",
+      fertilizerRecommendationDesc: "ගොවීන්ට පොහොර උපදේශ ලබා දෙන්න",
       farmerRequests: "ගොවි ඉල්ලීම්",
       farmerRequestsDesc: "ඉදිරි දිනවල",
       comingSoon: "ඉදිරි දිනවල",
@@ -67,7 +70,7 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerTitle: "Fertilizer Advices",
       fertilizerDesc: "Get personalized fertilizer recommendations",
       fertilizerRecommendation: "Fertilizer Recommendation",
-      fertilizerRecommendationDesc: "Coming soon",
+      fertilizerRecommendationDesc: "Provide fertilizer advice to farmers",
       farmerRequests: "Farmer Requests",
       farmerRequestsDesc: "Coming soon",
       comingSoon: "Coming soon",
@@ -75,6 +78,37 @@ const YieldPredictionLoadingScreen = () => {
   };
 
   const handleRoleSelect = (role: "farmer" | "officer") => {
+    // Verify user role matches the selected action
+    if (!user) {
+      Alert.alert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si" 
+          ? "කරුණාකර පළමුව පුරනය වන්න"
+          : "Please log in first"
+      );
+      return;
+    }
+
+    if (role === "farmer" && user.role !== "farmer") {
+      Alert.alert(
+        language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
+        language === "si" 
+          ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි"
+          : "This feature is only available for farmers"
+      );
+      return;
+    }
+
+    if (role === "officer" && user.role !== "officer") {
+      Alert.alert(
+        language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
+        language === "si" 
+          ? "මෙම විශේෂාංගය නිලධාරීන් සඳහා පමණි"
+          : "This feature is only available for officers"
+      );
+      return;
+    }
+
     if (role === "farmer") {
       navigation.navigate("YieldPredictionFormScreen", { role, language });
     } else {
@@ -198,7 +232,7 @@ const YieldPredictionLoadingScreen = () => {
               {/* Card 2: Fertilizer Recommendation */}
               <TouchableOpacity
                 style={styles.roleCard}
-                onPress={() => handleComingSoon(content[language].fertilizerRecommendation)}
+                onPress={() => navigation.navigate("FertilizerAdvisorOfficerLanding")}
                 activeOpacity={0.7}
               >
                 <View style={styles.roleIconCircle}>
@@ -209,26 +243,6 @@ const YieldPredictionLoadingScreen = () => {
                 </Text>
                 <Text style={styles.roleDesc}>
                   {content[language].fertilizerRecommendationDesc}
-                </Text>
-                <View style={styles.roleArrow}>
-                  <Text style={styles.roleArrowText}>→</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Card 3: Farmer Requests */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => handleComingSoon(content[language].farmerRequests)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.roleIconCircle}>
-                  <Users color="#10B981" size={32} />
-                </View>
-                <Text style={styles.roleTitle}>
-                  {content[language].farmerRequests}
-                </Text>
-                <Text style={styles.roleDesc}>
-                  {content[language].farmerRequestsDesc}
                 </Text>
                 <View style={styles.roleArrow}>
                   <Text style={styles.roleArrowText}>→</Text>

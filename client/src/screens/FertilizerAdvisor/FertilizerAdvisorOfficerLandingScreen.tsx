@@ -1,59 +1,59 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Image,
-    Dimensions,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
     Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, Sparkles, MessageCircle, AlertCircle } from "lucide-react-native";
+import { ArrowLeft, Users, MessageCircle, FileText, AlertCircle, Sparkles } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
-
-const { width } = Dimensions.get("window");
 
 type Language = "si" | "en";
 
 const content = {
     si: {
-        title: "පොහොර උපදේශ",
-        subtitle: "ඔබේ සේවා",
-        nlpAdvisory: "නීති පදනම් පොහොර උපදේශක",
-        nlpDescription: "ස්වභාවික භාෂාවෙන් පොහොර උපදේශ ලබා ගන්න",
-        farmerChat: "කෘෂි නිලධාරියා සමඟ කතා කරන්න",
-        farmerChatDescription: "විශේෂඥ උපදේශ සඳහා සජීවී චැට්",
+        title: "පොහොර නිර්දේශ",
+        subtitle: "නිලධාරී සේවා",
+        ruleBasedAdvisory: "නීති පදනම් උපදේශක",
+        ruleBasedDescription: "ව්‍යුහගත දත්ත භාවිතයෙන් විස්තරාත්මක පොහොර විශ්ලේෂණය",
+        farmerRequests: "ගොවි ඉල්ලීම්",
+        farmerRequestsDescription: "ගොවීන්ගේ පොහොර උපදේශ ඉල්ලීම් බලන්න",
+        chatWithFarmers: "ගොවීන් සමඟ කතා කරන්න",
+        chatWithFarmersDescription: "ගොවීන්ට සජීවී උපදේශ සපයන්න",
+        recommendations: "නිර්දේශ ඉතිහාසය",
+        recommendationsDescription: "පෙර නිර්දේශ බලන්න සහ කළමනාකරණය කරන්න",
     },
     en: {
-        title: "Fertilizer Advisory",
-        subtitle: "Your Services",
-        nlpAdvisory: "Rule-Based Fertilizer Advisory",
-        nlpDescription: "Get fertilizer advice in natural language",
-        farmerChat: "Chat With Agriculture Officer",
-        farmerChatDescription: "Live chat for expert advice",
+        title: "Fertilizer Recommendation",
+        subtitle: "Officer Services",
+        ruleBasedAdvisory: "Rule-Based Advisory",
+        ruleBasedDescription: "Detailed fertilizer analysis using structured data",
+        farmerRequests: "Farmer Requests",
+        farmerRequestsDescription: "View farmer fertilizer advisory requests",
+        chatWithFarmers: "Chat With Farmers",
+        chatWithFarmersDescription: "Provide live advice to farmers",
+        recommendations: "Recommendation History",
+        recommendationsDescription: "View and manage past recommendations",
     },
 };
 
-export default function FertilizerAdvisorLandingScreen() {
+export default function FertilizerAdvisorOfficerLandingScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const [language, setLanguage] = useState<Language>("en");
-    const [activeSlide, setActiveSlide] = useState(0);
-    const scrollViewRef = useRef<ScrollView>(null);
 
-    // Check if user is a farmer
+    // Check if user is an officer
     useEffect(() => {
-        if (!user || user.role !== "farmer") {
+        if (!user || user.role !== "officer") {
             Alert.alert(
                 language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
                 language === "si" 
-                    ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි."
-                    : "This feature is only available for farmers.",
+                    ? "මෙම විශේෂාංගය නිලධාරීන් සඳහා පමණි."
+                    : "This feature is only available for officers.",
                 [{
                     text: "OK",
                     onPress: () => navigation.goBack()
@@ -64,8 +64,8 @@ export default function FertilizerAdvisorLandingScreen() {
 
     const t = content[language];
 
-    // If not a farmer, show access denied screen
-    if (!user || user.role !== "farmer") {
+    // If not an officer, show access denied screen
+    if (!user || user.role !== "officer") {
         return (
             <View style={styles.container}>
                 <LinearGradient
@@ -95,8 +95,8 @@ export default function FertilizerAdvisorLandingScreen() {
                     </Text>
                     <Text style={styles.accessDeniedText}>
                         {language === "si" 
-                            ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි. කරුණාකර ගොවි ගිණුමකින් පුරනය වන්න."
-                            : "This feature is only available for farmers. Please log in with a farmer account."}
+                            ? "මෙම විශේෂාංගය නිලධාරීන් සඳහා පමණි. කරුණාකර නිලධාරී ගිණුමකින් පුරනය වන්න."
+                            : "This feature is only available for officers. Please log in with an officer account."}
                     </Text>
                     <TouchableOpacity
                         style={styles.backButtonLarge}
@@ -111,15 +111,13 @@ export default function FertilizerAdvisorLandingScreen() {
         );
     }
 
-    const slides = [
-        require("../../../assets/fert_advices/YaraMila1.jpg"),
-        require("../../../assets/fert_advices/YaraMila2.jpg"),
-    ];
-
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const slideSize = event.nativeEvent.layoutMeasurement.width;
-        const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
-        setActiveSlide(index);
+    const handleComingSoon = (feature: string) => {
+        Alert.alert(
+            language === "si" ? "ඉදිරි දිනවල" : "Coming Soon",
+            language === "si"
+                ? `${feature} ඉක්මනින් ලබා දෙනු ඇත.`
+                : `${feature} will be available soon.`
+        );
     };
 
     return (
@@ -157,40 +155,16 @@ export default function FertilizerAdvisorLandingScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Image Slideshow */}
-                <View style={styles.slideshowContainer}>
-                    <ScrollView
-                        ref={scrollViewRef}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={handleScroll}
-                        scrollEventThrottle={16}
-                        style={styles.slideshow}
-                    >
-                        {slides.map((slide, index) => (
-                            <View key={index} style={styles.slide}>
-                                <Image
-                                    source={slide}
-                                    style={styles.slideImage}
-                                    resizeMode="cover"
-                                />
-                            </View>
-                        ))}
-                    </ScrollView>
-
-                    {/* Pagination Dots */}
-                    <View style={styles.pagination}>
-                        {slides.map((_, index) => (
-                            <View
-                                key={index}
-                                style={[
-                                    styles.paginationDot,
-                                    activeSlide === index && styles.paginationDotActive,
-                                ]}
-                            />
-                        ))}
-                    </View>
+                {/* Welcome Card */}
+                <View style={styles.welcomeCard}>
+                    <Text style={styles.welcomeTitle}>
+                        {language === "si" ? "සාදරයෙන් පිළිගනිමු, නිලධාරී" : "Welcome, Officer"}
+                    </Text>
+                    <Text style={styles.welcomeText}>
+                        {language === "si" 
+                            ? "ගොවීන්ට පොහොර උපදේශ සහ නිර්දේශ සපයන්න"
+                            : "Provide fertilizer advice and recommendations to farmers"}
+                    </Text>
                 </View>
 
                 {/* Services Section */}
@@ -198,7 +172,7 @@ export default function FertilizerAdvisorLandingScreen() {
                     {/* Rule-Based Advisory Card */}
                     <TouchableOpacity
                         style={styles.serviceCard}
-                        onPress={() => navigation.navigate("RuleBasedAdvisoryInputScreen")}
+                        onPress={() => navigation.navigate("OfficerAdvisoryInputScreen")}
                         activeOpacity={0.7}
                     >
                         <LinearGradient
@@ -207,13 +181,13 @@ export default function FertilizerAdvisorLandingScreen() {
                             end={{ x: 1, y: 1 }}
                             style={styles.serviceCardGradient}
                         >
-                            <View style={styles.serviceIconContainer}>
-                                <Sparkles color="#10b981" size={28} />
+                            <View style={[styles.serviceIconContainer, { backgroundColor: "#A7F3D0" }]}>
+                                <Sparkles color="#059669" size={28} />
                             </View>
                             <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.nlpAdvisory}</Text>
+                                <Text style={styles.serviceTitle}>{t.ruleBasedAdvisory}</Text>
                                 <Text style={styles.serviceDescription}>
-                                    {t.nlpDescription}
+                                    {t.ruleBasedDescription}
                                 </Text>
                             </View>
                             <View style={styles.serviceArrow}>
@@ -222,7 +196,34 @@ export default function FertilizerAdvisorLandingScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Farmer Chat Card */}
+                    {/* Farmer Requests Card */}
+                    <TouchableOpacity
+                        style={styles.serviceCard}
+                        onPress={() => handleComingSoon(t.farmerRequests)}
+                        activeOpacity={0.7}
+                    >
+                        <LinearGradient
+                            colors={["#FEF3C7", "#FDE68A"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.serviceCardGradient}
+                        >
+                            <View style={[styles.serviceIconContainer, { backgroundColor: "#FDE68A" }]}>
+                                <Users color="#D97706" size={28} />
+                            </View>
+                            <View style={styles.serviceContent}>
+                                <Text style={styles.serviceTitle}>{t.farmerRequests}</Text>
+                                <Text style={styles.serviceDescription}>
+                                    {t.farmerRequestsDescription}
+                                </Text>
+                            </View>
+                            <View style={styles.serviceArrow}>
+                                <Text style={styles.serviceArrowText}>→</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Chat With Farmers Card */}
                     <TouchableOpacity
                         style={styles.serviceCard}
                         onPress={() => navigation.navigate("Chat", { roomId: null, userId: "" })}
@@ -238,9 +239,36 @@ export default function FertilizerAdvisorLandingScreen() {
                                 <MessageCircle color="#3b82f6" size={28} />
                             </View>
                             <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.farmerChat}</Text>
+                                <Text style={styles.serviceTitle}>{t.chatWithFarmers}</Text>
                                 <Text style={styles.serviceDescription}>
-                                    {t.farmerChatDescription}
+                                    {t.chatWithFarmersDescription}
+                                </Text>
+                            </View>
+                            <View style={styles.serviceArrow}>
+                                <Text style={styles.serviceArrowText}>→</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Recommendation History Card */}
+                    <TouchableOpacity
+                        style={styles.serviceCard}
+                        onPress={() => handleComingSoon(t.recommendations)}
+                        activeOpacity={0.7}
+                    >
+                        <LinearGradient
+                            colors={["#F3E8FF", "#E9D5FF"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.serviceCardGradient}
+                        >
+                            <View style={[styles.serviceIconContainer, { backgroundColor: "#E9D5FF" }]}>
+                                <FileText color="#9333ea" size={28} />
+                            </View>
+                            <View style={styles.serviceContent}>
+                                <Text style={styles.serviceTitle}>{t.recommendations}</Text>
+                                <Text style={styles.serviceDescription}>
+                                    {t.recommendationsDescription}
                                 </Text>
                             </View>
                             <View style={styles.serviceArrow}>
@@ -305,38 +333,27 @@ const styles = StyleSheet.create({
     scrollContent: {
         paddingBottom: 20,
     },
-    slideshowContainer: {
-        marginTop: 16,
-        marginBottom: 24,
-    },
-    slideshow: {
-        height: 240,
-    },
-    slide: {
-        width: width,
-        paddingHorizontal: 16,
-    },
-    slideImage: {
-        width: width - 32,
-        height: 240,
+    welcomeCard: {
+        margin: 16,
+        padding: 20,
+        backgroundColor: "#ffffff",
         borderRadius: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    pagination: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: 16,
+    welcomeTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#1F2937",
+        marginBottom: 8,
     },
-    paginationDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: "#D1D5DB",
-        marginHorizontal: 4,
-    },
-    paginationDotActive: {
-        backgroundColor: "#10b981",
-        width: 24,
+    welcomeText: {
+        fontSize: 14,
+        color: "#6B7280",
+        lineHeight: 20,
     },
     servicesSection: {
         paddingHorizontal: 16,
@@ -360,7 +377,6 @@ const styles = StyleSheet.create({
         width: 56,
         height: 56,
         borderRadius: 28,
-        backgroundColor: "#D1FAE5",
         alignItems: "center",
         justifyContent: "center",
         marginRight: 16,
