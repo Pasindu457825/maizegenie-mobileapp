@@ -56,7 +56,6 @@ const translations: Record<
     monitorCrops: string;
     monitorDescription: string;
     farmingCompanion: string;
-    currentLocation: string;
     development: string;
     production: string;
   }
@@ -86,7 +85,6 @@ const translations: Record<
     monitorDescription:
       "පළිබෝධ සහ රෝගවල මුල් හඳුනාගැනීම ඔබේ බෝගය ගලවාගත හැක. ඔබේ පස් දෙයට නිරීක්ෂණය කරන්න.",
     farmingCompanion: "ඔබේ ගොවි සහකරු",
-    currentLocation: "මොණරාගල",
     development: "සංවර්ධනය",
     production: "නිෂ්පාදනය",
   },
@@ -115,7 +113,6 @@ const translations: Record<
     monitorDescription:
       "Early detection of pests and diseases can save your harvest. Check your plants daily for any signs of trouble.",
     farmingCompanion: "Your farming companion",
-    currentLocation: "Monaragala",
     development: "Development",
     production: "Production",
   },
@@ -196,7 +193,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={["#f0fdf4", "#dcfce7"]}
+        colors={["#10B981", "#0faa76ff"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -212,17 +209,6 @@ export default function HomeScreen() {
           >
             <Settings size={24} color="#10b981" />
           </TouchableOpacity>
-        </View>
-
-        {/* Location Info */}
-        <View style={styles.locationInfo}>
-          <MapPin size={16} color="#059669" />
-          <Text style={styles.locationText}>{t.currentLocation}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>
-              {__DEV__ ? t.development : t.production}
-            </Text>
-          </View>
         </View>
       </LinearGradient>
 
@@ -444,10 +430,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 16,
+    paddingTop: 52, // ⬇ reduced
+    paddingBottom: 28, // ⬇ reduced
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: "hidden",
   },
+
   headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -456,12 +446,13 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#065f46",
+    color: "#ffffff", // ✅ white
     marginBottom: 4,
   },
+
   headerSubtitle: {
     fontSize: 14,
-    color: "#059669",
+    color: "#ffffff",
     fontWeight: "600",
   },
   settingsButton: {

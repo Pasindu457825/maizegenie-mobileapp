@@ -113,6 +113,16 @@ const DiseaseIdentificationScreen = () => {
       healthy: "සෞඛ්‍ය සම්පන්න කොළයකි",
       location: "ස්ථානය",
       status: "තත්ත්වය",
+      invalidLeafTitle: "වලංගු නොවන කොළ ඡායාරූපයක්",
+      invalidLeafSubtitle:
+        "මෙය බඩ ඉරිඟු කොළයක් නොවිය හැක. කරුණාකර නිවැරදි කොළ ඡායාරූපයක් නැවත උඩුගත කරන්න.",
+      invalidSuggestionsTitle: "ඡායාරූපය නිවැරදි ලෙස ලබාගැනීමට උපදෙස්",
+      invalidSuggestions: [
+        "බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
+        "හොඳ ආලෝකය සහ පැහැදිලි බව සහිත ඡායාරූපයක් ගන්න",
+        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට ගන්න",
+        "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
+      ],
     },
     en: {
       title: "🍃 Leaf Disease Detection",
@@ -150,6 +160,16 @@ const DiseaseIdentificationScreen = () => {
       healthy: "Healthy",
       location: "Location",
       status: "Status",
+      invalidLeafTitle: "Invalid Leaf Image",
+      invalidLeafSubtitle:
+        "This image may not be a maize leaf. Please upload a clear maize leaf image.",
+      invalidSuggestionsTitle: "Tips to upload a correct image",
+      invalidSuggestions: [
+        "Capture only a maize leaf",
+        "Use good lighting and clear focus",
+        "Keep the leaf centered in the image",
+        "Avoid blurry or distant photos",
+      ],
     },
   };
 
@@ -267,6 +287,8 @@ const DiseaseIdentificationScreen = () => {
       scrollViewRef.current?.scrollTo({ y: 0, animated: true });
     }
   };
+
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const pickImageFromCamera = async () => {
     if (!(await requestPermissions("camera"))) return;
@@ -391,6 +413,13 @@ const DiseaseIdentificationScreen = () => {
           sinhalaAudioMap[cleanName],
           { shouldPlay: true }
         );
+
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setIsSpeaking(false); // 👈 auto-hide STOP
+          }
+        });
+
         soundRef.current = sound;
         return;
       } catch (err) {
@@ -407,6 +436,9 @@ const DiseaseIdentificationScreen = () => {
         language: language === "si" ? "si-LK" : "en-US",
         rate: 0.9,
         pitch: 1.0,
+        onDone: () => {
+          setIsSpeaking(false); // ✅ auto-hide STOP when TTS ends
+        },
       }
     );
   };
@@ -469,6 +501,10 @@ const DiseaseIdentificationScreen = () => {
     "common rust": require("../../../assets/disease_sinhala_voices/common_rust_si.wav"),
     blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
+
+  const isInvalidLeafPrediction =
+    result?.predictions?.length === 1 &&
+    result.predictions[0].class_name.toLowerCase() === "invalid_leaf";
 
   const isHealthyPrediction =
     result?.predictions?.length === 1 &&
@@ -746,144 +782,250 @@ const DiseaseIdentificationScreen = () => {
             </View>
           )}
 
-          {/* Results Section */}
-          {result && result.predictions.length > 0 && !isHealthyPrediction && (
+          {/* Invalid Leaf Result */}
+          {result && isInvalidLeafPrediction && (
             <Animated.View
               style={[
                 styles.resultSection,
-                {
-                  opacity: fadeAnim,
-                  transform: [{ scale: scaleAnim }],
-                },
+                { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
               ]}
             >
               <View style={styles.resultCard}>
-                {/* Result Header (CENTER + SINGLE LANGUAGE) */}
-                <View style={[styles.resultHeader, { alignItems: "center" }]}>
-                  {primaryPrediction && (
-                    <>
-                      {/* Title + Mic */}
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 10,
-                          width: "100%",
-                        }}
-                      >
-                        <Text
-                          style={[styles.resultTitle, { textAlign: "center" }]}
-                        >
-                          {language === "si"
-                            ? getDiseaseNameSi(primaryPrediction.class_name)
-                            : diseaseName}{" "}
-                          {content[language].resultTitle}
-                        </Text>
+                <View style={{ alignItems: "center", gap: 12 }}>
+                  <AlertCircle size={48} color="#F59E0B" />
 
-                        <TouchableOpacity
-                          style={styles.speakButton}
-                          onPress={() =>
-                            speakDisease(primaryPrediction.class_name)
-                          }
-                          activeOpacity={0.85}
-                        >
-                          <Mic color="#059669" size={18} />
-                        </TouchableOpacity>
-                      </View>
+                  <Text style={styles.resultTitle}>
+                    {content[language].invalidLeafTitle}
+                  </Text>
 
-                      {/* Disease detected line (same language only) */}
-                      <Text
-                        style={[
-                          styles.resultSubtitle,
-                          { textAlign: "center", marginTop: 8 },
-                        ]}
-                      >
-                        {language === "si"
-                          ? "රෝගය හඳුනාගත්තා"
-                          : "Disease detected"}
-                      </Text>
+                  <Text
+                    style={{
+                      textAlign: "center",
+                      color: "#64748B",
+                      fontSize: 15,
+                      lineHeight: 22,
+                    }}
+                  >
+                    {content[language].invalidLeafSubtitle}
+                  </Text>
 
-                      {/* Confidence line (same language only) */}
-                      <Text
-                        style={[
-                          styles.resultSubtitle,
-                          {
-                            textAlign: "center",
-                            marginTop: 8,
-                            color: "#64748B",
-                          },
-                        ]}
-                      >
-                        {content[language].confidence}:{" "}
-                        {getConfidenceLevel(primaryPrediction.confidence)} (
-                        {confidencePct}%)
-                      </Text>
-
-                      {/* Severity badge (center) */}
-                      <View
-                        style={{
-                          marginTop: 14,
-                          alignItems: "center",
-                          width: "100%",
-                        }}
-                      >
-                        <View
-                          style={[
-                            styles.severityBadge,
-                            {
-                              backgroundColor: getSeverityColor(
-                                result.severity_label
-                              ),
-                              alignSelf: "center",
-                            },
-                          ]}
-                        >
-                          <Shield color="#FFFFFF" size={16} />
-                          <Text style={styles.severityText}>
-                            {content[language].severity}:{" "}
-                            {result.severity_label}
-                          </Text>
-                        </View>
-                      </View>
-                    </>
-                  )}
-                </View>
-
-                {/* Action Buttons */}
-                <View style={styles.resultActions}>
-                  {result?.predictions?.some((p) => p.confidence >= 0.4) && (
-                    <TouchableOpacity
-                      style={styles.detailsButton}
-                      onPress={() =>
-                        navigation.navigate("SeverityDetails", {
-                          image: imageUri,
-                          severity_score: result.severity_score,
-                          severity_label: result.severity_label,
-                          predictions: result.predictions,
-                        })
-                      }
+                  <View
+                    style={{
+                      width: "100%",
+                      marginTop: 16,
+                      backgroundColor: "#FFFBEB",
+                      borderRadius: 14,
+                      padding: 16,
+                      borderWidth: 1,
+                      borderColor: "#FDE68A",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontWeight: "700",
+                        marginBottom: 10,
+                        color: "#92400E",
+                      }}
                     >
-                      <Text style={styles.detailsButtonText}>
-                        {content[language].viewDetails}
-                      </Text>
-                      <ChevronRight color="#FFFFFF" size={18} />
-                    </TouchableOpacity>
-                  )}
+                      {content[language].invalidSuggestionsTitle}
+                    </Text>
+
+                    {content[language].invalidSuggestions.map(
+                      (tip: string, index: number) => (
+                        <Text
+                          key={index}
+                          style={{ color: "#92400E", marginBottom: 6 }}
+                        >
+                          • {tip}
+                        </Text>
+                      )
+                    )}
+                  </View>
 
                   <TouchableOpacity
-                    style={styles.resetButton}
+                    style={[styles.resetButton, { marginTop: 20 }]}
                     onPress={resetScreen}
                   >
                     <RefreshCw color="#059669" size={18} />
                     <Text style={styles.resetButtonText}>
-                      {content[language].newDetection}
+                      {content[language].tryAgain}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </Animated.View>
           )}
+
+          {/* Results Section */}
+          {result &&
+            result.predictions.length > 0 &&
+            !isHealthyPrediction &&
+            !isInvalidLeafPrediction && (
+              <Animated.View
+                style={[
+                  styles.resultSection,
+                  {
+                    opacity: fadeAnim,
+                    transform: [{ scale: scaleAnim }],
+                  },
+                ]}
+              >
+                <View style={styles.resultCard}>
+                  {/* Result Header (CENTER + SINGLE LANGUAGE) */}
+                  <View style={[styles.resultHeader, { alignItems: "center" }]}>
+                    {primaryPrediction && (
+                      <>
+                        {/* Title + Mic */}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 10,
+                            width: "100%",
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.resultTitle,
+                              { textAlign: "center" },
+                            ]}
+                          >
+                            {language === "si"
+                              ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : diseaseName}{" "}
+                            {content[language].resultTitle}
+                          </Text>
+
+                          <TouchableOpacity
+                            style={styles.speakButton}
+                            onPress={async () => {
+                              setIsSpeaking(true);
+                              await speakDisease(primaryPrediction.class_name);
+                            }}
+                            activeOpacity={0.85}
+                          >
+                            <Mic color="#059669" size={18} />
+                          </TouchableOpacity>
+                          {isSpeaking && (
+                            <TouchableOpacity
+                              style={[
+                                styles.speakButton,
+                                { borderColor: "#EF4444" },
+                              ]}
+                              onPress={async () => {
+                                // 🔴 STOP all audio (existing APIs only)
+                                Speech.stop();
+
+                                if (soundRef.current) {
+                                  try {
+                                    await soundRef.current.stopAsync();
+                                    await soundRef.current.unloadAsync();
+                                  } catch {}
+                                  soundRef.current = null;
+                                }
+
+                                setIsSpeaking(false);
+                              }}
+                              activeOpacity={0.85}
+                            >
+                              <X color="#EF4444" size={18} />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                        {/* Disease detected line (same language only) */}
+                        <Text
+                          style={[
+                            styles.resultSubtitle,
+                            { textAlign: "center", marginTop: 8 },
+                          ]}
+                        >
+                          {language === "si"
+                            ? "රෝගය හඳුනාගත්තා"
+                            : "Disease detected"}
+                        </Text>
+
+                        {/* Confidence line (same language only) */}
+                        <Text
+                          style={[
+                            styles.resultSubtitle,
+                            {
+                              textAlign: "center",
+                              marginTop: 8,
+                              color: "#64748B",
+                            },
+                          ]}
+                        >
+                          {content[language].confidence}:{" "}
+                          {getConfidenceLevel(primaryPrediction.confidence)} (
+                          {confidencePct}%)
+                        </Text>
+
+                        {/* Severity badge (center) */}
+                        <View
+                          style={{
+                            marginTop: 14,
+                            alignItems: "center",
+                            width: "100%",
+                          }}
+                        >
+                          <View
+                            style={[
+                              styles.severityBadge,
+                              {
+                                backgroundColor: getSeverityColor(
+                                  result.severity_label
+                                ),
+                                alignSelf: "center",
+                              },
+                            ]}
+                          >
+                            <Shield color="#FFFFFF" size={16} />
+                            <Text style={styles.severityText}>
+                              {content[language].severity}:{" "}
+                              {result.severity_label}
+                            </Text>
+                          </View>
+                        </View>
+                      </>
+                    )}
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={styles.resultActions}>
+                    {result?.predictions?.some((p) => p.confidence >= 0.4) && (
+                      <TouchableOpacity
+                        style={styles.detailsButton}
+                        onPress={() =>
+                          navigation.navigate("SeverityDetails", {
+                            image: imageUri,
+                            severity_score: result.severity_score,
+                            severity_label: result.severity_label,
+                            predictions: result.predictions,
+                          })
+                        }
+                      >
+                        <Text style={styles.detailsButtonText}>
+                          {content[language].viewDetails}
+                        </Text>
+                        <ChevronRight color="#FFFFFF" size={18} />
+                      </TouchableOpacity>
+                    )}
+
+                    <TouchableOpacity
+                      style={styles.resetButton}
+                      onPress={resetScreen}
+                    >
+                      <RefreshCw color="#059669" size={18} />
+                      <Text style={styles.resetButtonText}>
+                        {content[language].newDetection}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Animated.View>
+            )}
 
           {/* No Diseases Found */}
           {result &&
@@ -925,7 +1067,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#059669",
+    backgroundColor: "#10ad79ff",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
