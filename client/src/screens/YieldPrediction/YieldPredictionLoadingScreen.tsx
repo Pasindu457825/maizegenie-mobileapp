@@ -12,7 +12,8 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { Leaf, Users, Package } from "lucide-react-native";
+import { Leaf, Users, Package, ArrowLeft, Sparkles } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -52,8 +53,8 @@ const YieldPredictionLoadingScreen = () => {
 
   const content = {
     si: {
-      title: "අස්වැන්න පුරෝකථනය",
-      subtitle: isFarmer ? "ඔබේ සේවාවන්" : "නිලධාරී සේවාවන්",
+      title: "අස්වැන්න පුරෝකථනය සහ පොහොර උපදේශන",
+      subtitle: "",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
       fertilizerTitle: "පොහොර උපදේශ",
@@ -65,8 +66,8 @@ const YieldPredictionLoadingScreen = () => {
       comingSoon: "ඉදිරි දිනවල",
     },
     en: {
-      title: "Yield Prediction",
-      subtitle: isFarmer ? "Your Services" : "Officer Services",
+      title: "Yield Prediction and Fertilizer Advisory",
+      subtitle: "",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
       fertilizerTitle: "Fertilizer Advices",
@@ -130,12 +131,24 @@ const YieldPredictionLoadingScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
-          <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
+      <LinearGradient
+        colors={["#10b981", "#059669"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <ArrowLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{content[language].title}</Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -148,13 +161,21 @@ const YieldPredictionLoadingScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Leaf color="#10B981" size={64} />
+          {/* Decorative Corn Icon */}
+          <View style={styles.iconSection}>
+            <View style={styles.iconWrapper}>
+              <LinearGradient
+                colors={["#10b981", "#059669"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconCircle}
+              >
+                <Text style={styles.cornIcon}>🌽</Text>
+              </LinearGradient>
+              <View style={[styles.iconRing, styles.iconRing1]} />
+              <View style={[styles.iconRing, styles.iconRing2]} />
+              <View style={[styles.iconRing, styles.iconRing3]} />
             </View>
-            <View style={[styles.pulseRing, styles.pulseRing1]} />
-            <View style={[styles.pulseRing, styles.pulseRing2]} />
           </View>
 
           {/* Action Cards */}
@@ -167,18 +188,27 @@ const YieldPredictionLoadingScreen = () => {
                 onPress={() => handleRoleSelect("farmer")}
                 activeOpacity={0.7}
               >
-                <View style={styles.roleIconCircle}>
-                  <Leaf color="#10B981" size={32} />
-                </View>
-                <Text style={styles.roleTitle}>
-                  {content[language].startTitle}
-                </Text>
-                <Text style={styles.roleDesc}>
-                  {content[language].startDesc}
-                </Text>
-                <View style={styles.roleArrow}>
-                  <Text style={styles.roleArrowText}>→</Text>
-                </View>
+                <LinearGradient
+                  colors={["#ECFDF5", "#D1FAE5"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={styles.roleIconCircle}>
+                    <Leaf color="#10b981" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].startTitle}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].startDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
 
               {/* Card 2: Fertilizer Advices */}
@@ -187,18 +217,27 @@ const YieldPredictionLoadingScreen = () => {
                 onPress={() => navigation.navigate("FertilizerAdvisorLanding")}
                 activeOpacity={0.7}
               >
-                <View style={styles.roleIconCircle}>
-                  <Package color="#10B981" size={32} />
-                </View>
-                <Text style={styles.roleTitle}>
-                  {content[language].fertilizerTitle}
-                </Text>
-                <Text style={styles.roleDesc}>
-                  {content[language].fertilizerDesc}
-                </Text>
-                <View style={styles.roleArrow}>
-                  <Text style={styles.roleArrowText}>→</Text>
-                </View>
+                <LinearGradient
+                  colors={["#EFF6FF", "#DBEAFE"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                    <Package color="#3b82f6" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].fertilizerTitle}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].fertilizerDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             </>
           ) : (
@@ -209,18 +248,27 @@ const YieldPredictionLoadingScreen = () => {
                 onPress={() => handleRoleSelect("officer")}
                 activeOpacity={0.7}
               >
-                <View style={styles.roleIconCircle}>
-                  <Leaf color="#10B981" size={32} />
-                </View>
-                <Text style={styles.roleTitle}>
-                  {content[language].startTitle}
-                </Text>
-                <Text style={styles.roleDesc}>
-                  {content[language].startDesc}
-                </Text>
-                <View style={styles.roleArrow}>
-                  <Text style={styles.roleArrowText}>→</Text>
-                </View>
+                <LinearGradient
+                  colors={["#ECFDF5", "#D1FAE5"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={styles.roleIconCircle}>
+                    <Leaf color="#10b981" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].startTitle}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].startDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
 
               {/* Card 2: Fertilizer Recommendation */}
@@ -229,18 +277,27 @@ const YieldPredictionLoadingScreen = () => {
                 onPress={() => navigation.navigate("FertilizerAdvisorOfficerLanding")}
                 activeOpacity={0.7}
               >
-                <View style={styles.roleIconCircle}>
-                  <Package color="#10B981" size={32} />
-                </View>
-                <Text style={styles.roleTitle}>
-                  {content[language].fertilizerRecommendation}
-                </Text>
-                <Text style={styles.roleDesc}>
-                  {content[language].fertilizerRecommendationDesc}
-                </Text>
-                <View style={styles.roleArrow}>
-                  <Text style={styles.roleArrowText}>→</Text>
-                </View>
+                <LinearGradient
+                  colors={["#EFF6FF", "#DBEAFE"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                    <Package color="#3b82f6" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].fertilizerRecommendation}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].fertilizerRecommendationDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             </>
           )}
@@ -254,140 +311,166 @@ const YieldPredictionLoadingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#F3F4F6",
   },
   header: {
-    backgroundColor: "#FFFFFF",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+  },
+  backButton: {
+    marginRight: 12,
   },
   headerCenter: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#065F46",
-    marginBottom: 4,
+    color: "#ffffff",
+    lineHeight: 22,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  langButton: {
-    backgroundColor: "#D1FAE5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  langText: {
-    color: "#047857",
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    color: "#D1FAE5",
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
   content: {
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 20,
+    flex: 1,
+    justifyContent: "center",
   },
-  iconContainer: {
+  iconSection: {
+    alignItems: "center",
+    marginBottom: 32,
+    marginTop: -10,
+  },
+  iconWrapper: {
+    position: "relative",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 40,
-    position: "relative",
   },
   iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#D1FAE5",
+    width: 110,
+    height: 110,
+    borderRadius: 55,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
     zIndex: 3,
   },
-  pulseRing: {
+  cornIcon: {
+    fontSize: 56,
+  },
+  iconRing: {
     position: "absolute",
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 2,
-    borderColor: "#10B981",
-    opacity: 0.3,
+    borderRadius: 999,
+    borderWidth: 2.5,
+    borderColor: "#10b981",
   },
-  pulseRing1: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+  iconRing1: {
+    width: 130,
+    height: 130,
+    opacity: 0.25,
+    borderColor: "#34d399",
   },
-  pulseRing2: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    opacity: 0.2,
+  iconRing2: {
+    width: 155,
+    height: 155,
+    opacity: 0.15,
+    borderColor: "#6ee7b7",
+  },
+  iconRing3: {
+    width: 180,
+    height: 180,
+    opacity: 0.08,
+    borderColor: "#a7f3d0",
   },
   roleContainer: {
-    gap: 16,
+    gap: 20,
+    maxWidth: 500,
+    width: "100%",
+    alignSelf: "center",
   },
   roleCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
+    overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 2,
-    borderColor: "#D1FAE5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+    marginBottom: 4,
+  },
+  roleCardGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 26,
+    minHeight: 130,
   },
   roleIconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     backgroundColor: "#D1FAE5",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginRight: 18,
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  roleContent: {
+    flex: 1,
+    paddingRight: 8,
   },
   roleTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#065F46",
-    marginBottom: 8,
+    color: "#1F2937",
+    marginBottom: 6,
+    letterSpacing: 0.2,
   },
   roleDesc: {
     fontSize: 14,
     color: "#6B7280",
-    marginBottom: 16,
+    lineHeight: 20,
+    letterSpacing: 0.1,
   },
   roleArrow: {
-    alignSelf: "flex-end",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#10B981",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   roleArrowText: {
-    color: "#FFFFFF",
     fontSize: 20,
+    color: "#1F2937",
     fontWeight: "700",
   },
 });
