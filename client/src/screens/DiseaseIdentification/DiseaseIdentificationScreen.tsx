@@ -288,6 +288,8 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
   const pickImageFromCamera = async () => {
     if (!(await requestPermissions("camera"))) return;
 
@@ -411,6 +413,13 @@ const DiseaseIdentificationScreen = () => {
           sinhalaAudioMap[cleanName],
           { shouldPlay: true }
         );
+
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            setIsSpeaking(false); // 👈 auto-hide STOP
+          }
+        });
+
         soundRef.current = sound;
         return;
       } catch (err) {
@@ -427,6 +436,9 @@ const DiseaseIdentificationScreen = () => {
         language: language === "si" ? "si-LK" : "en-US",
         rate: 0.9,
         pitch: 1.0,
+        onDone: () => {
+          setIsSpeaking(false); // ✅ auto-hide STOP when TTS ends
+        },
       }
     );
   };
@@ -887,13 +899,39 @@ const DiseaseIdentificationScreen = () => {
 
                           <TouchableOpacity
                             style={styles.speakButton}
-                            onPress={() =>
-                              speakDisease(primaryPrediction.class_name)
-                            }
+                            onPress={async () => {
+                              setIsSpeaking(true);
+                              await speakDisease(primaryPrediction.class_name);
+                            }}
                             activeOpacity={0.85}
                           >
                             <Mic color="#059669" size={18} />
                           </TouchableOpacity>
+                          {isSpeaking && (
+                            <TouchableOpacity
+                              style={[
+                                styles.speakButton,
+                                { borderColor: "#EF4444" },
+                              ]}
+                              onPress={async () => {
+                                // 🔴 STOP all audio (existing APIs only)
+                                Speech.stop();
+
+                                if (soundRef.current) {
+                                  try {
+                                    await soundRef.current.stopAsync();
+                                    await soundRef.current.unloadAsync();
+                                  } catch {}
+                                  soundRef.current = null;
+                                }
+
+                                setIsSpeaking(false);
+                              }}
+                              activeOpacity={0.85}
+                            >
+                              <X color="#EF4444" size={18} />
+                            </TouchableOpacity>
+                          )}
                         </View>
 
                         {/* Disease detected line (same language only) */}
