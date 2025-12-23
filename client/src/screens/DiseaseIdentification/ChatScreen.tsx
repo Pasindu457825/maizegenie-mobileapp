@@ -16,9 +16,6 @@ import {
   ArrowLeft,
   Send,
   Image as ImageIcon,
-  MoreVertical,
-  Phone,
-  Video,
   Check,
   CheckCheck,
 } from "lucide-react-native";
@@ -83,7 +80,9 @@ export default function ChatScreen({ route, navigation }: any) {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [dateGroups, setDateGroups] = useState<Record<string, any[]>>({});
+  const [isLoadingChat, setIsLoadingChat] = useState(true);
   const flatListRef = useRef<FlatList>(null);
+  const isInitialLoad = useRef(true);
 
   // Animation
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -107,11 +106,11 @@ export default function ChatScreen({ route, navigation }: any) {
   // Group messages by date
   useEffect(() => {
     const grouped: Record<string, any[]> = {};
-    // Sort messages by timestamp (oldest to newest)
-    const sortedMessages = [...messages].sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    const sortedMessages = [...messages].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-    
+
     sortedMessages.forEach((msg) => {
       const date = formatDate(msg.created_at);
       if (!grouped[date]) {
@@ -122,9 +121,29 @@ export default function ChatScreen({ route, navigation }: any) {
     setDateGroups(grouped);
   }, [messages]);
 
-  // Auto-scroll to bottom when messages change
+  // Scroll to bottom on initial load (behind loading screen)
   useEffect(() => {
-    if (messages.length > 0) {
+    if (
+      messages.length > 0 &&
+      isInitialLoad.current &&
+      dateGroups &&
+      Object.keys(dateGroups).length > 0
+    ) {
+      // Keep loading screen visible, scroll in background, then reveal
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: false });
+        // Wait longer to ensure scroll is complete before hiding loading
+        setTimeout(() => {
+          isInitialLoad.current = false;
+          setIsLoadingChat(false);
+        }, 400);
+      }, 100);
+    }
+  }, [dateGroups]);
+
+  // Auto-scroll to bottom only for new messages (after initial load)
+  useEffect(() => {
+    if (messages.length > 0 && !isInitialLoad.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -133,20 +152,30 @@ export default function ChatScreen({ route, navigation }: any) {
 
   useEffect(() => {
     async function initChat() {
+      setIsLoadingChat(true);
+
       // OFFICER → joins existing room
       if (isOfficer && incomingRoomId) {
         setRoomId(incomingRoomId);
         const history = await getChatHistory(incomingRoomId);
-        // Sort history to show oldest first (for normal scrolling)
-        setMessages(history.sort((a: any, b: any) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        ));
+        setMessages(
+          history.sort(
+            (a: any, b: any) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()
+          )
+        );
+        // If no messages, hide loading immediately
+        if (history.length === 0) {
+          setIsLoadingChat(false);
+        }
         return;
       }
 
       // FARMER → user must exist
       if (!farmerId || !farmerDistrict) {
         console.log("Farmer user not loaded yet");
+        setIsLoadingChat(false);
         return;
       }
 
@@ -155,10 +184,16 @@ export default function ChatScreen({ route, navigation }: any) {
       setRoomId(newRoomId);
 
       const history = await getChatHistory(newRoomId);
-      // Sort history to show oldest first (for normal scrolling)
-      setMessages(history.sort((a: any, b: any) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      ));
+      setMessages(
+        history.sort(
+          (a: any, b: any) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+      );
+      // If no messages, hide loading immediately
+      if (history.length === 0) {
+        setIsLoadingChat(false);
+      }
     }
 
     initChat();
@@ -170,9 +205,9 @@ export default function ChatScreen({ route, navigation }: any) {
     (msg: any) => {
       setMessages((prev) => {
         const newMessages = [...prev, msg];
-        // Keep messages sorted by timestamp
-        return newMessages.sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        return newMessages.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
       });
     }
@@ -187,44 +222,92 @@ export default function ChatScreen({ route, navigation }: any) {
     if (result.canceled) return;
 
     const uri = result.assets[0].uri;
-
-    // 1️⃣ Upload to Supabase
     const imageUrl = await uploadChatImage(uri);
-
-    // 2️⃣ Send via WebSocket
     const senderId = isOfficer ? String(incomingUserId) : String(farmerId);
     sendImageMessage(senderId, imageUrl);
   };
 
   const handleSend = () => {
     if (!roomId || !text.trim()) return;
-
-    // Prevent TS error → ensure string always
     const senderId = isOfficer ? String(incomingUserId) : String(farmerId);
-
     sendTextMessage(senderId, text);
     setText("");
   };
 
-  if (!roomId) {
-    return (
-      <View style={styles.loadingContainer}>
-        <LinearGradient
-          colors={["#10B981", "#0faa76ff"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.loadingGradient}
-        >
-          <Text style={styles.loadingText}>🌾</Text>
-          <Text style={styles.loadingTitle}>Loading Chat...</Text>
-        </LinearGradient>
-      </View>
-    );
-  }
-
-  // Prevent TS error → always a string
   const currentUserId = isOfficer ? String(incomingUserId) : String(farmerId);
   const chatTitle = isOfficer ? "Farmer Chat" : "Agriculture Officer";
+
+  // Add this component inside your ChatScreen component, before the return statement
+  const AnimatedWaveDots = () => {
+    const dot1Anim = useRef(new Animated.Value(0)).current;
+    const dot2Anim = useRef(new Animated.Value(0)).current;
+    const dot3Anim = useRef(new Animated.Value(0)).current;
+    const dot4Anim = useRef(new Animated.Value(0)).current;
+    const dot5Anim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const createAnimation = (animValue: Animated.Value, delay: number) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(animValue, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(animValue, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.delay(600),
+          ])
+        );
+      };
+
+      const animations = [
+        createAnimation(dot1Anim, 0),
+        createAnimation(dot2Anim, 100),
+        createAnimation(dot3Anim, 200),
+        createAnimation(dot4Anim, 300),
+        createAnimation(dot5Anim, 400),
+      ];
+
+      animations.forEach((anim) => anim.start());
+
+      return () => animations.forEach((anim) => anim.stop());
+    }, []);
+
+    const getDotStyle = (animValue: Animated.Value) => ({
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: "#10B981",
+      marginHorizontal: 4,
+      transform: [
+        {
+          scale: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.5],
+          }),
+        },
+      ],
+      opacity: animValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 1],
+      }),
+    });
+
+    return (
+      <View style={styles.waveLoader}>
+        <Animated.View style={getDotStyle(dot1Anim)} />
+        <Animated.View style={getDotStyle(dot2Anim)} />
+        <Animated.View style={getDotStyle(dot3Anim)} />
+        <Animated.View style={getDotStyle(dot4Anim)} />
+        <Animated.View style={getDotStyle(dot5Anim)} />
+      </View>
+    );
+  };
 
   return (
     <KeyboardAvoidingView
@@ -252,122 +335,125 @@ export default function ChatScreen({ route, navigation }: any) {
               {isOfficer ? "Active now" : "Agriculture Support"}
             </Text>
           </View>
-
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Phone size={20} color="#ffffff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Video size={20} color="#ffffff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <MoreVertical size={20} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
         </View>
       </LinearGradient>
 
-      {/* Chat Messages - REMOVED 'inverted' prop */}
-      <Animated.View
-        style={[
-          styles.chatContainer,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <FlatList
-          ref={flatListRef}
-          data={Object.entries(dateGroups)}
-          keyExtractor={([date]) => date}
-          // REMOVED: inverted  ← This is the key change
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.messagesContainer}
-          onContentSizeChange={() => {
-            // Auto-scroll to bottom when content size changes
-            setTimeout(() => {
-              flatListRef.current?.scrollToEnd({ animated: true });
-            }, 100);
-          }}
-          renderItem={({ item: [date, messages] }) => (
-            <View style={styles.dateSection}>
-              <View style={styles.dateBadge}>
-                <Text style={styles.dateText}>{date}</Text>
-              </View>
-              {messages.map((message: any) => {
-                const isMe = message.sender_id === currentUserId;
-                return (
-                  <View
-                    key={message.id}
-                    style={[
-                      styles.messageWrapper,
-                      isMe
-                        ? styles.messageWrapperMe
-                        : styles.messageWrapperOther,
-                    ]}
-                  >
-                    <LinearGradient
-                      colors={
-                        isMe ? ["#10B981", "#059669"] : ["#ffffff", "#f9fafb"]
-                      }
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
+      {/* Chat Messages with Loading Overlay */}
+      <View style={styles.chatContainer}>
+        {/* Render FlatList in background */}
+        <Animated.View
+          style={[
+            styles.chatMessagesWrapper,
+            {
+              opacity: isLoadingChat ? 0 : fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <FlatList
+            ref={flatListRef}
+            data={Object.entries(dateGroups)}
+            keyExtractor={([date]) => date}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.messagesContainer}
+            onContentSizeChange={() => {
+              if (!isInitialLoad.current) {
+                setTimeout(() => {
+                  flatListRef.current?.scrollToEnd({ animated: true });
+                }, 100);
+              }
+            }}
+            renderItem={({ item: [date, messages] }) => (
+              <View style={styles.dateSection}>
+                <View style={styles.dateBadge}>
+                  <Text style={styles.dateText}>{date}</Text>
+                </View>
+                {messages.map((message: any) => {
+                  const isMe = message.sender_id === currentUserId;
+                  return (
+                    <View
+                      key={message.id}
                       style={[
-                        styles.messageBubble,
+                        styles.messageWrapper,
                         isMe
-                          ? styles.messageBubbleMe
-                          : styles.messageBubbleOther,
+                          ? styles.messageWrapperMe
+                          : styles.messageWrapperOther,
                       ]}
                     >
-                      {message.image_url && (
-                        <View style={styles.imageContainer}>
-                          <Image
-                            source={{ uri: message.image_url }}
-                            style={styles.messageImage}
-                            resizeMode="cover"
-                          />
-                        </View>
-                      )}
-
-                      {message.message && (
-                        <Text
-                          style={[
-                            styles.messageText,
-                            isMe
-                              ? styles.messageTextMe
-                              : styles.messageTextOther,
-                          ]}
-                        >
-                          {message.message}
-                        </Text>
-                      )}
-
-                      <View style={styles.messageFooter}>
-                        <Text style={styles.messageTime}>
-                          {formatTime(message.created_at)}
-                        </Text>
-                        {isMe && (
-                          <View style={styles.messageStatus}>
-                            <Check
-                              size={12}
-                              color={isMe ? "#ffffff" : "#9ca3af"}
-                            />
-                            <CheckCheck
-                              size={12}
-                              color={isMe ? "#ffffff" : "#9ca3af"}
+                      <LinearGradient
+                        colors={
+                          isMe ? ["#10B981", "#059669"] : ["#ffffff", "#f9fafb"]
+                        }
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={[
+                          styles.messageBubble,
+                          isMe
+                            ? styles.messageBubbleMe
+                            : styles.messageBubbleOther,
+                        ]}
+                      >
+                        {message.image_url && (
+                          <View style={styles.imageContainer}>
+                            <Image
+                              source={{ uri: message.image_url }}
+                              style={styles.messageImage}
+                              resizeMode="cover"
                             />
                           </View>
                         )}
-                      </View>
-                    </LinearGradient>
-                  </View>
-                );
-              })}
+
+                        {message.message && (
+                          <Text
+                            style={[
+                              styles.messageText,
+                              isMe
+                                ? styles.messageTextMe
+                                : styles.messageTextOther,
+                            ]}
+                          >
+                            {message.message}
+                          </Text>
+                        )}
+
+                        <View style={styles.messageFooter}>
+                          <Text style={styles.messageTime}>
+                            {formatTime(message.created_at)}
+                          </Text>
+                          {isMe && (
+                            <View style={styles.messageStatus}>
+                              <Check
+                                size={12}
+                                color={isMe ? "#ffffff" : "#9ca3af"}
+                              />
+                            </View>
+                          )}
+                        </View>
+                      </LinearGradient>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          />
+        </Animated.View>
+
+        {/* Loading overlay on top */}
+        {isLoadingChat && (
+          <View style={styles.chatLoadingOverlay}>
+            {/* Animated dots loader */}
+            <AnimatedWaveDots />
+
+            {/* Optional text */}
+            <Text style={styles.chatLoadingText}>Loading messages...</Text>
+
+            {/* Subtle decorative element */}
+            <View style={styles.loaderDecoration}>
+              <Text style={styles.loaderEmoji}>🌱</Text>
             </View>
-          )}
-        />
-      </Animated.View>
+          </View>
+        )}
+      </View>
 
       {/* Input Area */}
       <View style={styles.inputContainer}>
@@ -473,6 +559,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 12,
   },
+  chatLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    zIndex: 999,
+  },
+  waveLoader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40,
+    marginBottom: 20,
+  },
+  chatLoadingText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
+    marginBottom: 30,
+    letterSpacing: 0.5,
+  },
+  loaderDecoration: {
+    position: "absolute",
+    bottom: 60,
+  },
+  loaderEmoji: {
+    fontSize: 32,
+    opacity: 0.3,
+  },
+
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -484,21 +604,25 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginTop: 2,
   },
-  headerActions: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  headerActionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   chatContainer: {
     flex: 1,
+    position: "relative",
   },
+  chatMessagesWrapper: {
+    flex: 1,
+  },
+
+  chatLoadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+  },
+  chatLoadingEmoji: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+
   messagesContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -584,12 +708,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 2,
   },
-  statusText: {
-    fontSize: 11,
-    opacity: 0.8,
-  },
   inputContainer: {
-    padding: 16,
+    padding: 12,
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
     backgroundColor: "#ffffff",
@@ -598,7 +718,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     borderRadius: 24,
-    padding: 4,
+    padding: 2,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     shadowColor: "#000",
