@@ -16,9 +16,6 @@ import {
   ArrowLeft,
   Send,
   Image as ImageIcon,
-  MoreVertical,
-  Phone,
-  Video,
   Check,
   CheckCheck,
 } from "lucide-react-native";
@@ -108,10 +105,11 @@ export default function ChatScreen({ route, navigation }: any) {
   useEffect(() => {
     const grouped: Record<string, any[]> = {};
     // Sort messages by timestamp (oldest to newest)
-    const sortedMessages = [...messages].sort((a, b) => 
-      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    const sortedMessages = [...messages].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
-    
+
     sortedMessages.forEach((msg) => {
       const date = formatDate(msg.created_at);
       if (!grouped[date]) {
@@ -138,9 +136,13 @@ export default function ChatScreen({ route, navigation }: any) {
         setRoomId(incomingRoomId);
         const history = await getChatHistory(incomingRoomId);
         // Sort history to show oldest first (for normal scrolling)
-        setMessages(history.sort((a: any, b: any) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        ));
+        setMessages(
+          history.sort(
+            (a: any, b: any) =>
+              new Date(a.created_at).getTime() -
+              new Date(b.created_at).getTime()
+          )
+        );
         return;
       }
 
@@ -156,9 +158,12 @@ export default function ChatScreen({ route, navigation }: any) {
 
       const history = await getChatHistory(newRoomId);
       // Sort history to show oldest first (for normal scrolling)
-      setMessages(history.sort((a: any, b: any) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      ));
+      setMessages(
+        history.sort(
+          (a: any, b: any) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+      );
     }
 
     initChat();
@@ -171,8 +176,9 @@ export default function ChatScreen({ route, navigation }: any) {
       setMessages((prev) => {
         const newMessages = [...prev, msg];
         // Keep messages sorted by timestamp
-        return newMessages.sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        return newMessages.sort(
+          (a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
       });
     }
@@ -251,18 +257,6 @@ export default function ChatScreen({ route, navigation }: any) {
             <Text style={styles.headerSubtitle}>
               {isOfficer ? "Active now" : "Agriculture Support"}
             </Text>
-          </View>
-
-          <View style={styles.headerActions}>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Phone size={20} color="#ffffff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <Video size={20} color="#ffffff" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.headerActionButton}>
-              <MoreVertical size={20} color="#ffffff" />
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
