@@ -93,3 +93,4 @@ app.include_router(farmer_yield_router)  # Farmer prediction endpoint
 app.include_router(officer_yield_router)
 app.include_router(price_forecast_router)
 app.include_router(fertilizer_advisory_router)  # Rule-Based Fertilizer Advisory
+app.include_router(price_window_router)
