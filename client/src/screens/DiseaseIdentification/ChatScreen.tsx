@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   inputContainer: {
-    padding: 16,
+    padding: 12,
     borderTopWidth: 1,
     borderTopColor: "#e5e7eb",
     backgroundColor: "#ffffff",
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-end",
     borderRadius: 24,
-    padding: 4,
+    padding: 2,
     borderWidth: 1,
     borderColor: "#e5e7eb",
     shadowColor: "#000",
