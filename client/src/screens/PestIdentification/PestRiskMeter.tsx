@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Picker } from "@react-native-picker/picker";
+import { useLanguage } from "../../context/LanguageContext"; // 🆕 Import global context
 
 const riskData = {
   fallarmyworm: {
@@ -142,23 +143,58 @@ const riskData = {
 /* --------------------------  STATIC DATA ------------------------------ */
 
 const pestNames = {
-  fallarmyworm: "Fall Armyworm",
-  bollworm: "Bollworm",
-  asiancornborer: "Asian Corn Borer"
+  fallarmyworm: { en: "Fall Armyworm", si: "හමුදා පණුවා" },
+  bollworm: { en: "Bollworm", si: "බෝල් පණුවා" },
+  asiancornborer: { en: "Asian Corn Borer", si: "ආසියානු ඉරිඟු සිදුරු පණුවා" }
 };
 
-const districts = ["Kurunegala", "Anuradhapura", "Ampara"];
+const districts = {
+  Kurunegala: { en: "Kurunegala", si: "කුරුණෑගල" },
+  Anuradhapura: { en: "Anuradhapura", si: "අනුරාධපුරය" },
+  Ampara: { en: "Ampara", si: "අම්පාර" }
+};
 
 const months = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
 
+const monthTranslations = {
+  January: { en: "January", si: "ජනවාරි" },
+  February: { en: "February", si: "පෙබරවාරි" },
+  March: { en: "March", si: "මාර්තු" },
+  April: { en: "April", si: "අප්‍රේල්" },
+  May: { en: "May", si: "මැයි" },
+  June: { en: "June", si: "ජූනි" },
+  July: { en: "July", si: "ජූලි" },
+  August: { en: "August", si: "අගෝස්තු" },
+  September: { en: "September", si: "සැප්තැම්බර්" },
+  October: { en: "October", si: "ඔක්තෝබර්" },
+  November: { en: "November", si: "නොවැම්බර්" },
+  December: { en: "December", si: "දෙසැම්බර්" }
+};
+
 const riskLevels = {
-  High: { color: "#dc2626", label: "High Risk", percentage: 85 },
-  Medium: { color: "#f59e0b", label: "Medium Risk", percentage: 50 },
-  Low: { color: "#10b981", label: "Low Risk", percentage: 20 },
-  Unknown: { color: "#6b7280", label: "Unknown", percentage: 0 }
+  High: { 
+    color: "#dc2626", 
+    label: { en: "High Risk", si: "ඉහළ අවදානම" }, 
+    percentage: 85 
+  },
+  Medium: { 
+    color: "#f59e0b", 
+    label: { en: "Medium Risk", si: "මධ්‍යම අවදානම" }, 
+    percentage: 50 
+  },
+  Low: { 
+    color: "#10b981", 
+    label: { en: "Low Risk", si: "අඩු අවදානම" }, 
+    percentage: 20 
+  },
+  Unknown: { 
+    color: "#6b7280", 
+    label: { en: "Unknown", si: "නොදනී" }, 
+    percentage: 0 
+  }
 };
 
 const riskMessages = {
@@ -180,6 +216,20 @@ const riskMessages = {
   }
 };
 
+const labels = {
+  title: { en: "Pest Risk Assessment", si: "කෘමි අවදානම් තක්සේරුව" },
+  subtitle: { en: "Seasonal Risk Analysis", si: "කාලීය අවදානම් විශ්ලේෂණය" },
+  pestType: { en: "Pest Type", si: "කෘමි වර්ගය" },
+  district: { en: "District", si: "දිස්ත්‍රික්කය" },
+  month: { en: "Month", si: "මාසය" },
+  riskLevel: { en: "Risk Level", si: "අවදානම් මට්ටම" },
+  recommendation: { en: "Recommendation", si: "නිර්දේශය" },
+  lastUpdated: { en: "Last updated", si: "අවසන් යාවත්කාලීන" },
+  low: { en: "Low", si: "අඩු" },
+  medium: { en: "Medium", si: "මධ්‍යම" },
+  high: { en: "High", si: "ඉහළ" }
+};
+
 /* --------------------------  MAIN COMPONENT ------------------------------ */
 
 export default function PestRiskMeter() {
@@ -188,7 +238,10 @@ export default function PestRiskMeter() {
   const [pest, setPest] = useState("fallarmyworm");
   const [district, setDistrict] = useState("Kurunegala");
   const [month, setMonth] = useState(currentMonth);
-  const [language, setLanguage] = useState("en");
+
+  // 🆕 Use global language context
+  const { language: appLang, setLanguage } = useLanguage();
+  const language = appLang === "sinhala" ? "si" : "en";
 
   // Get risk from riskData
   const getRisk = (): "High" | "Medium" | "Low" | "Unknown" => {
@@ -206,41 +259,22 @@ export default function PestRiskMeter() {
 
   const risk = getRisk();
   const riskConfig = riskLevels[risk];
-    const riskNote = riskMessages[risk]?.[language as "en" | "si"] || riskMessages.Unknown.en;  return (
+  const riskNote = riskMessages[risk]?.[language] || riskMessages.Unknown.en;
+
+  return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Pest Risk Assessment</Text>
-          <Text style={styles.subtitle}>Seasonal Risk Analysis</Text>
-        </View>
-
-        {/* Language Toggle */}
-        <View style={styles.langToggle}>
-          <TouchableOpacity
-            style={[styles.langBtn, language === "en" && styles.langBtnActive]}
-            onPress={() => setLanguage("en")}
-          >
-            <Text style={[styles.langBtnText, language === "en" && styles.langBtnTextActive]}>
-              English
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.langBtn, language === "si" && styles.langBtnActive]}
-            onPress={() => setLanguage("si")}
-          >
-            <Text style={[styles.langBtnText, language === "si" && styles.langBtnTextActive]}>
-              සිංහල
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.title}>{labels.title[language]}</Text>
+          <Text style={styles.subtitle}>{labels.subtitle[language]}</Text>
         </View>
 
         {/* Selection Card */}
         <View style={styles.card}>
           {/* Pest Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Pest Type</Text>
+            <Text style={styles.label}>{labels.pestType[language]}</Text>
             <View style={styles.pickerWrapper}>
               <Picker 
                 selectedValue={pest} 
@@ -249,7 +283,7 @@ export default function PestRiskMeter() {
               >
                 {Object.keys(pestNames).map((key) => (
                   <Picker.Item 
-                    label={pestNames[key as keyof typeof pestNames]} 
+                    label={pestNames[key as keyof typeof pestNames][language]} 
                     value={key} 
                     key={key} 
                   />
@@ -260,15 +294,19 @@ export default function PestRiskMeter() {
 
           {/* District Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>District</Text>
+            <Text style={styles.label}>{labels.district[language]}</Text>
             <View style={styles.pickerWrapper}>
               <Picker 
                 selectedValue={district} 
                 onValueChange={(v) => setDistrict(v)} 
                 style={styles.picker}
               >
-                {districts.map((d) => (
-                  <Picker.Item label={d} value={d} key={d} />
+                {Object.keys(districts).map((key) => (
+                  <Picker.Item 
+                    label={districts[key as keyof typeof districts][language]} 
+                    value={key} 
+                    key={key} 
+                  />
                 ))}
               </Picker>
             </View>
@@ -276,7 +314,7 @@ export default function PestRiskMeter() {
 
           {/* Month Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Month</Text>
+            <Text style={styles.label}>{labels.month[language]}</Text>
             <View style={styles.pickerWrapper}>
               <Picker 
                 selectedValue={month} 
@@ -284,7 +322,11 @@ export default function PestRiskMeter() {
                 style={styles.picker}
               >
                 {months.map((m) => (
-                  <Picker.Item label={m} value={m} key={m} />
+                  <Picker.Item 
+                    label={monthTranslations[m as keyof typeof monthTranslations][language]} 
+                    value={m} 
+                    key={m} 
+                  />
                 ))}
               </Picker>
             </View>
@@ -293,7 +335,7 @@ export default function PestRiskMeter() {
 
         {/* Risk Meter */}
         <View style={styles.meterCard}>
-          <Text style={styles.meterTitle}>Risk Level</Text>
+          <Text style={styles.meterTitle}>{labels.riskLevel[language]}</Text>
           
           {/* Circular Progress Meter */}
           <View style={styles.meterContainer}>
@@ -309,7 +351,7 @@ export default function PestRiskMeter() {
                 {riskConfig.percentage}%
               </Text>
               <Text style={[styles.riskLabel, { color: riskConfig.color }]}>
-                {riskConfig.label}
+                {riskConfig.label[language]}
               </Text>
             </View>
           </View>
@@ -317,13 +359,13 @@ export default function PestRiskMeter() {
           {/* Risk Indicator Bar */}
           <View style={styles.indicatorBar}>
             <View style={[styles.indicator, { backgroundColor: "#10b981" }]}>
-              <Text style={styles.indicatorText}>Low</Text>
+              <Text style={styles.indicatorText}>{labels.low[language]}</Text>
             </View>
             <View style={[styles.indicator, { backgroundColor: "#f59e0b" }]}>
-              <Text style={styles.indicatorText}>Medium</Text>
+              <Text style={styles.indicatorText}>{labels.medium[language]}</Text>
             </View>
             <View style={[styles.indicator, { backgroundColor: "#dc2626" }]}>
-              <Text style={styles.indicatorText}>High</Text>
+              <Text style={styles.indicatorText}>{labels.high[language]}</Text>
             </View>
           </View>
         </View>
@@ -334,7 +376,7 @@ export default function PestRiskMeter() {
             <View style={[styles.iconCircle, { backgroundColor: riskConfig.color + "20" }]}>
               <Text style={styles.iconText}>⚠️</Text>
             </View>
-            <Text style={styles.recommendationTitle}>Recommendation</Text>
+            <Text style={styles.recommendationTitle}>{labels.recommendation[language]}</Text>
           </View>
           <Text style={styles.recommendationText}>{riskNote}</Text>
         </View>
@@ -342,7 +384,7 @@ export default function PestRiskMeter() {
         {/* Info Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Last updated: {new Date().toLocaleDateString()}
+            {labels.lastUpdated[language]}: {new Date().toLocaleDateString()}
           </Text>
         </View>
       </View>
@@ -379,42 +421,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#64748b",
     fontWeight: "500"
-  },
-
-  langToggle: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 24,
-    backgroundColor: "#e2e8f0",
-    borderRadius: 12,
-    padding: 4,
-    alignSelf: "center"
-  },
-  
-  langBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 10,
-    marginHorizontal: 2
-  },
-  
-  langBtnActive: {
-    backgroundColor: "#fff",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2
-  },
-  
-  langBtnText: {
-    color: "#64748b",
-    fontWeight: "600",
-    fontSize: 14
-  },
-  
-  langBtnTextActive: {
-    color: "#0f172a"
   },
 
   card: {

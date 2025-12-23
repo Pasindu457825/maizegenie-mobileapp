@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   View,
   Text,
@@ -6,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
+  Dimensions,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -13,29 +15,31 @@ import type { YieldPredictionStackParamList } from "../../navigation/YieldPredic
 import {
   ArrowLeft,
   TrendingUp,
-  Leaf,
-  Package,
-  CheckCircle,
-  AlertCircle,
-  Calendar,
-  Home,
+  BarChart3,
   Activity,
+  AlertCircle,
+  CheckCircle,
+  Zap,
+  Shield,
 } from "lucide-react-native";
+import { BarChart, LineChart, ProgressChart } from "react-native-chart-kit";
+
+const screenWidth = Dimensions.get("window").width;
 
 type NavProp = StackNavigationProp<
   YieldPredictionStackParamList,
   "YieldPredictionOfficerResultsScreen"
 >;
 
-const YieldPredictionOfficerResultsScreen = () => {
+const YieldPredictionOfficerResultsScreenEnhanced = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const { data, language: initialLanguage } = route.params as {
+  const { data } = route.params as {
     data: any;
-    language: "si" | "en";
   };
 
-  const [language, setLanguage] = useState<"si" | "en">(initialLanguage);
+  const { language: lang } = useLanguage();
+  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
 
   React.useEffect(() => {
@@ -49,86 +53,130 @@ const YieldPredictionOfficerResultsScreen = () => {
   const content = {
     si: {
       title: "අස්වැන්න පුරෝකථනය",
-      subtitle: "නිලධාරී ප්‍රතිඵල",
+      subtitle: "නිලධාරී විශ්ලේෂණය",
       predictedYield: "පුරෝකථනය කළ අස්වැන්න",
-      fertilizerSchedule: "පොහොර කාලසටහන",
-      npkRequirements: "NPK අවශ්‍යතා",
+      yieldComparison: "අස්වැන්න සැසඳීම",
+      npkLevels: "NPK මට්ටම්",
+      environmentalFactors: "පාරිසරික සාධක",
+      soilHealth: "පස් සෞඛ්‍යය",
       impactFactors: "බලපෑම් සාධක",
       recommendations: "නිර්දේශ",
-      officerInsights: "නිලධාරී අවබෝධය",
-      newPrediction: "නව පුරෝකථනයක්",
+      predictionMethod: "පුරෝකථන ක්‍රමය",
+      mlModel: "ML මාදිලිය",
+      ruleBased: "නීති පදනම්",
+      confidence: "විශ්වාසය",
       back: "ආපසු",
-      basal: "මූලික",
-      topdress1: "ඉහළ පොහොර 1",
-      topdress2: "ඉහළ පොහොර 2",
-      nitrogen: "නයිට්‍රජන්",
-      phosphorus: "පොස්පරස්",
-      potassium: "පොටෑසියම්",
-      das: "DAS",
-      kgPerHa: "කි.ග්‍රෑ/හෙක්ටයාර",
-      status: "තත්ත්වය",
-      done: "සම්පූර්ණයි",
-      pending: "පොරොත්තු",
-      partial: "අර්ධ වශයෙන්",
     },
     en: {
       title: "Yield Prediction",
-      subtitle: "Officer Results",
+      subtitle: "Officer Analysis",
       predictedYield: "Predicted Yield",
-      fertilizerSchedule: "Fertilizer Schedule",
-      npkRequirements: "NPK Requirements",
+      yieldComparison: "Yield Comparison",
+      npkLevels: "NPK Levels",
+      environmentalFactors: "Environmental Factors",
+      soilHealth: "Soil Health",
       impactFactors: "Impact Factors",
       recommendations: "Recommendations",
-      officerInsights: "Officer Insights",
-      newPrediction: "New Prediction",
+      predictionMethod: "Prediction Method",
+      mlModel: "ML Model",
+      ruleBased: "Rule-Based",
+      confidence: "Confidence",
       back: "Back",
-      basal: "Basal",
-      topdress1: "Top-dress 1",
-      topdress2: "Top-dress 2",
-      nitrogen: "Nitrogen",
-      phosphorus: "Phosphorus",
-      potassium: "Potassium",
-      das: "DAS",
-      kgPerHa: "kg/ha",
-      status: "Status",
-      done: "Done",
-      pending: "Pending",
-      partial: "Partial",
     },
   };
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
-
-  const handleNewPrediction = () => {
-    navigation.navigate("YieldPredictionLoadingScreen");
-  };
-
-  // Extract data with fallbacks
+  // Extract data
   const prediction = data?.prediction || {};
   const predictedYield = prediction.predicted_yield || 0;
-  const yieldUnit = prediction.yield_unit || "kg/ha";
-  const confidenceScore = prediction.confidence_score || 0;
   const yieldCategory = prediction.yield_category || "Medium";
+  const confidenceScore = prediction.confidence_score || 0;
+  const predictionMethod = prediction.prediction_method || "rule_based";
   
-  const fertilizerSchedule = data?.fertilizer_schedule || {};
+  const analysisData = data?.analysis_data || {};
   const impactFactors = data?.impact_factors || [];
   const recommendations = data?.recommendations || [];
   const officerInsights = data?.officer_insights || {};
 
-  const getStatusColor = (status: string) => {
-    const s = status?.toLowerCase() || "";
-    if (s === "done") return "#10B981";
-    if (s === "partial") return "#F59E0B";
-    return "#6B7280";
+  // Chart configurations
+  const chartConfig = {
+    backgroundColor: "#FFFFFF",
+    backgroundGradientFrom: "#FFFFFF",
+    backgroundGradientTo: "#FFFFFF",
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForLabels: {
+      fontSize: 11,
+    },
   };
 
-  const getStatusLabel = (status: string) => {
-    const s = status?.toLowerCase() || "";
-    if (s === "done") return language === "si" ? "සම්පූර්ණයි" : "Done";
-    if (s === "partial") return language === "si" ? "අර්ධ වශයෙන්" : "Partial";
-    return language === "si" ? "පොරොත්තු" : "Pending";
+  // Yield Comparison Chart Data
+  const yieldComparison = analysisData.yield_comparison || {};
+  const yieldComparisonData = {
+    labels: ["Predicted", "District", "National", "Maximum"],
+    datasets: [
+      {
+        data: [
+          yieldComparison.predicted || 0,
+          yieldComparison.district_average || 0,
+          yieldComparison.national_average || 0,
+          yieldComparison.potential_maximum || 0,
+        ],
+      },
+    ],
+  };
+
+  // NPK Levels Chart Data
+  const npkLevels = analysisData.npk_levels || {};
+  const npkData = {
+    labels: ["N", "P", "K"],
+    datasets: [
+      {
+        data: [
+          npkLevels.nitrogen || 0,
+          npkLevels.phosphorus || 0,
+          npkLevels.potassium || 0,
+        ],
+        color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+      },
+      {
+        data: [
+          npkLevels.optimal_nitrogen || 0,
+          npkLevels.optimal_phosphorus || 0,
+          npkLevels.optimal_potassium || 0,
+        ],
+        color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`,
+      },
+    ],
+    legend: ["Current", "Optimal"],
+  };
+
+  // Environmental Factors Progress Data
+  const envFactors = analysisData.environmental_factors || {};
+  const envProgressData = {
+    labels: ["Temp", "Humidity", "Rainfall", "Sunshine"],
+    data: [
+      (envFactors.temperature || 0) / 40,
+      (envFactors.humidity || 0) / 100,
+      (envFactors.rainfall_30d || 0) / 300,
+      (envFactors.sunshine || 0) / 12,
+    ],
+  };
+
+  // Soil Health Data
+  const soilHealth = analysisData.soil_health || {};
+  const soilHealthData = {
+    labels: ["pH", "Fertility", "N", "P", "K"],
+    data: [
+      (soilHealth.ph || 0) / 14,
+      soilHealth.fertility_index || 0,
+      soilHealth.n_status === "High" ? 1 : soilHealth.n_status === "Medium" ? 0.6 : 0.3,
+      soilHealth.p_status === "High" ? 1 : soilHealth.p_status === "Medium" ? 0.6 : 0.3,
+      soilHealth.k_status === "High" ? 1 : soilHealth.k_status === "Medium" ? 0.6 : 0.3,
+    ],
   };
 
   const getCategoryColor = (category: string) => {
@@ -138,25 +186,29 @@ const YieldPredictionOfficerResultsScreen = () => {
     return "#EF4444";
   };
 
+  const getMethodIcon = () => {
+    return predictionMethod === "ml_model" ? (
+      <Zap color="#10B981" size={20} />
+    ) : (
+      <Shield color="#3B82F6" size={20} />
+    );
+  };
+
+  const getMethodColor = () => {
+    return predictionMethod === "ml_model" ? "#10B981" : "#3B82F6";
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft color="#047857" size={24} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -167,16 +219,27 @@ const YieldPredictionOfficerResultsScreen = () => {
         <Animated.View style={{ opacity: fadeAnim }}>
           {/* Predicted Yield Card */}
           <View style={styles.yieldCard}>
-            <View style={styles.yieldIconContainer}>
-              <TrendingUp color="#10B981" size={32} />
+            <View style={styles.yieldHeader}>
+              <View style={styles.yieldIconContainer}>
+                <TrendingUp color="#10B981" size={32} />
+              </View>
+              <View style={styles.methodBadge}>
+                {getMethodIcon()}
+                <Text style={[styles.methodText, { color: getMethodColor() }]}>
+                  {predictionMethod === "ml_model"
+                    ? content[language].mlModel
+                    : content[language].ruleBased}
+                </Text>
+              </View>
             </View>
+            
             <Text style={styles.yieldLabel}>
               {content[language].predictedYield}
             </Text>
             <Text style={styles.yieldValue}>
               {predictedYield.toFixed(0)}
             </Text>
-            <Text style={styles.yieldUnit}>{yieldUnit}</Text>
+            <Text style={styles.yieldUnit}>kg/ha</Text>
             
             <View style={styles.categoryBadge}>
               <View
@@ -188,190 +251,151 @@ const YieldPredictionOfficerResultsScreen = () => {
               <Text style={styles.categoryText}>{yieldCategory}</Text>
             </View>
 
-            {confidenceScore > 0 && (
-              <View style={styles.confidenceContainer}>
-                <Text style={styles.confidenceLabel}>
-                  {content[language].status}
-                </Text>
-                <Text style={styles.confidenceValue}>
-                  {(confidenceScore * 100).toFixed(0)}%
-                </Text>
-              </View>
-            )}
+            <View style={styles.confidenceContainer}>
+              <Text style={styles.confidenceLabel}>
+                {content[language].confidence}:
+              </Text>
+              <Text style={styles.confidenceValue}>
+                {(confidenceScore * 100).toFixed(0)}%
+              </Text>
+            </View>
           </View>
 
-          {/* Fertilizer Schedule */}
-          {Object.keys(fertilizerSchedule).length > 0 && (
-            <View style={styles.section}>
+          {/* Yield Comparison Chart */}
+          {yieldComparison.predicted && (
+            <View style={styles.chartSection}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionIconContainer}>
-                  <Package color="#10B981" size={20} />
+                  <BarChart3 color="#10B981" size={20} />
                 </View>
                 <Text style={styles.sectionTitle}>
-                  {content[language].fertilizerSchedule}
+                  {content[language].yieldComparison}
                 </Text>
               </View>
+              <View style={styles.chartCard}>
+                <BarChart
+                  data={yieldComparisonData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={chartConfig}
+                  style={styles.chart}
+                  showValuesOnTopOfBars
+                  fromZero
+                />
+              </View>
+            </View>
+          )}
 
-              {fertilizerSchedule.basal && (
-                <View style={styles.fertilizerCard}>
-                  <View style={styles.fertilizerHeader}>
-                    <View style={styles.fertilizerIconContainer}>
-                      <Calendar color="#10B981" size={18} />
-                    </View>
-                    <Text style={styles.fertilizerTitle}>
-                      {content[language].basal}
-                    </Text>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        {
-                          backgroundColor: getStatusColor(
-                            fertilizerSchedule.basal.status
-                          ),
-                        },
-                      ]}
-                    >
-                      <Text style={styles.statusText}>
-                        {getStatusLabel(fertilizerSchedule.basal.status)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.fertilizerDetails}>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].das}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.basal.days_after_sowing || 0}
-                      </Text>
-                    </Text>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].nitrogen}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.basal.nitrogen || 0}{" "}
-                        {content[language].kgPerHa}
-                      </Text>
-                    </Text>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].phosphorus}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.basal.phosphorus || 0}{" "}
-                        {content[language].kgPerHa}
-                      </Text>
-                    </Text>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].potassium}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.basal.potassium || 0}{" "}
-                        {content[language].kgPerHa}
-                      </Text>
-                    </Text>
-                  </View>
-                  {fertilizerSchedule.basal.instructions_sinhala && (
-                    <Text style={styles.fertilizerInstructions}>
-                      {language === "si"
-                        ? fertilizerSchedule.basal.instructions_sinhala
-                        : fertilizerSchedule.basal.instructions_english}
-                    </Text>
-                  )}
+          {/* NPK Levels Chart */}
+          {npkLevels.nitrogen && (
+            <View style={styles.chartSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Activity color="#10B981" size={20} />
                 </View>
-              )}
+                <Text style={styles.sectionTitle}>
+                  {content[language].npkLevels}
+                </Text>
+              </View>
+              <View style={styles.chartCard}>
+                <BarChart
+                  data={npkData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={{
+                    ...chartConfig,
+                    color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+                  }}
+                  style={styles.chart}
+                  showValuesOnTopOfBars
+                  fromZero
+                />
+                <View style={styles.legendContainer}>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: "#10B981" }]} />
+                    <Text style={styles.legendText}>Current</Text>
+                  </View>
+                  <View style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: "#F59E0B" }]} />
+                    <Text style={styles.legendText}>Optimal</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
 
-              {fertilizerSchedule.topdress_1 && (
-                <View style={styles.fertilizerCard}>
-                  <View style={styles.fertilizerHeader}>
-                    <View style={styles.fertilizerIconContainer}>
-                      <Calendar color="#10B981" size={18} />
-                    </View>
-                    <Text style={styles.fertilizerTitle}>
-                      {content[language].topdress1}
-                    </Text>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        {
-                          backgroundColor: getStatusColor(
-                            fertilizerSchedule.topdress_1.status
-                          ),
-                        },
-                      ]}
-                    >
-                      <Text style={styles.statusText}>
-                        {getStatusLabel(fertilizerSchedule.topdress_1.status)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.fertilizerDetails}>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].das}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.topdress_1.days_after_sowing || 0}
-                      </Text>
-                    </Text>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].nitrogen}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.topdress_1.nitrogen || 0}{" "}
-                        {content[language].kgPerHa}
-                      </Text>
-                    </Text>
-                  </View>
-                  {fertilizerSchedule.topdress_1.instructions_sinhala && (
-                    <Text style={styles.fertilizerInstructions}>
-                      {language === "si"
-                        ? fertilizerSchedule.topdress_1.instructions_sinhala
-                        : fertilizerSchedule.topdress_1.instructions_english}
-                    </Text>
-                  )}
+          {/* Environmental Factors */}
+          {envFactors.temperature && (
+            <View style={styles.chartSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Activity color="#10B981" size={20} />
                 </View>
-              )}
+                <Text style={styles.sectionTitle}>
+                  {content[language].environmentalFactors}
+                </Text>
+              </View>
+              <View style={styles.chartCard}>
+                <ProgressChart
+                  data={envProgressData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={chartConfig}
+                  style={styles.chart}
+                  hideLegend={false}
+                />
+                <View style={styles.envDetails}>
+                  <View style={styles.envItem}>
+                    <Text style={styles.envLabel}>Temperature:</Text>
+                    <Text style={styles.envValue}>{envFactors.temperature}°C</Text>
+                  </View>
+                  <View style={styles.envItem}>
+                    <Text style={styles.envLabel}>Humidity:</Text>
+                    <Text style={styles.envValue}>{envFactors.humidity}%</Text>
+                  </View>
+                  <View style={styles.envItem}>
+                    <Text style={styles.envLabel}>Rainfall (30d):</Text>
+                    <Text style={styles.envValue}>{envFactors.rainfall_30d}mm</Text>
+                  </View>
+                  <View style={styles.envItem}>
+                    <Text style={styles.envLabel}>Sunshine:</Text>
+                    <Text style={styles.envValue}>{envFactors.sunshine}hrs</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
 
-              {fertilizerSchedule.topdress_2 && (
-                <View style={styles.fertilizerCard}>
-                  <View style={styles.fertilizerHeader}>
-                    <View style={styles.fertilizerIconContainer}>
-                      <Calendar color="#10B981" size={18} />
-                    </View>
-                    <Text style={styles.fertilizerTitle}>
-                      {content[language].topdress2}
-                    </Text>
-                    <View
-                      style={[
-                        styles.statusBadge,
-                        {
-                          backgroundColor: getStatusColor(
-                            fertilizerSchedule.topdress_2.status
-                          ),
-                        },
-                      ]}
-                    >
-                      <Text style={styles.statusText}>
-                        {getStatusLabel(fertilizerSchedule.topdress_2.status)}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.fertilizerDetails}>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].das}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.topdress_2.days_after_sowing || 0}
-                      </Text>
-                    </Text>
-                    <Text style={styles.fertilizerLabel}>
-                      {content[language].nitrogen}:{" "}
-                      <Text style={styles.fertilizerValue}>
-                        {fertilizerSchedule.topdress_2.nitrogen || 0}{" "}
-                        {content[language].kgPerHa}
-                      </Text>
-                    </Text>
-                  </View>
-                  {fertilizerSchedule.topdress_2.instructions_sinhala && (
-                    <Text style={styles.fertilizerInstructions}>
-                      {language === "si"
-                        ? fertilizerSchedule.topdress_2.instructions_sinhala
-                        : fertilizerSchedule.topdress_2.instructions_english}
-                    </Text>
-                  )}
+          {/* Soil Health */}
+          {soilHealth.ph && (
+            <View style={styles.chartSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Activity color="#10B981" size={20} />
                 </View>
-              )}
+                <Text style={styles.sectionTitle}>
+                  {content[language].soilHealth}
+                </Text>
+              </View>
+              <View style={styles.chartCard}>
+                <ProgressChart
+                  data={soilHealthData}
+                  width={screenWidth - 64}
+                  height={220}
+                  chartConfig={chartConfig}
+                  style={styles.chart}
+                  hideLegend={false}
+                />
+                <View style={styles.soilDetails}>
+                  <Text style={styles.soilText}>pH: {soilHealth.ph}</Text>
+                  <Text style={styles.soilText}>
+                    Fertility: {(soilHealth.fertility_index * 100).toFixed(0)}%
+                  </Text>
+                  <Text style={styles.soilText}>N: {soilHealth.n_status}</Text>
+                  <Text style={styles.soilText}>P: {soilHealth.p_status}</Text>
+                  <Text style={styles.soilText}>K: {soilHealth.k_status}</Text>
+                </View>
+              </View>
             </View>
           )}
 
@@ -387,7 +411,7 @@ const YieldPredictionOfficerResultsScreen = () => {
                 </Text>
               </View>
 
-              {impactFactors.map((factor: any, index: number) => (
+              {impactFactors.slice(0, 5).map((factor: any, index: number) => (
                 <View key={index} style={styles.factorCard}>
                   <View style={styles.factorHeader}>
                     <Text style={styles.factorName}>{factor.factor}</Text>
@@ -414,7 +438,7 @@ const YieldPredictionOfficerResultsScreen = () => {
                       style={[
                         styles.factorBar,
                         {
-                          width: `${Math.abs(factor.impact_percentage || 0)}%`,
+                          width: `${Math.min(Math.abs(factor.impact_percentage || 0), 100)}%`,
                           backgroundColor:
                             (factor.impact_percentage || 0) >= 0
                               ? "#10B981"
@@ -444,53 +468,46 @@ const YieldPredictionOfficerResultsScreen = () => {
                 <View key={index} style={styles.recommendationCard}>
                   <View style={styles.recommendationHeader}>
                     <CheckCircle color="#10B981" size={18} />
-                    <Text style={styles.recommendationTitle}>{rec.title}</Text>
+                    <Text style={styles.recommendationTitle}>
+                      {language === "si" ? rec.title_si : rec.title_en}
+                    </Text>
                   </View>
                   <Text style={styles.recommendationText}>
-                    {rec.description}
+                    {language === "si" ? rec.description_si : rec.description_en}
                   </Text>
+                  <View
+                    style={[
+                      styles.priorityBadge,
+                      {
+                        backgroundColor:
+                          rec.priority === "high"
+                            ? "#FEE2E2"
+                            : rec.priority === "medium"
+                            ? "#FEF3C7"
+                            : "#DBEAFE",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.priorityText,
+                        {
+                          color:
+                            rec.priority === "high"
+                              ? "#EF4444"
+                              : rec.priority === "medium"
+                              ? "#F59E0B"
+                              : "#3B82F6",
+                        },
+                      ]}
+                    >
+                      {rec.priority.toUpperCase()}
+                    </Text>
+                  </View>
                 </View>
               ))}
             </View>
           )}
-
-          {/* Officer Insights */}
-          {officerInsights && Object.keys(officerInsights).length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Leaf color="#10B981" size={20} />
-                </View>
-                <Text style={styles.sectionTitle}>
-                  {content[language].officerInsights}
-                </Text>
-              </View>
-
-              <View style={styles.insightsCard}>
-                {Object.entries(officerInsights).map(([key, value]: [string, any]) => (
-                  <View key={key} style={styles.insightItem}>
-                    <Text style={styles.insightLabel}>
-                      {key.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}:
-                    </Text>
-                    <Text style={styles.insightValue}>
-                      {typeof value === "object" ? JSON.stringify(value) : String(value)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          {/* New Prediction Button */}
-          <TouchableOpacity
-            style={styles.newPredictionButton}
-            onPress={handleNewPrediction}
-          >
-            <Home color="#FFFFFF" size={20} />
-            <Text style={styles.newPredictionText}>
-              {content[language].newPrediction}
-            </Text>
-          </TouchableOpacity>
 
           <View style={{ height: 40 }} />
         </Animated.View>
@@ -567,6 +584,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#D1FAE5",
   },
+  yieldHeader: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   yieldIconContainer: {
     width: 64,
     height: 64,
@@ -574,7 +598,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#D1FAE5",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+  },
+  methodBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 6,
+  },
+  methodText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
   yieldLabel: {
     fontSize: 14,
@@ -627,6 +663,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#10B981",
   },
+  chartSection: {
+    marginBottom: 20,
+  },
   section: {
     marginBottom: 20,
   },
@@ -649,64 +688,71 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#065F46",
   },
-  fertilizerCard: {
+  chartCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  fertilizerHeader: {
+  chart: {
+    borderRadius: 16,
+    marginVertical: 8,
+  },
+  legendContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 20,
+    marginTop: 12,
+  },
+  legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    gap: 6,
   },
-  fertilizerIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
+  legendDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  fertilizerTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#065F46",
-    flex: 1,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  statusText: {
+  legendText: {
     fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#6B7280",
   },
-  fertilizerDetails: {
-    marginBottom: 12,
+  envDetails: {
+    marginTop: 12,
+    gap: 8,
   },
-  fertilizerLabel: {
+  envItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 4,
+  },
+  envLabel: {
     fontSize: 13,
     color: "#6B7280",
-    marginBottom: 4,
   },
-  fertilizerValue: {
+  envValue: {
+    fontSize: 13,
     fontWeight: "600",
     color: "#065F46",
   },
-  fertilizerInstructions: {
+  soilDetails: {
+    marginTop: 12,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  soilText: {
     fontSize: 12,
     color: "#6B7280",
-    fontStyle: "italic",
-    lineHeight: 16,
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   factorCard: {
     backgroundColor: "#FFFFFF",
@@ -778,51 +824,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     lineHeight: 18,
+    marginBottom: 8,
   },
-  insightsCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+  priorityBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
-  insightItem: {
-    marginBottom: 12,
-  },
-  insightLabel: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 4,
-  },
-  insightValue: {
-    fontSize: 13,
-    color: "#6B7280",
-    lineHeight: 18,
-  },
-  newPredictionButton: {
-    backgroundColor: "#10B981",
-    borderRadius: 12,
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  newPredictionText: {
-    fontSize: 16,
+  priorityText: {
+    fontSize: 11,
     fontWeight: "700",
-    color: "#FFFFFF",
   },
 });
 
-export default YieldPredictionOfficerResultsScreen;
+export default YieldPredictionOfficerResultsScreenEnhanced;

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useLanguage } from "../../context/LanguageContext";
 import {
   View,
   Text,
@@ -18,15 +19,9 @@ import {
   Leaf,
   Droplets,
   CloudSun,
-  Activity,
-  Package,
-  Sparkles,
+  Calendar,
   MapPin,
-  Plus,
-  Minus,
 } from "lucide-react-native";
-import * as Location from "expo-location";
-import { fetchWeatherByCoordinates } from "../../services/weatherApi";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -37,566 +32,241 @@ type NavProp = StackNavigationProp<
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     return process.env.EXPO_PUBLIC_API_BASE;
-  } else if (Platform.OS === "ios") {
-    return "http://localhost:8000";
-  } else {
-    return "http://localhost:8000";
   }
+  return "http://localhost:8000";
 };
 
 const API_URL = getApiUrl();
 
 const DISTRICTS = [
   "Anuradhapura",
-  "Monaragala",
-  "Badulla",
+  "Polonnaruwa",
+  "Kurunegala",
   "Ampara",
-  "Dambulla",
-  "Panadura",
-  "Piliyandala",
-  "Malabe",
-  "Kaduwela",
+  "Monaragala",
+  "Hambantota",
+  "Badulla",
 ];
+
+const LOCATIONS: { [key: string]: string[] } = {
+  Anuradhapura: ["Eppawala", "Tambuttegama", "Nochchiyagama", "Kahatagasdigiliya"],
+  Polonnaruwa: ["Hingurakgoda", "Medirigiriya", "Dimbulagala"],
+  Kurunegala: ["Nikaweratiya", "Galgamuwa", "Maho"],
+  Ampara: ["Maha Oya", "Padiyathalawa", "Dehiattakandiya"],
+  Monaragala: ["Siyambalanduwa", "Wellawaya", "Buttala"],
+  Hambantota: ["Weerawila", "Tissamaharama", "Ambalantota"],
+  Badulla: ["Mahiyanganaya", "Rideemaliyadda", "Passara"],
+};
+
 const VARIETIES = [
   "Jet 999",
-  "GT 709",
   "Pacific 808",
+  "GT 709",
   "GT200",
   "Commando",
+  "Local Variety",
 ];
-const RAINFALL_CONDITIONS = ["High", "Medium", "Low"];
 
-// Seasonal climate data for Sri Lankan districts
-// Unit: Total Millimeters (mm) per season for rainfall
-// Temperature in Celsius, Humidity in percentage
-const SEASONAL_CLIMATE_DATA: {
-    [key: string]: {
-        maha: { 
-            rainfall: { min: number; max: number; reliability: string };
-            temp: { min: number; max: number };
-            humidity: number;
-        };
-        yala: { 
-            rainfall: { min: number; max: number; reliability: string };
-            temp: { min: number; max: number };
-            humidity: number;
-        };
-    };
-} = {
-    Anuradhapura: {
-        maha: { 
-            rainfall: { min: 900, max: 1100, reliability: "High" },
-            temp: { min: 22, max: 30 },
-            humidity: 82
-        },
-        yala: { 
-            rainfall: { min: 350, max: 500, reliability: "Low" },
-            temp: { min: 25, max: 34 },
-            humidity: 70
-        }
-    },
-    Monaragala: {
-        maha: { 
-            rainfall: { min: 1000, max: 1300, reliability: "High" },
-            temp: { min: 22, max: 29 },
-            humidity: 82
-        },
-        yala: { 
-            rainfall: { min: 500, max: 650, reliability: "Medium" },
-            temp: { min: 25, max: 33 },
-            humidity: 72
-        }
-    },
-    Badulla: {
-        maha: { 
-            rainfall: { min: 1100, max: 1500, reliability: "High" },
-            temp: { min: 23, max: 29 },
-            humidity: 80
-        },
-        yala: { 
-            rainfall: { min: 600, max: 800, reliability: "Medium" },
-            temp: { min: 24, max: 33 },
-            humidity: 68
-        }
-    },
-    Ampara: {
-        maha: { 
-            rainfall: { min: 1100, max: 1400, reliability: "High" },
-            temp: { min: 23, max: 28 },
-            humidity: 85
-        },
-        yala: { 
-            rainfall: { min: 350, max: 450, reliability: "Low" },
-            temp: { min: 26, max: 34 },
-            humidity: 72
-        }
-    },
-    Dambulla: {
-        maha: { 
-            rainfall: { min: 800, max: 1100, reliability: "High" },
-            temp: { min: 21, max: 29 },
-            humidity: 83
-        },
-        yala: { 
-            rainfall: { min: 400, max: 550, reliability: "Low" },
-            temp: { min: 24, max: 33 },
-            humidity: 70
-        }
-    },
-    Panadura: {
-        maha: { 
-            rainfall: { min: 1200, max: 1500, reliability: "High" },
-            temp: { min: 23, max: 30 },
-            humidity: 85
-        },
-        yala: { 
-            rainfall: { min: 1500, max: 2000, reliability: "High" },
-            temp: { min: 25, max: 31 },
-            humidity: 90
-        }
-    },
-    Piliyandala: {
-        maha: { 
-            rainfall: { min: 1100, max: 1400, reliability: "High" },
-            temp: { min: 23, max: 30 },
-            humidity: 82
-        },
-        yala: { 
-            rainfall: { min: 1400, max: 1800, reliability: "High" },
-            temp: { min: 25, max: 31 },
-            humidity: 88
-        }
-    },
-    Malabe: {
-        maha: { 
-            rainfall: { min: 1100, max: 1400, reliability: "High" },
-            temp: { min: 22, max: 30 },
-            humidity: 82
-        },
-        yala: { 
-            rainfall: { min: 1300, max: 1700, reliability: "High" },
-            temp: { min: 24, max: 31 },
-            humidity: 88
-        }
-    },
-    Kaduwela: {
-        maha: { 
-            rainfall: { min: 1100, max: 1400, reliability: "High" },
-            temp: { min: 23, max: 31 },
-            humidity: 85
-        },
-        yala: { 
-            rainfall: { min: 1300, max: 1700, reliability: "High" },
-            temp: { min: 25, max: 32 },
-            humidity: 90
-        }
-    },
-};
+const SEASONS = ["Maha", "Yala"];
 
-// Location coordinates and soil types by district
-const LOCATION_COORDINATES: { 
-    [key: string]: { 
-        [key: string]: { 
-            lat: number; 
-            lng: number; 
-            soilTypes: string[];
-        } 
-    } 
-} = {
-    Anuradhapura: {
-        'Eppawala': { 
-            lat: 8.2833, 
-            lng: 80.4667,
-            soilTypes: ['Reddish Brown Earth', 'Non-Calcic Brown Soil', 'Sandy-Loam']
-        },
-        'Tambuttegama': { 
-            lat: 8.0167, 
-            lng: 80.5000,
-            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil', 'Sandy-Clay-Loam']
-        },
-        'Nochchiyagama': { 
-            lat: 8.3833, 
-            lng: 80.2333,
-            soilTypes: ['Reddish Brown Earth', 'Non-Calcic Brown Soil']
-        },
-        'Kahatagasdigiliya': { 
-            lat: 8.4500, 
-            lng: 80.7167,
-            soilTypes: ['Reddish Brown Earth', 'Sandy-Loam']
-        },
-        'Horowpathana': { 
-            lat: 8.3167, 
-            lng: 80.3833,
-            soilTypes: ['Reddish Brown Earth', 'Non-Calcic Brown Soil']
-        },
-    },
-    Monaragala: {
-        'Siyambalanduwa': { 
-            lat: 6.7333, 
-            lng: 81.5333,
-            soilTypes: ['Reddish Brown Earth', 'Red-Yellow Podzolic Soil', 'Sandy-Loam']
-        },
-        'Wellawaya': { 
-            lat: 6.7333, 
-            lng: 81.1000,
-            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil', 'Loamy-Sand']
-        },
-        'Buttala': { 
-            lat: 6.7500, 
-            lng: 81.2333,
-            soilTypes: ['Reddish Brown Earth', 'Red-Yellow Podzolic Soil', 'Sandy-Clay-Loam']
-        },
-        'Thanamalwila': { 
-            lat: 6.4333, 
-            lng: 81.1833,
-            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil']
-        },
-    },
-    Badulla: {
-        'Mahiyanganaya': { 
-            lat: 7.3333, 
-            lng: 81.0000,
-            soilTypes: ['Red-Yellow Podzolic Soil', 'Alluvial Soil', 'Loamy-Clay']
-        },
-        'Rideemaliyadda': { 
-            lat: 7.2667, 
-            lng: 81.1333,
-            soilTypes: ['Red-Yellow Podzolic Soil', 'Lateritic Soil']
-        },
-    },
-    Ampara: {
-        'Maha Oya': { 
-            lat: 7.4167, 
-            lng: 81.5333,
-            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil']
-        },
-        'Padiyathalawa': { 
-            lat: 7.7167, 
-            lng: 81.0333,
-            soilTypes: ['Reddish Brown Earth', 'Sandy-Loam']
-        },
-        'Dehiattakandiya': { 
-            lat: 7.9167, 
-            lng: 81.1167,
-            soilTypes: ['Reddish Brown Earth', 'Alluvial Soil']
-        },
-    },
-    Dambulla: {
-        'Dambulla': { 
-            lat: 7.8731, 
-            lng: 80.6514,
-            soilTypes: ['Reddish Brown Earth', 'Red-Brown Latosolic Soil', 'Alluvial Soil', 'Sandy-Loam']
-        },
-        'Pelwehera': { 
-            lat: 7.903092, 
-            lng: 80.670837,
-            soilTypes: ['Reddish Brown Earth', 'Latosolic Soil', 'Sandy-Clay-Loam']
-        },
-    },
-};
+const SOIL_TYPES = [
+  "Reddish Brown Earth",
+  "Red-Yellow Podzolic",
+  "Alluvial Soil",
+  "Sandy-Loam",
+  "Sandy-Clay-Loam",
+  "Loamy-Clay",
+];
 
-const YieldPredictionOfficerFormScreen = () => {
+const SOIL_CONDITIONS = ["Good", "Medium", "Poor"];
+const IRRIGATION_TYPES = ["Irrigated", "Mixed", "Rainfed"];
+const RAINFALL_CONDITIONS = ["High", "Normal", "Low"];
+const NPK_STATUS = ["High", "Medium", "Low"];
+
+const YieldPredictionOfficerFormScreenNew = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const { language: initialLanguage } = route.params as { language: Language };
+  const { role } = route.params as {
+    role: "farmer" | "officer";
+  };
 
-  const [language, setLanguage] = useState<Language>(initialLanguage);
+  const { language: lang } = useLanguage();
+  const language: Language = lang === "sinhala" ? "si" : "en";
 
-  // Soil Profile
+  // Location & Basic Info
   const [district, setDistrict] = useState("");
   const [location, setLocation] = useState("");
+  const [season, setSeason] = useState("");
+  const [fieldSizeHa, setFieldSizeHa] = useState("");
+
+  // Crop Information
+  const [seedVariety, setSeedVariety] = useState("");
+  const [plantingDate, setPlantingDate] = useState("");
+  const [plantingMonth, setPlantingMonth] = useState("");
+  const [firstFertDate, setFirstFertDate] = useState("");
+  const [secondFertDate, setSecondFertDate] = useState("");
+
+  // Soil Profile
   const [soilType, setSoilType] = useState("");
+  const [soilCondition, setSoilCondition] = useState("");
   const [soilPh, setSoilPh] = useState("");
   const [soilNitrogen, setSoilNitrogen] = useState("");
   const [soilPhosphorus, setSoilPhosphorus] = useState("");
   const [soilPotassium, setSoilPotassium] = useState("");
-  const [organicMatter, setOrganicMatter] = useState("");
+  const [soilFertilityIndex, setSoilFertilityIndex] = useState("");
+  const [nStatusClass, setNStatusClass] = useState("");
+  const [pStatusClass, setPStatusClass] = useState("");
+  const [kStatusClass, setKStatusClass] = useState("");
 
-  // Climate Data
-  const [seasonalRainfall, setSeasonalRainfall] = useState("");
-  // Live weather data
-  const [avgTemperature, setAvgTemperature] = useState("");
-  const [humidity, setHumidity] = useState("");
+  // Climate & Weather Data
+  const [irrigationType, setIrrigationType] = useState("");
+  const [rainfallCondition, setRainfallCondition] = useState("");
   const [rainfall30d, setRainfall30d] = useState("");
-  
-  // Seasonal average data
-  const [seasonalTemperature, setSeasonalTemperature] = useState("");
-  const [seasonalHumidity, setSeasonalHumidity] = useState("");
-  const [rainfallSeasonal, setRainfallSeasonal] = useState("");
-  
-  const [isLiveData, setIsLiveData] = useState(false);
-
-  // Crop Information
-  const [variety, setVariety] = useState("");
-  const [plantingDate, setPlantingDate] = useState("");
-  const [landSize, setLandSize] = useState("");
+  const [seasonalRainfall, setSeasonalRainfall] = useState("");
+  const [avgTemperature, setAvgTemperature] = useState("");
+  const [maxTemperature, setMaxTemperature] = useState("");
+  const [avgHumidity, setAvgHumidity] = useState("");
+  const [sunshineHours, setSunshineHours] = useState("");
 
   // Dropdowns
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
   const [showLocationPopup, setShowLocationPopup] = useState(false);
-  const [showSoilTypePopup, setShowSoilTypePopup] = useState(false);
+  const [showSeasonPopup, setShowSeasonPopup] = useState(false);
   const [showVarietyPopup, setShowVarietyPopup] = useState(false);
+  const [showSoilTypePopup, setShowSoilTypePopup] = useState(false);
+  const [showSoilConditionPopup, setShowSoilConditionPopup] = useState(false);
+  const [showIrrigationPopup, setShowIrrigationPopup] = useState(false);
   const [showRainfallPopup, setShowRainfallPopup] = useState(false);
-  
-  // Weather info
-  const [weatherData, setWeatherData] = useState<{ temp: string; condition: string }>({ 
-    temp: "N/A", 
-    condition: "Weather unavailable" 
-  });
-  const [locationName, setLocationName] = useState("Location");
-  
-  // Get location options based on selected district
-  const getLocationOptions = () => {
-    if (!district || !LOCATION_COORDINATES[district]) return [];
-    return Object.keys(LOCATION_COORDINATES[district]);
-  };
-  
-  // Get soil type options based on selected location
-  const getSoilTypeOptions = () => {
-    if (!district || !location || !LOCATION_COORDINATES[district] || !LOCATION_COORDINATES[district][location]) {
-      return [];
-    }
-    return LOCATION_COORDINATES[district][location].soilTypes;
-  };
-  
-  // Auto-fill soil type when location changes
-  React.useEffect(() => {
-    if (location && district && LOCATION_COORDINATES[district] && LOCATION_COORDINATES[district][location]) {
-      const soilTypes = LOCATION_COORDINATES[district][location].soilTypes;
-      if (soilTypes.length > 0) {
-        setSoilType(soilTypes[0]);
-      }
-    } else {
-      setSoilType("");
-    }
-  }, [location, district]);
+  const [showNStatusPopup, setShowNStatusPopup] = useState(false);
+  const [showPStatusPopup, setShowPStatusPopup] = useState(false);
+  const [showKStatusPopup, setShowKStatusPopup] = useState(false);
 
   const content = {
     si: {
       title: "අස්වැන්න පුරෝකථනය",
-      subtitle: "කෘෂිකර්ම නිලධාරී",
+      subtitle: "කෘෂිකර්ම නිලධාරී - ML මාදිලිය",
+      locationInfo: "ස්ථාන තොරතුරු",
       soilProfile: "පස් පැතිකඩ",
       climateData: "කාලගුණ දත්ත",
       cropInfo: "බෝග තොරතුරු",
+      fertilizerDates: "පොහොර දිනයන්",
       district: "දිස්ත්‍රික්කය",
       location: "ස්ථානය",
+      season: "වාරය",
+      fieldSize: "ඉඩම් ප්‍රමාණය (හෙක්ටයාර්)",
+      seedVariety: "බීජ වර්ගය",
+      plantingDate: "වගා කළ දිනය",
+      plantingMonth: "වගා මාසය",
+      firstFertDate: "පළමු පොහොර දිනය",
+      secondFertDate: "දෙවන පොහොර දිනය",
       soilType: "පස් වර්ගය",
+      soilCondition: "පස් තත්ත්වය",
       soilPh: "පස් pH",
       nitrogen: "නයිට්‍රජන් (ppm)",
       phosphorus: "පොස්පරස් (ppm)",
       potassium: "පොටෑසියම් (ppm)",
-      organicMatter: "කාබනික ද්‍රව්‍ය (%)",
-      seasonalRainfall: "වාර වර්ෂාපතනය",
-      avgTemperature: "සාමාන්‍ය උෂ්ණත්වය (°C)",
-      variety: "බීජ වර්ගය",
-      plantingDate: "වගා කළ දිනය",
-      landSize: "ඉඩම් ප්‍රමාණය (අක්කර)",
-      autoFill: "ස්වයංක්‍රීය පිරවීම",
-      humidity: "ආර්ද්‍රතාවය (%)",
+      fertilityIndex: "සාරවත් දර්ශකය (0-1)",
+      nStatus: "N තත්ත්වය",
+      pStatus: "P තත්ත්වය",
+      kStatus: "K තත්ත්වය",
+      irrigationType: "ජල සම්පාදන වර්ගය",
+      rainfallCondition: "වර්ෂාපතන තත්ත්වය",
       rainfall30d: "වර්ෂාපතනය 30d (mm)",
-      seasonalTemperature: "වාර උෂ්ණත්වය (°C)",
-      seasonalHumidity: "වාර ආර්ද්‍රතාවය (%)",
-      rainfallSeasonal: "වාර වර්ෂාපතනය (mm)",
+      seasonalRainfall: "වාර වර්ෂාපතනය (mm)",
+      avgTemp: "සාමාන්‍ය උෂ්ණත්වය (°C)",
+      maxTemp: "උපරිම උෂ්ණත්වය (°C)",
+      humidity: "ආර්ද්‍රතාවය (%)",
+      sunshine: "හිරු එළිය (පැය)",
       submit: "පුරෝකථනය ලබා ගන්න",
       back: "ආපසු",
       select: "තෝරන්න",
       cancel: "අවලංගු",
-      adequate: "ප්‍රමාණවත්",
-      deficit: "හිඟය",
-      excess: "අතිරික්තය",
     },
     en: {
       title: "Yield Prediction",
-      subtitle: "Agricultural Officer",
+      subtitle: "Agricultural Officer - ML Model",
+      locationInfo: "Location Information",
       soilProfile: "Soil Profile",
       climateData: "Climate Data",
       cropInfo: "Crop Information",
+      fertilizerDates: "Fertilizer Dates",
       district: "District",
       location: "Location",
+      season: "Season",
+      fieldSize: "Field Size (hectares)",
+      seedVariety: "Seed Variety",
+      plantingDate: "Planting Date",
+      plantingMonth: "Planting Month",
+      firstFertDate: "First Fertilizer Date",
+      secondFertDate: "Second Fertilizer Date",
       soilType: "Soil Type",
+      soilCondition: "Soil Condition",
       soilPh: "Soil pH",
       nitrogen: "Nitrogen (ppm)",
       phosphorus: "Phosphorus (ppm)",
       potassium: "Potassium (ppm)",
-      organicMatter: "Organic Matter (%)",
-      seasonalRainfall: "Seasonal Rainfall",
-      avgTemperature: "Average Temperature (°C)",
-      variety: "Seed Variety",
-      plantingDate: "Planting Date",
-      landSize: "Land Size (acres)",
-      autoFill: "Auto Fill",
-      humidity: "Humidity (%)",
+      fertilityIndex: "Fertility Index (0-1)",
+      nStatus: "N Status",
+      pStatus: "P Status",
+      kStatus: "K Status",
+      irrigationType: "Irrigation Type",
+      rainfallCondition: "Rainfall Condition",
       rainfall30d: "Rainfall 30d (mm)",
-      seasonalTemperature: "Seasonal Temperature (°C)",
-      seasonalHumidity: "Seasonal Humidity (%)",
-      rainfallSeasonal: "Seasonal Rainfall (mm)",
+      seasonalRainfall: "Seasonal Rainfall (mm)",
+      avgTemp: "Average Temperature (°C)",
+      maxTemp: "Maximum Temperature (°C)",
+      humidity: "Humidity (%)",
+      sunshine: "Sunshine Hours",
       submit: "Get Prediction",
       back: "Back",
       select: "Select",
       cancel: "Cancel",
-      adequate: "Adequate",
-      deficit: "Deficit",
-      excess: "Excess",
     },
   };
-  
-  // Request location permission and fetch weather
-  const requestLocationAndWeather = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      
-      if (status !== "granted") {
-        Alert.alert(
-          language === "si" ? "අවසරය අවශ්‍යයි" : "Permission Required",
-          language === "si" ? "කරුණාකර ස්ථානය සක්‍රිය කරන්න" : "Please enable location access"
-        );
-        return;
+
+  // Auto-calculate planting month from date
+  React.useEffect(() => {
+    if (plantingDate && plantingDate.length === 10) {
+      const month = parseInt(plantingDate.split("-")[1]);
+      if (month >= 1 && month <= 12) {
+        setPlantingMonth(month.toString());
       }
-
-      const loc = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = loc.coords;
-
-      // Fetch weather data
-      const weather = await fetchWeatherByCoordinates(latitude, longitude);
-      setWeatherData({
-        temp: `${weather.temperature}°C`,
-        condition: weather.description,
-      });
-
-      // Auto-fill weather fields (LIVE DATA from OpenWeatherMap API)
-      setAvgTemperature(weather.temperature.toString());
-      setHumidity(weather.humidity.toString());
-      
-      // Mark as live data
-      setIsLiveData(true);
-      
-      // Determine current season based on month
-      const currentMonth = new Date().getMonth() + 1;
-      const currentSeason = (currentMonth >= 10 || currentMonth <= 3) ? 'maha' : 'yala';
-
-      // Reverse geocode to get location name and district
-      const geocode = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (geocode[0]) {
-        const cityName = geocode[0].city || geocode[0].district || "";
-        const districtName = geocode[0].region || geocode[0].district || "";
-        
-        setLocationName(cityName || "Location");
-        
-        // Auto-fill district if it matches
-        const matchedDistrict = DISTRICTS.find(d => 
-          districtName.toLowerCase().includes(d.toLowerCase()) ||
-          cityName.toLowerCase().includes(d.toLowerCase())
-        );
-        
-        // Use matched district or default to Panadura for wet zone areas
-        const targetDistrict = matchedDistrict || "Panadura";
-        
-        // Set seasonal climate data for the target district
-        if (SEASONAL_CLIMATE_DATA[targetDistrict]) {
-          const seasonalData = SEASONAL_CLIMATE_DATA[targetDistrict][currentSeason];
-          
-          // Calculate average rainfall from min/max range
-          const avgRainfall = Math.round((seasonalData.rainfall.min + seasonalData.rainfall.max) / 2);
-          setRainfallSeasonal(avgRainfall.toString());
-          
-          // Calculate average temperature from min/max range
-          const avgSeasonalTemp = Math.round(((seasonalData.temp.min + seasonalData.temp.max) / 2) * 10) / 10;
-          setSeasonalTemperature(avgSeasonalTemp.toString());
-          
-          // Set seasonal humidity
-          setSeasonalHumidity(seasonalData.humidity.toString());
-          
-          // Calculate 30-day rainfall estimate
-          // If current rainfall is 0, use 10% of seasonal average as estimate
-          const currentRainfall = weather.rainfall || 0;
-          let estimated30d: number;
-          if (currentRainfall > 0) {
-            // Extrapolate from current rainfall
-            estimated30d = Math.round(currentRainfall * 720);
-          } else {
-            // Use 10% of seasonal average as fallback (represents typical 30-day period)
-            estimated30d = Math.round(avgRainfall * 0.1);
-          }
-          setRainfall30d(estimated30d.toString());
-          
-          console.log(`Data set for ${targetDistrict} (${currentSeason}):`, {
-            temp: avgSeasonalTemp,
-            humidity: seasonalData.humidity,
-            rainfall: avgRainfall,
-            rainfall30d: estimated30d
-          });
-        }
-        
-        // Only set district dropdown if matched
-        if (matchedDistrict) {
-          setDistrict(matchedDistrict);
-        }
-        
-        // Auto-fill location if it matches
-        if (district && LOCATION_COORDINATES[district]) {
-          const matchedLocation = Object.keys(LOCATION_COORDINATES[district]).find(loc =>
-            cityName.toLowerCase().includes(loc.toLowerCase())
-          );
-          if (matchedLocation) {
-            setLocation(matchedLocation);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching location/weather:", error);
-      Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
-        language === "si" ? "කාලගුණ දත්ත ලබා ගත නොහැක" : "Unable to fetch weather data"
-      );
     }
-  };
-  
-  // Handle auto-fill button press
-  const handleAutoFill = () => {
-    Alert.alert(
-      language === "si" ? "ස්ථානය සක්‍රිය කරන්න" : "Enable Location",
-      language === "si" 
-        ? "දිස්ත්‍රික්කය සහ කාලගුණ දත්ත ස්වයංක්‍රීයව පුරවීමට ස්ථානය සක්‍රිය කරන්න" 
-        : "Enable location to auto-fill district and weather data",
-      [
-        {
-          text: language === "si" ? "අවලංගු" : "Cancel",
-          style: "cancel",
-        },
-        {
-          text: language === "si" ? "සක්‍රිය කරන්න" : "Enable",
-          onPress: requestLocationAndWeather,
-        },
-      ]
-    );
-  };
-  
-  // Land size increment/decrement
-  const increaseLandSize = () => {
-    const current = parseFloat(landSize) || 0;
-    setLandSize((current + 0.1).toFixed(1));
-  };
+  }, [plantingDate]);
 
-  const decreaseLandSize = () => {
-    const current = parseFloat(landSize) || 0;
-    if (current > 0.1) {
-      setLandSize((current - 0.1).toFixed(1));
-    }
+  const getLocationOptions = () => {
+    if (!district || !LOCATIONS[district]) return [];
+    return LOCATIONS[district];
   };
 
   const handleSubmit = async () => {
     // Validation
     if (
       !district ||
+      !location ||
+      !season ||
+      !fieldSizeHa ||
+      !seedVariety ||
+      !plantingDate ||
+      !firstFertDate ||
+      !soilType ||
+      !soilCondition ||
       !soilPh ||
       !soilNitrogen ||
       !soilPhosphorus ||
       !soilPotassium ||
-      !organicMatter ||
+      !soilFertilityIndex ||
+      !nStatusClass ||
+      !pStatusClass ||
+      !kStatusClass ||
+      !irrigationType ||
+      !rainfallCondition ||
+      !rainfall30d ||
       !seasonalRainfall ||
       !avgTemperature ||
-      !variety ||
-      !plantingDate
+      !maxTemperature ||
+      !avgHumidity ||
+      !sunshineHours
     ) {
       Alert.alert(
         language === "si" ? "දෝෂයකි" : "Error",
@@ -609,21 +279,42 @@ const YieldPredictionOfficerFormScreen = () => {
 
     try {
       const payload = {
-        officer_id: "officer_123", // TODO: Get from auth context
+        officer_id: "officer_123",
         soil_profile: {
           district,
+          location,
+          soil_type: soilType,
+          soil_condition: soilCondition,
           soil_ph: parseFloat(soilPh),
-          soil_nitrogen: parseFloat(soilNitrogen),
-          soil_phosphorus: parseFloat(soilPhosphorus),
-          soil_potassium: parseFloat(soilPotassium),
-          organic_matter: parseFloat(organicMatter),
+          soil_nitrogen_n: parseFloat(soilNitrogen),
+          soil_phosphorus_p: parseFloat(soilPhosphorus),
+          soil_potassium_k: parseFloat(soilPotassium),
+          soil_fertility_index: parseFloat(soilFertilityIndex),
+          n_status_class: nStatusClass,
+          p_status_class: pStatusClass,
+          k_status_class: kStatusClass,
         },
         climate_data: {
-          seasonal_rainfall: seasonalRainfall,
-          avg_temperature: parseFloat(avgTemperature),
+          irrigation_type: irrigationType,
+          rainfall_condition: rainfallCondition,
+          rainfall_30d_mm: parseFloat(rainfall30d),
+          seasonal_rainfall_mm: parseFloat(seasonalRainfall),
+          avg_temperature_c: parseFloat(avgTemperature),
+          max_temperature_c: parseFloat(maxTemperature),
+          avg_humidity_pct: parseFloat(avgHumidity),
+          sunshine_hours: parseFloat(sunshineHours),
         },
-        variety,
-        planting_date: plantingDate,
+        crop_information: {
+          seed_variety: seedVariety,
+          planting_date: plantingDate,
+          planting_month: parseInt(plantingMonth),
+          season,
+          field_size_ha: parseFloat(fieldSizeHa),
+        },
+        fertilizer_dates: {
+          first_fert_date: firstFertDate,
+          second_fert_date: secondFertDate || null,
+        },
       };
 
       const response = await fetch(`${API_URL}/api/v1/yield-prediction/officer`, {
@@ -658,41 +349,74 @@ const YieldPredictionOfficerFormScreen = () => {
     }
   };
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
+  const renderDropdown = (
+    label: string,
+    value: string,
+    options: string[],
+    onSelect: (val: string) => void,
+    showPopup: boolean,
+    setShowPopup: (show: boolean) => void
+  ) => (
+    <>
+      <View style={styles.formGroup}>
+        <Text style={styles.label}>{label} *</Text>
+        <TouchableOpacity
+          style={styles.input}
+          onPress={() => setShowPopup(true)}
+        >
+          <Text
+            style={{
+              color: value ? "#1F2937" : "#9CA3AF",
+              fontSize: 15,
+            }}
+          >
+            {value || content[language].select}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
-  const translateValue = (value: string): string => {
-    if (language === "en") return value;
-    
-    const translations: { [key: string]: string } = {
-      Adequate: "ප්‍රමාණවත්",
-      Deficit: "හිඟය",
-      Excess: "අතිරික්තය",
-    };
-    
-    return translations[value] || value;
-  };
+      {showPopup && (
+        <View style={styles.popupContainer}>
+          <View style={styles.popupBox}>
+            <ScrollView>
+              {options.map((opt) => (
+                <TouchableOpacity
+                  key={opt}
+                  style={styles.popupItem}
+                  onPress={() => {
+                    onSelect(opt);
+                    setShowPopup(false);
+                  }}
+                >
+                  <Text style={styles.popupText}>{opt}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.popupCancel}
+              onPress={() => setShowPopup(false)}
+            >
+              <Text style={styles.popupCancelText}>
+                {content[language].cancel}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+    </>
+  );
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft color="#047857" size={24} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.langButton}
-          onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-        >
-          <Text style={styles.langText}>
-            {language === "si" ? "EN" : "සිං"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -700,7 +424,134 @@ const YieldPredictionOfficerFormScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Soil Profile Section */}
+        {/* Location Information */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconContainer}>
+              <MapPin color="#10B981" size={20} />
+            </View>
+            <Text style={styles.sectionTitle}>
+              {content[language].locationInfo}
+            </Text>
+          </View>
+
+          {renderDropdown(
+            content[language].district,
+            district,
+            DISTRICTS,
+            setDistrict,
+            showDistrictPopup,
+            setShowDistrictPopup
+          )}
+
+          {renderDropdown(
+            content[language].location,
+            location,
+            getLocationOptions(),
+            setLocation,
+            showLocationPopup,
+            setShowLocationPopup
+          )}
+
+          {renderDropdown(
+            content[language].season,
+            season,
+            SEASONS,
+            setSeason,
+            showSeasonPopup,
+            setShowSeasonPopup
+          )}
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].fieldSize} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="2.5"
+              value={fieldSizeHa}
+              onChangeText={setFieldSizeHa}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+        </View>
+
+        {/* Crop Information */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconContainer}>
+              <Leaf color="#10B981" size={20} />
+            </View>
+            <Text style={styles.sectionTitle}>
+              {content[language].cropInfo}
+            </Text>
+          </View>
+
+          {renderDropdown(
+            content[language].seedVariety,
+            seedVariety,
+            VARIETIES,
+            setSeedVariety,
+            showVarietyPopup,
+            setShowVarietyPopup
+          )}
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].plantingDate} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY-MM-DD"
+              value={plantingDate}
+              onChangeText={setPlantingDate}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].plantingMonth}</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: "#F3F4F6" }]}
+              value={plantingMonth}
+              editable={false}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+        </View>
+
+        {/* Fertilizer Dates */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconContainer}>
+              <Calendar color="#10B981" size={20} />
+            </View>
+            <Text style={styles.sectionTitle}>
+              {content[language].fertilizerDates}
+            </Text>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].firstFertDate} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY-MM-DD"
+              value={firstFertDate}
+              onChangeText={setFirstFertDate}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].secondFertDate}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="YYYY-MM-DD (Optional)"
+              value={secondFertDate}
+              onChangeText={setSecondFertDate}
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+        </View>
+
+        {/* Soil Profile */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
@@ -711,54 +562,24 @@ const YieldPredictionOfficerFormScreen = () => {
             </Text>
           </View>
 
-          {/* District */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{content[language].district} *</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowDistrictPopup(true)}
-            >
-              <Text
-                style={{
-                  color: district ? "#1F2937" : "#9CA3AF",
-                  fontSize: 15,
-                }}
-              >
-                {district || content[language].select}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {showDistrictPopup && (
-            <View style={styles.popupContainer}>
-              <View style={styles.popupBox}>
-                <ScrollView>
-                  {DISTRICTS.map((d) => (
-                    <TouchableOpacity
-                      key={d}
-                      style={styles.popupItem}
-                      onPress={() => {
-                        setDistrict(d);
-                        setShowDistrictPopup(false);
-                      }}
-                    >
-                      <Text style={styles.popupText}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity
-                  style={styles.popupCancel}
-                  onPress={() => setShowDistrictPopup(false)}
-                >
-                  <Text style={styles.popupCancelText}>
-                    {content[language].cancel}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          {renderDropdown(
+            content[language].soilType,
+            soilType,
+            SOIL_TYPES,
+            setSoilType,
+            showSoilTypePopup,
+            setShowSoilTypePopup
           )}
 
-          {/* Soil pH */}
+          {renderDropdown(
+            content[language].soilCondition,
+            soilCondition,
+            SOIL_CONDITIONS,
+            setSoilCondition,
+            showSoilConditionPopup,
+            setShowSoilConditionPopup
+          )}
+
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].soilPh} *</Text>
             <TextInput
@@ -771,7 +592,6 @@ const YieldPredictionOfficerFormScreen = () => {
             />
           </View>
 
-          {/* Nitrogen */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].nitrogen} *</Text>
             <TextInput
@@ -784,7 +604,6 @@ const YieldPredictionOfficerFormScreen = () => {
             />
           </View>
 
-          {/* Phosphorus */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].phosphorus} *</Text>
             <TextInput
@@ -797,7 +616,6 @@ const YieldPredictionOfficerFormScreen = () => {
             />
           </View>
 
-          {/* Potassium */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].potassium} *</Text>
             <TextInput
@@ -810,21 +628,47 @@ const YieldPredictionOfficerFormScreen = () => {
             />
           </View>
 
-          {/* Organic Matter */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>{content[language].organicMatter} *</Text>
+            <Text style={styles.label}>{content[language].fertilityIndex} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="3.5"
-              value={organicMatter}
-              onChangeText={setOrganicMatter}
+              placeholder="0.75"
+              value={soilFertilityIndex}
+              onChangeText={setSoilFertilityIndex}
               keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
             />
           </View>
+
+          {renderDropdown(
+            content[language].nStatus,
+            nStatusClass,
+            NPK_STATUS,
+            setNStatusClass,
+            showNStatusPopup,
+            setShowNStatusPopup
+          )}
+
+          {renderDropdown(
+            content[language].pStatus,
+            pStatusClass,
+            NPK_STATUS,
+            setPStatusClass,
+            showPStatusPopup,
+            setShowPStatusPopup
+          )}
+
+          {renderDropdown(
+            content[language].kStatus,
+            kStatusClass,
+            NPK_STATUS,
+            setKStatusClass,
+            showKStatusPopup,
+            setShowKStatusPopup
+          )}
         </View>
 
-        {/* Climate Data Section */}
+        {/* Climate Data */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
@@ -835,56 +679,50 @@ const YieldPredictionOfficerFormScreen = () => {
             </Text>
           </View>
 
-          {/* Seasonal Rainfall */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{content[language].seasonalRainfall} *</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowRainfallPopup(true)}
-            >
-              <Text
-                style={{
-                  color: seasonalRainfall ? "#1F2937" : "#9CA3AF",
-                  fontSize: 15,
-                }}
-              >
-                {seasonalRainfall ? translateValue(seasonalRainfall) : content[language].select}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {showRainfallPopup && (
-            <View style={styles.popupContainer}>
-              <View style={styles.popupBox}>
-                <ScrollView>
-                  {RAINFALL_CONDITIONS.map((r) => (
-                    <TouchableOpacity
-                      key={r}
-                      style={styles.popupItem}
-                      onPress={() => {
-                        setSeasonalRainfall(r);
-                        setShowRainfallPopup(false);
-                      }}
-                    >
-                      <Text style={styles.popupText}>{translateValue(r)}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity
-                  style={styles.popupCancel}
-                  onPress={() => setShowRainfallPopup(false)}
-                >
-                  <Text style={styles.popupCancelText}>
-                    {content[language].cancel}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+          {renderDropdown(
+            content[language].irrigationType,
+            irrigationType,
+            IRRIGATION_TYPES,
+            setIrrigationType,
+            showIrrigationPopup,
+            setShowIrrigationPopup
           )}
 
-          {/* Average Temperature */}
+          {renderDropdown(
+            content[language].rainfallCondition,
+            rainfallCondition,
+            RAINFALL_CONDITIONS,
+            setRainfallCondition,
+            showRainfallPopup,
+            setShowRainfallPopup
+          )}
+
           <View style={styles.formGroup}>
-            <Text style={styles.label}>{content[language].avgTemperature} *</Text>
+            <Text style={styles.label}>{content[language].rainfall30d} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="150"
+              value={rainfall30d}
+              onChangeText={setRainfall30d}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].seasonalRainfall} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="1200"
+              value={seasonalRainfall}
+              onChangeText={setSeasonalRainfall}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].avgTemp} *</Text>
             <TextInput
               style={styles.input}
               placeholder="28"
@@ -894,74 +732,39 @@ const YieldPredictionOfficerFormScreen = () => {
               placeholderTextColor="#9CA3AF"
             />
           </View>
-        </View>
 
-        {/* Crop Information Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Leaf color="#10B981" size={20} />
-            </View>
-            <Text style={styles.sectionTitle}>
-              {content[language].cropInfo}
-            </Text>
-          </View>
-
-          {/* Variety */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>{content[language].variety} *</Text>
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowVarietyPopup(true)}
-            >
-              <Text
-                style={{
-                  color: variety ? "#1F2937" : "#9CA3AF",
-                  fontSize: 15,
-                }}
-              >
-                {variety || content[language].select}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {showVarietyPopup && (
-            <View style={styles.popupContainer}>
-              <View style={styles.popupBox}>
-                <ScrollView>
-                  {VARIETIES.map((v) => (
-                    <TouchableOpacity
-                      key={v}
-                      style={styles.popupItem}
-                      onPress={() => {
-                        setVariety(v);
-                        setShowVarietyPopup(false);
-                      }}
-                    >
-                      <Text style={styles.popupText}>{v}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <TouchableOpacity
-                  style={styles.popupCancel}
-                  onPress={() => setShowVarietyPopup(false)}
-                >
-                  <Text style={styles.popupCancelText}>
-                    {content[language].cancel}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Planting Date */}
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>{content[language].plantingDate} *</Text>
+            <Text style={styles.label}>{content[language].maxTemp} *</Text>
             <TextInput
               style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={plantingDate}
-              onChangeText={setPlantingDate}
+              placeholder="34"
+              value={maxTemperature}
+              onChangeText={setMaxTemperature}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].humidity} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="75"
+              value={avgHumidity}
+              onChangeText={setAvgHumidity}
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].sunshine} *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="8.5"
+              value={sunshineHours}
+              onChangeText={setSunshineHours}
+              keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
             />
           </View>
@@ -1137,4 +940,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default YieldPredictionOfficerFormScreen;
+export default YieldPredictionOfficerFormScreenNew;

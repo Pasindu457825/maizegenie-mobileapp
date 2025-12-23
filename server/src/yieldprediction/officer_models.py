@@ -20,55 +20,58 @@ RecommendationPriority = Literal['high', 'medium', 'low']
 
 class SoilProfile(BaseModel):
     district: str = Field(..., description="District name")
-    location: Optional[str] = Field(None, description="Specific location")
-    gps_lat: Optional[float] = Field(None, description="GPS latitude")
-    gps_lng: Optional[float] = Field(None, description="GPS longitude")
+    location: str = Field(..., description="Specific location within district")
+    soil_type: str = Field(..., description="Soil type (Clay, Loam, Sandy-Loam, etc.)")
+    soil_condition: str = Field(..., description="Soil condition: Good/Medium/Poor")
+    
+    # Soil Chemistry
     soil_ph: float = Field(..., ge=0, le=14, description="Soil pH (0-14)")
-    soil_nitrogen: float = Field(..., ge=0, description="Soil nitrogen content (ppm)")
-    soil_phosphorus: float = Field(..., ge=0, description="Soil phosphorus content (ppm)")
-    soil_potassium: float = Field(..., ge=0, description="Soil potassium content (ppm)")
-    soil_type: str = Field(..., description="Soil type (Clay, Loam, RBE, RBL)")
-    organic_matter: float = Field(..., ge=0, le=100, description="Organic matter percentage")
+    soil_nitrogen_n: float = Field(..., ge=0, description="Soil nitrogen content (ppm)")
+    soil_phosphorus_p: float = Field(..., ge=0, description="Soil phosphorus content (ppm)")
+    soil_potassium_k: float = Field(..., ge=0, description="Soil potassium content (ppm)")
+    soil_fertility_index: float = Field(..., ge=0, le=1, description="Soil fertility index (0-1)")
+    
+    # NPK Status Classification
+    n_status_class: str = Field(..., description="Nitrogen status: Low/Medium/High")
+    p_status_class: str = Field(..., description="Phosphorus status: Low/Medium/High")
+    k_status_class: str = Field(..., description="Potassium status: Low/Medium/High")
 
 class ClimateData(BaseModel):
-    seasonal_rainfall: str = Field(..., description="Seasonal rainfall condition")
-    temperature: str = Field(..., description="Temperature condition")
-    humidity: str = Field(..., description="Humidity level")
-    photoperiod: str = Field(..., description="Photoperiod")
-    climate_auto_fetched: Optional[bool] = Field(False, description="Auto-fetched from weather API")
+    # Categorical conditions
+    irrigation_type: str = Field(..., description="Irrigation: Rainfed/Irrigated/Mixed")
+    rainfall_condition: str = Field(..., description="Rainfall: Low/Normal/High")
+    
+    # Numerical weather data
+    rainfall_30d_mm: float = Field(..., ge=0, description="30-day rainfall in mm")
+    seasonal_rainfall_mm: float = Field(..., ge=0, description="Seasonal total rainfall in mm")
+    avg_temperature_c: float = Field(..., description="Average temperature in Celsius")
+    max_temperature_c: float = Field(..., description="Maximum temperature in Celsius")
+    avg_humidity_pct: float = Field(..., ge=0, le=100, description="Average humidity percentage")
+    sunshine_hours: float = Field(..., ge=0, le=24, description="Daily sunshine hours")
 
-class CropMeasurements(BaseModel):
-    plant_height: Optional[float] = Field(None, ge=0, description="Plant height (cm)")
-    cob_height: Optional[float] = Field(None, ge=0, description="Cob height (cm)")
-    cob_length: Optional[float] = Field(None, ge=0, description="Cob length (cm)")
-    kernel_rows: Optional[int] = Field(None, ge=0, description="Number of kernel rows")
-    wet_weight_per_m2: Optional[float] = Field(None, ge=0, description="Wet weight per m² (kg)")
-    measurements_taken: Optional[bool] = Field(False, description="Whether measurements were taken")
+class FertilizerDates(BaseModel):
+    first_fert_date: str = Field(..., description="First fertilizer application date (YYYY-MM-DD)")
+    second_fert_date: Optional[str] = Field(None, description="Second fertilizer application date (YYYY-MM-DD)")
 
-class FertilizerApplied(BaseModel):
-    basal_npk: float = Field(..., ge=0, description="Basal NPK applied (kg/ha)")
-    top_dress_1_amount: Optional[float] = Field(None, ge=0, description="Top-dress 1 amount (kg/ha)")
-    top_dress_1_date: Optional[str] = Field(None, description="Top-dress 1 date (YYYY-MM-DD)")
-    top_dress_2_amount: Optional[float] = Field(None, ge=0, description="Top-dress 2 amount (kg/ha)")
-    top_dress_2_date: Optional[str] = Field(None, description="Top-dress 2 date (YYYY-MM-DD)")
+class CropInformation(BaseModel):
+    seed_variety: str = Field(..., description="Maize variety name")
+    planting_date: str = Field(..., description="Planting date (YYYY-MM-DD)")
+    planting_month: int = Field(..., ge=1, le=12, description="Planting month (1-12)")
+    season: str = Field(..., description="Growing season: Maha/Yala")
+    field_size_ha: float = Field(..., gt=0, description="Field size in hectares")
 
 class OfficerPredictionRequest(BaseModel):
-    user_role: Literal['officer'] = 'officer'
+    """
+    Officer prediction request matching ML training dataset structure (28 parameters)
+    """
     officer_id: str = Field(..., description="Officer ID")
     farmer_id: Optional[str] = Field(None, description="Farmer ID (if applicable)")
     
-    # Core data
+    # Core data sections
     soil_profile: SoilProfile
     climate_data: ClimateData
-    crop_measurements: Optional[CropMeasurements] = None
-    fertilizer_applied: FertilizerApplied
-    
-    # Basic info
-    planting_date: str = Field(..., description="Planting date (YYYY-MM-DD)")
-    variety: str = Field(..., description="Maize variety")
-    season: Optional[str] = Field(None, description="Growing season")
-    land_size_value: Optional[float] = Field(None, ge=0, description="Land size")
-    land_size_unit: Optional[str] = Field(None, description="Land size unit")
+    crop_information: CropInformation
+    fertilizer_dates: FertilizerDates
 
 # ============================================================
 # RESPONSE MODELS
