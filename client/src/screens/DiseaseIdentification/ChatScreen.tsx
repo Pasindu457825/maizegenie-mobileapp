@@ -237,6 +237,78 @@ export default function ChatScreen({ route, navigation }: any) {
   const currentUserId = isOfficer ? String(incomingUserId) : String(farmerId);
   const chatTitle = isOfficer ? "Farmer Chat" : "Agriculture Officer";
 
+  // Add this component inside your ChatScreen component, before the return statement
+  const AnimatedWaveDots = () => {
+    const dot1Anim = useRef(new Animated.Value(0)).current;
+    const dot2Anim = useRef(new Animated.Value(0)).current;
+    const dot3Anim = useRef(new Animated.Value(0)).current;
+    const dot4Anim = useRef(new Animated.Value(0)).current;
+    const dot5Anim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+      const createAnimation = (animValue: Animated.Value, delay: number) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.timing(animValue, {
+              toValue: 1,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.timing(animValue, {
+              toValue: 0,
+              duration: 400,
+              useNativeDriver: true,
+            }),
+            Animated.delay(600),
+          ])
+        );
+      };
+
+      const animations = [
+        createAnimation(dot1Anim, 0),
+        createAnimation(dot2Anim, 100),
+        createAnimation(dot3Anim, 200),
+        createAnimation(dot4Anim, 300),
+        createAnimation(dot5Anim, 400),
+      ];
+
+      animations.forEach((anim) => anim.start());
+
+      return () => animations.forEach((anim) => anim.stop());
+    }, []);
+
+    const getDotStyle = (animValue: Animated.Value) => ({
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: "#10B981",
+      marginHorizontal: 4,
+      transform: [
+        {
+          scale: animValue.interpolate({
+            inputRange: [0, 1],
+            outputRange: [1, 1.5],
+          }),
+        },
+      ],
+      opacity: animValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 1],
+      }),
+    });
+
+    return (
+      <View style={styles.waveLoader}>
+        <Animated.View style={getDotStyle(dot1Anim)} />
+        <Animated.View style={getDotStyle(dot2Anim)} />
+        <Animated.View style={getDotStyle(dot3Anim)} />
+        <Animated.View style={getDotStyle(dot4Anim)} />
+        <Animated.View style={getDotStyle(dot5Anim)} />
+      </View>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -373,8 +445,16 @@ export default function ChatScreen({ route, navigation }: any) {
         {/* Loading overlay on top */}
         {isLoadingChat && (
           <View style={styles.chatLoadingOverlay}>
-            <Text style={styles.chatLoadingEmoji}>🌾</Text>
+            {/* Animated dots loader */}
+            <AnimatedWaveDots />
+
+            {/* Optional text */}
             <Text style={styles.chatLoadingText}>Loading messages...</Text>
+
+            {/* Subtle decorative element */}
+            <View style={styles.loaderDecoration}>
+              <Text style={styles.loaderEmoji}>🌱</Text>
+            </View>
           </View>
         )}
       </View>
@@ -483,6 +563,40 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 12,
   },
+  chatLoadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    zIndex: 999,
+  },
+  waveLoader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 40,
+    marginBottom: 20,
+  },
+  chatLoadingText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
+    marginBottom: 30,
+    letterSpacing: 0.5,
+  },
+  loaderDecoration: {
+    position: "absolute",
+    bottom: 60,
+  },
+  loaderEmoji: {
+    fontSize: 32,
+    opacity: 0.3,
+  },
+
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
@@ -501,17 +615,7 @@ const styles = StyleSheet.create({
   chatMessagesWrapper: {
     flex: 1,
   },
-  chatLoadingOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f8fafc",
-    zIndex: 999,
-  },
+
   chatLoadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -522,11 +626,7 @@ const styles = StyleSheet.create({
     fontSize: 40,
     marginBottom: 12,
   },
-  chatLoadingText: {
-    fontSize: 14,
-    color: "#6b7280",
-    fontWeight: "500",
-  },
+
   messagesContainer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
