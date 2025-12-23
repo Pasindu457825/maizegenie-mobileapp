@@ -426,10 +426,6 @@ export default function ChatScreen({ route, navigation }: any) {
                                 size={12}
                                 color={isMe ? "#ffffff" : "#9ca3af"}
                               />
-                              <CheckCheck
-                                size={12}
-                                color={isMe ? "#ffffff" : "#9ca3af"}
-                              />
                             </View>
                           )}
                         </View>
