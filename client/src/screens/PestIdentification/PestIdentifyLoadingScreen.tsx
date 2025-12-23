@@ -21,11 +21,13 @@ import {
   AlertCircle,
   X,
   CheckCircle,
+  ArrowRight,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from 'expo-image-picker';
 import axios from "axios";
+import { PestIdentifyStackParamList } from "src/navigation/PestIdentifyStack";
 
 const { width } = Dimensions.get("window");
 
@@ -37,22 +39,16 @@ interface Prediction {
   confidence: number;
 }
 
-type RootStackParamList = {
-  PestIdentificationScreen: undefined;
-};
-
-type NavProp = StackNavigationProp<RootStackParamList>;
+type NavProp = StackNavigationProp<PestIdentifyStackParamList>;
 
 // Dynamic API URL based on platform
 const getApiUrl = () => {
   if (Platform.OS === 'android') {
-    // For REAL Android device
-    return "http://192.168.8.125:8000";
-    // For Android emulator, use: "http://10.0.2.2:8000"
+    return process.env.EXPO_PUBLIC_API_BASE || "http://192.168.8.125:8000";
   } else if (Platform.OS === 'ios') {
     return "http://localhost:8000";
   } else {
-    return "http://localhost:8000"; // Web
+    return "http://localhost:8000";
   }
 };
 
@@ -84,6 +80,8 @@ const PestIdentificationScreen = () => {
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
+      viewControl: "පාලනය බලන්න",
+      viewLifecycle: "ජීවන චක්‍රය බලන්න",
     },
     en: {
       title: "🐛 Pest Identification",
@@ -99,6 +97,8 @@ const PestIdentificationScreen = () => {
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
       orText: "OR",
+      viewControl: "View Control",
+      viewLifecycle: "View Lifecycle",
     },
   };
 
@@ -256,6 +256,28 @@ const PestIdentificationScreen = () => {
       setLoading(false);
     }
   };
+
+  // Check if Fall Armyworm is detected
+  const isFallArmywormDetected = () => {
+    if (!result || result.length === 0) return false;
+    return result.some(
+      (p) => p.class_name.toLowerCase().includes("armyworm")
+    );
+  };
+
+  const isBollwormDetected = () => {
+    if (!result || result.length === 0) return false;
+    return result.some((p) => p.class_name.toLowerCase().includes("bollworm"));
+  };
+
+  const isAsianCornBorerDetected = () => {
+  if (!result?.length) return false;
+
+  return result.some(
+    (p) => p.class_name.toLowerCase() === "asian-corn-borer"
+  );
+};
+
 
   const resetScreen = () => {
     setImageUri(null);
@@ -453,6 +475,91 @@ const PestIdentificationScreen = () => {
                   </View>
                 </View>
               ))}
+              
+              {/* Show lifecycle button only if Fall Armyworm is detected */}
+              {isFallArmywormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("FallArmywormLifecycle")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewLifecycle}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show lifecycle button only if Bollworm is detected */}
+              {isBollwormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("BollwormLifecycle")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewLifecycle}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show lifecycle button only if Asian Corn Borer is detected */}
+              {isAsianCornBorerDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton} 
+                  onPress={() => navigation.navigate("AsianCornBorerLifecycle")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewLifecycle}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show control button only if Fall Armyworm is detected */}
+              {isFallArmywormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("FallArmywormControl")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewControl}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show control button only if bollworm is detected */}
+              {isBollwormDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("BollwormControl")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewControl}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
+              {/* Show control button only if Asian Corn Borer is detected */}
+              {isAsianCornBorerDetected() && (
+                <TouchableOpacity 
+                  style={styles.lifecycleButton}
+                  onPress={() => navigation.navigate("AsianCornBorerControl")}
+                  activeOpacity={0.85}
+                >
+                  <Text >
+                    {content[language].viewControl}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity style={styles.tryAgainButton} onPress={resetScreen}>
                 <Text style={styles.tryAgainButtonText}>{content[language].tryAgain}</Text>
               </TouchableOpacity>
@@ -474,6 +581,7 @@ const PestIdentificationScreen = () => {
   );
 };
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -488,6 +596,16 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 40,
     flexGrow: 1,
+  },
+  lifecycleButton: {
+    backgroundColor: "#DC2626",
+    padding: 12,
+    paddingHorizontal: 25,
+    borderRadius: 25,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 10,
   },
   header: {
     backgroundColor: "#FFFFFF",

@@ -31,14 +31,49 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import useUniversalLocation from "../../utils/useUniversalLocation";
-import WeatherForecastScreen from "../PriceForecast/WeatherForecastScreen";
+import { useLanguage } from "../../context/LanguageContext";
+import { Platform } from "react-native";
+import { useNotifications } from "../../context/NotificationContext";
+
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android device → read from .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
 
 const { width } = Dimensions.get("window");
+const LOCATION_TRANSLATIONS = {
+  Colombo: "කොළඹ",
+  Gampaha: "ගම්පහ",
+  Kandy: "මහනුවර",
+  Matara: "මාතර",
+  Hambantota: "හම්බන්තොට",
+  Monaragala: "මොණරාගල",
+  Anuradhapura: "අනුරාධපුර",
+  Polonnaruwa: "පොලොන්නරුව",
+  Jaffna: "යාපනය",
+  Kurunegala: "කුරුණෑගල",
+  Puttalam: "පුත්තලම",
+  Badulla: "බදුල්ල",
+  "Nuwara Eliya": "නුවර එලිය",
+};
+type LocationKey = keyof typeof LOCATION_TRANSLATIONS;
 
 type RootStackParamList = {
   PriceForecastFormScreen: undefined;
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
+  Notifications: undefined;
 };
 
 type Language = "si" | "en";
@@ -64,8 +99,13 @@ type NavProp = StackNavigationProp<
 >;
 
 const PriceForecastLoadingScreen = () => {
+  const { unreadCount } = useNotifications();
+  type RootNavProp = StackNavigationProp<RootStackParamList>;
+  const rootNavigation = useNavigation<RootNavProp>();
+  const [notifMessages, setNotifMessages] = useState<string[]>([]);
+  const { language: globalLang } = useLanguage();
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
   const [progress, setProgress] = useState(0);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
@@ -118,6 +158,68 @@ const PriceForecastLoadingScreen = () => {
       title: "Smart Farming",
       subtitle: "Agricultural Advisor",
     },
+  };
+
+  const getTranslatedLocation = (rawName: string | null, lang: Language) => {
+    if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+    if (lang === "en") return rawName;
+
+    let enName = rawName.trim();
+
+    // Remove words like "District", "Province"
+    enName = enName
+      .replace(/District/i, "")
+      .replace(/Province/i, "")
+      .trim();
+
+    // Province translations
+    const provinceMap: Record<string, string> = {
+      Western: "බස්නාහිර",
+      Southern: "දකුණු",
+      Central: "මධ්‍යම",
+      Northern: "උතුරු",
+      Eastern: "නැගෙනහිර",
+      NorthWestern: "වයඹ",
+      NorthCentral: "උතුරු මැද",
+      Uva: "ඌව",
+      Sabaragamuwa: "සබරගමුව",
+    };
+
+    if (provinceMap[enName]) return provinceMap[enName] + " පළාත";
+
+    // District translations
+    const districtMap: Record<string, string> = {
+      Colombo: "කොළඹ",
+      Gampaha: "ගම්පහ",
+      Kalutara: "කළුතර",
+      Kandy: "මහනුවර",
+      Matale: "මාතලේ",
+      NuwaraEliya: "නුවර එලිය",
+      Galle: "ගාල්ල",
+      Matara: "මාතර",
+      Hambantota: "හම්බන්තොට",
+      Jaffna: "යාපනය",
+      Kilinochchi: "කිලිනොච්චි",
+      Mannar: "මන්නාරම",
+      Vavuniya: "වවුනියාව",
+      Mullaitivu: "මුලතිව්",
+      Batticaloa: "බතිකලාව",
+      Ampara: "අම්පාර",
+      Trincomalee: "ත්‍රිකුණාමලය",
+      Kurunegala: "කුරුණෑගල",
+      Puttalam: "පුත්තලම",
+      Anuradhapura: "අනුරාධපුර",
+      Polonnaruwa: "පොලොන්නරුව",
+      Badulla: "බදුල්ල",
+      Monaragala: "මොණරාගල",
+      Ratnapura: "රත්නපුර",
+      Kegalle: "කෑගල්ල",
+    };
+
+    if (districtMap[enName]) return districtMap[enName];
+
+    // If town/village not detected, show English name
+    return rawName;
   };
 
   useEffect(() => {
@@ -201,15 +303,14 @@ const PriceForecastLoadingScreen = () => {
   };
 
   const handleAdvisor = () => {
-  navigation.navigate("PriceAdvisorScreen", {
-    formData: {
-      cropDuration: 14,
-      cost: 45000,
-      yieldKg: 1750,
-    },
-  });
-};
-
+    navigation.navigate("PriceAdvisorScreen", {
+      formData: {
+        cropDuration: 14,
+        cost: 45000,
+        yieldKg: 1750,
+      },
+    });
+  };
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
     if (!condition) return <Cloud size={size} color="#10B981" />;
@@ -287,18 +388,19 @@ const PriceForecastLoadingScreen = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIconButton}>
-            <Bell color="#10B981" size={20} />
-            <View style={styles.notificationDot} />
-          </TouchableOpacity>
           <TouchableOpacity
-            style={styles.langButtonHeader}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-            activeOpacity={0.7}
+            style={styles.headerIconButton}
+            onPress={() => rootNavigation.navigate("Notifications")}
           >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
+            <Bell color="#10B981" size={20} />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -312,7 +414,9 @@ const PriceForecastLoadingScreen = () => {
           <View style={styles.locationInfo}>
             <View style={styles.locationRow}>
               <MapPin color="#047857" size={14} />
-              <Text style={styles.locationText}>{locationName}</Text>
+              <Text style={styles.locationText}>
+                {getTranslatedLocation(locationName, language)}
+              </Text>
             </View>
             <View style={styles.weatherRow}>
               {getWeatherIcon(weatherCondition, 16)}
@@ -476,8 +580,8 @@ const PriceForecastLoadingScreen = () => {
                   </Text>
                   <Text style={styles.cardDescription}>
                     {language === "si"
-                      ? "හොඳම වගා සතිය"
-                      : "Find best planting week"}
+                      ? "වගාව ආරම්භ කිරීමට අවශ්‍ය මූලික උපදෙස්"
+                      : "Essential guidance to start cultivation"}
                   </Text>
                 </View>
                 <View style={styles.cardArrow}>
@@ -835,6 +939,24 @@ const styles = StyleSheet.create({
   arrowText: {
     fontSize: 20,
     color: "#10B981",
+    fontWeight: "bold",
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    minWidth: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
     fontWeight: "bold",
   },
 });

@@ -1,49 +1,60 @@
 from fastapi import APIRouter, HTTPException, Query
 from datetime import datetime
-from src.database.db import get_connection
 from src.priceforecast.weather_service import weather_predictor
 import pandas as pd
 import numpy as np
+
+# 🔥 NEW: Supabase client import
+from src.database.supabase_client import supabase
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 # ============================================================
-# 1) GET LATEST PRICE CONFIG
+# 1) GET LATEST PRICE CONFIG  (Now using Supabase)
 # ============================================================
 @router.get("/price-data")
 def get_price_data():
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM price_config ORDER BY id DESC LIMIT 1")
-    row = cur.fetchone()
-    conn.close()
+    try:
+        result = (
+            supabase
+            .from_("price_config")
+            .select("*")
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
 
-    if row:
-        return {
-            "success": True,
-            "data": {
+        if result.data and len(result.data) > 0:
+            row = result.data[0]
+
+            # Convert snake_case → camelCase for frontend
+            formatted = {
                 "fuelPrice": row["fuel_price"],
                 "importTax": row["import_tax"],
                 "farmGatePrice": row["farm_gate_price"],
                 "lastUpdated": row["updated_at"],
-            },
+            }
+
+            return {"success": True, "data": formatted}
+
+        # Default if table empty
+        return {
+            "success": True,
+            "data": {
+                "fuelPrice": 380.0,
+                "importTax": 25.0,
+                "farmGatePrice": 115.0,
+                "lastUpdated": None
+            }
         }
 
-    # Default if DB empty
-    return {
-        "success": True,
-        "data": {
-            "fuelPrice": 380.0,
-            "importTax": 25.0,
-            "farmGatePrice": 115.0,
-            "lastUpdated": None,
-        },
-    }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # ============================================================
-# 2) INSERT NEW PRICE CONFIG
+# 2) INSERT NEW PRICE CONFIG (Now using Supabase)
 # ============================================================
 @router.post("/price-data")
 def update_price_data(req: dict):
@@ -51,28 +62,36 @@ def update_price_data(req: dict):
     if not all(k in req for k in required):
         raise HTTPException(status_code=400, detail="Missing required fields")
 
-    conn = get_connection()
-    cur = conn.cursor()
+    try:
+        timestamp = datetime.utcnow().isoformat()
 
-    cur.execute(
-        """INSERT INTO price_config (fuel_price, import_tax, farm_gate_price, updated_at)
-           VALUES (?, ?, ?, ?)""",
-        (
-            req["fuelPrice"],
-            req["importTax"],
-            req["farmGatePrice"],
-            datetime.now().isoformat(),
-        ),
-    )
+        insert_data = {
+            "fuel_price": req["fuelPrice"],
+            "import_tax": req["importTax"],
+            "farm_gate_price": req["farmGatePrice"],
+            "updated_at": timestamp,
+        }
 
-    conn.commit()
-    conn.close()
+        supabase.from_("price_config").insert(insert_data).execute()
 
-    return {"success": True, "message": "Saved!", "data": req}
+        # 🔥 IMPORTANT: return camelCase so frontend updates properly
+        return {
+            "success": True,
+            "message": "Saved!",
+            "data": {
+                "fuelPrice": req["fuelPrice"],
+                "importTax": req["importTax"],
+                "farmGatePrice": req["farmGatePrice"],
+                "lastUpdated": timestamp,
+            },
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================================
-# 3) WEATHER PREDICTION – NEXT 7 DAYS
+# 3) WEATHER PREDICTION – NEXT 7 DAYS  (UNCHANGED)
 # ============================================================
 @router.post("/weather/predict")
 def predict_weather(body: dict):
@@ -102,7 +121,7 @@ def predict_weather(body: dict):
                 result.get("predictions", [])
             )
 
-        # Return safe structured response
+        # Return structured response
         return {
             "success": True,
             "city": result.get("city", city),
@@ -115,8 +134,9 @@ def predict_weather(body: dict):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
 # ============================================================
-# 5) SAMPLE DATA GENERATOR (TEMPORARY)
+# 5) SAMPLE DATA GENERATOR  (UNCHANGED)
 # ============================================================
 def generate_sample_weather_data(city: str, days: int = 30):
     """Generate random realistic weather data"""

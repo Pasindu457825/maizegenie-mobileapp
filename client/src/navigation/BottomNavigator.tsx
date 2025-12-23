@@ -3,23 +3,23 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 
 import HomeScreen from "../screens/HomeScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 import PriceForecastStack from "./PriceForecastStack";
-import PredictYieldStack from "./PredictYieldStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
+import YieldPredictionStack from "./YieldPredictionStack";
 import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
-import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
+import AdminStack from "./AdminStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
-  [ROUTES.TABS.FERTILIZERADVISOR]: undefined;
-  [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.PRICEFORECAST]: undefined;
+  [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
-  [ROUTES.TABS.ADMINPANEL]: undefined; // <-- NEW
+  [ROUTES.TABS.ADMINPANEL]: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
@@ -45,7 +45,6 @@ export default function BottomNavigator() {
         },
       }}
     >
-
       {/* 🏠 Home */}
       <Tab.Screen
         name={ROUTES.TABS.HOME}
@@ -82,26 +81,14 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 🧪 Fertilizer */}
-      <Tab.Screen
-        name={ROUTES.TABS.FERTILIZERADVISOR}
-        component={FertilizerAdvisorStack}
-        options={{
-          tabBarLabel: "Fertilizer",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="leaf-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
       {/* 🌾 Yield */}
       <Tab.Screen
         name={ROUTES.TABS.PREDICTYIELD}
-        component={PredictYieldStack}
+        component={YieldPredictionStack}
         options={{
           tabBarLabel: "Yield",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics-outline" size={size} color={color} />
+            <Ionicons name="leaf-outline" size={size} color={color} />
           ),
         }}
       />
@@ -121,7 +108,7 @@ export default function BottomNavigator() {
       {/* 👤 Profile */}
       <Tab.Screen
         name={ROUTES.TABS.USERPROFILE}
-        component={HomeScreen}
+        component={ProfileScreen}
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
@@ -133,15 +120,18 @@ export default function BottomNavigator() {
       {/* 🛠 Admin Panel */}
       <Tab.Screen
         name={ROUTES.TABS.ADMINPANEL}
-        component={AdminPanelScreen}
+        component={AdminStack} // <-- replace single screen with whole stack
         options={{
           tabBarLabel: "Admin",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="shield-checkmark-outline" size={size} color={color} />
+            <Ionicons
+              name="shield-checkmark-outline"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
-
     </Tab.Navigator>
   );
 }
