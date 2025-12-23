@@ -18,8 +18,6 @@ import {
   Leaf,
   BarChart3,
   MessageSquare,
-  Cloud,
-  MapPin,
   Settings,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
@@ -158,14 +156,14 @@ export default function HomeScreen() {
       title: t.pestIdentifier,
       description: t.pestDescription,
       color: "#ef4444",
-      route: "DiseaseIdentification",
+      route: "DiseaseIdentify",
     },
     {
       icon: Leaf,
       title: t.diseaseIdentifier,
       description: t.diseaseDescription,
       color: "#22c55e",
-      route: "DiseaseIdentification",
+      route: "DiseaseIdentifier",
     },
     {
       icon: AlertCircle,
