@@ -643,6 +643,53 @@ const DiseaseIdentificationScreen = () => {
                 },
               ]}
             >
+              {/* Image Upload Guidance (Before Image Selection Only) */}
+              <View
+                style={{
+                  backgroundColor: "#ECFDF5",
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: "#A7F3D0",
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <AlertCircle size={18} color="#059669" />
+                  <Text
+                    style={{
+                      marginLeft: 8,
+                      fontWeight: "700",
+                      color: "#047857",
+                      fontSize: 14,
+                    }}
+                  >
+                    {content[language].invalidSuggestionsTitle}
+                  </Text>
+                </View>
+
+                {content[language].invalidSuggestions.map(
+                  (tip: string, index: number) => (
+                    <Text
+                      key={index}
+                      style={{
+                        color: "#047857",
+                        fontSize: 13,
+                        marginBottom: 6,
+                        lineHeight: 18,
+                      }}
+                    >
+                      • {tip}
+                    </Text>
+                  )
+                )}
+              </View>
               <View style={styles.actionCards}>
                 <TouchableOpacity
                   style={[styles.actionCard, styles.actionCardPrimary]}
