@@ -161,17 +161,17 @@ export default function HomeScreen() {
       route: "DiseaseIdentification",
     },
     {
-      icon: AlertCircle,
+      icon: Leaf,
       title: t.diseaseIdentifier,
       description: t.diseaseDescription,
-      color: "#f59e0b",
+      color: "#22c55e",
       route: "DiseaseIdentification",
     },
     {
-      icon: Leaf,
+      icon: AlertCircle,
       title: t.fertilizerAdvisor,
       description: t.fertilizerDescription,
-      color: "#22c55e",
+      color: "#f59e0b",
       route: "FertilizerAdvisor",
     },
     {
