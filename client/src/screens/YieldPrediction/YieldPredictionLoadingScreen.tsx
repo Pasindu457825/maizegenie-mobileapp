@@ -55,6 +55,7 @@ const YieldPredictionLoadingScreen = () => {
     si: {
       title: "අස්වැන්න පුරෝකථනය සහ පොහොර උපදේශන",
       subtitle: "",
+      servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
       fertilizerTitle: "පොහොර උපදේශ",
@@ -68,6 +69,7 @@ const YieldPredictionLoadingScreen = () => {
     en: {
       title: "Yield Prediction and Fertilizer Advisory",
       subtitle: "",
+      servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
       fertilizerTitle: "Fertilizer Advices",
@@ -176,6 +178,7 @@ const YieldPredictionLoadingScreen = () => {
               <View style={[styles.iconRing, styles.iconRing2]} />
               <View style={[styles.iconRing, styles.iconRing3]} />
             </View>
+            <Text style={styles.servicesTitle}>{content[language].servicesTitle}</Text>
           </View>
 
           {/* Action Cards */}
@@ -335,6 +338,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#ffffff",
     lineHeight: 22,
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 13,
@@ -356,6 +360,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 32,
     marginTop: -10,
+  },
+  servicesTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginTop: 20,
+    letterSpacing: 0.3,
   },
   iconWrapper: {
     position: "relative",
