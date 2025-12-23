@@ -37,8 +37,6 @@ const translations: Record<
     welcomeSubtext: string;
     chatWithOfficer: string;
     viewFarmerChats: string;
-    quickSignIn: string;
-    quickStats: string;
     cropsTracked: string;
     priceForecast: string;
     features: string;
@@ -65,8 +63,6 @@ const translations: Record<
     welcomeSubtext: "ඔබේ ගොවිතැනට ආපසු පැමිණිණු ඔබට සාදරයෙන් ස්වාගතයි",
     chatWithOfficer: "කෘෂි නිලධාරියා සමඟ කතා කරන්න",
     viewFarmerChats: "ගොවිවරු සමඟ සංවාදයන් බලන්න",
-    quickSignIn: "ඉක්මන් ඉවත් වීම",
-    quickStats: "ඉක්මන් සංඛ්‍යා",
     cropsTracked: "නිරීක්ෂණය කරන ලද බෝග",
     priceForecast: "මිල පුරෝකථනයන්",
     features: "විශේෂතා",
@@ -93,8 +89,6 @@ const translations: Record<
     welcomeSubtext: "Your farming companion is ready to help",
     chatWithOfficer: "Chat With Agriculture Officer",
     viewFarmerChats: "View Farmer Chats",
-    quickSignIn: "Quick Sign In",
-    quickStats: "Quick Stats",
     cropsTracked: "Crops Tracked",
     priceForecast: "Price Forecasts",
     features: "Features",
@@ -167,17 +161,17 @@ export default function HomeScreen() {
       route: "DiseaseIdentification",
     },
     {
-      icon: AlertCircle,
+      icon: Leaf,
       title: t.diseaseIdentifier,
       description: t.diseaseDescription,
-      color: "#f59e0b",
+      color: "#22c55e",
       route: "DiseaseIdentification",
     },
     {
-      icon: Leaf,
+      icon: AlertCircle,
       title: t.fertilizerAdvisor,
       description: t.fertilizerDescription,
-      color: "#22c55e",
+      color: "#f59e0b",
       route: "FertilizerAdvisor",
     },
     {
@@ -290,51 +284,9 @@ export default function HomeScreen() {
             <TouchableOpacity
               onPress={() => navigation.navigate("Login")}
               style={styles.chatButtonWrapper}
-            >
-              <LinearGradient
-                colors={["#10b981", "#059669"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.chatButton}
-              >
-                <Text style={styles.chatButtonText}>{t.quickSignIn}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            ></TouchableOpacity>
           )}
         </Animated.View>
-
-        {/* Quick Stats */}
-        <Animated.View
-          style={[
-            styles.statsSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>{t.quickStats}</Text>
-          <View style={styles.statsGrid}>
-            <LinearGradient
-              colors={["#f0fdf4", "#dcfce7"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCard}
-            >
-              <Text style={styles.statNumber}>24</Text>
-              <Text style={styles.statLabel}>{t.cropsTracked}</Text>
-            </LinearGradient>
-            <LinearGradient
-              colors={["#eff6ff", "#dbeafe"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCard}
-            >
-              <Text style={[styles.statNumber, { color: "#1565C0" }]}>12</Text>
-              <Text style={styles.statLabel}>{t.priceForecast}</Text>
-            </LinearGradient>
-          </View>
-        </Animated.View>
-
         {/* Features Section */}
         <Animated.View
           style={[
