@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import {
   ArrowLeft,
-  Leaf,
+  Sparkles,
   AlertCircle,
   Thermometer,
   Droplets,
@@ -25,7 +25,7 @@ import {
 import { useNavigation, RouteProp } from "@react-navigation/native";
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 import { StackNavigationProp } from "@react-navigation/stack";
-
+import { LinearGradient } from "expo-linear-gradient";
 // 🌐 LANGUAGE CONTEXT
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -396,25 +396,40 @@ export default function DiseaseInfoScreen({ route }: Props) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
 
       {/* Header */}
-      <View style={styles.header}>
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={["#10ad79ff", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
+          activeOpacity={0.7}
         >
-          <ArrowLeft color="#FFFFFF" size={24} />
+          <ArrowLeft size={20} color="#FFFFFF" />
         </TouchableOpacity>
+
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].diseaseInfo}
           </Text>
-          <Text style={styles.headerSubtitle}>
-            {content[language].aiAnalysis}
-          </Text>
+          <View style={styles.headerSubtitleContainer}>
+            <Sparkles size={12} color="#D1FAE5" />
+            <Text style={styles.headerSubtitle}>
+              {content[language].aiAnalysis}
+            </Text>
+          </View>
         </View>
-      </View>
+
+        <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
+          <Info size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -622,19 +637,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#059669",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: "#059669",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
     width: 40,
@@ -646,18 +661,33 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    marginLeft: 16,
+    alignItems: "center",
+    marginHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#D1FAE5",
-    opacity: 0.9,
+    fontWeight: "500",
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   langButton: {
     backgroundColor: "#FFFFFF",

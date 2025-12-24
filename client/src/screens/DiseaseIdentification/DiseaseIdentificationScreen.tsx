@@ -28,7 +28,7 @@ import {
   Scan,
   Sparkles,
   ChevronRight,
-  Mic,
+  Volume2,
   Shield,
   ArrowLeft,
   RefreshCw,
@@ -37,7 +37,7 @@ import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import Constants from "expo-constants";
@@ -46,6 +46,7 @@ import * as Speech from "expo-speech";
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 
 import { Audio } from "expo-av";
+import { useApp } from "../../context/AppContext";
 
 type NavProp = StackNavigationProp<
   DiseaseIdentifyStackParamList,
@@ -310,7 +311,7 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
-  const [modelType, setModelType] = useState<"local" | "roboflow">("local");
+  const { diseaseModel } = useApp(); // ✅ global value
 
   const uploadAndDetect = async () => {
     if (!imageUri) {
@@ -339,7 +340,7 @@ const DiseaseIdentificationScreen = () => {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/disease/identify?model=${modelType}&conf=0.4&return_image=false`,
+        `${API_BASE_URL}/api/disease/identify?model=${diseaseModel}&conf=0.4`,
         formData,
         {
           headers: {
@@ -537,19 +538,27 @@ const DiseaseIdentificationScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={["#10ad79ff", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
-          <Text style={styles.headerSubtitle}>
-            {content[language].modernAgriculture}
-          </Text>
+          <View style={styles.headerSubtitleContainer}>
+            <Sparkles size={12} color="#D1FAE5" />
+            <Text style={styles.headerSubtitle}>
+              {content[language].aiPowered}
+            </Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Main ScrollView */}
       <ScrollView
@@ -570,75 +579,6 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
-              <View style={{ marginVertical: 16, alignItems: "center" }}>
-                <View
-                  style={{
-                    flexDirection: "row",
-                    backgroundColor: "#ECFDF5",
-                    borderRadius: 20,
-                    padding: 4,
-                    borderWidth: 1,
-                    borderColor: "#A7F3D0",
-                  }}
-                >
-                  {/* Local */}
-                  <TouchableOpacity
-                    onPress={() => setModelType("local")}
-                    style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 18,
-                      borderRadius: 16,
-                      backgroundColor:
-                        modelType === "local" ? "#059669" : "transparent",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: modelType === "local" ? "#FFFFFF" : "#047857",
-                        fontWeight: "600",
-                        fontSize: 13,
-                      }}
-                    >
-                      Local AI
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Roboflow */}
-                  <TouchableOpacity
-                    onPress={() => setModelType("roboflow")}
-                    style={{
-                      paddingVertical: 8,
-                      paddingHorizontal: 18,
-                      borderRadius: 16,
-                      backgroundColor:
-                        modelType === "roboflow" ? "#059669" : "transparent",
-                    }}
-                  >
-                    <Text
-                      style={{
-                        color: modelType === "roboflow" ? "#FFFFFF" : "#047857",
-                        fontWeight: "600",
-                        fontSize: 13,
-                      }}
-                    >
-                      Cloud AI
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Text
-                  style={{
-                    fontSize: 12,
-                    marginTop: 6,
-                    color: "#64748B",
-                  }}
-                >
-                  {modelType === "local"
-                    ? "Using on-device / local server model"
-                    : "Using Roboflow cloud model"}
-                </Text>
-              </View>
-
               <View style={styles.aiBadge}>
                 <Sparkles size={14} color="#10B981" />
                 <Text style={styles.aiBadgeText}>
@@ -1018,43 +958,83 @@ const DiseaseIdentificationScreen = () => {
                               : diseaseName}{" "}
                             {content[language].resultTitle}
                           </Text>
-
-                          <TouchableOpacity
-                            style={styles.speakButton}
-                            onPress={async () => {
-                              setIsSpeaking(true);
-                              await speakDisease(primaryPrediction.class_name);
-                            }}
-                            activeOpacity={0.85}
-                          >
-                            <Mic color="#059669" size={18} />
-                          </TouchableOpacity>
-                          {isSpeaking && (
-                            <TouchableOpacity
-                              style={[
-                                styles.speakButton,
-                                { borderColor: "#EF4444" },
-                              ]}
-                              onPress={async () => {
-                                // 🔴 STOP all audio (existing APIs only)
-                                Speech.stop();
-
-                                if (soundRef.current) {
-                                  try {
-                                    await soundRef.current.stopAsync();
-                                    await soundRef.current.unloadAsync();
-                                  } catch {}
-                                  soundRef.current = null;
-                                }
-
-                                setIsSpeaking(false);
-                              }}
-                              activeOpacity={0.85}
-                            >
-                              <X color="#EF4444" size={18} />
-                            </TouchableOpacity>
-                          )}
                         </View>
+                        {/* 🔊 Audio Control Button */}
+                        {!isSpeaking ? (
+                          // ▶️ LISTEN
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 12,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingHorizontal: 18,
+                              paddingVertical: 10,
+                              borderRadius: 20,
+                              backgroundColor: "#ECFDF5",
+                              borderWidth: 1,
+                              borderColor: "#10B981",
+                            }}
+                            onPress={() => {
+                              setIsSpeaking(true);
+                              speakDisease(primaryPrediction.class_name);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Volume2 size={18} color="#059669" />
+                            <Text
+                              style={{
+                                color: "#047857",
+                                fontWeight: "700",
+                                fontSize: 14,
+                              }}
+                            >
+                              {language === "si" ? "ශබ්දයෙන් අසන්න" : "Listen"}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          // ⏹ STOP (INLINE – uses existing logic)
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 12,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingHorizontal: 18,
+                              paddingVertical: 10,
+                              borderRadius: 20,
+                              backgroundColor: "#FEE2E2",
+                              borderWidth: 1,
+                              borderColor: "#DC2626",
+                            }}
+                            onPress={async () => {
+                              // 🔴 SAME stop logic you already have
+                              Speech.stop();
+
+                              if (soundRef.current) {
+                                try {
+                                  await soundRef.current.stopAsync();
+                                  await soundRef.current.unloadAsync();
+                                } catch {}
+                                soundRef.current = null;
+                              }
+
+                              setIsSpeaking(false);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <X size={18} color="#DC2626" />
+                            <Text
+                              style={{
+                                color: "#991B1B",
+                                fontWeight: "700",
+                                fontSize: 14,
+                              }}
+                            >
+                              {language === "si" ? "ශබ්දය නවත්වන්න" : "Stop"}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
 
                         {/* Disease detected line (same language only) */}
                         <Text
@@ -1063,9 +1043,6 @@ const DiseaseIdentificationScreen = () => {
                             { textAlign: "center", marginTop: 8 },
                           ]}
                         >
-                          {language === "si"
-                            ? "රෝගය හඳුනාගත්තා"
-                            : "Disease detected"}
                         </Text>
 
                         {/* Confidence line (same language only) */}
@@ -1189,19 +1166,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#10ad79ff",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: "#059669",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
     width: 40,
@@ -1213,18 +1190,33 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    marginLeft: 16,
+    alignItems: "center",
+    marginHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#D1FAE5",
-    opacity: 0.9,
+    fontWeight: "500",
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   langButton: {
     backgroundColor: "#FFFFFF",
