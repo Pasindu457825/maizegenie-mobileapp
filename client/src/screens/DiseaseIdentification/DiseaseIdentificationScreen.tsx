@@ -118,9 +118,10 @@ const DiseaseIdentificationScreen = () => {
         "මෙය බඩ ඉරිඟු කොළයක් නොවිය හැක. කරුණාකර නිවැරදි කොළ ඡායාරූපයක් නැවත උඩුගත කරන්න.",
       invalidSuggestionsTitle: "ඡායාරූපය නිවැරදි ලෙස ලබාගැනීමට උපදෙස්",
       invalidSuggestions: [
-        "බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
+        "හානි වූ බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
         "හොඳ ආලෝකය සහ පැහැදිලි බව සහිත ඡායාරූපයක් ගන්න",
-        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට ගන්න",
+        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට පැහැදිලිව ගන්න",
+        "ලප, කහ පැහැය, වියළීම, රස්ට් වැනි රෝග ලක්ෂණ පැහැදිලිව පෙනෙන කොළයක් භාවිතා කරන්න",
         "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
       ],
     },
@@ -165,9 +166,10 @@ const DiseaseIdentificationScreen = () => {
         "This image may not be a maize leaf. Please upload a clear maize leaf image.",
       invalidSuggestionsTitle: "Tips to upload a correct image",
       invalidSuggestions: [
-        "Capture only a maize leaf",
+        "Capture only a damaged or diseased maize leaf",
         "Use good lighting and clear focus",
-        "Keep the leaf centered in the image",
+        "Keep the leaf fully centered in the image",
+        "Ensure visible disease symptoms (spots, discoloration, rust, or drying)",
         "Avoid blurry or distant photos",
       ],
     },
@@ -502,9 +504,11 @@ const DiseaseIdentificationScreen = () => {
     blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
 
-  const isInvalidLeafPrediction =
+  const isInvalidPrediction =
     result?.predictions?.length === 1 &&
-    result.predictions[0].class_name.toLowerCase() === "invalid_leaf";
+    ["invalid_leaf", "invalid_image"].includes(
+      result.predictions[0].class_name.toLowerCase()
+    );
 
   const isHealthyPrediction =
     result?.predictions?.length === 1 &&
@@ -830,7 +834,7 @@ const DiseaseIdentificationScreen = () => {
           )}
 
           {/* Invalid Leaf Result */}
-          {result && isInvalidLeafPrediction && (
+          {result && isInvalidPrediction && (
             <Animated.View
               style={[
                 styles.resultSection,
@@ -907,7 +911,7 @@ const DiseaseIdentificationScreen = () => {
           {result &&
             result.predictions.length > 0 &&
             !isHealthyPrediction &&
-            !isInvalidLeafPrediction && (
+            !isInvalidPrediction && (
               <Animated.View
                 style={[
                   styles.resultSection,
