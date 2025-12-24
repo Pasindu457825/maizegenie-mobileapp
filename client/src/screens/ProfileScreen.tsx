@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Share,
   Alert,
   ActivityIndicator,
-  Clipboard,
+  Animated,
+  Dimensions,
+  StatusBar,
 } from "react-native";
 import { useApp } from "../context/AppContext";
 import { getFarmerPredictionHistory } from "../services/yieldPredictionApi";
@@ -22,17 +23,67 @@ import {
   LogOut,
   Copy,
   Share2,
+  Shield,
+  TrendingUp,
+  Crop,
+  ChevronRight,
+  Bell,
+  HelpCircle,
+  Globe,
+  Settings,
+  Sparkles,
+  Smartphone,
+  Cloud,
 } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { useLanguage } from "../context/LanguageContext";
+
+const { width } = Dimensions.get("window");
 
 const ProfileScreen = () => {
-  const { user, signOut } = useApp();
+  const { user, signOut, diseaseModel, setDiseaseModel } = useApp();
+  const { language, setLanguage } = useLanguage();
   const navigation = useNavigation<any>();
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     loadPredictionHistory();
+
+    // Entrance animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const loadPredictionHistory = async () => {
@@ -59,7 +110,6 @@ const ProfileScreen = () => {
 
   const handleCopyPrediction = (prediction: any) => {
     try {
-      Clipboard.setString(prediction.shareable_text);
       Alert.alert("Copied!", "Prediction details copied to clipboard");
     } catch (error) {
       console.error("Copy failed:", error);
@@ -116,405 +166,951 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
     });
   };
 
-  const { diseaseModel, setDiseaseModel } = useApp();
+  const toggleLanguage = () => {
+    setLanguage(language === "sinhala" ? "english" : "sinhala");
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
-    <ScrollView
-      style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    >
-      {/* Profile Header */}
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-          <User color="#10B981" size={48} />
-        </View>
-        <Text style={styles.name}>{user?.full_name || "Farmer"}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-        {user?.district && (
-          <View style={styles.districtBadge}>
-            <MapPin color="#10B981" size={16} />
-            <Text style={styles.districtText}>{user.district}</Text>
-          </View>
-        )}
-        <Text style={styles.role}>{user?.role?.toUpperCase()}</Text>
-      </View>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
 
-      {/* Disease Detection Model Switch */}
-      {user?.role === "farmer" && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Leaf color="#10B981" size={22} />
-            <Text style={styles.sectionTitle}>Disease Detection Model</Text>
-          </View>
-
-          <View style={styles.modelCard}>
-            <TouchableOpacity
-              style={[
-                styles.modelButton,
-                diseaseModel === "local" && styles.modelButtonActive,
-              ]}
-              onPress={() => setDiseaseModel("local")}
-            >
-              <Text
-                style={[
-                  styles.modelText,
-                  diseaseModel === "local" && styles.modelTextActive,
-                ]}
-              >
-                Standard Scan
-              </Text>
-              <Text style={styles.modelSubText}>Fast detection • Offline</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.modelButton,
-                diseaseModel === "roboflow" && styles.modelButtonActive,
-              ]}
-              onPress={() => setDiseaseModel("roboflow")}
-            >
-              <Text
-                style={[
-                  styles.modelText,
-                  diseaseModel === "roboflow" && styles.modelTextActive,
-                ]}
-              >
-                Pro Scan
-              </Text>
-              <Text style={styles.modelSubText}>Advanced Accurate</Text>
-            </TouchableOpacity>
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={["#10ad79ff", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Profile</Text>
+            <View style={styles.headerSubtitleContainer}>
+              <Sparkles size={12} color="#D1FAE5" />
+              <Text style={styles.headerSubtitle}>Your Farming Dashboard</Text>
+            </View>
           </View>
         </View>
-      )}
+      </LinearGradient>
 
-      {/* Logout Button */}
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <LogOut color="#EF4444" size={20} />
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-
-      {/* Recent Yield Predictions Section - Farmers Only */}
-      {user?.role === "farmer" && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Leaf color="#10B981" size={24} />
-            <Text style={styles.sectionTitle}>Recent Yield Predictions</Text>
-          </View>
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#10B981" />
-              <Text style={styles.loadingText}>Loading predictions...</Text>
-            </View>
-          ) : predictions.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Leaf color="#D1D5DB" size={48} />
-              <Text style={styles.emptyText}>No predictions yet</Text>
-              <Text style={styles.emptySubtext}>
-                Start by creating a yield prediction
-              </Text>
-            </View>
-          ) : (
-            <View>
-              {predictions.slice(0, 1).map((prediction, index) => (
-                <View
-                  key={prediction.id || index}
-                  style={styles.predictionCard}
-                >
-                  <View style={styles.predictionHeader}>
-                    <View style={styles.predictionInfo}>
-                      <Text style={styles.predictionVariety}>
-                        {prediction.variety}
-                      </Text>
-                      <View style={styles.predictionMeta}>
-                        <Calendar color="#6B7280" size={14} />
-                        <Text style={styles.predictionDate}>
-                          {formatDate(prediction.created_at)}
-                        </Text>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.shareButton}
-                      onPress={() => handleCopyPrediction(prediction)}
-                    >
-                      <Copy color="#10B981" size={20} />
-                    </TouchableOpacity>
-                  </View>
-
-                  <View style={styles.predictionDetails}>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>District:</Text>
-                      <Text style={styles.detailValue}>
-                        {prediction.district}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Season:</Text>
-                      <Text style={styles.detailValue}>
-                        {prediction.season}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Land Size:</Text>
-                      <Text style={styles.detailValue}>
-                        {prediction.land_size}
-                      </Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Text style={styles.detailLabel}>Planting Date:</Text>
-                      <Text style={styles.detailValue}>
-                        {formatDate(prediction.planting_date)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.shareTextButton}
-                    onPress={() => handleShareWithOfficer(prediction)}
-                  >
-                    <Share2 color="#FFFFFF" size={16} />
-                    <Text style={styles.shareTextButtonText}>
-                      Share with Officer
-                    </Text>
-                  </TouchableOpacity>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          {/* Profile Hero Section */}
+          <View style={styles.profileHeroContainer}>
+            <LinearGradient
+              colors={["#10b981", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.profileHero}
+            >
+              <Animated.View
+                style={[
+                  styles.heroAvatarContainer,
+                  { transform: [{ scale: pulseAnim }] },
+                ]}
+              >
+                <View style={styles.heroAvatar}>
+                  <Text style={styles.heroAvatarText}>
+                    {getInitials(user?.full_name || "U")}
+                  </Text>
                 </View>
-              ))}
+                <View style={styles.heroAvatarRing} />
+                <View style={styles.heroAvatarGlow} />
+              </Animated.View>
+
+              <View style={styles.heroInfo}>
+                <Text style={styles.heroName}>
+                  {user?.full_name || "Farmer"}
+                </Text>
+                <Text style={styles.heroEmail}>{user?.email}</Text>
+
+                <View style={styles.heroStats}>
+                  <View style={styles.heroStatItem}>
+                    <View style={styles.heroStatItem}>
+                      <MapPin size={18} color="#FFFFFF" />
+                      <Text style={styles.heroStatLabel}>
+                        {user?.district || "Location"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.heroStatDivider} />
+                  <View style={styles.heroStatItem}>
+                    <Text style={styles.heroStatNumber}>
+                      {user?.role === "farmer" ? "👨‍🌾🌾" : "👨‍💼"}
+                    </Text>
+                    <Text style={styles.heroStatLabel}>
+                      {user?.role
+                        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
+                        : "User"}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={styles.heroLogoutButton}
+                onPress={handleLogout}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.1)"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.heroLogoutContent}
+                >
+                  <LogOut size={18} color="#FFFFFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
+          </View>
+
+          {/* AI Model Selection */}
+          {user?.role === "farmer" && (
+            <View style={styles.modelSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Shield size={20} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.sectionTitle}>Disease Detection</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    Choose your AI model
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.modelSelection}>
+                <TouchableOpacity
+                  style={[
+                    styles.modelCard,
+                    diseaseModel === "local" && styles.modelCardActive,
+                  ]}
+                  onPress={() => setDiseaseModel("local")}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modelCardHeader}>
+                    <View
+                      style={[
+                        styles.modelIconContainer,
+                        {
+                          backgroundColor:
+                            diseaseModel === "local" ? "#10b98120" : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <Smartphone
+                        size={24}
+                        color={diseaseModel === "local" ? "#10b981" : "#64748b"}
+                      />
+                    </View>
+                    <View style={styles.modelStatus}>
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          diseaseModel === "local"
+                            ? styles.statusActive
+                            : styles.statusInactive,
+                        ]}
+                      />
+                      <Text style={styles.statusText}>
+                        {diseaseModel === "local" ? "Selected" : "Available"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modelName}>Standard</Text>
+                  <Text style={styles.modelDescription}>
+                    Fast on-device detection with basic accuracy
+                  </Text>
+                  <View style={styles.modelFeatures}>
+                    <Text style={styles.modelFeature}>⚡ Fast</Text>
+                    <Text style={styles.modelFeature}>📱 Offline</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modelCard,
+                    diseaseModel === "roboflow" && styles.modelCardActive,
+                  ]}
+                  onPress={() => setDiseaseModel("roboflow")}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modelCardHeader}>
+                    <View
+                      style={[
+                        styles.modelIconContainer,
+                        {
+                          backgroundColor:
+                            diseaseModel === "roboflow"
+                              ? "#3b82f620"
+                              : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <Cloud
+                        size={24}
+                        color={
+                          diseaseModel === "roboflow" ? "#3b82f6" : "#64748b"
+                        }
+                      />
+                    </View>
+                    <View style={styles.modelStatus}>
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          diseaseModel === "roboflow"
+                            ? styles.statusActive
+                            : styles.statusInactive,
+                        ]}
+                      />
+                      <Text style={styles.statusText}>
+                        {diseaseModel === "roboflow" ? "Selected" : "Available"}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modelName}>Advanced</Text>
+                  <Text style={styles.modelDescription}>
+                    Cloud-based AI with high accuracy detection
+                  </Text>
+                  <View style={styles.modelFeatures}>
+                    <Text style={styles.modelFeature}>🎯 High Accuracy</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
-        </View>
-      )}
-    </ScrollView>
+
+          {/* Settings Panel */}
+          <View style={styles.settingsPanel}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconContainer}>
+                <Settings size={20} color="#FFFFFF" />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Settings</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Manage your preferences
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.settingsGrid}>
+              <TouchableOpacity
+                style={styles.settingCard}
+                onPress={toggleLanguage}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={["#f0fdf4", "#dcfce7"]}
+                  style={styles.settingGradient}
+                >
+                  <View style={styles.settingIcon}>
+                    <Globe size={24} color="#10b981" />
+                  </View>
+                  <Text style={styles.settingTitle}>Language</Text>
+                  <Text style={styles.settingValue}>
+                    {language === "sinhala" ? "සිංහල" : "English"}
+                  </Text>
+                  <View style={styles.settingArrow}>
+                    <ChevronRight size={16} color="#10b981" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.settingCard} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={["#fef2f2", "#fee2e2"]}
+                  style={styles.settingGradient}
+                >
+                  <View style={styles.settingIcon}>
+                    <Bell size={24} color="#ef4444" />
+                  </View>
+                  <Text style={styles.settingTitle}>Notifications</Text>
+                  <Text style={styles.settingValue}>Enabled</Text>
+                  <View style={styles.settingArrow}>
+                    <ChevronRight size={16} color="#ef4444" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.settingCard} activeOpacity={0.8}>
+                <LinearGradient
+                  colors={["#eff6ff", "#dbeafe"]}
+                  style={styles.settingGradient}
+                >
+                  <View style={styles.settingIcon}>
+                    <HelpCircle size={24} color="#3b82f6" />
+                  </View>
+                  <Text style={styles.settingTitle}>Help Center</Text>
+                  <Text style={styles.settingValue}>FAQ & Support</Text>
+                  <View style={styles.settingArrow}>
+                    <ChevronRight size={16} color="#3b82f6" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Recent Predictions */}
+          {user?.role === "farmer" && (
+            <View style={styles.predictionsPanel}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Crop size={20} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.sectionTitle}>Recent Predictions</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    Your farming insights
+                  </Text>
+                </View>
+              </View>
+
+              {loading ? (
+                <View style={styles.loadingState}>
+                  <ActivityIndicator size="large" color="#10B981" />
+                  <Text style={styles.loadingText}>Loading predictions...</Text>
+                </View>
+              ) : predictions.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Crop size={48} color="#d1d5db" />
+                  <Text style={styles.emptyText}>No predictions yet</Text>
+                  <Text style={styles.emptySubtext}>
+                    Start by creating your first yield prediction
+                  </Text>
+                </View>
+              ) : (
+                predictions.slice(0, 2).map((prediction, index) => (
+                  <TouchableOpacity
+                    key={prediction.id || index}
+                    style={styles.predictionItem}
+                    onPress={() => handleShareWithOfficer(prediction)}
+                    activeOpacity={0.9}
+                  >
+                    <View style={styles.predictionHeader}>
+                      <View style={styles.predictionIcon}>
+                        <Crop size={20} color="#10b981" />
+                      </View>
+                      <View style={styles.predictionInfo}>
+                        <Text style={styles.predictionCrop}>
+                          {prediction.variety || "Maize Crop"}
+                        </Text>
+                        <View style={styles.predictionMeta}>
+                          <Calendar size={12} color="#6b7280" />
+                          <Text style={styles.predictionDate}>
+                            {formatDate(prediction.created_at)}
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.predictionAction}
+                        onPress={() => handleCopyPrediction(prediction)}
+                      >
+                        <Copy size={18} color="#10b981" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <View style={styles.predictionDetails}>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Location</Text>
+                        <Text style={styles.detailValue}>
+                          {prediction.district}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Season</Text>
+                        <Text style={styles.detailValue}>
+                          {prediction.season}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Status</Text>
+                        <View style={styles.predictionStatus}>
+                          <Text style={styles.statusText}>Active</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.shareAction}
+                      onPress={() => handleShareWithOfficer(prediction)}
+                    >
+                      <Share2 size={16} color="#ffffff" />
+                      <Text style={styles.shareActionText}>
+                        Share with Officer
+                      </Text>
+                    </TouchableOpacity>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+          )}
+
+          {/* Bottom Spacing */}
+          <View style={styles.bottomSpacer} />
+        </Animated.View>
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#f8fafc",
   },
+  // Enhanced Header
   header: {
-    backgroundColor: "#FFFFFF",
-    padding: 24,
-    alignItems: "center",
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
   },
-  avatarContainer: {
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 12,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#D1FAE5",
+    fontWeight: "500",
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 30,
+    paddingBottom: 40,
+  },
+  content: {
+    flex: 1,
+  },
+  // Profile Hero
+  profileHeroContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  profileHero: {
+    borderRadius: 24,
+    padding: 24,
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  heroAvatarContainer: {
+    position: "relative",
+    marginRight: 16,
+  },
+  heroAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+  },
+  heroAvatarRing: {
+    position: "absolute",
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.4)",
+    top: -4,
+    left: -4,
+  },
+  heroAvatarGlow: {
+    position: "absolute",
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: "#D1FAE5",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    top: -8,
+    left: -8,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1F2937",
+  heroAvatarText: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#10b981",
+  },
+  heroInfo: {
+    flex: 1,
+  },
+  heroName: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
     marginBottom: 4,
   },
-  email: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
+  heroEmail: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginBottom: 12,
   },
-  districtBadge: {
+  heroStats: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#D1FAE5",
+    gap: 12,
+  },
+  heroStatItem: {
+    alignItems: "center",
+  },
+  heroStatNumber: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  heroStatLabel: {
+    fontSize: 11,
+    color: "rgba(255, 255, 255, 0.8)",
+    fontWeight: "600",
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
+  heroLogoutButton: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: "hidden",
+  },
+  heroLogoutContent: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  locationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    marginBottom: 8,
+    alignSelf: "flex-start",
+    marginTop: 12,
+    marginLeft: 8,
+    gap: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  districtText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#10B981",
-    marginLeft: 4,
-  },
-  role: {
+  locationText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#10B981",
-    backgroundColor: "#D1FAE5",
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    color: "#10b981",
   },
-  logoutButton: {
+  // Quick Stats
+  quickStatsSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  quickStatsHeader: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 16,
+    gap: 8,
+  },
+  quickStatsTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1f2937",
+  },
+  quickStatsGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  quickStatCard: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  quickStatGradient: {
+    padding: 16,
+    alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#FEE2E2",
+    minHeight: 80,
   },
-  logoutText: {
-    fontSize: 16,
+  quickStatNumber: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  quickStatLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.9)",
     fontWeight: "600",
-    color: "#EF4444",
-    marginLeft: 8,
   },
-  section: {
-    padding: 16,
+  // Model Selection
+  modelSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1F2937",
-    marginLeft: 8,
-  },
-  modelCard: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-    justifyContent: "space-between",
     gap: 12,
   },
-
-  modelButton: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#10b981",
+    justifyContent: "center",
     alignItems: "center",
   },
-
-  modelButtonActive: {
-    backgroundColor: "#D1FAE5",
-    borderColor: "#10B981",
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1f2937",
   },
-
-  modelText: {
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  modelSelection: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modelCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+  },
+  modelCardActive: {
+    borderColor: "#10b981",
+    backgroundColor: "#f0fdf4",
+  },
+  modelCardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  modelIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modelStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  statusIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusActive: {
+    backgroundColor: "#10b981",
+  },
+  statusInactive: {
+    backgroundColor: "#d1d5db",
+  },
+  statusText: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontWeight: "600",
+  },
+  modelName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#374151",
+    color: "#1f2937",
+    marginBottom: 4,
   },
-
-  modelTextActive: {
-    color: "#065F46",
-  },
-
-  modelSubText: {
+  modelDescription: {
     fontSize: 12,
-    color: "#6B7280",
-    marginTop: 4,
+    color: "#6b7280",
+    lineHeight: 16,
+    marginBottom: 12,
   },
-  loadingContainer: {
+  modelFeatures: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  modelFeature: {
+    fontSize: 11,
+    color: "#64748b",
+    backgroundColor: "#f1f5f9",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  // Settings Panel
+  settingsPanel: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  settingsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  settingCard: {
+    flex: 1,
+    minWidth: width * 0.42,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  settingGradient: {
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    position: "relative",
+  },
+  settingIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  settingTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  settingValue: {
+    fontSize: 12,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  settingArrow: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+  },
+  // Predictions Panel
+  predictionsPanel: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  loadingState: {
     padding: 48,
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   loadingText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#6b7280",
     marginTop: 12,
   },
-  emptyContainer: {
+  emptyState: {
     padding: 48,
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "600",
-    color: "#6B7280",
+    color: "#6b7280",
     marginTop: 16,
   },
   emptySubtext: {
-    fontSize: 14,
-    color: "#9CA3AF",
+    fontSize: 13,
+    color: "#9ca3af",
     marginTop: 8,
     textAlign: "center",
   },
-  predictionCard: {
+  predictionItem: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   predictionHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 12,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  predictionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#f0fdf4",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
   },
   predictionInfo: {
     flex: 1,
   },
-  predictionVariety: {
-    fontSize: 18,
+  predictionCrop: {
+    fontSize: 16,
     fontWeight: "700",
-    color: "#1F2937",
+    color: "#1f2937",
     marginBottom: 4,
   },
   predictionMeta: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 4,
   },
   predictionDate: {
     fontSize: 12,
-    color: "#6B7280",
-    marginLeft: 4,
+    color: "#6b7280",
   },
-  shareButton: {
-    padding: 8,
-    backgroundColor: "#D1FAE5",
-    borderRadius: 8,
+  predictionAction: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f0fdf4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#d1fae5",
   },
   predictionDetails: {
-    marginBottom: 12,
-  },
-  detailRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 6,
+    marginBottom: 16,
+    gap: 16,
+  },
+  detailItem: {
+    flex: 1,
   },
   detailLabel: {
-    fontSize: 14,
-    color: "#6B7280",
+    fontSize: 11,
+    color: "#6b7280",
+    marginBottom: 4,
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#1F2937",
+    color: "#1f2937",
   },
-  shareTextButton: {
+  predictionStatus: {
+    backgroundColor: "#f0fdf4",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  predictionStatusText: {
+    fontSize: 11,
+    color: "#059669",
+    fontWeight: "600",
+  },
+  shareAction: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#10B981",
-    padding: 12,
-    borderRadius: 8,
+    gap: 8,
+    backgroundColor: "#10b981",
+    paddingVertical: 12,
+    borderRadius: 12,
   },
-  shareTextButtonText: {
+  shareActionText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
-    marginLeft: 8,
+  },
+  bottomSpacer: {
+    height: 40,
   },
 });
 

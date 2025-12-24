@@ -37,7 +37,7 @@ import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import Constants from "expo-constants";
@@ -538,19 +538,27 @@ const DiseaseIdentificationScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={["#10ad79ff", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
-          <Text style={styles.headerSubtitle}>
-            {content[language].modernAgriculture}
-          </Text>
+          <View style={styles.headerSubtitleContainer}>
+            <Sparkles size={12} color="#D1FAE5" />
+            <Text style={styles.headerSubtitle}>
+              {content[language].aiPowered}
+            </Text>
+          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Main ScrollView */}
       <ScrollView
@@ -1121,19 +1129,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#10ad79ff",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: "#059669",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
     width: 40,
@@ -1145,18 +1153,33 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    marginLeft: 16,
+    alignItems: "center",
+    marginHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#D1FAE5",
-    opacity: 0.9,
+    fontWeight: "500",
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   langButton: {
     backgroundColor: "#FFFFFF",
