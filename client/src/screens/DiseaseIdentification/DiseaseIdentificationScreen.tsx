@@ -118,9 +118,10 @@ const DiseaseIdentificationScreen = () => {
         "මෙය බඩ ඉරිඟු කොළයක් නොවිය හැක. කරුණාකර නිවැරදි කොළ ඡායාරූපයක් නැවත උඩුගත කරන්න.",
       invalidSuggestionsTitle: "ඡායාරූපය නිවැරදි ලෙස ලබාගැනීමට උපදෙස්",
       invalidSuggestions: [
-        "බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
+        "හානි වූ බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
         "හොඳ ආලෝකය සහ පැහැදිලි බව සහිත ඡායාරූපයක් ගන්න",
-        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට ගන්න",
+        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට පැහැදිලිව ගන්න",
+        "ලප, කහ පැහැය, වියළීම, රස්ට් වැනි රෝග ලක්ෂණ පැහැදිලිව පෙනෙන කොළයක් භාවිතා කරන්න",
         "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
       ],
     },
@@ -165,9 +166,10 @@ const DiseaseIdentificationScreen = () => {
         "This image may not be a maize leaf. Please upload a clear maize leaf image.",
       invalidSuggestionsTitle: "Tips to upload a correct image",
       invalidSuggestions: [
-        "Capture only a maize leaf",
+        "Capture only a damaged or diseased maize leaf",
         "Use good lighting and clear focus",
-        "Keep the leaf centered in the image",
+        "Keep the leaf fully centered in the image",
+        "Ensure visible disease symptoms (spots, discoloration, rust, or drying)",
         "Avoid blurry or distant photos",
       ],
     },
@@ -308,6 +310,8 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
+  const [modelType, setModelType] = useState<"local" | "roboflow">("local");
+
   const uploadAndDetect = async () => {
     if (!imageUri) {
       Alert.alert(content[language].selectImageFirst);
@@ -335,7 +339,7 @@ const DiseaseIdentificationScreen = () => {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/disease/identify?conf=0.4&return_image=false`,
+        `${API_BASE_URL}/api/disease/identify?model=${modelType}&conf=0.4&return_image=false`,
         formData,
         {
           headers: {
@@ -502,9 +506,11 @@ const DiseaseIdentificationScreen = () => {
     blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
 
-  const isInvalidLeafPrediction =
+  const isInvalidPrediction =
     result?.predictions?.length === 1 &&
-    result.predictions[0].class_name.toLowerCase() === "invalid_leaf";
+    ["invalid_leaf", "invalid_image"].includes(
+      result.predictions[0].class_name.toLowerCase()
+    );
 
   const isHealthyPrediction =
     result?.predictions?.length === 1 &&
@@ -564,6 +570,75 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
+              <View style={{ marginVertical: 16, alignItems: "center" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    backgroundColor: "#ECFDF5",
+                    borderRadius: 20,
+                    padding: 4,
+                    borderWidth: 1,
+                    borderColor: "#A7F3D0",
+                  }}
+                >
+                  {/* Local */}
+                  <TouchableOpacity
+                    onPress={() => setModelType("local")}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 18,
+                      borderRadius: 16,
+                      backgroundColor:
+                        modelType === "local" ? "#059669" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: modelType === "local" ? "#FFFFFF" : "#047857",
+                        fontWeight: "600",
+                        fontSize: 13,
+                      }}
+                    >
+                      Local AI
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Roboflow */}
+                  <TouchableOpacity
+                    onPress={() => setModelType("roboflow")}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 18,
+                      borderRadius: 16,
+                      backgroundColor:
+                        modelType === "roboflow" ? "#059669" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: modelType === "roboflow" ? "#FFFFFF" : "#047857",
+                        fontWeight: "600",
+                        fontSize: 13,
+                      }}
+                    >
+                      Cloud AI
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text
+                  style={{
+                    fontSize: 12,
+                    marginTop: 6,
+                    color: "#64748B",
+                  }}
+                >
+                  {modelType === "local"
+                    ? "Using on-device / local server model"
+                    : "Using Roboflow cloud model"}
+                </Text>
+              </View>
+
               <View style={styles.aiBadge}>
                 <Sparkles size={14} color="#10B981" />
                 <Text style={styles.aiBadgeText}>
@@ -643,6 +718,53 @@ const DiseaseIdentificationScreen = () => {
                 },
               ]}
             >
+              {/* Image Upload Guidance (Before Image Selection Only) */}
+              <View
+                style={{
+                  backgroundColor: "#ECFDF5",
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: "#A7F3D0",
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <AlertCircle size={18} color="#059669" />
+                  <Text
+                    style={{
+                      marginLeft: 8,
+                      fontWeight: "700",
+                      color: "#047857",
+                      fontSize: 14,
+                    }}
+                  >
+                    {content[language].invalidSuggestionsTitle}
+                  </Text>
+                </View>
+
+                {content[language].invalidSuggestions.map(
+                  (tip: string, index: number) => (
+                    <Text
+                      key={index}
+                      style={{
+                        color: "#047857",
+                        fontSize: 13,
+                        marginBottom: 6,
+                        lineHeight: 18,
+                      }}
+                    >
+                      • {tip}
+                    </Text>
+                  )
+                )}
+              </View>
               <View style={styles.actionCards}>
                 <TouchableOpacity
                   style={[styles.actionCard, styles.actionCardPrimary]}
@@ -783,7 +905,7 @@ const DiseaseIdentificationScreen = () => {
           )}
 
           {/* Invalid Leaf Result */}
-          {result && isInvalidLeafPrediction && (
+          {result && isInvalidPrediction && (
             <Animated.View
               style={[
                 styles.resultSection,
@@ -860,7 +982,7 @@ const DiseaseIdentificationScreen = () => {
           {result &&
             result.predictions.length > 0 &&
             !isHealthyPrediction &&
-            !isInvalidLeafPrediction && (
+            !isInvalidPrediction && (
               <Animated.View
                 style={[
                   styles.resultSection,
