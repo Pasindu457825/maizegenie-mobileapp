@@ -449,11 +449,27 @@ const PriceForecastScreen = () => {
       );
 
       const payload = {
-        year: formData.year,
-        week: formData.week,
+        year: Number(formData.year),
+        week: Number(formData.week),
         district: formData.district,
-        season: formData.season,
-        productionCostPerKg: formData.productionCostPerKg,
+
+        // 🔥 IMPORTANT: season normalize
+        season: formData.season.includes("Maha") ? "Maha" : "Yala",
+
+        // 🔥 REQUIRED by RF model
+        fuel_price: parseFloat(
+          (formData.fuelPrice || "0").replace(/[^0-9.]/g, "")
+        ),
+        rainfall: 120, // ⬅ temporary (later weather API)
+        temperature: temperature ?? 28.0,
+        demand_index: 0.72, // ⬅ can be dynamic later
+        import_tax: parseFloat(
+          (formData.cornImportTax || "0").replace(/[^0-9.]/g, "")
+        ),
+        last_price: parseFloat(
+          (formData.farmGatePrice || "0").replace(/[^0-9.]/g, "")
+        ),
+
         weeks_ahead: 4,
       };
 
@@ -476,35 +492,34 @@ const PriceForecastScreen = () => {
         (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
         0
       );
-// 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
-if (!notificationSentRef.current) {
-  if (bestIdx === 0) {
-    await sendNotification(
-      language === "si"
-        ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
-        : "⭐ Best time to sell is this week",
-      language === "si"
-        ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
-        : "The current week has the highest predicted price",
-      "price"
-    );
-  } else {
-    const daysToSell = bestIdx * 7;
+      // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
+      if (!notificationSentRef.current) {
+        if (bestIdx === 0) {
+          await sendNotification(
+            language === "si"
+              ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
+              : "⭐ Best time to sell is this week",
+            language === "si"
+              ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
+              : "The current week has the highest predicted price",
+            "price"
+          );
+        } else {
+          const daysToSell = bestIdx * 7;
 
-    await sendNotification(
-      language === "si"
-        ? `🗓 දින ${daysToSell} කින් විකිණන්න`
-        : `🗓 Sell in ${daysToSell} days`,
-      language === "si"
-        ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
-        : "Best price expected in the selected week",
-      "price"
-    );
-  }
+          await sendNotification(
+            language === "si"
+              ? `🗓 දින ${daysToSell} කින් විකිණන්න`
+              : `🗓 Sell in ${daysToSell} days`,
+            language === "si"
+              ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
+              : "Best price expected in the selected week",
+            "price"
+          );
+        }
 
-  notificationSentRef.current = true;
-}
-
+        notificationSentRef.current = true;
+      }
 
       if (currentPriceNumeric > 0) {
         const change =
