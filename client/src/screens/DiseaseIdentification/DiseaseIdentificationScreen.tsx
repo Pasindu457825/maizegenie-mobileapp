@@ -28,7 +28,7 @@ import {
   Scan,
   Sparkles,
   ChevronRight,
-  Mic,
+  Volume2,
   Shield,
   ArrowLeft,
   RefreshCw,
@@ -958,43 +958,83 @@ const DiseaseIdentificationScreen = () => {
                               : diseaseName}{" "}
                             {content[language].resultTitle}
                           </Text>
-
-                          <TouchableOpacity
-                            style={styles.speakButton}
-                            onPress={async () => {
-                              setIsSpeaking(true);
-                              await speakDisease(primaryPrediction.class_name);
-                            }}
-                            activeOpacity={0.85}
-                          >
-                            <Mic color="#059669" size={18} />
-                          </TouchableOpacity>
-                          {isSpeaking && (
-                            <TouchableOpacity
-                              style={[
-                                styles.speakButton,
-                                { borderColor: "#EF4444" },
-                              ]}
-                              onPress={async () => {
-                                // 🔴 STOP all audio (existing APIs only)
-                                Speech.stop();
-
-                                if (soundRef.current) {
-                                  try {
-                                    await soundRef.current.stopAsync();
-                                    await soundRef.current.unloadAsync();
-                                  } catch {}
-                                  soundRef.current = null;
-                                }
-
-                                setIsSpeaking(false);
-                              }}
-                              activeOpacity={0.85}
-                            >
-                              <X color="#EF4444" size={18} />
-                            </TouchableOpacity>
-                          )}
                         </View>
+                        {/* 🔊 Audio Control Button */}
+                        {!isSpeaking ? (
+                          // ▶️ LISTEN
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 12,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingHorizontal: 18,
+                              paddingVertical: 10,
+                              borderRadius: 20,
+                              backgroundColor: "#ECFDF5",
+                              borderWidth: 1,
+                              borderColor: "#10B981",
+                            }}
+                            onPress={() => {
+                              setIsSpeaking(true);
+                              speakDisease(primaryPrediction.class_name);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Volume2 size={18} color="#059669" />
+                            <Text
+                              style={{
+                                color: "#047857",
+                                fontWeight: "700",
+                                fontSize: 14,
+                              }}
+                            >
+                              {language === "si" ? "ශබ්දයෙන් අසන්න" : "Listen"}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          // ⏹ STOP (INLINE – uses existing logic)
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 12,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingHorizontal: 18,
+                              paddingVertical: 10,
+                              borderRadius: 20,
+                              backgroundColor: "#FEE2E2",
+                              borderWidth: 1,
+                              borderColor: "#DC2626",
+                            }}
+                            onPress={async () => {
+                              // 🔴 SAME stop logic you already have
+                              Speech.stop();
+
+                              if (soundRef.current) {
+                                try {
+                                  await soundRef.current.stopAsync();
+                                  await soundRef.current.unloadAsync();
+                                } catch {}
+                                soundRef.current = null;
+                              }
+
+                              setIsSpeaking(false);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <X size={18} color="#DC2626" />
+                            <Text
+                              style={{
+                                color: "#991B1B",
+                                fontWeight: "700",
+                                fontSize: 14,
+                              }}
+                            >
+                              {language === "si" ? "ශබ්දය නවත්වන්න" : "Stop"}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
 
                         {/* Disease detected line (same language only) */}
                         <Text
@@ -1003,9 +1043,6 @@ const DiseaseIdentificationScreen = () => {
                             { textAlign: "center", marginTop: 8 },
                           ]}
                         >
-                          {language === "si"
-                            ? "රෝගය හඳුනාගත්තා"
-                            : "Disease detected"}
                         </Text>
 
                         {/* Confidence line (same language only) */}
