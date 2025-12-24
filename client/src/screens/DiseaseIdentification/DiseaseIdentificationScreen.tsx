@@ -310,6 +310,8 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
+  const [modelType, setModelType] = useState<"local" | "roboflow">("local");
+
   const uploadAndDetect = async () => {
     if (!imageUri) {
       Alert.alert(content[language].selectImageFirst);
@@ -337,7 +339,7 @@ const DiseaseIdentificationScreen = () => {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/disease/identify?conf=0.4&return_image=false`,
+        `${API_BASE_URL}/api/disease/identify?model=${modelType}&conf=0.4&return_image=false`,
         formData,
         {
           headers: {
@@ -568,6 +570,75 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
+              <View style={{ marginVertical: 16, alignItems: "center" }}>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    backgroundColor: "#ECFDF5",
+                    borderRadius: 20,
+                    padding: 4,
+                    borderWidth: 1,
+                    borderColor: "#A7F3D0",
+                  }}
+                >
+                  {/* Local */}
+                  <TouchableOpacity
+                    onPress={() => setModelType("local")}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 18,
+                      borderRadius: 16,
+                      backgroundColor:
+                        modelType === "local" ? "#059669" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: modelType === "local" ? "#FFFFFF" : "#047857",
+                        fontWeight: "600",
+                        fontSize: 13,
+                      }}
+                    >
+                      Local AI
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Roboflow */}
+                  <TouchableOpacity
+                    onPress={() => setModelType("roboflow")}
+                    style={{
+                      paddingVertical: 8,
+                      paddingHorizontal: 18,
+                      borderRadius: 16,
+                      backgroundColor:
+                        modelType === "roboflow" ? "#059669" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: modelType === "roboflow" ? "#FFFFFF" : "#047857",
+                        fontWeight: "600",
+                        fontSize: 13,
+                      }}
+                    >
+                      Cloud AI
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <Text
+                  style={{
+                    fontSize: 12,
+                    marginTop: 6,
+                    color: "#64748B",
+                  }}
+                >
+                  {modelType === "local"
+                    ? "Using on-device / local server model"
+                    : "Using Roboflow cloud model"}
+                </Text>
+              </View>
+
               <View style={styles.aiBadge}>
                 <Sparkles size={14} color="#10B981" />
                 <Text style={styles.aiBadgeText}>
