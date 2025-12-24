@@ -629,27 +629,56 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   </View>
 
                   {/* Schedule */}
+                  {/* Schedule - FIXED FOR MOBILE */}
                   <View style={styles.scheduleInfo}>
-                    <View style={styles.scheduleItemSmall}>
-                      <Clock size={14} color="#DC2626" />
-                      <Text style={[styles.scheduleText, styles.chemicalText]}>
-                        {content[language].frequency}:{" "}
-                        {treatment.schedule.frequency}
-                      </Text>
-                    </View>
-                    <View style={styles.scheduleItemSmall}>
-                      <Calendar size={14} color="#DC2626" />
-                      <Text style={[styles.scheduleText, styles.chemicalText]}>
-                        {content[language].duration}:{" "}
-                        {treatment.schedule.duration}
-                      </Text>
-                    </View>
-                    <View style={styles.scheduleItemSmall}>
-                      <Sun size={14} color="#DC2626" />
-                      <Text style={[styles.scheduleText, styles.chemicalText]}>
-                        {content[language].bestTime}:{" "}
-                        {treatment.schedule.bestTime}
-                      </Text>
+                    <View style={styles.scheduleRow}>
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Clock size={14} color="#DC2626" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.chemicalText]}
+                          >
+                            {content[language].frequency}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.chemicalText]}
+                        >
+                          {treatment.schedule.frequency}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Calendar size={14} color="#DC2626" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.chemicalText]}
+                          >
+                            {content[language].duration}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.chemicalText]}
+                        >
+                          {treatment.schedule.duration}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Sun size={14} color="#DC2626" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.chemicalText]}
+                          >
+                            {content[language].bestTime}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.chemicalText]}
+                        >
+                          {treatment.schedule.bestTime}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
@@ -777,27 +806,56 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   </View>
 
                   {/* Schedule */}
+                  {/* Schedule - FIXED FOR MOBILE */}
                   <View style={styles.scheduleInfo}>
-                    <View style={styles.scheduleItemSmall}>
-                      <Clock size={14} color="#059669" />
-                      <Text style={[styles.scheduleText, styles.organicText]}>
-                        {content[language].frequency}:{" "}
-                        {treatment.schedule.frequency}
-                      </Text>
-                    </View>
-                    <View style={styles.scheduleItemSmall}>
-                      <Calendar size={14} color="#059669" />
-                      <Text style={[styles.scheduleText, styles.organicText]}>
-                        {content[language].duration}:{" "}
-                        {treatment.schedule.duration}
-                      </Text>
-                    </View>
-                    <View style={styles.scheduleItemSmall}>
-                      <Sun size={14} color="#059669" />
-                      <Text style={[styles.scheduleText, styles.organicText]}>
-                        {content[language].bestTime}:{" "}
-                        {treatment.schedule.bestTime}
-                      </Text>
+                    <View style={styles.scheduleRow}>
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Clock size={14} color="#059669" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.organicText]}
+                          >
+                            {content[language].frequency}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.organicText]}
+                        >
+                          {treatment.schedule.frequency}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Calendar size={14} color="#059669" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.organicText]}
+                          >
+                            {content[language].duration}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.organicText]}
+                        >
+                          {treatment.schedule.duration}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Sun size={14} color="#059669" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.organicText]}
+                          >
+                            {content[language].bestTime}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.organicText]}
+                        >
+                          {treatment.schedule.bestTime}
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
@@ -833,13 +891,37 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         </Text>
                       ))}
                     </View>
-                    <View style={styles.costContainer}>
-                      <Text style={[styles.costLabel, styles.organicCostLabel]}>
-                        {content[language].costEstimate}:
-                      </Text>
-                      <Text style={[styles.costValue, styles.organicCost]}>
-                        {treatment.costEstimate}
-                      </Text>
+                    {/* Availability & Cost - FIXED FOR MOBILE */}
+                    <View style={styles.availabilityRow}>
+                      <View style={styles.availabilityColumn}>
+                        <Text style={styles.sectionLabel}>
+                          {content[language].whereToBuy}:
+                        </Text>
+                        {treatment.availability[language].map((place, i) => (
+                          <Text
+                            key={i}
+                            style={[
+                              styles.availabilityText,
+                              styles.organicText,
+                            ]}
+                          >
+                            • {place}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.costContainer}>
+                        <View style={styles.costContent}>
+                          <Text
+                            style={[styles.costLabel, styles.organicCostLabel]}
+                          >
+                            {content[language].costEstimate}:
+                          </Text>
+                          <Text style={[styles.costValue, styles.organicCost]}>
+                            {treatment.costEstimate}
+                          </Text>
+                        </View>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -1249,6 +1331,12 @@ const styles = StyleSheet.create({
     borderColor: "#A7F3D0",
     backgroundColor: "#F9FEFB",
   },
+  availabilityText: {
+    fontSize: 12,
+    color: "#4B5563",
+    marginBottom: 2,
+    lineHeight: 16,
+  },
   treatmentHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -1354,23 +1442,39 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   scheduleInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
     backgroundColor: "#F8FAFC",
-    padding: 10,
+    padding: 12,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    marginBottom: 12,
+  },
+  scheduleRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  scheduleColumn: {
+    flex: 1,
+    minWidth: 100, // Ensures good mobile layout
+    marginBottom: 8,
   },
   scheduleItemSmall: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    marginBottom: 4,
   },
-  scheduleText: {
+  scheduleLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#4B5563",
+  },
+  scheduleValue: {
     fontSize: 12,
     color: "#4B5563",
+    marginLeft: 20, // Align with icon
   },
   chemicalText: {
     color: "#991B1B",
@@ -1378,6 +1482,12 @@ const styles = StyleSheet.create({
   organicText: {
     color: "#047857",
   },
+
+  scheduleText: {
+    fontSize: 12,
+    color: "#4B5563",
+  },
+
   safetyItem: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -1405,29 +1515,32 @@ const styles = StyleSheet.create({
   },
   availabilityRow: {
     flexDirection: "row",
-    gap: 12,
+    flexWrap: "wrap",
+    gap: 16,
+    marginTop: 8,
   },
   availabilityColumn: {
-    flex: 2,
-  },
-  availabilityText: {
-    fontSize: 12,
-    color: "#4B5563",
-    marginBottom: 2,
+    flex: 1,
+    minWidth: "60%", // Takes more space on mobile
   },
   costContainer: {
     flex: 1,
-    backgroundColor: "#FEF2F2",
-    padding: 10,
-    borderRadius: 8,
+    minWidth: 120, // Ensures cost container has enough width
+    backgroundColor: "#F0FDF4",
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#FECACA",
+    borderColor: "#A7F3D0",
+  },
+  costContent: {
+    flexDirection: "column",
+    alignItems: "center",
   },
   costLabel: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#991B1B",
-    marginBottom: 4,
+    marginBottom: 6,
+    textAlign: "center",
   },
   chemicalCostLabel: {
     color: "#991B1B",
@@ -1436,9 +1549,9 @@ const styles = StyleSheet.create({
     color: "#047857",
   },
   costValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#DC2626",
+    textAlign: "center",
   },
   chemicalCost: {
     color: "#DC2626",
