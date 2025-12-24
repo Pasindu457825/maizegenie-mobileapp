@@ -99,6 +99,7 @@ interface ForecastData {
 }
 
 const PriceForecastScreen = () => {
+  const hasRunForecastRef = useRef(false);
   const [weeklyForecast, setWeeklyForecast] = useState<WeekForecast[]>([]);
   const notificationSentRef = useRef(false);
   const rootNavigation = useNavigation<RootNavProp>();
@@ -119,6 +120,7 @@ const PriceForecastScreen = () => {
     temperature,
     weatherCondition,
     weatherIcon,
+    rainfallMm,
     isLoading,
   } = useUniversalLocation(language);
 
@@ -431,7 +433,11 @@ const PriceForecastScreen = () => {
         weatherCondition,
         language
       );
-      setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
+      setWeather(
+        `${Math.round(temperature)}°C • ${translatedCondition}${
+          rainfallMm !== null ? ` • ${rainfallMm.toFixed(1)}mm` : ""
+        }`
+      );
     } else {
       setWeather(
         language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
@@ -460,7 +466,7 @@ const PriceForecastScreen = () => {
         fuel_price: parseFloat(
           (formData.fuelPrice || "0").replace(/[^0-9.]/g, "")
         ),
-        rainfall: 120, // ⬅ temporary (later weather API)
+        rainfall: rainfallMm ?? 0,
         temperature: temperature ?? 28.0,
         demand_index: 0.72, // ⬅ can be dynamic later
         import_tax: parseFloat(
@@ -551,6 +557,15 @@ const PriceForecastScreen = () => {
       setIsLoadingForecast(false);
     }
   };
+
+  useEffect(() => {
+    if (hasRunForecastRef.current) return;
+
+    if (!isLoading && temperature !== null && rainfallMm !== null) {
+      hasRunForecastRef.current = true;
+      generateForecast();
+    }
+  }, [isLoading, temperature, rainfallMm]);
 
   const calculateProfit = () => {
     if (!formData) return { revenue: 0, profit: 0, margin: 0 };
