@@ -1,56 +1,87 @@
 // src/data/treatments/grayLeafSpotTreatments.ts
-import { SriLankanTreatment } from './treatmentTypes';
+import { SriLankanTreatment } from "./treatmentTypes";
 
 export const grayLeafSpotTreatments: SriLankanTreatment[] = [
+  // 🔴 CHEMICAL – Gray Leaf Spot specific fungicide
   {
-    id: "mancozeb_gray_spot",
+    id: "chlorothalonil_gray_leaf_spot",
     name: {
-      en: "Mancozeb 80% WP (Dithane M-45)",
-      si: "Mancozeb 80% WP (Dithane M-45)",
+      en: "Chlorothalonil 75% WP",
+      si: "ක්ලෝරොතැලොනීල් 75% WP",
     },
     availableProducts: {
-      en: ["Dithane M-45", "Indofil M-45", "Roko M-45"],
-      si: ["Dithane M-45", "Indofil M-45", "Roko M-45"],
+      en: ["Bravo 75 WP", "Kavach", "Chloro Gold"],
+      si: ["බ්‍රාවෝ 75 WP", "කවච්", "ක්ලෝරෝ ගෝල්ඩ්"],
     },
     applicationMethod: {
-      en: "Foliar spray covering both sides of leaves",
-      si: "කොළ දෙපසම ආවරණය වන පරිදි පත්‍ර සිදුරු කරන්න",
+      en: "Preventive foliar spray covering both leaf surfaces",
+      si: "රෝගය පැතිරීමට පෙර කොළ දෙපසම ආවරණය වන පරිදි සිදුරු කරන්න",
     },
     dosage: {
-      en: "2-2.5 kg per hectare (20-25g per 10L water)",
-      si: "හෙක්ටයාරයකට 2-2.5 kg (ලීටර් 10ක ජලයකට 20-25g)",
+      en: "20 g per 10 L of water",
+      si: "ලීටර් 10ක ජලයකට 20 g",
     },
     schedule: {
-      frequency: "Every 10-14 days",
-      duration: "3-4 applications",
+      frequency: "Every 7–10 days",
+      duration: "2–3 applications",
       bestTime: "Early morning or late afternoon",
     },
     safety: {
       en: [
-        "Wear gloves and mask during mixing",
-        "Wait 7 days before harvest",
-        "Avoid spraying in windy conditions",
+        "Wear gloves and mask during spraying",
+        "Avoid spraying during windy conditions",
+        "Observe re-entry period (7 days)",
       ],
       si: [
-        "මිශ්‍ර කිරීමේදී අත්වැසුම් හා මුඛ ආවරණය භාවිත කරන්න",
-        "අස්වැන්නට 7 දිනකට පෙර නවත්වන්න",
-        "සුලං සහිත තත්ත්වයන්හිදී සිදුරු කිරීමෙන් වළකින්න",
+        "සිදුරු කිරීමේදී අත් ආවරණ හා මුඛ ආවරණ භාවිත කරන්න",
+        "සුළං සහිත අවස්ථාවලදී සිදුරු කිරීමෙන් වළකින්න",
+        "දින 7ක නැවත ඇතුල් වීමේ කාලය පිළිපදින්න",
       ],
     },
     availability: {
-      en: [
-        "CIC Agri Centers",
-        "Lanka Harvest Stores",
-        "Local agrochemical shops",
-      ],
-      si: [
-        "සීඅයිසී කෘෂිකර්ම මධ්‍යස්ථාන",
-        "ලංකා හාර්වෙස්ට් ගබඩා",
-        "දේශීය කෘෂි රසායනික ගබඩා",
-      ],
+      en: ["CIC Agri Centers", "Agrochemical shops"],
+      si: ["CIC කෘෂිකර්ම මධ්‍යස්ථාන", "කෘෂි රසායනික ගබඩා"],
     },
-    costEstimate: "රු. 4,500 - 5,500 per hectare",
+    costEstimate: "රු. 5,000 – 7,000 (per hectare)",
     type: "chemical",
   },
-  // Add more treatments...
+
+  // 🌱 ORGANIC – Gray Leaf Spot supportive control
+  {
+    id: "garlic_extract_gray_leaf_spot",
+    name: {
+      en: "Garlic Extract Spray",
+      si: "සුදුළුනු සාරය සිදුරු කිරීම",
+    },
+    availableProducts: {
+      en: ["Fresh garlic cloves"],
+      si: ["නව සුදුළුනු"],
+    },
+    applicationMethod: {
+      en: "Prepare garlic extract and spray on affected leaves",
+      si: "සුදුළුනු සාරය සකසා ආසාදිත කොළ මත සිදුරු කරන්න",
+    },
+    dosage: {
+      en: "50 g crushed garlic per liter of water",
+      si: "ලීටර් ජලයකට තලාගත් සුදුළුනු 50 g",
+    },
+    schedule: {
+      frequency: "Every 7 days",
+      duration: "Early or mild infection stage",
+      bestTime: "Evening",
+    },
+    safety: {
+      en: ["Safe for humans and environment", "Use fresh solution only"],
+      si: [
+        "මිනිසුන්ට හා පරිසරයට ආරක්ෂිත",
+        "නව සකස් කළ ද්‍රාවණය පමණක් භාවිත කරන්න",
+      ],
+    },
+    availability: {
+      en: ["Prepared at home"],
+      si: ["ගෙදර සකස් කළ හැක"],
+    },
+    costEstimate: "රු. 200 – 500",
+    type: "organic",
+  },
 ];

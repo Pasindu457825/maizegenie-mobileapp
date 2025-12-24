@@ -6,7 +6,7 @@ import { leafBlightTreatments } from "./leafBlightTreatments";
 import { generalTreatments } from "./generalTreatments";
 
 export const sriLankanTreatments: TreatmentsData = {
-  "gray leaf spot": grayLeafSpotTreatments,
+  "gray spot": grayLeafSpotTreatments,
   "common rust": commonRustTreatments,
   "northern leaf blight": leafBlightTreatments,
   "leaf blight": leafBlightTreatments,
