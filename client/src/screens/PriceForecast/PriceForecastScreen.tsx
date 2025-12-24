@@ -409,9 +409,6 @@ const PriceForecastScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Generate forecast (mock - replace with API call)
-    generateForecast();
   }, []);
 
   // Update district and weather when location data changes
@@ -445,6 +442,12 @@ const PriceForecastScreen = () => {
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
 
+  const getSeasonFromWeek = (week: number): "Maha" | "Yala" => {
+    // Maha: Oct–Mar → ISO weeks 40–52, 1–13
+    if (week >= 40 || week <= 13) return "Maha";
+    return "Yala";
+  };
+
   const generateForecast = async () => {
     try {
       setIsLoadingForecast(true);
@@ -454,30 +457,72 @@ const PriceForecastScreen = () => {
         (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
       );
 
+      const weekNum = Number(formData.week);
+
+      // 🛡️ hard guard (prevents 422)
+      if (!Number.isFinite(weekNum)) {
+        throw new Error("Invalid week number");
+      }
+
+      const seasonCode = getSeasonFromWeek(weekNum);
+
+      // 🛡️ numeric sanitizers
+      const safeNumber = (v: any, fallback: number) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      const fuelPriceValue = safeNumber(
+        String(formData.fuelPrice).replace(/[^0-9.]/g, ""),
+        277
+      );
+
+      const lastPriceValue = safeNumber(
+        String(formData.farmGatePrice).replace(/[^0-9.]/g, ""),
+        160
+      );
+
+      const importTaxValue = safeNumber(
+        String(formData.cornImportTax).replace(/[^0-9.]/g, ""),
+        0
+      );
+
+      const rainfallValue =
+        rainfallMm && rainfallMm > 0
+          ? rainfallMm
+          : seasonCode === "Maha"
+          ? 30 // realistic Maha minimum
+          : 10;
+
+      let temperatureValue = safeNumber(
+        temperature,
+        seasonCode === "Maha" ? 26 : 28
+      );
+
+      // Sri Lanka invalid guard (0°C, negative, etc.)
+      if (temperatureValue < 10 || temperatureValue > 45) {
+        temperatureValue = seasonCode === "Maha" ? 26 : 28;
+      }
+
+      const demandIndexValue = seasonCode === "Maha" ? 0.85 : 0.7;
+
       const payload = {
-        year: Number(formData.year),
-        week: Number(formData.week),
-        district: formData.district,
+        year: safeNumber(formData.year, new Date().getFullYear()),
+        week: weekNum,
+        district: formData.district || "Anuradhapura",
+        season: seasonCode,
 
-        // 🔥 IMPORTANT: season normalize
-        season: formData.season.includes("Maha") ? "Maha" : "Yala",
-
-        // 🔥 REQUIRED by RF model
-        fuel_price: parseFloat(
-          (formData.fuelPrice || "0").replace(/[^0-9.]/g, "")
-        ),
-        rainfall: rainfallMm ?? 0,
-        temperature: temperature ?? 28.0,
-        demand_index: 0.72, // ⬅ can be dynamic later
-        import_tax: parseFloat(
-          (formData.cornImportTax || "0").replace(/[^0-9.]/g, "")
-        ),
-        last_price: parseFloat(
-          (formData.farmGatePrice || "0").replace(/[^0-9.]/g, "")
-        ),
+        fuel_price: fuelPriceValue,
+        rainfall: rainfallValue,
+        temperature: temperatureValue,
+        demand_index: demandIndexValue,
+        import_tax: importTaxValue,
+        last_price: lastPriceValue,
 
         weeks_ahead: 4,
       };
+
+      console.log("📤 RF PAYLOAD (final):", payload);
 
       const res = await getPriceForecast(payload);
 
