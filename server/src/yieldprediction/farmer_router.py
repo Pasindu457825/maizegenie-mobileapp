@@ -17,7 +17,10 @@ from .farmer_models import (
     Recommendation
 )
 from .service import predict_yield_service, build_impact_factors
-from .ml_model import USE_ML
+try:
+    from .ml_prediction_service import MODEL_LOADED as USE_ML
+except ImportError:
+    USE_ML = False
 from src.database.supabase_service_yieldNfert import (
     save_farmer_input,
     save_prediction,
