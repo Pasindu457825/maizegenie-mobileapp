@@ -163,9 +163,9 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   diseaseModel === "local" && styles.modelTextActive,
                 ]}
               >
-                Local AI
+                Standard Scan
               </Text>
-              <Text style={styles.modelSubText}>Faster • Offline</Text>
+              <Text style={styles.modelSubText}>Fast detection • Offline</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -181,9 +181,9 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   diseaseModel === "roboflow" && styles.modelTextActive,
                 ]}
               >
-                Cloud AI
+                Pro Scan
               </Text>
-              <Text style={styles.modelSubText}>More Accurate</Text>
+              <Text style={styles.modelSubText}>Advanced Accurate</Text>
             </TouchableOpacity>
           </View>
         </View>
