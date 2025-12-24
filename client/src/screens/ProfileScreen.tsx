@@ -52,6 +52,129 @@ const ProfileScreen = () => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  const content = {
+    sinhala: {
+      // Header
+      headerTitle: "පැතිකඩ",
+      headerSubtitle: "ඔබේ වගා පුවරුව",
+
+      // Profile Hero
+      profile: "පැතිකඩ",
+      farmer: "ගොවියා",
+      officer: "නිලධාරියා",
+      location: "ස්ථානය",
+      scans: "ස්කෑන්",
+
+      // Disease Detection Section
+      diseaseDetection: "රෝග හඳුනාගැනීම",
+      chooseAIModel: "AI ආකෘතිය තෝරන්න",
+      standard: "ප්‍රමිතිය",
+      standardDesc: "වේගවත් උපාංග-පාදක හඳුනාගැනීම",
+      advanced: "උසස්",
+      advancedDesc: "මෙව්ව-පාදක උසස් නිරවද්‍යතාව",
+      selected: "තෝරාගත්",
+      available: "ලබාගත හැකි",
+      fast: "වේගවත්",
+      offline: "අන්තර්ජාලය නොමැති",
+      highAccuracy: "ඉහළ නිරවද්‍යතාව",
+
+      // Settings Section
+      settings: "සැකසුම්",
+      managePreferences: "ඔබේ අභිමතයන් කළමනාකරණය කරන්න",
+      language: "භාෂාව",
+      notifications: "දැනුම්දීම්",
+      enabled: "සක්‍රියයි",
+      helpCenter: "උපකාර කේන්ද්‍රය",
+      faqSupport: "නිති අසන පැණ සහ උදව්",
+
+      // Recent Predictions
+      recentPredictions: "මෑත පුරෝකථන",
+      farmingInsights: "ඔබේ වගා අවබෝධතා",
+      loadingPredictions: "පුරෝකථන පූරණය වෙමින්...",
+      noPredictions: "පුරෝකථන නැත",
+      startByCreating: "පළමු අස්වැන්න පුරෝකථනය සාදා ආරම්භ කරන්න",
+      maizeCrop: "බඩ ඉරිඟු බෝගය",
+      active: "සක්‍රිය",
+      shareWithOfficer: "නිලධාරියා සමඟ බෙදාගන්න",
+
+      // Alerts
+      copied: "පිටපත් කරන ලදී!",
+      copyFailed: "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය",
+      logout: "ඉවත්වීම",
+      logoutConfirm: "ඔබට ඉවත්වීමට අවශ්‍ය බවට විශ්වාසද?",
+      cancel: "අවලංගු කරන්න",
+      logoutText: "ඉවත්වීම",
+
+      // Prediction Details
+      cropVariety: "බෝග වර්ගය",
+      plantingDate: "වැවීම් දිනය",
+      landSize: "ඉඩම් ප්‍රමාණය",
+      season: "ඍතුව",
+      status: "තත්ත්වය",
+    },
+    english: {
+      // Header
+      headerTitle: "Profile",
+      headerSubtitle: "Your Farming Dashboard",
+
+      // Profile Hero
+      profile: "Profile",
+      farmer: "Farmer",
+      officer: "Officer",
+      location: "Location",
+      scans: "Scans",
+
+      // Disease Detection Section
+      diseaseDetection: "Disease Detection",
+      chooseAIModel: "Choose your AI model",
+      standard: "Standard",
+      standardDesc: "Fast on-device detection",
+      advanced: "Advanced",
+      advancedDesc: "Cloud-based high accuracy",
+      selected: "Selected",
+      available: "Available",
+      fast: "Fast",
+      offline: "Offline",
+      highAccuracy: "High Accuracy",
+
+      // Settings Section
+      settings: "Settings",
+      managePreferences: "Manage your preferences",
+      language: "Language",
+      notifications: "Notifications",
+      enabled: "Enabled",
+      helpCenter: "Help Center",
+      faqSupport: "FAQ & Support",
+
+      // Recent Predictions
+      recentPredictions: "Recent Predictions",
+      farmingInsights: "Your farming insights",
+      loadingPredictions: "Loading predictions...",
+      noPredictions: "No predictions yet",
+      startByCreating: "Start by creating your first yield prediction",
+      maizeCrop: "Maize Crop",
+      active: "Active",
+      shareWithOfficer: "Share with Officer",
+
+      // Alerts
+      copied: "Copied!",
+      copyFailed: "Failed to copy prediction details",
+      logout: "Logout",
+      logoutConfirm: "Are you sure you want to logout?",
+      cancel: "Cancel",
+      logoutText: "Logout",
+
+      // Prediction Details
+      cropVariety: "Crop Variety",
+      plantingDate: "Planting Date",
+      landSize: "Land Size",
+      season: "Season",
+      status: "Status",
+    },
+  };
+
+  const t = content[language];
+
   useEffect(() => {
     loadPredictionHistory();
 
@@ -192,10 +315,10 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
       >
         <View style={styles.headerContent}>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Profile</Text>
+            <Text style={styles.headerTitle}>{t.headerTitle}</Text>
             <View style={styles.headerSubtitleContainer}>
               <Sparkles size={12} color="#D1FAE5" />
-              <Text style={styles.headerSubtitle}>Your Farming Dashboard</Text>
+              <Text style={styles.headerSubtitle}>{t.headerSubtitle}</Text>
             </View>
           </View>
         </View>
@@ -243,16 +366,15 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
 
               <View style={styles.heroInfo}>
                 <Text style={styles.heroName}>
-                  {user?.full_name || "Farmer"}
+                  {user?.full_name || t.farmer}
                 </Text>
-                <Text style={styles.heroEmail}>{user?.email}</Text>
 
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
                     <View style={styles.heroStatItem}>
                       <MapPin size={18} color="#FFFFFF" />
                       <Text style={styles.heroStatLabel}>
-                        {user?.district || "Location"}
+                        {user?.district || t.location}
                       </Text>
                     </View>
                   </View>
@@ -262,9 +384,7 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                       {user?.role === "farmer" ? "👨‍🌾🌾" : "👨‍💼"}
                     </Text>
                     <Text style={styles.heroStatLabel}>
-                      {user?.role
-                        ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-                        : "User"}
+                      {user?.role === "farmer" ? t.farmer : t.officer}
                     </Text>
                   </View>
                 </View>
@@ -295,10 +415,8 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   <Shield size={20} color="#FFFFFF" />
                 </View>
                 <View>
-                  <Text style={styles.sectionTitle}>Disease Detection</Text>
-                  <Text style={styles.sectionSubtitle}>
-                    Choose your AI model
-                  </Text>
+                  <Text style={styles.sectionTitle}>{t.diseaseDetection}</Text>
+                  <Text style={styles.sectionSubtitle}>{t.chooseAIModel}</Text>
                 </View>
               </View>
 
@@ -336,17 +454,15 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                         ]}
                       />
                       <Text style={styles.statusText}>
-                        {diseaseModel === "local" ? "Selected" : "Available"}
+                        {diseaseModel === "local" ? t.selected : t.available}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.modelName}>Standard</Text>
-                  <Text style={styles.modelDescription}>
-                    Fast on-device detection with basic accuracy
-                  </Text>
+                  <Text style={styles.modelName}>{t.standard}</Text>
+                  <Text style={styles.modelDescription}>{t.standardDesc}</Text>
                   <View style={styles.modelFeatures}>
-                    <Text style={styles.modelFeature}>⚡ Fast</Text>
-                    <Text style={styles.modelFeature}>📱 Offline</Text>
+                    <Text style={styles.modelFeature}>⚡ {t.fast}</Text>
+                    <Text style={styles.modelFeature}>📱 {t.offline}</Text>
                   </View>
                 </TouchableOpacity>
 
@@ -387,32 +503,29 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                         ]}
                       />
                       <Text style={styles.statusText}>
-                        {diseaseModel === "roboflow" ? "Selected" : "Available"}
+                        {diseaseModel === "roboflow" ? t.selected : t.available}
                       </Text>
                     </View>
                   </View>
-                  <Text style={styles.modelName}>Advanced</Text>
-                  <Text style={styles.modelDescription}>
-                    Cloud-based AI with high accuracy detection
-                  </Text>
+                  <Text style={styles.modelName}>{t.advanced}</Text>
+                  <Text style={styles.modelDescription}>{t.advancedDesc}</Text>
                   <View style={styles.modelFeatures}>
-                    <Text style={styles.modelFeature}>🎯 High Accuracy</Text>
+                    <Text style={styles.modelFeature}>🎯 {t.highAccuracy}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
             </View>
           )}
 
-          {/* Settings Panel */}
           <View style={styles.settingsPanel}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionIconContainer}>
                 <Settings size={20} color="#FFFFFF" />
               </View>
               <View>
-                <Text style={styles.sectionTitle}>Settings</Text>
+                <Text style={styles.sectionTitle}>{t.settings}</Text>
                 <Text style={styles.sectionSubtitle}>
-                  Manage your preferences
+                  {t.managePreferences}
                 </Text>
               </View>
             </View>
@@ -430,7 +543,7 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   <View style={styles.settingIcon}>
                     <Globe size={24} color="#10b981" />
                   </View>
-                  <Text style={styles.settingTitle}>Language</Text>
+                  <Text style={styles.settingTitle}>{t.language}</Text>
                   <Text style={styles.settingValue}>
                     {language === "sinhala" ? "සිංහල" : "English"}
                   </Text>
@@ -448,8 +561,8 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   <View style={styles.settingIcon}>
                     <Bell size={24} color="#ef4444" />
                   </View>
-                  <Text style={styles.settingTitle}>Notifications</Text>
-                  <Text style={styles.settingValue}>Enabled</Text>
+                  <Text style={styles.settingTitle}>{t.notifications}</Text>
+                  <Text style={styles.settingValue}>{t.enabled}</Text>
                   <View style={styles.settingArrow}>
                     <ChevronRight size={16} color="#ef4444" />
                   </View>
@@ -464,8 +577,8 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   <View style={styles.settingIcon}>
                     <HelpCircle size={24} color="#3b82f6" />
                   </View>
-                  <Text style={styles.settingTitle}>Help Center</Text>
-                  <Text style={styles.settingValue}>FAQ & Support</Text>
+                  <Text style={styles.settingTitle}>{t.helpCenter}</Text>
+                  <Text style={styles.settingValue}>{t.faqSupport}</Text>
                   <View style={styles.settingArrow}>
                     <ChevronRight size={16} color="#3b82f6" />
                   </View>
@@ -482,9 +595,9 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                   <Crop size={20} color="#FFFFFF" />
                 </View>
                 <View>
-                  <Text style={styles.sectionTitle}>Recent Predictions</Text>
+                  <Text style={styles.sectionTitle}>{t.recentPredictions}</Text>
                   <Text style={styles.sectionSubtitle}>
-                    Your farming insights
+                    {t.farmingInsights}
                   </Text>
                 </View>
               </View>
@@ -492,15 +605,13 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
               {loading ? (
                 <View style={styles.loadingState}>
                   <ActivityIndicator size="large" color="#10B981" />
-                  <Text style={styles.loadingText}>Loading predictions...</Text>
+                  <Text style={styles.loadingText}>{t.loadingPredictions}</Text>
                 </View>
               ) : predictions.length === 0 ? (
                 <View style={styles.emptyState}>
                   <Crop size={48} color="#d1d5db" />
-                  <Text style={styles.emptyText}>No predictions yet</Text>
-                  <Text style={styles.emptySubtext}>
-                    Start by creating your first yield prediction
-                  </Text>
+                  <Text style={styles.emptyText}>{t.noPredictions}</Text>
+                  <Text style={styles.emptySubtext}>{t.startByCreating}</Text>
                 </View>
               ) : (
                 predictions.slice(0, 2).map((prediction, index) => (
@@ -516,7 +627,7 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                       </View>
                       <View style={styles.predictionInfo}>
                         <Text style={styles.predictionCrop}>
-                          {prediction.variety || "Maize Crop"}
+                          {prediction.variety || t.maizeCrop}
                         </Text>
                         <View style={styles.predictionMeta}>
                           <Calendar size={12} color="#6b7280" />
@@ -535,21 +646,21 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
 
                     <View style={styles.predictionDetails}>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Location</Text>
+                        <Text style={styles.detailLabel}>{t.location}</Text>
                         <Text style={styles.detailValue}>
                           {prediction.district}
                         </Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Season</Text>
+                        <Text style={styles.detailLabel}>{t.season}</Text>
                         <Text style={styles.detailValue}>
                           {prediction.season}
                         </Text>
                       </View>
                       <View style={styles.detailItem}>
-                        <Text style={styles.detailLabel}>Status</Text>
+                        <Text style={styles.detailLabel}>{t.status}</Text>
                         <View style={styles.predictionStatus}>
-                          <Text style={styles.statusText}>Active</Text>
+                          <Text style={styles.statusText}>{t.active}</Text>
                         </View>
                       </View>
                     </View>
@@ -560,7 +671,7 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
                     >
                       <Share2 size={16} color="#ffffff" />
                       <Text style={styles.shareActionText}>
-                        Share with Officer
+                        {t.shareWithOfficer}
                       </Text>
                     </TouchableOpacity>
                   </TouchableOpacity>
@@ -568,7 +679,6 @@ I would like to get advice from an Agricultural Officer regarding my yield predi
               )}
             </View>
           )}
-
           {/* Bottom Spacing */}
           <View style={styles.bottomSpacer} />
         </Animated.View>
