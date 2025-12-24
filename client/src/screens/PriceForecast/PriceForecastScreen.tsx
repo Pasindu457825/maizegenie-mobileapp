@@ -963,6 +963,7 @@ const PriceForecastScreen = () => {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 20 }}
                 style={{ marginTop: 8 }}
               >
                 {weeklyForecast.map((w, index) => {
@@ -1596,7 +1597,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   weekCard: {
-    width: "100%",
+    width: width * 0.78,
     maxWidth: 320,
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
