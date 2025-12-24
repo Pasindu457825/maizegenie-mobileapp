@@ -21,6 +21,7 @@ interface CustomDropdownProps {
     onSelect: (value: string) => void;
     placeholder?: string;
     required?: boolean;
+    disabled?: boolean;
 }
 
 const CustomDropdown: React.FC<CustomDropdownProps> = ({
@@ -30,6 +31,7 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
     onSelect,
     placeholder = "Select",
     required = false,
+    disabled = false,
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
 
@@ -42,13 +44,15 @@ const CustomDropdown: React.FC<CustomDropdownProps> = ({
             </Text>
 
             <TouchableOpacity
-                style={styles.selector}
-                onPress={() => setModalVisible(true)}
+                style={[styles.selector, disabled && styles.disabledSelector]}
+                onPress={() => !disabled && setModalVisible(true)}
+                disabled={disabled}
             >
                 <Text
                     style={[
                         styles.selectorText,
                         !selectedOption && styles.placeholderText,
+                        disabled && styles.disabledText,
                     ]}
                 >
                     {selectedOption ? selectedOption.label : placeholder}
@@ -163,6 +167,13 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "600",
         color: "#6B7280",
+    },
+    disabledSelector: {
+        backgroundColor: "#F3F4F6",
+        opacity: 0.6,
+    },
+    disabledText: {
+        color: "#9CA3AF",
     },
 });
 

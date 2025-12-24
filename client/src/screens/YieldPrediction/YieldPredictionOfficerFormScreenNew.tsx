@@ -150,6 +150,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
     const [plantingDate, setPlantingDate] = useState("");
     const [season, setSeason] = useState("");
     const [fieldSizeHa, setFieldSizeHa] = useState("");
+    const [fieldSizeUnit, setFieldSizeUnit] = useState<"Acres" | "Hectares">("Acres");
 
     // Step 4: Fertilizer Dates
     const [firstFertDate, setFirstFertDate] = useState("");
@@ -195,7 +196,8 @@ const YieldPredictionOfficerFormScreenNew = () => {
             variety: "බීජ ප්‍රභේදය",
             plantingDate: "වගා කළ දිනය",
             season: "සෘතුව",
-            fieldSize: "ක්ෂේත්‍ර ප්‍රමාණය (ha)",
+            fieldSize: "ඉඩම් ප්‍රමාණය",
+            fieldSizeUnit: "ඒකකය",
             // Step 4
             fertilizerDates: "පොහොර දිනයන්",
             firstFert: "පළමු පොහොර දිනය",
@@ -241,7 +243,8 @@ const YieldPredictionOfficerFormScreenNew = () => {
             variety: "Seed Variety",
             plantingDate: "Planting Date",
             season: "Season",
-            fieldSize: "Field Size (hectares)",
+            fieldSize: "Field Size",
+            fieldSizeUnit: "Unit",
             // Step 4
             fertilizerDates: "Fertilizer Dates",
             firstFert: "First Fertilizer Date",
@@ -372,7 +375,9 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     planting_date: plantingDate,
                     planting_month: plantingMonth,
                     season,
-                    field_size_ha: parseFloat(fieldSizeHa),
+                    field_size_ha: fieldSizeUnit === "Acres" 
+                        ? parseFloat(fieldSizeHa) * 0.404686 
+                        : parseFloat(fieldSizeHa),
                 },
                 fertilizer_dates: {
                     first_fert_date: firstFertDate,
@@ -713,14 +718,46 @@ const YieldPredictionOfficerFormScreenNew = () => {
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>{content[language].fieldSize} *</Text>
-                <TextInput
-                    style={styles.input}
-                    placeholder="1.0"
-                    value={fieldSizeHa}
-                    onChangeText={setFieldSizeHa}
-                    keyboardType="decimal-pad"
-                    placeholderTextColor="#9CA3AF"
-                />
+                <View style={styles.fieldSizeContainer}>
+                    <TextInput
+                        style={styles.fieldSizeInput}
+                        placeholder="2.5"
+                        value={fieldSizeHa}
+                        onChangeText={(value) => {
+                            if (/^\d*\.?\d*$/.test(value)) {
+                                setFieldSizeHa(value);
+                            }
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholderTextColor="#9CA3AF"
+                        maxLength={6}
+                    />
+                    <View style={styles.unitSelector}>
+                        <TouchableOpacity
+                            style={[styles.unitButton, fieldSizeUnit === "Acres" && styles.unitButtonActive]}
+                            onPress={() => setFieldSizeUnit("Acres")}
+                        >
+                            <Text style={[styles.unitButtonText, fieldSizeUnit === "Acres" && styles.unitButtonTextActive]}>
+                                Acres
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.unitButton, fieldSizeUnit === "Hectares" && styles.unitButtonActive]}
+                            onPress={() => setFieldSizeUnit("Hectares")}
+                        >
+                            <Text style={[styles.unitButtonText, fieldSizeUnit === "Hectares" && styles.unitButtonTextActive]}>
+                                Hectares
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+                {fieldSizeHa && (
+                    <Text style={styles.conversionText}>
+                        {fieldSizeUnit === "Acres"
+                            ? `≈ ${(parseFloat(fieldSizeHa) * 0.404686).toFixed(2)} Hectares`
+                            : `≈ ${(parseFloat(fieldSizeHa) * 2.47105).toFixed(2)} Acres`}
+                    </Text>
+                )}
             </View>
         </View>
     );
@@ -1052,6 +1089,53 @@ const styles = StyleSheet.create({
         fontWeight: "600",
         color: "#FFFFFF",
         marginRight: 8,
+    },
+    fieldSizeContainer: {
+        marginBottom: 8,
+    },
+    fieldSizeInput: {
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        borderRadius: 8,
+        paddingHorizontal: 15,
+        paddingVertical: 12,
+        fontSize: 15,
+        color: "#1F2937",
+        marginBottom: 8,
+    },
+    unitSelector: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    unitButton: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        backgroundColor: "#FFFFFF",
+        alignItems: "center",
+    },
+    unitButtonActive: {
+        backgroundColor: "#ECFDF5",
+        borderColor: "#10b981",
+    },
+    unitButtonText: {
+        fontSize: 14,
+        color: "#6B7280",
+        fontWeight: "500",
+    },
+    unitButtonTextActive: {
+        color: "#10b981",
+        fontWeight: "600",
+    },
+    conversionText: {
+        fontSize: 12,
+        color: "#059669",
+        marginTop: 4,
+        fontStyle: "italic",
     },
 });
 
