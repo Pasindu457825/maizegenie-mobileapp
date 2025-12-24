@@ -8,6 +8,7 @@ import pandas as pd
 router = APIRouter(prefix="/api/price-forecast", tags=["Price Forecast"])
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_YEAR = 2020  # must match training
 
 # =====================================================
 # LOAD RANDOM FOREST MODEL + SCALERS
@@ -17,7 +18,6 @@ try:
     scaler_X = joblib.load(os.path.join(BASE_DIR, "feature_scaler.pkl"))
     scaler_y = joblib.load(os.path.join(BASE_DIR, "target_scaler.pkl"))
 
-    # 🔥 ONLY TRUST FEATURES LEARNED BY MODEL
     FEATURE_COLS = list(rf_model.feature_names_in_)
 
     print("✅ Random Forest model loaded")
@@ -56,16 +56,25 @@ class PriceForecastResponse(BaseModel):
 
 
 # =====================================================
-# AUTO DEMAND COMPONENTS
+# AUTO INPUT NORMALIZATION (SAFE)
+# =====================================================
+def normalize_if_needed(req: PriceForecastRequest):
+    if req.last_price < 5:
+        req.last_price *= 1000
+    if req.fuel_price < 5:
+        req.fuel_price *= 1000
+    if req.rainfall < 5:
+        req.rainfall *= 100
+    return req
+
+
+# =====================================================
+# DEMAND COMPONENTS
 # =====================================================
 def compute_demand_components(req: PriceForecastRequest):
-    # festival / seasonal demand
     demand_festival = 0.8 if req.season.lower() == "maha" else 0.6
-
-    # fuel pressure
     demand_fuel = min(req.fuel_price / 400.0, 1.0)
 
-    # season demand
     if req.season.lower() == "maha":
         demand_season = 0.8
     elif req.season.lower() == "yala":
@@ -77,59 +86,60 @@ def compute_demand_components(req: PriceForecastRequest):
 
 
 # =====================================================
-# FEATURE BUILDER (MODEL-ALIGNED)
-# =====================================================
-def build_features(req: PriceForecastRequest, step: int):
-    demand_festival, demand_fuel, demand_season = compute_demand_components(req)
-
-    # master feature pool
-    feature_pool = {
-        # lag & rolling (used by model)
-        "lag_1": req.last_price,
-        "lag_2": req.last_price,
-        "lag_4": req.last_price,
-        "roll_4": req.last_price,
-        "roll_8": req.last_price,
-
-        # time
-        "weekofyear": ((req.week + step - 1) % 52) + 1,
-
-        # demand
-        "demand_index": req.demand_index,
-        "demand_Festival": demand_festival,
-        "demand_fuel": demand_fuel,
-        "demand_season": demand_season,
-
-        # macro / weather
-        "Fuel_price_Rs_per_L": req.fuel_price,
-        "Import_tax_Rs_per_kg": req.import_tax,
-        "Rainfall_mm": req.rainfall,
-        "Temp_C": req.temperature,
-    }
-
-    # 🔥 return ONLY features model was trained on
-    return {k: feature_pool.get(k, 0.0) for k in FEATURE_COLS}
-
-
-# =====================================================
-# RF FORECAST FUNCTION (ROLLING)
+# RF FORECAST FUNCTION (NO WARNINGS VERSION)
 # =====================================================
 def forecast_weeks_rf(req: PriceForecastRequest):
     results = []
 
+    # rolling price history (for lag/roll)
+    price_history = [req.last_price] * 8
+
     for i in range(req.weeks_ahead):
-        features = build_features(req, i + 1)
+        week = ((req.week + i - 1) % 52) + 1
+        year = req.year + ((req.week + i - 1) // 52)
 
-        # keep feature names to avoid sklearn warning
-        X = pd.DataFrame([features], columns=FEATURE_COLS)
-        X_scaled = pd.DataFrame(
-            scaler_X.transform(X),
-            columns=FEATURE_COLS
-        )
+        lag_1 = price_history[-1]
+        lag_2 = price_history[-2]
+        lag_4 = price_history[-4]
+        roll_4 = np.mean(price_history[-4:])
+        roll_8 = np.mean(price_history[-8:])
 
-        pred_scaled = rf_model.predict(X_scaled)
+        demand_festival, demand_fuel, demand_season = compute_demand_components(req)
+
+        row = {
+            "time_idx": (year - BASE_YEAR) * 52 + week,
+            "Year": year,
+            "Week": week,
+
+            "lag_1": lag_1,
+            "lag_2": lag_2,
+            "lag_4": lag_4,
+            "roll_4": roll_4,
+            "roll_8": roll_8,
+
+            "demand_index": req.demand_index,
+            "demand_Festival": demand_festival,
+            "demand_fuel": demand_fuel,
+            "demand_season": demand_season,
+
+            "Fuel_price_Rs_per_L": req.fuel_price,
+            "Import_tax_Rs_per_kg": req.import_tax,
+            "Rainfall_mm": req.rainfall,
+            "Temp_C": req.temperature,
+        }
+
+        # district one-hot
+        for col in FEATURE_COLS:
+            if col.startswith("dist_"):
+                row[col] = 1 if col == f"dist_{req.district}" else 0
+
+        # ✅ KEEP DATAFRAME (no .values)
+        X = pd.DataFrame([row])[FEATURE_COLS]
+        X_scaled = scaler_X.transform(X)
+        pred = rf_model.predict(X_scaled)
+
         pred_price = scaler_y.inverse_transform(
-            pred_scaled.reshape(-1, 1)
+            pred.reshape(-1, 1)
         )[0][0]
 
         pred_price = round(float(pred_price), 2)
@@ -139,8 +149,7 @@ def forecast_weeks_rf(req: PriceForecastRequest):
             "rf_price": pred_price
         })
 
-        # rolling update
-        req.last_price = pred_price
+        price_history.append(pred_price)
 
     return results
 
@@ -153,6 +162,7 @@ def get_price_forecast(req: PriceForecastRequest):
     print("🔥 RF BACKEND RECEIVED PAYLOAD:", req.dict())
 
     try:
+        req = normalize_if_needed(req)
         weeks = forecast_weeks_rf(req)
         return PriceForecastResponse(success=True, weeks=weeks)
 
