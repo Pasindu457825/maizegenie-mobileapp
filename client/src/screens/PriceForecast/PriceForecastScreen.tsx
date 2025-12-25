@@ -532,8 +532,11 @@ const PriceForecastScreen = () => {
 
       setWeeklyForecast(res.weeks);
 
-      // First week value use karala main card ekata price set karamu
       const first = res.weeks[0];
+      const firstWeek = res.weeks[0];
+
+      // if you are using ensemble first.ensemble etc keep your existing logic
+      setConfidenceScore(firstWeek?.confidence_pct ?? 70);
 
       setPredictedPrice(first.ensemble);
 
@@ -840,8 +843,16 @@ const PriceForecastScreen = () => {
             {/* Confidence Score */}
             <View style={styles.confidenceBar}>
               <Text style={styles.confidenceLabel}>
-                {content[language].confidence}
+                {content[language].confidence} •{" "}
+                {confidenceScore >= 75
+                  ? language === "si"
+                    ? "ඉහළ"
+                    : "High"
+                  : language === "si"
+                  ? "මධ්‍යම"
+                  : "Medium"}
               </Text>
+
               <View style={styles.progressBarContainer}>
                 <View
                   style={[
@@ -1013,6 +1024,9 @@ const PriceForecastScreen = () => {
               >
                 {weeklyForecast.map((w, index) => {
                   const isBest = index === bestWeekIndex;
+                  // ✅ DEFINE VARIABLES HERE (JS scope)
+                  const confPct = w.confidence_pct ?? 70;
+                  const confTag = w.confidence_tag ?? "Medium";
 
                   return (
                     <View
@@ -1027,7 +1041,6 @@ const PriceForecastScreen = () => {
                           </Text>
                         </View>
                       )}
-
                       {/* WEEK DATE RANGE */}
                       <Text style={styles.weekLabel}>
                         {getISOWeekRangeWithOffset(
@@ -1037,11 +1050,38 @@ const PriceForecastScreen = () => {
                           language
                         )}
                       </Text>
-
                       {/* PRICE */}
                       <Text style={styles.weekPrice}>
                         Rs {w.ensemble.toFixed(2)}
                       </Text>
+                      <View
+                        style={[
+                          styles.confBadge,
+                          {
+                            backgroundColor:
+                              confTag === "High" ? "#D1FAE5" : "#FEF3C7",
+                            borderColor:
+                              confTag === "High" ? "#10B981" : "#F59E0B",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.confBadgeText,
+                            {
+                              color: confTag === "High" ? "#047857" : "#92400E",
+                            },
+                          ]}
+                        >
+                          {confTag === "High"
+                            ? language === "si"
+                              ? `ඉහළ • ${confPct.toFixed(0)}%`
+                              : `High • ${confPct.toFixed(0)}%`
+                            : language === "si"
+                            ? `මධ්‍යම • ${confPct.toFixed(0)}%`
+                            : `Medium • ${confPct.toFixed(0)}%`}
+                        </Text>
+                      </View>
 
                       {/* MODEL DETAILS */}
                       <Text style={styles.weekSub}>
@@ -1750,6 +1790,18 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  confBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  confBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
 

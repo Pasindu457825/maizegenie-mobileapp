@@ -22,10 +22,21 @@ export interface PriceForecastPayload {
   weeks_ahead?: number;
 }
 
+/**
+ * 🔁 IMPORTANT:
+ * - Existing fields: sarimax, ensemble (DO NOT REMOVE)
+ * - New fields: confidence_pct, confidence_tag (OPTIONAL)
+ */
 export interface WeekForecast {
   week: number;
+
+  // EXISTING (UI already uses these)
   sarimax: number;   // mapped from rf_price
   ensemble: number;  // mapped from rf_price
+
+  // NEW (for confidence bar & tag)
+  confidence_pct?: number;           // 0–100
+  confidence_tag?: "High" | "Medium";
 }
 
 export interface PriceForecastResponse {
@@ -56,14 +67,21 @@ export async function getPriceForecast(
   const data = await res.json();
 
   // =====================================================
-  // 🔁 ADAPTER: RF → UI FORMAT
+  // 🔁 ADAPTER: Backend → UI FORMAT
+  // (Backward compatible)
   // =====================================================
   return {
     success: data.success,
     weeks: (data.weeks || []).map((w: any) => ({
       week: w.week,
-      sarimax: w.rf_price,   // 🔁 map RF → SARIMAX
-      ensemble: w.rf_price,  // 🔁 map RF → ENSEMBLE
+
+      // EXISTING UI MAPPING (KEEP AS-IS)
+      sarimax: w.rf_price,
+      ensemble: w.rf_price,
+
+      // NEW (SAFE – UI can ignore if unused)
+      confidence_pct: w.confidence_pct,
+      confidence_tag: w.confidence_tag,
     })),
   };
 }
