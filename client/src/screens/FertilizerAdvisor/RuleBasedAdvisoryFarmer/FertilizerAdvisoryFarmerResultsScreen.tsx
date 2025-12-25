@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { useLanguage } from "../../../context/LanguageContext";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   ArrowLeft,
@@ -81,7 +82,8 @@ export default function RuleBasedAdvisoryResultsScreen() {
     language: Language;
   };
 
-  const [language, setLanguage] = React.useState<Language>(lang || "en");
+  const { language: contextLang } = useLanguage();
+  const language: Language = contextLang === "sinhala" ? "si" : "en";
   const t = content[language];
 
   const canApplyToday = data.apply_today === true;
@@ -147,9 +149,6 @@ export default function RuleBasedAdvisoryResultsScreen() {
             <Text style={styles.headerTitle}>{t.title}</Text>
             <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
           </View>
-          <TouchableOpacity style={styles.langButton} onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}>
-            <Text style={styles.langText}>{language === "si" ? "EN" : "සිං"}</Text>
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 

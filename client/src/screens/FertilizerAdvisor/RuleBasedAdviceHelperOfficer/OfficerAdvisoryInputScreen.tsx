@@ -21,6 +21,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../../context/AppContext";
+import { useLanguage } from "../../../context/LanguageContext";
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE;
 
@@ -106,7 +107,8 @@ const symptomOptions = [
 export default function OfficerAdvisoryInputScreen() {
   const navigation = useNavigation<any>();
   const { user } = useApp();
-  const [language, setLanguage] = useState<Language>("en");
+  const { language: lang } = useLanguage();
+  const language: Language = lang === "sinhala" ? "si" : "en";
   const [loading, setLoading] = useState(false);
 
   const [growthStage, setGrowthStage] = useState("");
@@ -233,12 +235,6 @@ export default function OfficerAdvisoryInputScreen() {
             <Text style={styles.headerTitle}>{t.title}</Text>
             <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>{language === "si" ? "EN" : "සිං"}</Text>
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 

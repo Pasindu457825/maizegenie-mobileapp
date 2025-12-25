@@ -7,7 +7,7 @@ import YieldPredictionFormScreen from "../screens/YieldPrediction/YieldPredictio
 import YieldPredictionResultsScreen from "../screens/YieldPrediction/YieldPredictionFarmerResultsScreen";
 
 // Officer Screens
-import YieldPredictionOfficerFormScreen from "../screens/YieldPrediction/YieldPredictionOfficerFormScreen";
+import YieldPredictionOfficerFormScreen from "../screens/YieldPrediction/YieldPredictionOfficerFormScreenNew";
 import YieldPredictionOfficerResultsScreen from "../screens/YieldPrediction/YieldPredictionOfficerResultsScreen";
 
 // Fertilizer Advisor Screens - Farmer Side

@@ -18,8 +18,6 @@ import {
   Leaf,
   BarChart3,
   MessageSquare,
-  Cloud,
-  MapPin,
   Settings,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
@@ -37,8 +35,6 @@ const translations: Record<
     welcomeSubtext: string;
     chatWithOfficer: string;
     viewFarmerChats: string;
-    quickSignIn: string;
-    quickStats: string;
     cropsTracked: string;
     priceForecast: string;
     features: string;
@@ -56,7 +52,6 @@ const translations: Record<
     monitorCrops: string;
     monitorDescription: string;
     farmingCompanion: string;
-    currentLocation: string;
     development: string;
     production: string;
   }
@@ -66,8 +61,6 @@ const translations: Record<
     welcomeSubtext: "ඔබේ ගොවිතැනට ආපසු පැමිණිණු ඔබට සාදරයෙන් ස්වාගතයි",
     chatWithOfficer: "කෘෂි නිලධාරියා සමඟ කතා කරන්න",
     viewFarmerChats: "ගොවිවරු සමඟ සංවාදයන් බලන්න",
-    quickSignIn: "ඉක්මන් ඉවත් වීම",
-    quickStats: "ඉක්මන් සංඛ්‍යා",
     cropsTracked: "නිරීක්ෂණය කරන ලද බෝග",
     priceForecast: "මිල පුරෝකථනයන්",
     features: "විශේෂතා",
@@ -86,7 +79,6 @@ const translations: Record<
     monitorDescription:
       "පළිබෝධ සහ රෝගවල මුල් හඳුනාගැනීම ඔබේ බෝගය ගලවාගත හැක. ඔබේ පස් දෙයට නිරීක්ෂණය කරන්න.",
     farmingCompanion: "ඔබේ ගොවි සහකරු",
-    currentLocation: "මොණරාගල",
     development: "සංවර්ධනය",
     production: "නිෂ්පාදනය",
   },
@@ -95,8 +87,6 @@ const translations: Record<
     welcomeSubtext: "Your farming companion is ready to help",
     chatWithOfficer: "Chat With Agriculture Officer",
     viewFarmerChats: "View Farmer Chats",
-    quickSignIn: "Quick Sign In",
-    quickStats: "Quick Stats",
     cropsTracked: "Crops Tracked",
     priceForecast: "Price Forecasts",
     features: "Features",
@@ -115,7 +105,6 @@ const translations: Record<
     monitorDescription:
       "Early detection of pests and diseases can save your harvest. Check your plants daily for any signs of trouble.",
     farmingCompanion: "Your farming companion",
-    currentLocation: "Monaragala",
     development: "Development",
     production: "Production",
   },
@@ -167,20 +156,20 @@ export default function HomeScreen() {
       title: t.pestIdentifier,
       description: t.pestDescription,
       color: "#ef4444",
-      route: "DiseaseIdentification",
-    },
-    {
-      icon: AlertCircle,
-      title: t.diseaseIdentifier,
-      description: t.diseaseDescription,
-      color: "#f59e0b",
-      route: "DiseaseIdentification",
+      route: "DiseaseIdentify",
     },
     {
       icon: Leaf,
+      title: t.diseaseIdentifier,
+      description: t.diseaseDescription,
+      color: "#22c55e",
+      route: "DiseaseIdentifier",
+    },
+    {
+      icon: AlertCircle,
       title: t.fertilizerAdvisor,
       description: t.fertilizerDescription,
-      color: "#22c55e",
+      color: "#f59e0b",
       route: "FertilizerAdvisor",
     },
     {
@@ -196,7 +185,7 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={["#f0fdf4", "#dcfce7"]}
+        colors={["#10B981", "#0faa76ff"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -212,17 +201,6 @@ export default function HomeScreen() {
           >
             <Settings size={24} color="#10b981" />
           </TouchableOpacity>
-        </View>
-
-        {/* Location Info */}
-        <View style={styles.locationInfo}>
-          <MapPin size={16} color="#059669" />
-          <Text style={styles.locationText}>{t.currentLocation}</Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>
-              {__DEV__ ? t.development : t.production}
-            </Text>
-          </View>
         </View>
       </LinearGradient>
 
@@ -304,51 +282,9 @@ export default function HomeScreen() {
             <TouchableOpacity
               onPress={() => navigation.navigate("Login")}
               style={styles.chatButtonWrapper}
-            >
-              <LinearGradient
-                colors={["#10b981", "#059669"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.chatButton}
-              >
-                <Text style={styles.chatButtonText}>{t.quickSignIn}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
+            ></TouchableOpacity>
           )}
         </Animated.View>
-
-        {/* Quick Stats */}
-        <Animated.View
-          style={[
-            styles.statsSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>{t.quickStats}</Text>
-          <View style={styles.statsGrid}>
-            <LinearGradient
-              colors={["#f0fdf4", "#dcfce7"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCard}
-            >
-              <Text style={styles.statNumber}>24</Text>
-              <Text style={styles.statLabel}>{t.cropsTracked}</Text>
-            </LinearGradient>
-            <LinearGradient
-              colors={["#eff6ff", "#dbeafe"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCard}
-            >
-              <Text style={[styles.statNumber, { color: "#1565C0" }]}>12</Text>
-              <Text style={styles.statLabel}>{t.priceForecast}</Text>
-            </LinearGradient>
-          </View>
-        </Animated.View>
-
         {/* Features Section */}
         <Animated.View
           style={[
@@ -444,10 +380,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 16,
+    paddingTop: 52, // ⬇ reduced
+    paddingBottom: 28, // ⬇ reduced
     paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    overflow: "hidden",
   },
+
   headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -456,12 +396,13 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#065f46",
+    color: "#ffffff", // ✅ white
     marginBottom: 4,
   },
+
   headerSubtitle: {
     fontSize: 14,
-    color: "#059669",
+    color: "#ffffff",
     fontWeight: "600",
   },
   settingsButton: {
