@@ -16,6 +16,7 @@ import { Leaf, Users, Package, ArrowLeft, Sparkles } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import DataConfirmationModal from "../../components/DataConfirmationModal";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +30,7 @@ const YieldPredictionLoadingScreen = () => {
   const { language: lang } = useLanguage();
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const { user } = useApp();
 
@@ -82,6 +84,15 @@ const YieldPredictionLoadingScreen = () => {
     },
   };
 
+  const showOfficerDataConfirmation = () => {
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmProceed = () => {
+    setShowConfirmationModal(false);
+    navigation.navigate("YieldPredictionOfficerFormScreen", { language });
+  };
+
   const handleRoleSelect = (role: "farmer" | "officer") => {
     // Verify user role matches the selected action
     if (!user) {
@@ -117,7 +128,8 @@ const YieldPredictionLoadingScreen = () => {
     if (role === "farmer") {
       navigation.navigate("YieldPredictionFormScreen", { role, language });
     } else {
-      navigation.navigate("YieldPredictionOfficerFormScreen", { language });
+      // Show data confirmation checklist for officers
+      showOfficerDataConfirmation();
     }
   };
 
@@ -307,6 +319,14 @@ const YieldPredictionLoadingScreen = () => {
         </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Data Confirmation Modal */}
+      <DataConfirmationModal
+        visible={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        onConfirm={handleConfirmProceed}
+        language={language}
+      />
     </View>
   );
 };
