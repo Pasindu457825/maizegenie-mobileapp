@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
 } from "react-native";
+import { useLanguage } from "../../../context/LanguageContext";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
   ArrowLeft,
@@ -99,7 +100,8 @@ export default function OfficerAdvisoryResultsScreen() {
   const route = useRoute<any>();
   const { data, language: lang } = route.params;
 
-  const [language, setLanguage] = React.useState<Language>(lang || "en");
+  const { language: contextLang } = useLanguage();
+  const language: Language = contextLang === "sinhala" ? "si" : "en";
   const t = content[language];
 
   const getPriorityColor = (priority: string) => {
@@ -144,12 +146,6 @@ export default function OfficerAdvisoryResultsScreen() {
             <Text style={styles.headerTitle}>{t.title}</Text>
             <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>{language === "si" ? "EN" : "සිං"}</Text>
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 
