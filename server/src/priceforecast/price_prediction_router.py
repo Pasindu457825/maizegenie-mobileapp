@@ -5,6 +5,15 @@ import joblib
 import numpy as np
 import pandas as pd
 
+# ===============================
+# 🔕 SUPPRESS SKLEARN WARNING
+# ===============================
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="X has feature names, but DecisionTreeRegressor was fitted without feature names"
+)
+
 router = APIRouter(prefix="/api/price-forecast", tags=["Price Forecast"])
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
