@@ -10,7 +10,8 @@
       "@screens/*": ["src/screens/*"],
       "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"],
-      "@theme/*": ["src/theme/*"]
+      "@theme/*": ["src/theme/*"],
+       "@lib/*": ["src/lib/*"]
     }
   },
   "include": ["src", "App.tsx", "index.ts", "global.css", "nativewind-env.d.ts", "app.config.js"]
