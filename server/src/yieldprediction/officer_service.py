@@ -1,4 +1,5 @@
 """
+This is officer_service.py
 Officer Yield Prediction Service
 ML-first approach with rule-based fallback for reliability
 """
@@ -148,69 +149,35 @@ def predict_yield_ml(data: Dict) -> Tuple[Optional[float], Optional[Dict], str]:
         Tuple of (yield_kg_ha, model_metadata, method_used)
     """
     try:
-        # Try to load ML model
-        import joblib
-        import os
+        # Import the working ML prediction service
+        from .ml_prediction_service import get_ml_prediction, MODEL_LOADED
         
-        model_path = "models/maize_yield_model_v2.pkl"
-        
-        if not os.path.exists(model_path):
-            logger.warning(f"ML model not found at {model_path}")
+        if not MODEL_LOADED:
+            logger.warning("ML model not loaded")
             return None, None, "ml_unavailable"
         
-        # Load model
-        model = joblib.load(model_path)
+        # Call the ML prediction service
+        result = get_ml_prediction(data)
         
-        # Prepare features (28 parameters)
-        # This would need proper feature engineering matching training
-        features = prepare_ml_features(data)
-        
-        # Predict
-        yield_t_ha = model.predict([features])[0]
-        yield_kg_ha = yield_t_ha * 1000
-        
-        # Ensure realistic bounds
-        yield_kg_ha = max(2000, min(8000, yield_kg_ha))
+        # Extract yield and metadata
+        yield_kg_ha = result.get("predicted_yield", 0)
         
         metadata = {
-            "model_version": "v2.0",
-            "confidence": 0.85,
-            "features_used": 28,
+            "model_version": result.get("model_version", "XGBoost_v1.0"),
+            "confidence": result.get("confidence_score", 0.85),
+            "prediction_method": result.get("prediction_method", "ML"),
+            "harvest_window": result.get("harvest_window", {}),
+            "factors": result.get("factors", []),
         }
         
         return yield_kg_ha, metadata, "ml_model"
         
-    except ImportError:
-        logger.warning("ML libraries not available (joblib, sklearn)")
+    except ImportError as e:
+        logger.warning(f"ML prediction service not available: {e}")
         return None, None, "ml_unavailable"
     except Exception as e:
         logger.error(f"ML prediction failed: {e}")
         return None, None, "ml_failed"
-
-
-def prepare_ml_features(data: Dict) -> list:
-    """
-    Prepare features for ML model input
-    This should match the training data preprocessing
-    """
-    # Placeholder - would need actual feature engineering
-    # matching the training pipeline
-    
-    # Categorical encoding
-    district_map = {"Anuradhapura": 0, "Polonnaruwa": 1, "Kurunegala": 2}
-    season_map = {"Maha": 1, "Yala": 0}
-    variety_map = {"Jet 999": 5, "Pacific 808": 4, "GT 709": 3, "GT200": 2, "Commando": 1, "Local Variety": 0}
-    
-    features = [
-        district_map.get(data.get("district", ""), 0),
-        season_map.get(data.get("season", "Maha"), 1),
-        data.get("field_size_ha", 2.0),
-        data.get("planting_month", 10),
-        variety_map.get(data.get("seed_variety", ""), 0),
-        # Add all 28 features here...
-    ]
-    
-    return features
 
 
 def predict_officer_yield(data: Dict) -> Dict:
@@ -257,22 +224,29 @@ def predict_officer_yield(data: Dict) -> Dict:
         "field_size_ha": crop_info.get("field_size_ha"),
     }
     
-    # Try ML first
-    logger.info("Attempting ML prediction...")
-    ml_yield, ml_metadata, ml_status = predict_yield_ml(flat_data)
+    # Try ML prediction first (now fixed with correct feature mapping)
+    from .ml_prediction_service import get_ml_prediction_officer
     
-    if ml_yield is not None:
-        logger.info(f"ML prediction successful: {ml_yield:.2f} kg/ha")
+    ml_result = get_ml_prediction_officer(data)
+    
+    if ml_result:
+        # ML prediction successful
+        logger.info("Using ML-based prediction (XGBoost)")
+        predicted_yield = ml_result["predicted_yield"]
+        confidence = ml_result["confidence_score"]
         prediction_method = "ml_model"
-        predicted_yield = ml_yield
-        confidence = ml_metadata.get("confidence", 0.85)
+        harvest_window = ml_result.get("harvest_window", {})
         multipliers = {}  # ML doesn't use multipliers
+        logger.info(f"ML prediction: {predicted_yield:.2f} kg/ha (confidence: {confidence:.2f})")
     else:
-        logger.info(f"ML prediction failed ({ml_status}), falling back to rule-based system")
+        # Fallback to rule-based if ML fails
+        logger.warning("ML prediction failed, falling back to rule-based system")
         rule_yield, multipliers, _ = calculate_rule_based_yield(flat_data)
         prediction_method = "rule_based"
         predicted_yield = rule_yield
-        confidence = 0.75  # Rule-based has lower confidence
+        confidence = 0.85
+        harvest_window = {}
+        logger.info(f"Rule-based prediction: {predicted_yield:.2f} kg/ha")
     
     # Determine yield category
     if predicted_yield >= 6000:
@@ -293,10 +267,10 @@ def predict_officer_yield(data: Dict) -> Dict:
             "confidence_score": confidence,
             "yield_category": yield_category,
             "prediction_method": prediction_method,
-            "harvest_window": {
-                "start_date": "2025-02-15",
-                "end_date": "2025-03-15",
-                "days_to_harvest": 120,
+            "harvest_window": harvest_window if harvest_window else {
+                "start": "2025-02-15",
+                "target": "2025-02-28",
+                "end": "2025-03-15",
             },
         },
         "impact_factors": build_impact_factors(flat_data, multipliers, prediction_method),
@@ -467,16 +441,9 @@ def build_officer_insights(data: Dict, predicted_yield: float, method: str) -> D
     ph_score = 1.0 if 6.0 <= ph <= 7.0 else 0.8
     soil_health = (fertility + ph_score) / 2 * 10
     
-    # Expected ROI
-    cost_per_ha = 150000  # LKR
-    price_per_kg = 80  # LKR
-    revenue = predicted_yield * price_per_kg
-    roi = revenue / cost_per_ha
-    
     return {
         "soil_health_score": round(soil_health, 1),
         "fertilizer_efficiency": 0.85,
-        "expected_roi": round(roi, 2),
         "prediction_method": method,
         "risk_factors": build_risk_factors(data),
         "field_visit_recommendations": [
