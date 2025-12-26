@@ -111,6 +111,10 @@ def update_official_news(news_id: str, payload: OfficialNewsUpdate):
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No data to update")
+    
+
+    update_data["updated_at"] = "now()"
+
 
     res = (
         supabase
@@ -155,7 +159,7 @@ def get_all_news_admin():
         supabase
         .table("official_news")
         .select("*")
-        .order("created_at", desc=True)
+        .order("updated_at", desc=True)
         .execute()
     )
     return res.data
@@ -172,7 +176,7 @@ def get_official_news():
         .eq("is_active", True)
         .eq("is_visible_to_farmers", True)
         .eq("is_visible_to_farmers", True)
-        .order("created_at", desc=True)
+        .order("updated_at", desc=True)
         .execute()
     )
     return res.data
