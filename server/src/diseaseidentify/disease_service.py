@@ -33,7 +33,7 @@ def normalize_class(name: str) -> str:
     return CLASS_MAP.get(name.strip().lower(), name.strip().lower())
 
 
-def predict_disease_with_roboflow(image_bytes: bytes, conf=0.4):
+def predict_disease_with_roboflow(image_bytes: bytes, conf=0.6):
     # ---- Decode image ----
     img_array = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
@@ -50,9 +50,16 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.4):
     except Exception as e:
         return _return_error("roboflow_error", str(e))
 
-    preds = result.get("predictions", [])
+    raw_preds = result.get("predictions", [])
 
-    if not preds:
+    # ✅ APPLY CONFIDENCE FILTER (matches Preview UI)
+    filtered_preds = [
+        p for p in raw_preds
+        if float(p.get("confidence", 0)) >= conf
+    ]
+
+    # ❌ No valid detections
+    if not filtered_preds:
         return _return_error(
             "invalid_leaf",
             "No maize leaf or disease detected"
@@ -60,7 +67,8 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.4):
 
     # ---- Normalize predictions ----
     formatted = []
-    for p in preds:
+
+    for p in filtered_preds:
         class_name = normalize_class(p.get("class", ""))
 
         formatted.append({
@@ -77,6 +85,7 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.4):
 
     # ---- HEALTH CASE ----
     health_preds = [p for p in formatted if p["class_name"] == "health"]
+
     if health_preds:
         return {
             "success": True,
@@ -96,7 +105,6 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.4):
     disease_preds = [
         p for p in formatted
         if p["class_name"] in DISEASE_CLASSES
-        and p["confidence"] >= conf
     ]
 
     if not disease_preds:
