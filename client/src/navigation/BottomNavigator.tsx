@@ -115,22 +115,6 @@ export default function BottomNavigator() {
           ),
         }}
       />
-
-      {/* 🛠 Admin Panel */}
-      <Tab.Screen
-        name={ROUTES.TABS.ADMINPANEL}
-        component={AdminStack} // <-- replace single screen with whole stack
-        options={{
-          tabBarLabel: "Admin",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={size}
-              color={color}
-            />
-          ),
-        }}
-      />
     </Tab.Navigator>
   );
 }

@@ -117,6 +117,10 @@ export default function HomeScreen() {
   const language: LanguageType = lang === "sinhala" ? "si" : "en";
   const t = translations[language];
 
+  // Role-based authentication using Supabase user data
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
+
   // ✨ Animations
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
@@ -340,6 +344,58 @@ export default function HomeScreen() {
             })}
           </View>
         </Animated.View>
+
+        <TouchableOpacity
+          onPress={() => navigation.navigate("OfficialNews")}
+          style={{
+            backgroundColor: "#2563EB",
+            paddingVertical: 12,
+            paddingHorizontal: 16,
+            borderRadius: 10,
+            alignItems: "center",
+            marginTop: 16,
+          }}
+        >
+          <Text
+            style={{
+              color: "#FFFFFF",
+              fontSize: 15,
+              fontWeight: "700",
+            }}
+          >
+            නිල පුවත් බලන්න
+          </Text>
+        </TouchableOpacity>
+
+        {/* 🔒 Officer Only – Add Official News */}
+        {isOfficer && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("AdminAddOfficialNews")}
+            style={{
+              backgroundColor: "#16A34A",
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              alignItems: "center",
+              marginTop: 14,
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 15,
+                fontWeight: "800",
+              }}
+            >
+              📰{" "}
+              {language === "si" ? "නිල පුවත් එක් කරන්න" : "Add Official News"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Tips Section */}
         <Animated.View

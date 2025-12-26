@@ -34,6 +34,7 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import { useLanguage } from "../../context/LanguageContext";
 import { Platform } from "react-native";
 import { useNotifications } from "../../context/NotificationContext";
+import { useApp } from "../../context/AppContext";
 
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -74,6 +75,7 @@ type RootStackParamList = {
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
   Notifications: undefined;
+  AdminPanelScreen: undefined;
 };
 
 type Language = "si" | "en";
@@ -119,6 +121,11 @@ const PriceForecastLoadingScreen = () => {
     weatherIcon,
     isLoading,
   } = useUniversalLocation(language);
+  const { user } = useApp();
+
+  // Role-based authentication using Supabase user data
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
 
   const content: Content = {
     si: {
@@ -289,6 +296,7 @@ const PriceForecastLoadingScreen = () => {
     }
   }, [progress, buttonFadeAnim]);
 
+
   const leafTranslate = leafAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -20],
@@ -310,6 +318,10 @@ const PriceForecastLoadingScreen = () => {
         yieldKg: 1750,
       },
     });
+  };
+
+    const handleAddPriceDetails = () => {
+    navigation.navigate("AdminPanelScreen");
   };
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
@@ -588,6 +600,39 @@ const PriceForecastLoadingScreen = () => {
                   <Text style={styles.arrowText}>→</Text>
                 </View>
               </TouchableOpacity>
+
+              {/* 🔒 Officer-only: Add Price Details */}
+              {isOfficer && (
+                <TouchableOpacity
+                  style={[styles.featureCard, styles.priceCard]}
+                  onPress={handleAddPriceDetails}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.cardIconContainer}>
+                    <View style={styles.cardIconCircle}>
+                      <TrendingUp color="#DC2626" size={28} />
+                    </View>
+                  </View>
+
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>
+                      {language === "si"
+                        ? "මිල තොරතුරු එකතු කරන්න"
+                        : "Add Price Details"}
+                    </Text>
+
+                    <Text style={styles.cardDescription}>
+                      {language === "si"
+                        ? "නිලධාරීන් සඳහා මිල දත්ත ඇතුළත් කිරීම"
+                        : "Officer-only price data entry"}
+                    </Text>
+                  </View>
+
+                  <View style={styles.cardArrow}>
+                    <Text style={styles.arrowText}>→</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
             </Animated.View>
           )}
         </Animated.View>
