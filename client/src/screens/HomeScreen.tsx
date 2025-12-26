@@ -21,6 +21,7 @@ import {
   Settings,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
+import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 
 const { width } = Dimensions.get("window");
 
@@ -241,6 +242,8 @@ export default function HomeScreen() {
               <Text style={styles.emojiText}>👨‍🌾</Text>
             </View>
           </LinearGradient>
+
+          <TopOfficialNews />
 
           {/* Chat Button */}
           {user?.role === "farmer" ? (
