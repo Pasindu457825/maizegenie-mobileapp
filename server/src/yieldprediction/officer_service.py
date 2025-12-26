@@ -23,7 +23,7 @@ def get_optimal_district_yield(district: str, variety: str, season: str) -> floa
         "Badulla": 4700,
         "Ampara": 4650,
         "Polonnaruwa": 5250,
-        "Kurunegala": 4900,
+        "Kurunegala": 4280,
     }
     
     # Variety adjustment factors
