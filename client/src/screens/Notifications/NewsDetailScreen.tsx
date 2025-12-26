@@ -4,7 +4,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   ScrollView,
-  Image, // 🆕 ADD
+  Image,
+  Pressable,
 } from "react-native";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
 import { useEffect, useState } from "react";
@@ -13,14 +14,8 @@ import { API_BASE } from "../../services/api";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "../../navigation";
 
-// =======================
-// Route typing
-// =======================
 type RouteProps = RouteProp<RootStackParamList, "NewsDetail">;
 
-// =======================
-// Data model (matches backend)
-// =======================
 interface NewsDetail {
   id: string;
   title: string;
@@ -30,23 +25,18 @@ interface NewsDetail {
   district?: string | null;
   created_at: string;
   url?: string | null;
-  image_url?: string | null; // 🆕 ADD THIS
-  language?: string;
+  image_url?: string | null;
 }
 
 export default function NewsDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
-
   const newsId = route.params?.id;
 
   const [news, setNews] = useState<NewsDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // =======================
-  // Fetch single news by ID
-  // =======================
   useEffect(() => {
     if (!newsId) {
       setError("Invalid news id");
@@ -56,11 +46,9 @@ export default function NewsDetailScreen() {
 
     const fetchNewsDetail = async () => {
       try {
-        setLoading(true);
         const res = await axios.get(`${API_BASE}/official-news/${newsId}`);
         setNews(res.data);
       } catch (err) {
-        console.error("NEWS DETAIL ERROR:", err);
         setError("පුවත ලබා ගැනීමට නොහැකි විය");
       } finally {
         setLoading(false);
@@ -70,9 +58,6 @@ export default function NewsDetailScreen() {
     fetchNewsDetail();
   }, [newsId]);
 
-  // =======================
-  // Helpers
-  // =======================
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case "price":
@@ -88,13 +73,11 @@ export default function NewsDetailScreen() {
     }
   };
 
-  // =======================
-  // STATES
-  // =======================
+  /* ================= STATES ================= */
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#22c55e" />
+        <ActivityIndicator size="large" color="#16a34a" />
         <Text style={styles.loadingText}>පුවත පූරණය වෙමින්...</Text>
       </View>
     );
@@ -109,112 +92,169 @@ export default function NewsDetailScreen() {
     );
   }
 
-  // =======================
-  // UI
-  // =======================
+  /* ================= UI ================= */
   return (
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <Ionicons
-          name="arrow-back"
-          size={24}
-          color="#1f2937"
-          onPress={() => navigation.goBack()}
-        />
+        <Pressable onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color="#14532d" />
+        </Pressable>
         <Text style={styles.headerTitle}>නිල පුවත්</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>{news.title}</Text>
-        {/* 🖼️ NEWS IMAGE */}
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {/* IMAGE */}
         {news.image_url && (
-          <Image
-            source={{ uri: news.image_url }}
-            style={styles.newsImage}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: news.image_url }} style={styles.image} />
         )}
 
-        <View style={styles.meta}>
-          <Text style={styles.metaText}>
-            {new Date(news.created_at).toLocaleDateString("si-LK")}
-          </Text>
-          <Text style={styles.metaText}>
-            • {getCategoryLabel(news.category)}
-          </Text>
-          <Text style={styles.metaText}>• {news.source}</Text>
+        {/* CARD */}
+        <View style={styles.card}>
+          {/* CATEGORY PILL */}
+          <View style={styles.categoryPill}>
+            <Text style={styles.categoryText}>
+              {getCategoryLabel(news.category)}
+            </Text>
+          </View>
+
+          {/* TITLE */}
+          <Text style={styles.title}>{news.title}</Text>
+
+          {/* META */}
+          <View style={styles.metaRow}>
+            <Ionicons name="calendar-outline" size={14} color="#6b7280" />
+            <Text style={styles.metaText}>
+              {new Date(news.created_at).toLocaleDateString("si-LK")}
+            </Text>
+          </View>
+
+          <View style={styles.metaRow}>
+            <Ionicons name="newspaper-outline" size={14} color="#6b7280" />
+            <Text style={styles.metaText}>{news.source}</Text>
+          </View>
+
+          {news.district && (
+            <View style={styles.metaRow}>
+              <Ionicons name="location-outline" size={14} color="#2563eb" />
+              <Text style={styles.districtText}>{news.district}</Text>
+            </View>
+          )}
+
+          {/* SUMMARY */}
+          {news.summary && (
+            <Text style={styles.summary}>{news.summary}</Text>
+          )}
+
+          {/* LINK */}
+          {news.url && (
+            <Pressable>
+              <Text style={styles.link}>🔗 සම්පූර්ණ පුවත කියවන්න</Text>
+            </Pressable>
+          )}
         </View>
-
-        {news.district && (
-          <Text style={styles.district}>📍 {news.district}</Text>
-        )}
-
-        {news.summary && <Text style={styles.summary}>{news.summary}</Text>}
-
-        {news.url && <Text style={styles.link}>🔗 {news.url}</Text>}
       </ScrollView>
     </View>
   );
 }
 
-// =======================
-// Styles
-// =======================
+/* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#ffffff" },
+  container: {
+    flex: 1,
+    backgroundColor: "#f0fdf4",
+  },
 
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
+    backgroundColor: "#dcfce7",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#bbf7d0",
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#1f2937",
+    fontWeight: "700",
+    color: "#14532d",
   },
 
-  content: { padding: 16 },
+  scroll: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+
+  image: {
+    width: "100%",
+    height: 220,
+    borderRadius: 16,
+    marginBottom: 16,
+    backgroundColor: "#e5e7eb",
+  },
+
+  card: {
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+
+  categoryPill: {
+    alignSelf: "flex-start",
+    backgroundColor: "#bbf7d0",
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 8,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#166534",
+  },
 
   title: {
     fontSize: 22,
-    fontWeight: "bold",
+    fontWeight: "800",
     color: "#111827",
     marginBottom: 12,
+    lineHeight: 30,
   },
 
-  meta: {
+  metaRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginBottom: 12,
+    alignItems: "center",
+    marginBottom: 6,
   },
   metaText: {
-    fontSize: 12,
+    marginLeft: 6,
+    fontSize: 13,
     color: "#6b7280",
-    marginRight: 8,
   },
-
-  district: {
+  districtText: {
+    marginLeft: 6,
     fontSize: 13,
     color: "#2563eb",
-    marginBottom: 12,
+    fontWeight: "600",
   },
 
   summary: {
+    marginTop: 14,
     fontSize: 16,
-    lineHeight: 24,
+    lineHeight: 26,
     color: "#374151",
   },
 
   link: {
-    marginTop: 16,
-    fontSize: 14,
-    color: "#2563eb",
+    marginTop: 18,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#16a34a",
   },
 
   center: {
@@ -233,12 +273,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#dc2626",
     textAlign: "center",
-  },
-  newsImage: {
-    width: "100%",
-    height: 220,
-    borderRadius: 14,
-    marginBottom: 16,
-    backgroundColor: "#e5e7eb",
   },
 });
