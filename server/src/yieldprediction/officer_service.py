@@ -4,11 +4,89 @@ Officer Yield Prediction Service
 ML-first approach with rule-based fallback for reliability
 """
 
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 import logging
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def get_optimal_district_yield(district: str, variety: str, season: str) -> float:
+    """
+    Calculate optimal district yield based on district, variety, and season
+    Returns dynamic optimal yield instead of hardcoded 4500
+    """
+    # Base optimal yields by district (kg/ha)
+    district_base = {
+        "Anuradhapura": 5200,
+        "Monaragala": 4800,
+        "Badulla": 4700,
+        "Ampara": 4650,
+        "Polonnaruwa": 5250,
+        "Kurunegala": 4900,
+    }
+    
+    # Variety adjustment factors
+    variety_factors = {
+        "Jet 999": 1.15,
+        "Pacific 808": 1.12,
+        "GT 709": 1.05,
+        "GT200": 1.03,
+        "Commando": 1.02,
+        "Local Variety": 0.90,
+    }
+    
+    # Season adjustment
+    season_factors = {
+        "Maha": 1.05,  # Better season
+        "Yala": 0.95,  # Drier season
+    }
+    
+    base = district_base.get(district, 4800)
+    variety_factor = variety_factors.get(variety, 1.0)
+    season_factor = season_factors.get(season, 1.0)
+    
+    optimal_yield = base * variety_factor * season_factor
+    return round(optimal_yield, 0)
+
+
+def get_ph_interpretation(ph: float) -> str:
+    """
+    Get pH interpretation for soil health
+    """
+    if ph < 5.5:
+        return "Too Acidic"
+    elif ph < 6.0:
+        return "Slightly Acidic"
+    elif ph <= 7.0:
+        return "Optimal"
+    elif ph <= 7.5:
+        return "Slightly Alkaline"
+    else:
+        return "Too Alkaline"
+
+
+def identify_limiting_npk_factor(n_status: str, p_status: str, k_status: str) -> str:
+    """
+    Identify the main limiting NPK factor
+    """
+    status_priority = {"Low": 3, "Medium": 2, "High": 1}
+    
+    factors = [
+        ("Nitrogen", status_priority.get(n_status, 2)),
+        ("Phosphorus", status_priority.get(p_status, 2)),
+        ("Potassium", status_priority.get(k_status, 2)),
+    ]
+    
+    # Sort by priority (higher number = more limiting)
+    factors.sort(key=lambda x: x[1], reverse=True)
+    
+    if factors[0][1] == 3:  # At least one is Low
+        return f"Low {factors[0][0]}"
+    elif factors[0][1] == 2:  # All are Medium or High
+        return "Balanced NPK"
+    else:
+        return "Optimal NPK"
 
 
 def calculate_rule_based_yield(data: Dict) -> Tuple[float, Dict[str, float], str]:
@@ -21,7 +99,7 @@ def calculate_rule_based_yield(data: Dict) -> Tuple[float, Dict[str, float], str
     """
     
     # Base yield for maize in Sri Lanka (kg/ha)
-    base_yield = 4500
+    base_yield = 4562
     
     # Initialize multipliers
     multipliers = {
@@ -249,16 +327,25 @@ def predict_officer_yield(data: Dict) -> Dict:
         logger.info(f"Rule-based prediction: {predicted_yield:.2f} kg/ha")
     
     # Determine yield category
-    if predicted_yield >= 6000:
+    if predicted_yield >= 5700:
         yield_category = "High"
-    elif predicted_yield >= 4000:
+    elif predicted_yield >= 3500:
         yield_category = "Medium"
     else:
         yield_category = "Low"
     
+    # Build input summary for frontend display
+    input_summary = {
+        "district": flat_data.get("district", "N/A"),
+        "variety": flat_data.get("seed_variety", "N/A"),
+        "season": flat_data.get("season", "N/A"),
+        "planting_date": flat_data.get("planting_date", "N/A"),
+    }
+    
     # Build response
     response = {
         "status": "success",
+        "input_summary": input_summary,
         "prediction_id": f"pred_{datetime.now().strftime('%Y%m%d%H%M%S')}",
         "timestamp": datetime.now().isoformat(),
         "prediction": {
@@ -275,7 +362,6 @@ def predict_officer_yield(data: Dict) -> Dict:
         },
         "impact_factors": build_impact_factors(flat_data, multipliers, prediction_method),
         "recommendations": build_recommendations(flat_data, predicted_yield),
-        "fertilizer_schedule": build_fertilizer_schedule(flat_data),
         "officer_insights": build_officer_insights(flat_data, predicted_yield, prediction_method),
         "analysis_data": build_analysis_data(flat_data, predicted_yield, multipliers),
     }
@@ -283,64 +369,309 @@ def predict_officer_yield(data: Dict) -> Dict:
     return response
 
 
+def suggest_seed_variety(data: Dict) -> Optional[Dict]:
+    """
+    Detect suboptimal seed variety and suggest better alternatives
+    Returns suggestion dict with current vs suggested comparison
+    """
+    variety = data.get("seed_variety", "")
+    district = data.get("district", "Badulla")
+    
+    # Define optimal varieties by district
+    optimal_varieties = {
+        "Anuradhapura": ["Jet 999", "Pacific 808", "Pacific 999"],
+        "Monaragala": ["Jet 999", "Pacific 808"],
+        "Badulla": ["Jet 999", "Pacific 999"],
+        "Ampara": ["Pacific 808", "Jet 999"],
+        "Polonnaruwa": ["Jet 999", "Pacific 999"],
+        "Kurunegala": ["Pacific 808", "Jet 999"],
+    }
+    
+    # Check if current variety is suboptimal
+    if variety == "Local Variety" or variety not in optimal_varieties.get(district, []):
+        suggested = optimal_varieties.get(district, ["Jet 999"])[0]
+        return {
+            "current": variety,
+            "suggested": suggested,
+            "current_impact": -12.0,
+            "suggested_impact": 25.0,
+            "difference": 37.0,
+            "reason": f"High-yielding hybrid {suggested} is optimal for {district} district",
+        }
+    
+    return None
+
+
+def suggest_irrigation(data: Dict) -> Optional[Dict]:
+    """
+    Suggest irrigation improvements based on current setup and rainfall
+    """
+    irrigation = data.get("irrigation_type", "Mixed")
+    rainfall = data.get("rainfall_condition", "Moderate")
+    
+    # Rainfed with low rainfall is suboptimal
+    if irrigation == "Rainfed" and rainfall == "Low":
+        return {
+            "current": "Rainfed",
+            "suggested": "Supplementary irrigation",
+            "current_impact": -15.0,
+            "suggested_impact": 18.0,
+            "difference": 33.0,
+            "reason": "Supplementary irrigation during dry periods improves yield stability",
+        }
+    
+    return None
+
+
+def suggest_soil_fertility(data: Dict) -> Optional[Dict]:
+    """
+    Suggest soil fertility improvements
+    """
+    fertility = data.get("soil_fertility_index", 0.5)
+    
+    if fertility < 0.5:
+        return {
+            "current": f"{fertility:.2f}",
+            "suggested": "≥0.70",
+            "current_impact": -15.0,
+            "suggested_impact": 20.0,
+            "difference": 35.0,
+            "reason": "Apply organic matter and balanced fertilizers to improve soil health",
+        }
+    elif fertility < 0.7:
+        return {
+            "current": f"{fertility:.2f}",
+            "suggested": "≥0.70",
+            "current_impact": -8.0,
+            "suggested_impact": 20.0,
+            "difference": 28.0,
+            "reason": "Moderate fertility - can be improved with proper nutrient management",
+        }
+    
+    return None
+
+
+def suggest_npk_improvement(data: Dict) -> Optional[Dict]:
+    """
+    Suggest NPK improvements based on status
+    """
+    n_status = data.get("n_status_class", "Medium")
+    p_status = data.get("p_status_class", "Medium")
+    k_status = data.get("k_status_class", "Medium")
+    
+    # Find the most limiting nutrient
+    if n_status == "Low":
+        return {
+            "current": "Low N",
+            "suggested": "High N (≥80 ppm)",
+            "current_impact": -12.0,
+            "suggested_impact": 15.0,
+            "difference": 27.0,
+            "reason": "Nitrogen is critical for vegetative growth - apply urea or ammonium sulfate",
+        }
+    elif p_status == "Low":
+        return {
+            "current": "Low P",
+            "suggested": "High P (≥40 ppm)",
+            "current_impact": -10.0,
+            "suggested_impact": 12.0,
+            "difference": 22.0,
+            "reason": "Phosphorus deficiency affects root development - apply TSP or DAP",
+        }
+    elif k_status == "Low":
+        return {
+            "current": "Low K",
+            "suggested": "High K (≥200 ppm)",
+            "current_impact": -10.0,
+            "suggested_impact": 12.0,
+            "difference": 22.0,
+            "reason": "Potassium improves stress tolerance - apply MOP or SOP",
+        }
+    
+    return None
+
+
 def build_impact_factors(data: Dict, multipliers: Dict, method: str) -> list:
     """Build impact factors for visualization"""
     
+    # Get agronomic suggestions (applies to both ML and rule-based)
+    variety_suggestion = suggest_seed_variety(data)
+    irrigation_suggestion = suggest_irrigation(data)
+    fertility_suggestion = suggest_soil_fertility(data)
+    npk_suggestion = suggest_npk_improvement(data)
+    
     if method == "ml_model":
-        # For ML, show feature importance (simplified)
-        return [
-            {
+        # For ML, show feature importance with suggestions
+        factors = []
+        
+        # Seed Variety - with suggestion if applicable
+        if variety_suggestion:
+            factors.append({
+                "factor": "Seed Variety",
+                "value": variety_suggestion["current"],
+                "impact": 0.85,
+                "impact_percentage": variety_suggestion["current_impact"],
+                "suggested_value": variety_suggestion["suggested"],
+                "suggested_impact": variety_suggestion["suggested_impact"],
+                "difference": variety_suggestion["difference"],
+                "description": variety_suggestion["reason"],
+                "source": "agronomic_suggestion",
+            })
+        else:
+            factors.append({
                 "factor": "Seed Variety",
                 "value": data.get("seed_variety", "Unknown"),
                 "impact": 0.85,
                 "impact_percentage": 25.0,
                 "description": "High-yielding hybrid variety selected",
-            },
-            {
+                "source": "ml_model",
+            })
+        
+        # Soil Fertility - with suggestion if applicable
+        if fertility_suggestion:
+            factors.append({
+                "factor": "Soil Fertility",
+                "value": fertility_suggestion["current"],
+                "impact": 0.75,
+                "impact_percentage": fertility_suggestion["current_impact"],
+                "suggested_value": fertility_suggestion["suggested"],
+                "suggested_impact": fertility_suggestion["suggested_impact"],
+                "difference": fertility_suggestion["difference"],
+                "description": fertility_suggestion["reason"],
+                "source": "agronomic_suggestion",
+            })
+        else:
+            factors.append({
                 "factor": "Soil Fertility",
                 "value": f"{data.get('soil_fertility_index', 0.5):.2f}",
                 "impact": 0.75,
                 "impact_percentage": 20.0,
                 "description": "Soil nutrient levels affect yield potential",
-            },
-            {
+                "source": "ml_model",
+            })
+        
+        # Irrigation - with suggestion if applicable
+        if irrigation_suggestion:
+            factors.append({
+                "factor": "Irrigation",
+                "value": irrigation_suggestion["current"],
+                "impact": 0.70,
+                "impact_percentage": irrigation_suggestion["current_impact"],
+                "suggested_value": irrigation_suggestion["suggested"],
+                "suggested_impact": irrigation_suggestion["suggested_impact"],
+                "difference": irrigation_suggestion["difference"],
+                "description": irrigation_suggestion["reason"],
+                "source": "agronomic_suggestion",
+            })
+        else:
+            factors.append({
                 "factor": "Irrigation",
                 "value": data.get("irrigation_type", "Mixed"),
                 "impact": 0.70,
                 "impact_percentage": 18.0,
                 "description": "Water availability is crucial for growth",
-            },
-            {
-                "factor": "Season",
-                "value": data.get("season", "Maha"),
-                "impact": 0.65,
-                "impact_percentage": 15.0,
-                "description": "Seasonal climate affects crop performance",
-            },
-            {
+                "source": "ml_model",
+            })
+        
+        # Season (no suggestion needed)
+        factors.append({
+            "factor": "Season",
+            "value": data.get("season", "Maha"),
+            "impact": 0.65,
+            "impact_percentage": 15.0,
+            "description": "Seasonal climate affects crop performance",
+            "source": "ml_model",
+        })
+        
+        # NPK Balance - with suggestion if applicable
+        if npk_suggestion:
+            factors.append({
+                "factor": "NPK Balance",
+                "value": npk_suggestion["current"],
+                "impact": 0.60,
+                "impact_percentage": npk_suggestion["current_impact"],
+                "suggested_value": npk_suggestion["suggested"],
+                "suggested_impact": npk_suggestion["suggested_impact"],
+                "difference": npk_suggestion["difference"],
+                "description": npk_suggestion["reason"],
+                "source": "agronomic_suggestion",
+            })
+        else:
+            factors.append({
                 "factor": "NPK Balance",
                 "value": f"N:{data.get('n_status_class', 'Medium')}",
                 "impact": 0.60,
                 "impact_percentage": 12.0,
                 "description": "Nutrient balance impacts plant health",
-            },
-        ]
-    else:
-        # For rule-based, show actual multipliers
-        factors = []
-        for key, value in multipliers.items():
-            impact_pct = (value - 1.0) * 100
-            factors.append({
-                "factor": key.replace("_", " ").title(),
-                "value": f"{value:.2f}x",
-                "impact": value,
-                "impact_percentage": impact_pct,
-                "description": f"Multiplier effect on base yield",
+                "source": "ml_model",
             })
         
-        # Sort by impact
+        return factors
+    else:
+        # For rule-based, show actual multipliers with suggestions
+        factors = []
+        
+        # Check if we have suggestions for key factors
+        suggestion_map = {
+            "seed_variety": variety_suggestion,
+            "irrigation_type": irrigation_suggestion,
+            "soil_fertility_index": fertility_suggestion,
+        }
+        
+        for key, value in multipliers.items():
+            impact_pct = (value - 1.0) * 100
+            
+            # Check if this factor has a suggestion
+            suggestion = suggestion_map.get(key)
+            
+            if suggestion:
+                # Use suggestion data
+                factors.append({
+                    "factor": key.replace("_", " ").title(),
+                    "value": suggestion["current"],
+                    "impact": value,
+                    "impact_percentage": suggestion["current_impact"],
+                    "suggested_value": suggestion["suggested"],
+                    "suggested_impact": suggestion["suggested_impact"],
+                    "difference": suggestion["difference"],
+                    "description": suggestion["reason"],
+                    "source": "agronomic_suggestion",
+                })
+            else:
+                # Standard multiplier display
+                if value > 1.0:
+                    desc = f"Positive multiplier effect on base yield (+{impact_pct:.1f}%)"
+                elif value < 1.0:
+                    desc = f"Negative multiplier effect on base yield ({impact_pct:.1f}%)"
+                else:
+                    desc = "Neutral effect on base yield"
+                
+                factors.append({
+                    "factor": key.replace("_", " ").title(),
+                    "value": f"{value:.2f}x",
+                    "impact": value,
+                    "impact_percentage": impact_pct,
+                    "description": desc,
+                    "source": "rule_multiplier",
+                })
+        
+        # Add NPK suggestion if applicable
+        if npk_suggestion:
+            factors.append({
+                "factor": "NPK Balance",
+                "value": npk_suggestion["current"],
+                "impact": 0.88,
+                "impact_percentage": npk_suggestion["current_impact"],
+                "suggested_value": npk_suggestion["suggested"],
+                "suggested_impact": npk_suggestion["suggested_impact"],
+                "difference": npk_suggestion["difference"],
+                "description": npk_suggestion["reason"],
+                "source": "agronomic_suggestion",
+            })
+        
+        # Sort by absolute impact
         factors.sort(key=lambda x: abs(x["impact_percentage"]), reverse=True)
-        return factors[:5]  # Top 5
+        return factors  # Return all factors
 
 
 def build_recommendations(data: Dict, predicted_yield: float) -> list:
@@ -385,53 +716,6 @@ def build_recommendations(data: Dict, predicted_yield: float) -> list:
     return recommendations
 
 
-def build_fertilizer_schedule(data: Dict) -> Dict:
-    """Build fertilizer schedule"""
-    
-    # Simplified fertilizer schedule
-    return {
-        "total_n_requirement": 150,
-        "total_p_requirement": 60,
-        "total_k_requirement": 60,
-        "basal": {
-            "date": data.get("planting_date", "2024-10-15"),
-            "day_number": 0,
-            "recommended_amount": 200,
-            "applied_amount": 200,
-            "remaining_amount": 0,
-            "status": "done",
-            "npk_amount": 200,
-            "nitrogen": 30,
-            "phosphorus": 60,
-            "potassium": 60,
-            "instructions_si": "වගා කිරීමේදී යොදන්න",
-            "instructions_en": "Apply at planting time",
-        },
-        "top_dress_1": {
-            "date": "2024-11-05",
-            "day_number": 21,
-            "recommended_amount": 100,
-            "applied_amount": 0,
-            "remaining_amount": 100,
-            "status": "pending",
-            "nitrogen": 60,
-            "instructions_si": "වගා කිරීමෙන් දින 21 කට පසු",
-            "instructions_en": "Apply 21 days after planting",
-        },
-        "top_dress_2": {
-            "date": "2024-11-25",
-            "day_number": 41,
-            "recommended_amount": 100,
-            "applied_amount": 0,
-            "remaining_amount": 100,
-            "status": "pending",
-            "nitrogen": 60,
-            "instructions_si": "වගා කිරීමෙන් දින 41 කට පසු",
-            "instructions_en": "Apply 41 days after planting",
-        },
-    }
-
-
 def build_officer_insights(data: Dict, predicted_yield: float, method: str) -> Dict:
     """Build officer-specific insights"""
     
@@ -473,16 +757,37 @@ def build_risk_factors(data: Dict) -> list:
 
 def build_analysis_data(data: Dict, predicted_yield: float, multipliers: Dict) -> Dict:
     """
-    Build data for charts and graphs
+    Build data for charts and graphs with dynamic optimal values
     This will be used in the frontend for visualization
     """
+    
+    # Get dynamic optimal district yield
+    district = data.get("district", "Badulla")
+    variety = data.get("seed_variety", "GT 709")
+    season = data.get("season", "Maha")
+    optimal_district_yield = get_optimal_district_yield(district, variety, season)
+    
+    # Get soil health data
+    ph = data.get("soil_ph", 6.5)
+    n_status = data.get("n_status_class", "Medium")
+    p_status = data.get("p_status_class", "Medium")
+    k_status = data.get("k_status_class", "Medium")
+    
+    # Get NPK interpretation
+    npk_interpretation = ""
+    if p_status == "Low":
+        npk_interpretation = "Phosphorus level is low → yield-limiting nutrient"
+    elif n_status == "Low":
+        npk_interpretation = "Nitrogen level is low → yield-limiting nutrient"
+    elif k_status == "Low":
+        npk_interpretation = "Potassium level is low → yield-limiting nutrient"
+    else:
+        npk_interpretation = "NPK levels are balanced for optimal growth"
     
     return {
         "yield_comparison": {
             "predicted": predicted_yield,
-            "district_average": 4500,
-            "national_average": 4200,
-            "potential_maximum": 7000,
+            "district_optimal": optimal_district_yield,
         },
         "npk_levels": {
             "nitrogen": data.get("soil_nitrogen_n", 60),
@@ -491,19 +796,28 @@ def build_analysis_data(data: Dict, predicted_yield: float, multipliers: Dict) -
             "optimal_nitrogen": 80,
             "optimal_phosphorus": 40,
             "optimal_potassium": 200,
+            "interpretation": npk_interpretation,
         },
         "environmental_factors": {
             "temperature": data.get("avg_temperature_c", 28),
             "humidity": data.get("avg_humidity_pct", 75),
             "rainfall_30d": data.get("rainfall_30d_mm", 150),
             "sunshine": data.get("sunshine_hours", 8.5),
+            "ideal_ranges": {
+                "temperature": {"min": 26, "max": 30, "unit": "°C"},
+                "humidity": {"min": 60, "max": 80, "unit": "%"},
+                "rainfall_30d": {"min": 80, "max": 150, "unit": "mm"},
+                "sunshine": {"min": 7, "max": 9, "unit": "hrs"},
+            },
         },
         "multiplier_breakdown": multipliers if multipliers else {},
         "soil_health": {
-            "ph": data.get("soil_ph", 6.5),
+            "ph": ph,
+            "ph_interpretation": get_ph_interpretation(ph),
             "fertility_index": data.get("soil_fertility_index", 0.5),
-            "n_status": data.get("n_status_class", "Medium"),
-            "p_status": data.get("p_status_class", "Medium"),
-            "k_status": data.get("k_status_class", "Medium"),
+            "n_status": n_status,
+            "p_status": p_status,
+            "k_status": k_status,
+            "limiting_factor": identify_limiting_npk_factor(n_status, p_status, k_status),
         },
     }
