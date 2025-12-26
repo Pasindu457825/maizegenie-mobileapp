@@ -72,6 +72,7 @@ export default function AdminAddOfficialNewsScreen() {
   const [loading, setLoading] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any | null>(null);
+  const [district, setDistrict] = useState("");
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -136,6 +137,7 @@ export default function AdminAddOfficialNewsScreen() {
         source,
         url: url || null,
         image_url: imageUrl,
+        district: district || null, 
       });
 
       Alert.alert("Success", "News published");
@@ -147,6 +149,7 @@ export default function AdminAddOfficialNewsScreen() {
       setSource("");
       setUrl("");
       setImageAsset(null);
+      setDistrict("");
     } catch (err: any) {
       console.log("❌ SUBMIT ERROR:", err);
       console.log("❌ RESPONSE:", err?.response?.data);
@@ -190,6 +193,18 @@ export default function AdminAddOfficialNewsScreen() {
           onChangeText={setSummary}
           multiline
           placeholder={t.summary}
+        />
+
+        <Text style={styles.label}>
+          {uiLang === "si" ? "දිස්ත්‍රික්කය (විකල්ප)" : "District (optional)"}
+        </Text>
+
+        <TextInput
+          style={styles.input}
+          value={district}
+          onChangeText={setDistrict}
+          placeholder="Anuradhapura / Polonnaruwa / Kurunegala"
+          autoCapitalize="words"
         />
 
         <Text style={styles.label}>{t.category}</Text>

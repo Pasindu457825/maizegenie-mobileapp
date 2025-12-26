@@ -24,6 +24,7 @@ interface NewsItem {
   title: string;
   category: "price" | "weather" | "policy" | "alert";
   image_url?: string;
+  district?: string | null; // ✅ NEW
   is_active: boolean;
   is_visible_to_farmers: boolean;
 }
@@ -239,6 +240,11 @@ export default function TopOfficialNews() {
                 <Text style={styles.cardTitle} numberOfLines={2}>
                   {item.title}
                 </Text>
+                {item.district && (
+                  <Text style={styles.districtText} numberOfLines={1}>
+                    📍 {item.district}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
 
@@ -524,5 +530,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fee2e2",
     padding: 6,
     borderRadius: 8,
+  },
+  districtText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
   },
 });

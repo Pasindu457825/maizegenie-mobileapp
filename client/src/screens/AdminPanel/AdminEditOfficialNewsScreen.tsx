@@ -18,7 +18,10 @@ import * as ImagePicker from "expo-image-picker";
 import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
 
-export default function AdminEditOfficialNewsScreen({ route, navigation }: any) {
+export default function AdminEditOfficialNewsScreen({
+  route,
+  navigation,
+}: any) {
   const { newsId } = route.params;
 
   const [title, setTitle] = useState("");
@@ -26,6 +29,7 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
   const [category, setCategory] = useState("price");
   const [source, setSource] = useState("");
   const [url, setUrl] = useState("");
+  const [district, setDistrict] = useState(""); // ✅ NEW
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any>(null);
   const [visibleToFarmers, setVisibleToFarmers] = useState(true);
@@ -49,6 +53,7 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
         setCategory(n.category);
         setSource(n.source);
         setUrl(n.url || "");
+        setDistrict(n.district || ""); // ✅ NEW
         setImageUrl(n.image_url);
         setVisibleToFarmers(n.is_visible_to_farmers);
       } catch (e: any) {
@@ -70,7 +75,10 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert("Permission required", "Please allow photo access to pick an image.");
+        Alert.alert(
+          "Permission required",
+          "Please allow photo access to pick an image."
+        );
         return;
       }
 
@@ -104,7 +112,9 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
 
     if (error) throw error;
 
-    const { data } = supabase.storage.from("official-news-images").getPublicUrl(path);
+    const { data } = supabase.storage
+      .from("official-news-images")
+      .getPublicUrl(path);
     return data.publicUrl;
   };
 
@@ -121,7 +131,10 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
   const updateNews = async () => {
     try {
       if (!canSubmit) {
-        Alert.alert("Missing details", "Please fill Title, Category, and Source.");
+        Alert.alert(
+          "Missing details",
+          "Please fill Title, Category, and Source."
+        );
         return;
       }
 
@@ -138,6 +151,7 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
         category: category.trim(),
         source: source.trim(),
         url: url?.trim() ? url.trim() : null,
+        district: district?.trim() ? district.trim() : null, // ✅ NEW
         image_url: finalImageUrl,
         is_visible_to_farmers: visibleToFarmers,
       });
@@ -216,7 +230,11 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
             </View>
           )}
 
-          <TouchableOpacity onPress={pickImage} style={styles.secondaryBtn} activeOpacity={0.9}>
+          <TouchableOpacity
+            onPress={pickImage}
+            style={styles.secondaryBtn}
+            activeOpacity={0.9}
+          >
             <Text style={styles.secondaryBtnText}>Change Image</Text>
           </TouchableOpacity>
         </View>
@@ -260,6 +278,18 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
               />
             </View>
 
+            <View style={styles.field}>
+              <Text style={styles.label}>District (optional)</Text>
+              <TextInput
+                value={district}
+                onChangeText={setDistrict}
+                placeholder="Anuradhapura / Polonnaruwa / Kurunegala"
+                placeholderTextColor="#94A3B8"
+                style={styles.input}
+                autoCapitalize="words"
+              />
+            </View>
+
             <View style={{ width: 12 }} />
 
             <View style={[styles.field, { flex: 1 }]}>
@@ -295,11 +325,15 @@ export default function AdminEditOfficialNewsScreen({ route, navigation }: any) 
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Visible to Farmers</Text>
               <Text style={styles.switchHint}>
-                Turn off to hide this news from farmer feed (officers can still manage it).
+                Turn off to hide this news from farmer feed (officers can still
+                manage it).
               </Text>
             </View>
 
-            <Switch value={visibleToFarmers} onValueChange={setVisibleToFarmers} />
+            <Switch
+              value={visibleToFarmers}
+              onValueChange={setVisibleToFarmers}
+            />
           </View>
         </View>
 
