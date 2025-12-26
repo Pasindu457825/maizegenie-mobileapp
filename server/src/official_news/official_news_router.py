@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, field_validator
 from src.database.supabase_client import supabase
 import uuid
 
@@ -17,9 +17,18 @@ class OfficialNewsCreate(BaseModel):
     category: str                 # price | weather | policy | alert
     source: str                   # HARTI / Met Dept / DMC / Gazette
     url: HttpUrl | None = None
-    image_url: str | None = None
+    image_url: HttpUrl | None = None
     district: str | None = None
     language: str = "si"
+
+    # 🔒 Auto-fix URLs like "www.abs.lk" → "https://www.abs.lk"
+    @field_validator("url", "image_url", mode="before")
+    @classmethod
+    def fix_urls(cls, v):
+        if v and isinstance(v, str):
+            if not v.startswith(("http://", "https://")):
+                return "https://" + v
+        return v
 
 
 # ===============================
@@ -27,6 +36,7 @@ class OfficialNewsCreate(BaseModel):
 # ===============================
 @router.post("/admin")
 def add_official_news(payload: OfficialNewsCreate):
+
     if payload.category not in ["price", "weather", "policy", "alert"]:
         raise HTTPException(status_code=400, detail="Invalid category")
 
@@ -36,7 +46,7 @@ def add_official_news(payload: OfficialNewsCreate):
         "category": payload.category,
         "source": payload.source,
         "url": str(payload.url) if payload.url else None,
-        "image_url": str(payload.image_url) if payload.image_url else None,  # 🆕
+        "image_url": str(payload.image_url) if payload.image_url else None,
         "district": payload.district,
         "language": payload.language,
         "created_by": str(uuid.uuid4()),
