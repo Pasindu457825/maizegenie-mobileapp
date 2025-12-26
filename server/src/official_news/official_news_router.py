@@ -17,6 +17,7 @@ class OfficialNewsCreate(BaseModel):
     category: str                 # price | weather | policy | alert
     source: str                   # HARTI / Met Dept / DMC / Gazette
     url: HttpUrl | None = None
+    image_url: str | None = None
     district: str | None = None
     language: str = "si"
 
@@ -35,9 +36,10 @@ def add_official_news(payload: OfficialNewsCreate):
         "category": payload.category,
         "source": payload.source,
         "url": str(payload.url) if payload.url else None,
+        "image_url": str(payload.image_url) if payload.image_url else None,  # 🆕
         "district": payload.district,
         "language": payload.language,
-        "created_by": str(uuid.uuid4()),   # ✅ UUID GENERATED HERE
+        "created_by": str(uuid.uuid4()),
         "is_active": True
     }
 
@@ -66,7 +68,7 @@ def get_official_news():
 
 
 # ===============================
-# FARMER – GET SINGLE NEWS BY ID  🆕
+# FARMER – GET SINGLE NEWS BY ID
 # ===============================
 @router.get("/{news_id}")
 def get_single_official_news(news_id: str):

@@ -1,4 +1,11 @@
-import { View, Text, ActivityIndicator, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+  ScrollView,
+  Image, // 🆕 ADD
+} from "react-native";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
 import { useEffect, useState } from "react";
 import axios from "axios";
@@ -23,6 +30,7 @@ interface NewsDetail {
   district?: string | null;
   created_at: string;
   url?: string | null;
+  image_url?: string | null; // 🆕 ADD THIS
   language?: string;
 }
 
@@ -120,6 +128,14 @@ export default function NewsDetailScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>{news.title}</Text>
+        {/* 🖼️ NEWS IMAGE */}
+        {news.image_url && (
+          <Image
+            source={{ uri: news.image_url }}
+            style={styles.newsImage}
+            resizeMode="cover"
+          />
+        )}
 
         <View style={styles.meta}>
           <Text style={styles.metaText}>
@@ -135,13 +151,9 @@ export default function NewsDetailScreen() {
           <Text style={styles.district}>📍 {news.district}</Text>
         )}
 
-        {news.summary && (
-          <Text style={styles.summary}>{news.summary}</Text>
-        )}
+        {news.summary && <Text style={styles.summary}>{news.summary}</Text>}
 
-        {news.url && (
-          <Text style={styles.link}>🔗 {news.url}</Text>
-        )}
+        {news.url && <Text style={styles.link}>🔗 {news.url}</Text>}
       </ScrollView>
     </View>
   );
@@ -221,5 +233,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#dc2626",
     textAlign: "center",
+  },
+  newsImage: {
+    width: "100%",
+    height: 220,
+    borderRadius: 14,
+    marginBottom: 16,
+    backgroundColor: "#e5e7eb",
   },
 });

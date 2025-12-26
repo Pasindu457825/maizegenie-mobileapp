@@ -13,6 +13,7 @@ import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "../../navigation";
+import { Image } from "react-native";
 
 // =======================
 // Types
@@ -26,6 +27,7 @@ interface OfficialNews {
   district?: string;
   language: string;
   url?: string;
+  image_url?: string;
   created_at: string;
   is_active: boolean;
 }
@@ -193,6 +195,20 @@ export default function OfficialNewsScreen() {
             {/* TITLE */}
             <Text style={styles.newsTitle}>{item.title}</Text>
 
+            {/* 🖼️ NEWS IMAGE */}
+            {item.image_url && (
+              <Image
+                source={{ uri: item.image_url }}
+                style={{
+                  width: "100%",
+                  height: 180,
+                  borderRadius: 10,
+                  marginBottom: 12,
+                }}
+                resizeMode="cover"
+              />
+            )}
+
             {/* SUMMARY */}
             {item.summary && (
               <Text style={styles.newsSummary} numberOfLines={2}>
@@ -203,21 +219,13 @@ export default function OfficialNewsScreen() {
             {/* FOOTER */}
             <View style={styles.newsFooter}>
               <View style={styles.sourceContainer}>
-                <Ionicons
-                  name="newspaper-outline"
-                  size={14}
-                  color="#6b7280"
-                />
+                <Ionicons name="newspaper-outline" size={14} color="#6b7280" />
                 <Text style={styles.sourceText}>{item.source}</Text>
               </View>
 
               {item.district && (
                 <View style={styles.districtContainer}>
-                  <Ionicons
-                    name="location-outline"
-                    size={14}
-                    color="#6b7280"
-                  />
+                  <Ionicons name="location-outline" size={14} color="#6b7280" />
                   <Text style={styles.districtText}>{item.district}</Text>
                 </View>
               )}

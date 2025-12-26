@@ -11,6 +11,10 @@ import {
 import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import { Image } from "react-native";
+import { supabase } from "../../lib/supabase"; // ✅ ADD THIS
+import { Platform } from "react-native"; // ✅ REQUIRED
 
 // 🌐 Language
 import { useLanguage } from "../../context/LanguageContext";
@@ -39,6 +43,7 @@ export default function AdminAddOfficialNewsScreen() {
       back: "ආපසු",
       error: "අනිවාර්ය ක්ෂේත්‍ර හිස්",
       success: "නිල ප්‍රවෘත්තිය සාර්ථකව ප්‍රකාශිතයි",
+      imageUrl: "පින්තූර ලින්ක් (අවශ්‍ය නම් පමණක්)",
     },
     en: {
       title: "Add Official News",
@@ -52,6 +57,7 @@ export default function AdminAddOfficialNewsScreen() {
       back: "Back",
       error: "Required fields are missing",
       success: "Official news published successfully",
+      imageUrl: "Image URL (optional)",
     },
   };
 
@@ -64,37 +70,90 @@ export default function AdminAddOfficialNewsScreen() {
   const [source, setSource] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageAsset, setImageAsset] = useState<any | null>(null);
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageAsset(result.assets[0]); // 🔑 store whole asset
+    }
+  };
+
+  const uploadOfficialNewsImage = async (asset: any): Promise<string> => {
+    const fileExt = asset.uri.split(".").pop() || "jpg";
+    const fileName = `official_news_${Date.now()}.${fileExt}`;
+    const filePath = `news/${fileName}`;
+
+    // ✅ READ IMAGE AS ARRAY BUFFER (NO BLOB)
+    const response = await fetch(asset.uri);
+    const arrayBuffer = await response.arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from("official-news-images")
+      .upload(filePath, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = supabase.storage
+      .from("official-news-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl; // ✅ correct public image URL
+  };
 
   // 🚀 Submit
   const submitNews = async () => {
     if (!title || !category || !source) {
-      Alert.alert("Error", t.error);
+      Alert.alert("Error", "Required fields missing");
       return;
     }
 
     try {
       setLoading(true);
 
+      let imageUrl: string | null = null;
+
+      // 🟢 IMAGE UPLOAD (NO BLOB)
+      if (imageAsset) {
+        imageUrl = await uploadOfficialNewsImage(imageAsset);
+      }
+
+      // 🟢 SEND ONLY PUBLIC URL TO BACKEND
       await axios.post(`${API_BASE}/official-news/admin`, {
         title,
         summary,
-        category,
+        category: category.trim().toLowerCase(),
         source,
-        url,
+        url: url || null,
+        image_url: imageUrl,
       });
 
-      Alert.alert("Success", t.success);
+      Alert.alert("Success", "News published");
 
-      // reset
+      // 🔄 RESET FORM
       setTitle("");
       setSummary("");
       setCategory("price");
       setSource("");
       setUrl("");
-
-      navigation.goBack();
-    } catch (err) {
-      Alert.alert("Error", "Failed to publish news");
+      setImageAsset(null);
+    } catch (err: any) {
+      console.log("❌ SUBMIT ERROR:", err);
+      console.log("❌ RESPONSE:", err?.response?.data);
+      Alert.alert(
+        "Error",
+        err?.response?.data?.detail || "Failed to publish news"
+      );
     } finally {
       setLoading(false);
     }
@@ -158,6 +217,45 @@ export default function AdminAddOfficialNewsScreen() {
           placeholder="https://..."
           autoCapitalize="none"
         />
+
+        <Text style={styles.label}>
+          {uiLang === "si" ? "පින්තූරය (විකල්ප)" : "Image (optional)"}
+        </Text>
+
+        <TouchableOpacity
+          onPress={pickImage}
+          style={{
+            borderWidth: 1,
+            borderColor: "#CBD5E1",
+            borderRadius: 14,
+            padding: 14,
+            alignItems: "center",
+            backgroundColor: "#F8FAFC",
+          }}
+        >
+          <Text style={{ color: "#334155", fontWeight: "600" }}>
+            {imageAsset && (
+              <Image
+                source={{ uri: imageAsset.uri }}
+                style={{ width: "100%", height: 180, borderRadius: 12 }}
+              />
+            )}
+          </Text>
+        </TouchableOpacity>
+
+        {/* IMAGE PREVIEW */}
+        {imageUri && (
+          <Image
+            source={{ uri: imageUri }}
+            style={{
+              width: "100%",
+              height: 180,
+              borderRadius: 12,
+              marginTop: 10,
+            }}
+            resizeMode="cover"
+          />
+        )}
 
         {/* SUBMIT */}
         <TouchableOpacity
