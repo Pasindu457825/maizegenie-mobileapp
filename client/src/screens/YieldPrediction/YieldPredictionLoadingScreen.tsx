@@ -60,6 +60,10 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
+      farmerForecastTitle: "දළ පුරෝකථනය",
+      farmerForecastDesc: "ඉක්මන් සහ සරල අස්වැන්න පුරෝකථනය",
+      officerForecastTitle: "වෘත්තීය/උසස් විශ්ලේෂණය",
+      officerForecastDesc: "සවිස්තරාත්මක සහ ගැඹුරු අස්වැන්න විශ්ලේෂණය",
       fertilizerTitle: "පොහොර උපදේශ",
       fertilizerDesc: "පුද්ගලාරෝපිත පොහොර නිර්දේශ ලබා ගන්න",
       fertilizerRecommendation: "පොහොර නිර්දේශ",
@@ -74,6 +78,10 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
+      farmerForecastTitle: "Gross Forecast",
+      farmerForecastDesc: "Quick and simple yield prediction",
+      officerForecastTitle: "Professional/Advanced Analysis",
+      officerForecastDesc: "Detailed and deep yield analysis",
       fertilizerTitle: "Fertilizer Advices",
       fertilizerDesc: "Get personalized fertilizer recommendations",
       fertilizerRecommendation: "Fertilizer Recommendation",
@@ -214,10 +222,10 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                   <View style={styles.roleContent}>
                     <Text style={styles.roleTitle}>
-                      {content[language].startTitle}
+                      {content[language].farmerForecastTitle}
                     </Text>
                     <Text style={styles.roleDesc}>
-                      {content[language].startDesc}
+                      {content[language].farmerForecastDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>
@@ -274,10 +282,10 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                   <View style={styles.roleContent}>
                     <Text style={styles.roleTitle}>
-                      {content[language].startTitle}
+                      {content[language].officerForecastTitle}
                     </Text>
                     <Text style={styles.roleDesc}>
-                      {content[language].startDesc}
+                      {content[language].officerForecastDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>

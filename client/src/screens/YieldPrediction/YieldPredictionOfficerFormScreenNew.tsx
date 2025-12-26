@@ -161,7 +161,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
     const content = {
         si: {
             title: "අස්වැන්න පුරෝකථනය",
-            subtitle: "කෘෂිකර්ම නිලධාරී - ML මාදිලිය",
+            subtitle: "වෘත්තීය/උසස් විශ්ලේෂණය - කෘෂිකර්ම නිලධාරී",
             step: "පියවර",
             of: "න්",
             next: "ඊළඟ",
@@ -208,7 +208,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
         },
         en: {
             title: "Yield Prediction",
-            subtitle: "Agricultural Officer - ML Model",
+            subtitle: "Professional/Advanced Analysis - Agricultural Officer",
             step: "Step",
             of: "of",
             next: "Next",
@@ -313,6 +313,19 @@ const YieldPredictionOfficerFormScreenNew = () => {
             );
             return false;
         }
+        
+        // Validate field size is greater than 0
+        const fieldSize = parseFloat(fieldSizeHa);
+        if (isNaN(fieldSize) || fieldSize <= 0) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si"
+                    ? "ඉඩම් ප්‍රමාණය 0 ට වඩා වැඩි විය යුතුය"
+                    : "Field size must be greater than 0"
+            );
+            return false;
+        }
+        
         return true;
     };
 
@@ -401,9 +414,24 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     language,
                 });
             } else {
+                // Handle error message - convert array to string if needed
+                let errorMessage = "Prediction failed";
+                if (result.detail) {
+                    if (Array.isArray(result.detail)) {
+                        // FastAPI validation errors are arrays
+                        errorMessage = result.detail.map((err: any) => 
+                            err.msg || err.message || JSON.stringify(err)
+                        ).join(", ");
+                    } else if (typeof result.detail === "string") {
+                        errorMessage = result.detail;
+                    } else {
+                        errorMessage = JSON.stringify(result.detail);
+                    }
+                }
+                
                 Alert.alert(
                     language === "si" ? "දෝෂයකි" : "Error",
-                    result.detail || "Prediction failed"
+                    errorMessage
                 );
             }
         } catch (error) {
