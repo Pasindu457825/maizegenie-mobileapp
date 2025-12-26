@@ -104,13 +104,15 @@ async def update_fertilizer_application(
 @router.get("/officer/health")
 async def officer_health_check():
     """Health check for officer prediction service"""
-    import os
-    ml_model_available = os.path.exists("models/maize_yield_model_v2.pkl")
+    from pathlib import Path
+    from .ml_prediction_service import MODEL_LOADED, MODEL_PATH
     
     return {
         "status": "ok",
         "service": "officer-yield-prediction",
-        "ml_model_available": ml_model_available,
+        "ml_model_available": MODEL_LOADED,
+        "ml_model_path": str(MODEL_PATH),
+        "ml_model_file_exists": MODEL_PATH.exists(),
         "fallback_system": "rule_based",
         "features": [
             "ML-first prediction with rule-based fallback",

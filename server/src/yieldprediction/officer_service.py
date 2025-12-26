@@ -1,4 +1,5 @@
 """
+This is officer_service.py
 Officer Yield Prediction Service
 ML-first approach with rule-based fallback for reliability
 """
@@ -223,24 +224,29 @@ def predict_officer_yield(data: Dict) -> Dict:
         "field_size_ha": crop_info.get("field_size_ha"),
     }
     
-    # Try ML first
-    logger.info("Attempting ML prediction...")
-    ml_yield, ml_metadata, ml_status = predict_yield_ml(flat_data)
+    # Try ML prediction first (now fixed with correct feature mapping)
+    from .ml_prediction_service import get_ml_prediction_officer
     
-    if ml_yield is not None:
-        logger.info(f"ML prediction successful: {ml_yield:.2f} kg/ha")
+    ml_result = get_ml_prediction_officer(data)
+    
+    if ml_result:
+        # ML prediction successful
+        logger.info("Using ML-based prediction (XGBoost)")
+        predicted_yield = ml_result["predicted_yield"]
+        confidence = ml_result["confidence_score"]
         prediction_method = "ml_model"
-        predicted_yield = ml_yield
-        confidence = ml_metadata.get("confidence", 0.85)
+        harvest_window = ml_result.get("harvest_window", {})
         multipliers = {}  # ML doesn't use multipliers
-        harvest_window = ml_metadata.get("harvest_window", {})
+        logger.info(f"ML prediction: {predicted_yield:.2f} kg/ha (confidence: {confidence:.2f})")
     else:
-        logger.info(f"ML prediction failed ({ml_status}), falling back to rule-based system")
+        # Fallback to rule-based if ML fails
+        logger.warning("ML prediction failed, falling back to rule-based system")
         rule_yield, multipliers, _ = calculate_rule_based_yield(flat_data)
         prediction_method = "rule_based"
         predicted_yield = rule_yield
-        confidence = 0.75  # Rule-based has lower confidence
+        confidence = 0.85
         harvest_window = {}
+        logger.info(f"Rule-based prediction: {predicted_yield:.2f} kg/ha")
     
     # Determine yield category
     if predicted_yield >= 6000:
@@ -435,16 +441,9 @@ def build_officer_insights(data: Dict, predicted_yield: float, method: str) -> D
     ph_score = 1.0 if 6.0 <= ph <= 7.0 else 0.8
     soil_health = (fertility + ph_score) / 2 * 10
     
-    # Expected ROI
-    cost_per_ha = 150000  # LKR
-    price_per_kg = 80  # LKR
-    revenue = predicted_yield * price_per_kg
-    roi = revenue / cost_per_ha
-    
     return {
         "soil_health_score": round(soil_health, 1),
         "fertilizer_efficiency": 0.85,
-        "expected_roi": round(roi, 2),
         "prediction_method": method,
         "risk_factors": build_risk_factors(data),
         "field_visit_recommendations": [

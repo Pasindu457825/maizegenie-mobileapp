@@ -180,7 +180,7 @@ async def predict_yield_farmer(
             yield_lower_bound=round(yield_lower, 2),
             yield_upper_bound=round(yield_upper, 2),
             prediction_method='ml_model' if USE_ML else 'rule_based',
-            model_version='v1.0'
+            ml_model_version='v1.0'
         )
         
         # Step 8: Save prediction to database
@@ -193,7 +193,7 @@ async def predict_yield_farmer(
                     'yield_upper_bound': prediction_data.yield_upper_bound,
                     'confidence_level': prediction_data.confidence_level,
                     'confidence_score': prediction_data.confidence_score,
-                    'model_version': prediction_data.model_version,
+                    'ml_model_version': prediction_data.ml_model_version,
                     'primary_limiting_factors': primary_limiting,
                     'prediction_method': prediction_data.prediction_method
                 }
