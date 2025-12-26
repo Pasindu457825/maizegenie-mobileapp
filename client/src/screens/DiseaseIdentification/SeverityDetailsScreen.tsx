@@ -19,10 +19,28 @@ import {
   Thermometer,
   AlertTriangle,
   CheckCircle,
+  Droplets,
+  Sprout,
+  Scissors,
+  Pill,
+  Clock,
+  Calendar,
+  ShieldCheck,
+  TrendingUp,
+  Sun,
+  Wind,
+  Bug,
+  Sparkles,
 } from "lucide-react-native";
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 import SeverityGauge from "../../components/SeverityGauge";
 import { StackNavigationProp } from "@react-navigation/stack";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  sriLankanTreatments,
+  generalTreatments,
+} from "../../data/diseases/treatments";
+import { SriLankanTreatment } from "../../data/diseases/treatments/treatmentTypes";
 
 // 🌐 LANGUAGE CONTEXT
 import { useLanguage } from "../../context/LanguageContext";
@@ -40,6 +58,12 @@ type SeverityDetailsRouteProp = RouteProp<
 
 interface Props {
   route: SeverityDetailsRouteProp;
+}
+
+interface Prediction {
+  class_id: number;
+  class_name: string;
+  confidence: number;
 }
 
 export default function SeverityDetailsScreen({ route }: Props) {
@@ -68,7 +92,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       nextSteps: "ඊළඟ පියවර",
       viewDiseaseInfo: "රෝග විස්තර",
       status: "තත්ත්වය",
-      location: "ස්ථානය",
       recommendations: "නිර්දේශ",
       takeAction: "ක්‍රියාමාර්ග ගන්න",
       monitoring: "සමීක්ෂණය",
@@ -79,6 +102,41 @@ export default function SeverityDetailsScreen({ route }: Props) {
       mediumRisk: "මධ්‍යම අවදානම",
       highRisk: "අවදානම ඉහළ",
       critical: "අවදානම්කාරී",
+
+      // Treatment section translations
+      treatmentGuide: "ශ්‍රී ලංකාවේ භාවිත කළ හැකි සුව කිරීමේ ක්‍රම",
+      availableInSL: "ශ්‍රී ලංකාවේ ලබාගත හැකි ඖෂධ",
+      howToUse: "කෙසේ භාවිතා කරන්නද",
+      dosage: "ප්‍රමාණය හා මිශ්‍ර කිරීම",
+      applicationSchedule: "යෙදීමේ කාලසටහන",
+      frequency: "ප්‍රතිපත්තිය",
+      duration: "කාලසීමාව",
+      bestTime: "හොඳම වේලාව",
+      safetyPrecautions: "ආරක්ෂිත ප්‍රවේශයන්",
+      whereToBuy: "කොහෙන් ගන්නද",
+      costEstimate: "ගණන් දර්ශනය (රුපියල්)",
+      spraySchedule: "සිදුරු කාලසටහන",
+      immediateAction: "ක්ෂණික ක්‍රියාමාර්ග",
+      followUpTreatment: "අනුගමන සුව කිරීම",
+      preventionTips: "නැවත ආසාදන වළක්වා ගැනීම",
+      organicOptions: "කාබනික විකල්ප",
+      chemicalOptions: "රසායනික විකල්ප",
+      recommendedForSeverity: "දැඩි තත්ත්වය සඳහා නිර්දේශිත",
+      stepByStepGuide: "පියවරෙන් පියවර මාර්ගෝපදේශය",
+      day: "දින",
+      days: "දින",
+      weeks: "සති",
+      repeat: "නැවත කරන්න",
+      morning: "උදේ",
+      evening: "හවස",
+      avoidRain: "වැස්සෙන් වැළකෙන්න",
+      protectiveGear: "රැකවරණ ඇඳුම් භාවිත කරන්න",
+      storeProperly: "සුරක්ෂිතව ගබඩා කරන්න",
+      forDisease: "සඳහා",
+      effectiveAgainst: "එදිරිව ක්‍රියාකාරී",
+      fungalDiseases: "දිලීර රෝග",
+      bacterialDiseases: "බැක්ටීරියා රෝග",
+      viralDiseases: "වයිරස් රෝග",
     },
     en: {
       back: "Back",
@@ -96,7 +154,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       nextSteps: "Next Steps",
       viewDiseaseInfo: "View Disease Information",
       status: "Status",
-      location: "Location",
       recommendations: "Recommendations",
       takeAction: "Take Action",
       monitoring: "Monitoring",
@@ -107,6 +164,41 @@ export default function SeverityDetailsScreen({ route }: Props) {
       mediumRisk: "Medium Risk",
       highRisk: "High Risk",
       critical: "Critical",
+
+      // Treatment section translations
+      treatmentGuide: "Treatments Available in Sri Lanka",
+      availableInSL: "Available Products in Sri Lanka",
+      howToUse: "How to Use",
+      dosage: "Dosage & Mixing",
+      applicationSchedule: "Application Schedule",
+      frequency: "Frequency",
+      duration: "Duration",
+      bestTime: "Best Time",
+      safetyPrecautions: "Safety Precautions",
+      whereToBuy: "Where to Buy",
+      costEstimate: "Cost Estimate (LKR)",
+      spraySchedule: "Spray Schedule",
+      immediateAction: "Immediate Action",
+      followUpTreatment: "Follow-up Treatment",
+      preventionTips: "Prevent Reinfection",
+      organicOptions: "Organic Options",
+      chemicalOptions: "Chemical Options",
+      recommendedForSeverity: "Recommended for Severity Level",
+      stepByStepGuide: "Step-by-Step Guide",
+      day: "Day",
+      days: "days",
+      weeks: "weeks",
+      repeat: "Repeat",
+      morning: "Morning",
+      evening: "Evening",
+      avoidRain: "Avoid rain",
+      protectiveGear: "Use protective gear",
+      storeProperly: "Store properly",
+      forDisease: "for",
+      effectiveAgainst: "Effective against",
+      fungalDiseases: "Fungal diseases",
+      bacterialDiseases: "Bacterial diseases",
+      viralDiseases: "Viral diseases",
     },
   };
 
@@ -141,27 +233,190 @@ export default function SeverityDetailsScreen({ route }: Props) {
     return "🔴";
   };
 
+  // Format disease name
+  const formatDiseaseName = (name: string) => {
+    return name
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  // Get primary disease prediction
+  const primaryPrediction = predictions?.[0] || null;
+  const diseaseName = primaryPrediction
+    ? formatDiseaseName(primaryPrediction.class_name)
+    : "";
+
+  const getTreatmentsForDisease = (): {
+    chemical: SriLankanTreatment[];
+    organic: SriLankanTreatment[];
+  } => {
+    const splitByType = (list: SriLankanTreatment[]) => ({
+      chemical: list.filter((t) => t.type === "chemical"),
+      organic: list.filter((t) => t.type === "organic"),
+    });
+
+    // 1️⃣ No prediction
+    if (!primaryPrediction) {
+      return splitByType(generalTreatments);
+    }
+
+    const formattedName = formatDiseaseName(
+      primaryPrediction.class_name
+    ).toLowerCase();
+
+    const normalize = (s: string) =>
+      s.toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
+
+    const normalizedName = normalize(primaryPrediction.class_name);
+
+    const matchedKey = Object.keys(sriLankanTreatments).find(
+      (key) => normalize(key) === normalizedName
+    );
+
+    // 2️⃣ Disease-specific treatments
+    if (matchedKey) {
+      return splitByType(sriLankanTreatments[matchedKey]);
+    }
+
+    // 3️⃣ Fallback
+    return splitByType(generalTreatments);
+  };
+
+  const { chemical: chemicalTreatments, organic: organicTreatments } =
+    getTreatmentsForDisease();
+
+  // Get disease type for organic treatment effectiveness
+  const getDiseaseType = () => {
+    const diseaseNameLower = diseaseName.toLowerCase();
+    if (
+      diseaseNameLower.includes("spot") ||
+      diseaseNameLower.includes("blight") ||
+      diseaseNameLower.includes("rust")
+    ) {
+      return language === "si" ? "දිලීර රෝග" : "Fungal diseases";
+    }
+    return language === "si" ? "ශාක රෝග" : "Plant diseases";
+  };
+
+  const diseaseType = getDiseaseType();
+
+  // Get spray schedule based on severity
+  const getSpraySchedule = () => {
+    if (severity_score < 0.33) {
+      return {
+        title: language === "si" ? "සුළු ආසාදන සඳහා" : "For Mild Infection",
+        schedule: [
+          {
+            day: language === "si" ? "දින 1" : "Day 1",
+            action: language === "si" ? "පළමු සිදුරු කිරීම" : "First spray",
+          },
+          {
+            day: language === "si" ? "දින 10" : "Day 10",
+            action:
+              language === "si"
+                ? "දෙවන සිදුරු කිරීම (අවශ්‍ය නම්)"
+                : "Second spray (if needed)",
+          },
+          {
+            day: language === "si" ? "දින 20" : "Day 20",
+            action: language === "si" ? "සමීක්ෂණය" : "Monitoring",
+          },
+        ],
+      };
+    } else if (severity_score < 0.66) {
+      return {
+        title:
+          language === "si" ? "මධ්‍යම ආසාදන සඳහා" : "For Moderate Infection",
+        schedule: [
+          {
+            day: language === "si" ? "දින 1" : "Day 1",
+            action: language === "si" ? "පළමු සිදුරු කිරීම" : "First spray",
+          },
+          {
+            day: language === "si" ? "දින 7" : "Day 7",
+            action: language === "si" ? "දෙවන සිදුරු කිරීම" : "Second spray",
+          },
+          {
+            day: language === "si" ? "දින 14" : "Day 14",
+            action: language === "si" ? "තෙවන සිදුරු කිරීම" : "Third spray",
+          },
+          {
+            day: language === "si" ? "දින 21" : "Day 21",
+            action: language === "si" ? "සමීක්ෂණය" : "Monitoring",
+          },
+        ],
+      };
+    } else {
+      return {
+        title: language === "si" ? "දැඩි ආසාදන සඳහා" : "For Severe Infection",
+        schedule: [
+          {
+            day: language === "si" ? "දින 1" : "Day 1",
+            action:
+              language === "si" ? "පළමු සිදුරු කිරීම" : "First spray (urgent)",
+          },
+          {
+            day: language === "si" ? "දින 5" : "Day 5",
+            action: language === "si" ? "දෙවන සිදුරු කිරීම" : "Second spray",
+          },
+          {
+            day: language === "si" ? "දින 10" : "Day 10",
+            action: language === "si" ? "තෙවන සිදුරු කිරීම" : "Third spray",
+          },
+          {
+            day: language === "si" ? "දින 15" : "Day 15",
+            action: language === "si" ? "සිව්වන සිදුරු කිරීම" : "Fourth spray",
+          },
+          {
+            day: language === "si" ? "දින 25" : "Day 25",
+            action: language === "si" ? "සමීක්ෂණය" : "Monitoring",
+          },
+        ],
+      };
+    }
+  };
+
+  const spraySchedule = getSpraySchedule();
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={["#10ad79ff", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
+          activeOpacity={0.7}
         >
-          <ArrowLeft color="#FFFFFF" size={24} />
+          <ArrowLeft size={20} color="#FFFFFF" />
         </TouchableOpacity>
+
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].plantHealth}
           </Text>
-          <Text style={styles.headerSubtitle}>
-            {content[language].aiPowered}
-          </Text>
+          <View style={styles.headerSubtitleContainer}>
+            <Sparkles size={12} color="#D1FAE5" />
+            <Text style={styles.headerSubtitle}>
+              {content[language].aiPowered}
+            </Text>
+          </View>
         </View>
-      </View>
+
+        <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
+          <Shield size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollView}
@@ -188,6 +443,21 @@ export default function SeverityDetailsScreen({ route }: Props) {
             </View>
           </View>
         )}
+
+        {/* Disease Severity Card */}
+        <View style={styles.diseaseCard}>
+          <View style={styles.diseaseHeader}>
+            <Bug size={24} color="#059669" />
+            <View style={styles.diseaseHeaderContent}>
+              <Text style={styles.diseaseTitle}>
+                {diseaseName} {content[language].forDisease}
+              </Text>
+              <Text style={styles.diseaseSubtitle}>
+                {content[language].effectiveAgainst}: {diseaseType}
+              </Text>
+            </View>
+          </View>
+        </View>
 
         {/* Severity Analysis Card */}
         <View style={styles.severityCard}>
@@ -243,6 +513,423 @@ export default function SeverityDetailsScreen({ route }: Props) {
           </View>
         </View>
 
+        {/* Spray Schedule Card */}
+        <View style={styles.scheduleCard}>
+          <View style={styles.scheduleHeader}>
+            <Calendar size={24} color="#059669" />
+            <Text style={styles.scheduleTitle}>
+              {content[language].spraySchedule}
+            </Text>
+            <Text style={styles.scheduleSubtitle}>{spraySchedule.title}</Text>
+          </View>
+
+          <View style={styles.scheduleTimeline}>
+            {spraySchedule.schedule.map((item, index) => (
+              <View key={index} style={styles.scheduleItem}>
+                <View style={styles.scheduleDayContainer}>
+                  <Text style={styles.scheduleDay}>{item.day}</Text>
+                </View>
+                <View style={styles.scheduleConnector}>
+                  <View style={styles.scheduleDot} />
+                  {index < spraySchedule.schedule.length - 1 && (
+                    <View style={styles.scheduleLine} />
+                  )}
+                </View>
+                <View style={styles.scheduleActionContainer}>
+                  <Text style={styles.scheduleAction}>{item.action}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.scheduleTips}>
+            <View style={styles.tipItem}>
+              <Clock size={16} color="#059669" />
+              <Text style={styles.tipText}>
+                {content[language].bestTime}:{" "}
+                {language === "si" ? "උදේ 6-9 හෝ හවස 4-6" : "6-9 AM or 4-6 PM"}
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <Wind size={16} color="#059669" />
+              <Text style={styles.tipText}>
+                {content[language].avoidRain}:{" "}
+                {language === "si" ? "වැස්සට පෙර 2 පැය" : "2 hours before rain"}
+              </Text>
+            </View>
+            <View style={styles.tipItem}>
+              <ShieldCheck size={16} color="#059669" />
+              <Text style={styles.tipText}>
+                {content[language].protectiveGear}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Chemical Treatments Card */}
+        {chemicalTreatments.length > 0 && (
+          <View style={styles.treatmentCard}>
+            <View style={styles.treatmentHeader}>
+              <Pill size={24} color="#DC2626" />
+              <View style={styles.treatmentHeaderContent}>
+                <Text style={styles.treatmentTitle}>
+                  {content[language].chemicalOptions}
+                </Text>
+                <Text style={styles.treatmentSubtitle}>
+                  {content[language].recommendedForSeverity}: {severity_label}
+                </Text>
+              </View>
+            </View>
+
+            {chemicalTreatments.map((treatment, index) => (
+              <View key={treatment.id} style={styles.treatmentItem}>
+                <View style={styles.treatmentNumber}>
+                  <Text style={styles.treatmentNumberText}>{index + 1}</Text>
+                </View>
+
+                <View style={styles.treatmentContent}>
+                  <Text style={styles.treatmentName}>
+                    {treatment.name[language]}
+                  </Text>
+
+                  {/* Available Products */}
+                  <View style={styles.infoSection}>
+                    <Text style={styles.sectionLabel}>
+                      {content[language].availableInSL}:
+                    </Text>
+                    <View style={styles.productsContainer}>
+                      {treatment.availableProducts[language].map(
+                        (product, i) => (
+                          <View key={i} style={styles.productChip}>
+                            <Text style={styles.productText}>{product}</Text>
+                          </View>
+                        )
+                      )}
+                    </View>
+                  </View>
+
+                  {/* How to Use & Dosage */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoColumn}>
+                      <Text style={styles.sectionLabel}>
+                        {content[language].howToUse}:
+                      </Text>
+                      <Text style={styles.infoText}>
+                        {treatment.applicationMethod[language]}
+                      </Text>
+                    </View>
+                    <View style={styles.infoColumn}>
+                      <Text style={styles.sectionLabel}>
+                        {content[language].dosage}:
+                      </Text>
+                      <Text style={styles.infoText}>
+                        {treatment.dosage[language]}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Schedule */}
+                  {/* Schedule - FIXED FOR MOBILE */}
+                  <View style={styles.scheduleInfo}>
+                    <View style={styles.scheduleRow}>
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Clock size={14} color="#DC2626" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.chemicalText]}
+                          >
+                            {content[language].frequency}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.chemicalText]}
+                        >
+                          {treatment.schedule.frequency}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Calendar size={14} color="#DC2626" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.chemicalText]}
+                          >
+                            {content[language].duration}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.chemicalText]}
+                        >
+                          {treatment.schedule.duration}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Sun size={14} color="#DC2626" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.chemicalText]}
+                          >
+                            {content[language].bestTime}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.chemicalText]}
+                        >
+                          {treatment.schedule.bestTime}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Safety */}
+                  <View style={styles.infoSection}>
+                    <Text style={styles.sectionLabel}>
+                      {content[language].safetyPrecautions}:
+                    </Text>
+                    {treatment.safety[language].map((safety, i) => (
+                      <View key={i} style={styles.safetyItem}>
+                        <View
+                          style={[styles.safetyBullet, styles.chemicalBullet]}
+                        />
+                        <Text style={[styles.safetyText, styles.chemicalText]}>
+                          {safety}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Availability & Cost */}
+                  <View style={styles.availabilityRow}>
+                    <View style={styles.availabilityColumn}>
+                      <Text style={styles.sectionLabel}>
+                        {content[language].whereToBuy}:
+                      </Text>
+                      {treatment.availability[language].map((place, i) => (
+                        <Text
+                          key={i}
+                          style={[styles.availabilityText, styles.chemicalText]}
+                        >
+                          • {place}
+                        </Text>
+                      ))}
+                    </View>
+                    <View style={styles.costContainer}>
+                      <Text
+                        style={[styles.costLabel, styles.chemicalCostLabel]}
+                      >
+                        {content[language].costEstimate}:
+                      </Text>
+                      <Text style={[styles.costValue, styles.chemicalCost]}>
+                        {treatment.costEstimate}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Organic Treatments Card */}
+        {organicTreatments.length > 0 && (
+          <View style={[styles.treatmentCard, styles.organicCard]}>
+            <View style={styles.treatmentHeader}>
+              <Leaf size={24} color="#059669" />
+              <View style={styles.treatmentHeaderContent}>
+                <Text style={styles.treatmentTitle}>
+                  {content[language].organicOptions}
+                </Text>
+                <Text style={styles.treatmentSubtitle}>
+                  {language === "si"
+                    ? "ආරක්ෂිත හා පරිසර හිතකර"
+                    : "Safe & Environment Friendly"}
+                </Text>
+              </View>
+            </View>
+
+            {organicTreatments.map((treatment, index) => (
+              <View key={treatment.id} style={styles.treatmentItem}>
+                <View style={[styles.treatmentNumber, styles.organicNumber]}>
+                  <Text style={styles.treatmentNumberText}>{index + 1}</Text>
+                </View>
+
+                <View style={styles.treatmentContent}>
+                  <Text style={[styles.treatmentName, styles.organicName]}>
+                    {treatment.name[language]}
+                  </Text>
+
+                  {/* Available Products */}
+                  <View style={styles.infoSection}>
+                    <Text style={styles.sectionLabel}>
+                      {content[language].availableInSL}:
+                    </Text>
+                    <View style={styles.productsContainer}>
+                      {treatment.availableProducts[language].map(
+                        (product, i) => (
+                          <View
+                            key={i}
+                            style={[styles.productChip, styles.organicChip]}
+                          >
+                            <Text
+                              style={[
+                                styles.productText,
+                                styles.organicProductText,
+                              ]}
+                            >
+                              {product}
+                            </Text>
+                          </View>
+                        )
+                      )}
+                    </View>
+                  </View>
+
+                  {/* How to Use & Dosage */}
+                  <View style={styles.infoRow}>
+                    <View style={styles.infoColumn}>
+                      <Text style={styles.sectionLabel}>
+                        {content[language].howToUse}:
+                      </Text>
+                      <Text style={styles.infoText}>
+                        {treatment.applicationMethod[language]}
+                      </Text>
+                    </View>
+                    <View style={styles.infoColumn}>
+                      <Text style={styles.sectionLabel}>
+                        {content[language].dosage}:
+                      </Text>
+                      <Text style={styles.infoText}>
+                        {treatment.dosage[language]}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Schedule */}
+                  {/* Schedule - FIXED FOR MOBILE */}
+                  <View style={styles.scheduleInfo}>
+                    <View style={styles.scheduleRow}>
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Clock size={14} color="#059669" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.organicText]}
+                          >
+                            {content[language].frequency}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.organicText]}
+                        >
+                          {treatment.schedule.frequency}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Calendar size={14} color="#059669" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.organicText]}
+                          >
+                            {content[language].duration}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.organicText]}
+                        >
+                          {treatment.schedule.duration}
+                        </Text>
+                      </View>
+
+                      <View style={styles.scheduleColumn}>
+                        <View style={styles.scheduleItemSmall}>
+                          <Sun size={14} color="#059669" />
+                          <Text
+                            style={[styles.scheduleLabel, styles.organicText]}
+                          >
+                            {content[language].bestTime}:
+                          </Text>
+                        </View>
+                        <Text
+                          style={[styles.scheduleValue, styles.organicText]}
+                        >
+                          {treatment.schedule.bestTime}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Safety */}
+                  <View style={styles.infoSection}>
+                    <Text style={styles.sectionLabel}>
+                      {content[language].safetyPrecautions}:
+                    </Text>
+                    {treatment.safety[language].map((safety, i) => (
+                      <View key={i} style={styles.safetyItem}>
+                        <View
+                          style={[styles.safetyBullet, styles.organicBullet]}
+                        />
+                        <Text style={[styles.safetyText, styles.organicText]}>
+                          {safety}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {/* Availability & Cost */}
+                  <View style={styles.availabilityRow}>
+                    <View style={styles.availabilityColumn}>
+                      <Text style={styles.sectionLabel}>
+                        {content[language].whereToBuy}:
+                      </Text>
+                      {treatment.availability[language].map((place, i) => (
+                        <Text
+                          key={i}
+                          style={[styles.availabilityText, styles.organicText]}
+                        >
+                          • {place}
+                        </Text>
+                      ))}
+                    </View>
+                    {/* Availability & Cost - FIXED FOR MOBILE */}
+                    <View style={styles.availabilityRow}>
+                      <View style={styles.availabilityColumn}>
+                        <Text style={styles.sectionLabel}>
+                          {content[language].whereToBuy}:
+                        </Text>
+                        {treatment.availability[language].map((place, i) => (
+                          <Text
+                            key={i}
+                            style={[
+                              styles.availabilityText,
+                              styles.organicText,
+                            ]}
+                          >
+                            • {place}
+                          </Text>
+                        ))}
+                      </View>
+
+                      <View style={styles.costContainer}>
+                        <View style={styles.costContent}>
+                          <Text
+                            style={[styles.costLabel, styles.organicCostLabel]}
+                          >
+                            {content[language].costEstimate}:
+                          </Text>
+                          <Text style={[styles.costValue, styles.organicCost]}>
+                            {treatment.costEstimate}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Next Steps Card */}
         <View style={styles.nextStepsCard}>
           <View style={styles.nextStepsHeader}>
@@ -253,76 +940,36 @@ export default function SeverityDetailsScreen({ route }: Props) {
           </View>
 
           <View style={styles.recommendations}>
-            {severity_score < 0.33 ? (
-              <>
-                <View style={styles.recommendationItem}>
-                  <View style={styles.recommendationIcon}>
-                    <CheckCircle size={16} color="#10B981" />
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? "සාමාන්‍ය නිරීක්ෂණ අනුගමනය කරන්න"
-                      : "Continue regular monitoring"}
-                  </Text>
-                </View>
-                <View style={styles.recommendationItem}>
-                  <View style={styles.recommendationIcon}>
-                    <Leaf size={16} color="#10B981" />
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? "ජල සැපයුම සහ පොහොර භාවිතය පවත්වාගෙන යන්න"
-                      : "Maintain regular watering and fertilization"}
-                  </Text>
-                </View>
-              </>
-            ) : severity_score < 0.66 ? (
-              <>
-                <View style={styles.recommendationItem}>
-                  <View style={styles.recommendationIcon}>
-                    <AlertTriangle size={16} color="#F59E0B" />
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? "පැලය වැඩිපුර නිරීක්ෂණය කරන්න"
-                      : "Increase monitoring frequency"}
-                  </Text>
-                </View>
-                <View style={styles.recommendationItem}>
-                  <View style={styles.recommendationIcon}>
-                    <Shield size={16} color="#F59E0B" />
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? "සුව කිරීමේ ක්‍රියාමාර්ග සැලසුම් කරන්න"
-                      : "Plan treatment measures"}
-                  </Text>
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.recommendationItem}>
-                  <View style={styles.recommendationIcon}>
-                    <AlertCircle size={16} color="#EF4444" />
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? "වහාම පිළියම් ක්‍රියාමාර්ග ගන්න"
-                      : "Take immediate treatment action"}
-                  </Text>
-                </View>
-                <View style={styles.recommendationItem}>
-                  <View style={styles.recommendationIcon}>
-                    <Thermometer size={16} color="#EF4444" />
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? "වෘත්තීය උපදෙස් ලබාගන්න"
-                      : "Seek professional advice"}
-                  </Text>
-                </View>
-              </>
-            )}
+            <View style={styles.recommendationItem}>
+              <View style={styles.recommendationIcon}>
+                <Clock size={16} color="#059669" />
+              </View>
+              <Text style={styles.recommendationText}>
+                {language === "si"
+                  ? "ඉහත කාලසටහනට අනුව සිදුරු කිරීම ආරම්භ කරන්න"
+                  : "Start spraying according to the above schedule"}
+              </Text>
+            </View>
+            <View style={styles.recommendationItem}>
+              <View style={styles.recommendationIcon}>
+                <ShieldCheck size={16} color="#059669" />
+              </View>
+              <Text style={styles.recommendationText}>
+                {language === "si"
+                  ? "සුරක්ෂිත ඇඳුම් හා උපකරණ භාවිත කරන්න"
+                  : "Use safety clothing and equipment"}
+              </Text>
+            </View>
+            <View style={styles.recommendationItem}>
+              <View style={styles.recommendationIcon}>
+                <TrendingUp size={16} color="#059669" />
+              </View>
+              <Text style={styles.recommendationText}>
+                {language === "si"
+                  ? "සතියකට වරක් පැලේ ප්‍රගතිය නිරීක්ෂණය කරන්න"
+                  : "Monitor plant progress weekly"}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -357,19 +1004,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#059669",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: "#059669",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
     width: 40,
@@ -381,66 +1028,33 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    marginLeft: 16,
+    alignItems: "center",
+    marginHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#D1FAE5",
-    opacity: 0.9,
+    fontWeight: "500",
   },
-  langButton: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "#A7F3D0",
-  },
-  langText: {
-    color: "#059669",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  statsBar: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    marginHorizontal: 20,
-    marginTop: -20,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-    zIndex: 1,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    marginTop: 4,
-    marginBottom: 2,
-  },
-  statValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#059669",
-  },
-  statDivider: {
-    width: 1,
+  headerIcon: {
+    width: 40,
     height: 40,
-    backgroundColor: "#E5E7EB",
-    marginHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   scrollView: {
     flex: 1,
@@ -492,6 +1106,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
+
+  // Disease Card
+  diseaseCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  diseaseHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  diseaseHeaderContent: {
+    flex: 1,
+  },
+  diseaseTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  diseaseSubtitle: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+  },
+
+  // Severity Card Styles
   severityCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -568,6 +1217,350 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     flex: 1,
   },
+
+  // Spray Schedule Card
+  scheduleCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  scheduleHeader: {
+    marginBottom: 20,
+  },
+  scheduleTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginTop: 8,
+  },
+  scheduleSubtitle: {
+    fontSize: 14,
+    color: "#059669",
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  scheduleTimeline: {
+    marginBottom: 20,
+  },
+  scheduleItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  scheduleDayContainer: {
+    width: 70,
+  },
+  scheduleDay: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#059669",
+  },
+  scheduleConnector: {
+    width: 40,
+    alignItems: "center",
+  },
+  scheduleDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#059669",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  scheduleLine: {
+    width: 2,
+    height: 40,
+    backgroundColor: "#D1FAE5",
+    marginTop: 2,
+  },
+  scheduleActionContainer: {
+    flex: 1,
+    backgroundColor: "#F0FDF4",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  scheduleAction: {
+    fontSize: 14,
+    color: "#047857",
+    fontWeight: "500",
+  },
+  scheduleTips: {
+    backgroundColor: "#F0FDF4",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  tipItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 8,
+  },
+  tipText: {
+    fontSize: 13,
+    color: "#047857",
+    flex: 1,
+  },
+
+  // Treatment Card Styles
+  treatmentCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 15,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  organicCard: {
+    borderColor: "#A7F3D0",
+    backgroundColor: "#F9FEFB",
+  },
+  availabilityText: {
+    fontSize: 12,
+    color: "#4B5563",
+    marginBottom: 2,
+    lineHeight: 16,
+  },
+  treatmentHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+  treatmentHeaderContent: {
+    flex: 1,
+  },
+  treatmentTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1E293B",
+  },
+  treatmentSubtitle: {
+    fontSize: 14,
+    color: "#64748B",
+    marginTop: 4,
+  },
+  treatmentItem: {
+    flexDirection: "row",
+    marginBottom: 24,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  treatmentNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#DC2626",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  organicNumber: {
+    backgroundColor: "#059669",
+  },
+  treatmentNumberText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  treatmentContent: {
+    flex: 1,
+  },
+  treatmentName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 12,
+  },
+  organicName: {
+    color: "#059669",
+  },
+  infoSection: {
+    marginBottom: 12,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 6,
+  },
+  productsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  productChip: {
+    backgroundColor: "#FEF2F2",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  organicChip: {
+    backgroundColor: "#F0FDF4",
+    borderColor: "#A7F3D0",
+  },
+  productText: {
+    fontSize: 12,
+    color: "#991B1B",
+    fontWeight: "500",
+  },
+  organicProductText: {
+    color: "#047857",
+  },
+  infoRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  infoColumn: {
+    flex: 1,
+  },
+  infoText: {
+    fontSize: 13,
+    color: "#4B5563",
+    lineHeight: 18,
+  },
+  scheduleInfo: {
+    backgroundColor: "#F8FAFC",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 12,
+  },
+  scheduleRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  scheduleColumn: {
+    flex: 1,
+    minWidth: 100, // Ensures good mobile layout
+    marginBottom: 8,
+  },
+  scheduleItemSmall: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: 4,
+  },
+  scheduleLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#4B5563",
+  },
+  scheduleValue: {
+    fontSize: 12,
+    color: "#4B5563",
+    marginLeft: 20, // Align with icon
+  },
+  chemicalText: {
+    color: "#991B1B",
+  },
+  organicText: {
+    color: "#047857",
+  },
+
+  scheduleText: {
+    fontSize: 12,
+    color: "#4B5563",
+  },
+
+  safetyItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 6,
+    marginBottom: 4,
+  },
+  safetyBullet: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#DC2626",
+    marginTop: 6,
+  },
+  chemicalBullet: {
+    backgroundColor: "#DC2626",
+  },
+  organicBullet: {
+    backgroundColor: "#059669",
+  },
+  safetyText: {
+    fontSize: 12,
+    color: "#4B5563",
+    flex: 1,
+    lineHeight: 16,
+  },
+  availabilityRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    marginTop: 8,
+  },
+  availabilityColumn: {
+    flex: 1,
+    minWidth: "60%", // Takes more space on mobile
+  },
+  costContainer: {
+    flex: 1,
+    minWidth: 120, // Ensures cost container has enough width
+    backgroundColor: "#F0FDF4",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  costContent: {
+    flexDirection: "column",
+    alignItems: "center",
+  },
+  costLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  chemicalCostLabel: {
+    color: "#991B1B",
+  },
+  organicCostLabel: {
+    color: "#047857",
+  },
+  costValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  chemicalCost: {
+    color: "#DC2626",
+  },
+  organicCost: {
+    color: "#059669",
+  },
+
+  // Next Steps Card
   nextStepsCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 24,
@@ -638,23 +1631,6 @@ const styles = StyleSheet.create({
   },
   detailsButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  backButtonSecondary: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: "#059669",
-  },
-  backButtonText: {
-    color: "#059669",
     fontSize: 16,
     fontWeight: "600",
   },

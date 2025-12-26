@@ -12,13 +12,13 @@ import {
   Database,
   BarChart3,
   Settings,
-  Leaf,
-  ChevronRight,
   TrendingUp,
+  Bell,
+  ChevronRight,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 
-// ✅ Import global language context
+// 🌐 Language context
 import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
@@ -26,119 +26,136 @@ const { width } = Dimensions.get("window");
 export default function AdminDashboard() {
   const navigation = useNavigation();
 
-  // ⭐ Global language ("sinhala" | "english")
-  const { language, setLanguage } = useLanguage();
+  // Global language: "sinhala" | "english"
+  const { language } = useLanguage();
 
-  // ⭐ UI language ("si" | "en")
+  // UI language mapping
   const uiLang: "si" | "en" = language === "sinhala" ? "si" : "en";
 
-  // ⭐ Full bilingual content
+  // ✅ FULL bilingual content (FIXED)
   const content = {
     si: {
       title: "පරිපාලක මැදහල්පොත",
-      subtitle: "පුරෝකථන, දත්තකොටස්, මිල නියම කිරීම සහ සැකසුම් කළමනාකරණය",
+      subtitle: "පුරෝකථන, දත්ත, මිල සහ පද්ධති කළමනාකරණය",
       activeModules: "සක්‍රීය මොඩියුල",
       systemHealth: "පද්ධතියේ සෞඛ්‍යය",
+
       priceUpdate: "මිල යාවත්කාලීන කිරීම",
-      priceUpdateDesc: "අලුත් වෙළඳපොළ මිල වෙනස් කරන්න",
+      priceUpdateDesc: "වෙළඳපොළ මිල යාවත්කාලීන කරන්න",
+
       seedUpdate: "බීජ මිල යාවත්කාලීන",
       seedUpdateDesc: "බීජ වර්ගයන්ගේ මිල කළමනාකරණය",
-      fertCost: "පොහොර & වියදම් සැකසුම්",
-      fertCostDesc: "ආදායම් වියදම් සකස් කිරීම",
-      uploadDataset: "දත්තසංග්‍රහ උඩුගත කරන්න",
-      uploadDatasetDesc: "යීල්ඩ් / මිල මෝඩල සඳහා නව දත්ත එකතු කරන්න",
+
+      fertCost: "පොහොර සහ වියදම්",
+      fertCostDesc: "පොහොර සහ ආදායම් වියදම් සැකසුම්",
+
+      uploadDataset: "දත්ත උඩුගත කිරීම",
+      uploadDatasetDesc: "නව පුහුණු දත්ත එක් කරන්න",
+
       modelStats: "මෝඩල් කාර්යක්ෂමතාව",
-      modelStatsDesc: "වิเคราะห์ණ හා දෘශ්‍යපටි",
+      modelStatsDesc: "දත්ත විශ්ලේෂණ සහ දර්ශන",
+
+      // ✅ 🔑 FIXED: OFFICIAL NEWS
+      officialNews: "නිල පුවත්",
+      officialNewsDesc: "රජයේ සහ නිල ගොවි පුවත් පළ කරන්න",
     },
+
     en: {
       title: "Admin Dashboard",
       subtitle: "Manage forecasting, datasets, pricing and system settings",
       activeModules: "Active Modules",
       systemHealth: "System Health",
+
       priceUpdate: "Price Update",
-      priceUpdateDesc: "Adjust current market prices",
+      priceUpdateDesc: "Update current market prices",
+
       seedUpdate: "Seed Price Update",
-      seedUpdateDesc: "Manage seed varieties pricing",
+      seedUpdateDesc: "Manage seed variety prices",
+
       fertCost: "Fertilizer & Cost Settings",
-      fertCostDesc: "Configure input costs",
+      fertCostDesc: "Configure fertilizer and input costs",
+
       uploadDataset: "Upload Dataset",
-      uploadDatasetDesc: "Import new training data",
+      uploadDatasetDesc: "Add new training datasets",
+
       modelStats: "Model Performance",
-      modelStatsDesc: "View analytics & metrics",
+      modelStatsDesc: "View analytics and metrics",
+
+      // ✅ 🔑 FIXED: OFFICIAL NEWS
+      officialNews: "Official News",
+      officialNewsDesc: "Publish government and official agriculture news",
     },
   };
 
   const t = content[uiLang];
 
-  // ⭐ Menu with language-aware labels
+  // ✅ Menu items
   const menu = [
     {
       label: t.priceUpdate,
       description: t.priceUpdateDesc,
       icon: <DollarSign size={28} color="#059669" />,
       screen: "AdminPriceUpdate",
-      gradient: ["#D1FAE5", "#A7F3D0"],
       accentColor: "#059669",
+      bg: "#D1FAE5",
     },
     {
-      label: t.seedUpdate,
-      description: t.seedUpdateDesc,
-      icon: <Leaf size={28} color="#8B5CF6" />,
-      screen: "SeedPriceUpdate",
-      gradient: ["#EDE9FE", "#DDD6FE"],
-      accentColor: "#8B5CF6",
+      label: t.officialNews,
+      description: t.officialNewsDesc,
+      icon: <Bell size={28} color="#0EA5E9" />,
+      screen: "AdminAddOfficialNews", // ✅ CORRECT ROUTE
+      accentColor: "#0284C7",
+      bg: "#E0F2FE",
     },
     {
       label: t.fertCost,
       description: t.fertCostDesc,
       icon: <Settings size={28} color="#2563EB" />,
       screen: "FertilizerSettings",
-      gradient: ["#DBEAFE", "#BFDBFE"],
       accentColor: "#2563EB",
+      bg: "#DBEAFE",
     },
     {
       label: t.uploadDataset,
       description: t.uploadDatasetDesc,
       icon: <Database size={28} color="#DC2626" />,
       screen: "DatasetUploader",
-      gradient: ["#FEE2E2", "#FECACA"],
       accentColor: "#DC2626",
+      bg: "#FEE2E2",
     },
     {
       label: t.modelStats,
       description: t.modelStatsDesc,
       icon: <BarChart3 size={28} color="#EA580C" />,
       screen: "ModelStats",
-      gradient: ["#FFEDD5", "#FED7AA"],
       accentColor: "#EA580C",
+      bg: "#FFEDD5",
     },
   ];
 
   return (
     <View style={styles.wrapper}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* HEADER */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.iconBadge}>
-              <TrendingUp size={24} color="#059669" />
+          <View style={styles.headerRow}>
+            <View style={styles.badge}>
+              <TrendingUp size={22} color="#059669" />
             </View>
-            <View style={styles.headerText}>
+            <View>
               <Text style={styles.appName}>🌾 MaizeGenie</Text>
               <Text style={styles.title}>{t.title}</Text>
             </View>
           </View>
-
           <Text style={styles.subtitle}>{t.subtitle}</Text>
         </View>
 
         {/* STATS */}
-        <View style={styles.statsContainer}>
+        <View style={styles.stats}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>5</Text>
             <Text style={styles.statLabel}>{t.activeModules}</Text>
           </View>
-
           <View style={styles.statCard}>
             <Text style={styles.statValue}>100%</Text>
             <Text style={styles.statLabel}>{t.systemHealth}</Text>
@@ -146,190 +163,85 @@ export default function AdminDashboard() {
         </View>
 
         {/* MENU */}
-        <View style={styles.menuContainer}>
+        <View style={styles.menu}>
           {menu.map((item, index) => (
             <TouchableOpacity
               key={index}
               style={styles.card}
               onPress={() => navigation.navigate(item.screen as never)}
-              activeOpacity={0.7}
             >
-              <View style={styles.cardContent}>
-                <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: item.gradient[0] },
-                  ]}
-                >
-                  {item.icon}
-                </View>
-
-                <View style={styles.textContainer}>
-                  <Text style={styles.cardLabel}>{item.label}</Text>
-                  <Text style={styles.cardDescription}>
-                    {item.description}
-                  </Text>
-                </View>
+              <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
+                {item.icon}
               </View>
 
-              <View
-                style={[
-                  styles.arrowContainer,
-                  { backgroundColor: item.gradient[0] },
-                ]}
-              >
-                <ChevronRight size={20} color={item.accentColor} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{item.label}</Text>
+                <Text style={styles.cardDesc}>{item.description}</Text>
               </View>
+
+              <ChevronRight size={20} color={item.accentColor} />
             </TouchableOpacity>
           ))}
         </View>
-
-        <View style={styles.footer} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
-  container: {
-    flex: 1,
-  },
+  wrapper: { flex: 1, backgroundColor: "#F8FAFC" },
+
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 20,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFF",
+    padding: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-    elevation: 3,
   },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  iconBadge: {
-    width: 48,
-    height: 48,
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  badge: {
+    width: 46,
+    height: 46,
     borderRadius: 14,
     backgroundColor: "#D1FAE5",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
   },
-  headerText: {
-    flex: 1,
-  },
-  appName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#059669",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#0F172A",
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#64748B",
-    marginTop: 4,
-  },
+  appName: { fontSize: 14, color: "#059669", fontWeight: "600" },
+  title: { fontSize: 26, fontWeight: "800", color: "#0F172A" },
+  subtitle: { marginTop: 6, color: "#64748B" },
 
-  // LANGUAGE BUTTON
-  langBtn: {
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#A7F3D0",
-  },
-  langBtnText: {
-    color: "#059669",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-
-  statsContainer: {
+  stats: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    paddingVertical: 20,
     gap: 12,
+    padding: 20,
   },
   statCard: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFF",
     borderRadius: 16,
     padding: 18,
     alignItems: "center",
-    elevation: 2,
   },
-  statValue: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#059669",
-  },
-  statLabel: {
-    fontSize: 13,
-    color: "#64748B",
-  },
+  statValue: { fontSize: 24, fontWeight: "800", color: "#059669" },
+  statLabel: { fontSize: 13, color: "#64748B" },
 
-  menuContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
+  menu: { paddingHorizontal: 20 },
   card: {
-    backgroundColor: "#FFFFFF",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    backgroundColor: "#FFF",
+    padding: 16,
     borderRadius: 18,
     marginBottom: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 18,
-    elevation: 3,
-    borderColor: "#F1F5F9",
-    borderWidth: 1,
   },
-  cardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    flex: 1,
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
+  iconBox: {
+    width: 54,
+    height: 54,
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
   },
-  textContainer: {
-    flex: 1,
-  },
-  cardLabel: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  cardDescription: {
-    fontSize: 13,
-    color: "#64748B",
-  },
-
-  arrowContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  footer: {
-    height: 40,
-  },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: "#0F172A" },
+  cardDesc: { fontSize: 13, color: "#64748B" },
 });
