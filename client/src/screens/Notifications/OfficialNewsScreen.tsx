@@ -188,6 +188,35 @@ export default function OfficialNewsScreen() {
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
 
+        {/* 🔒 Officer Only – Add Official News */}
+        {isOfficer && (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("AdminAddOfficialNews")}
+            style={{
+              backgroundColor: "#16A34A",
+              paddingVertical: 14,
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              alignItems: "center",
+              marginTop: 14,
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
+            activeOpacity={0.85}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 15,
+                fontWeight: "800",
+              }}
+            >
+              📰add news
+            </Text>
+          </TouchableOpacity>
+        )}
+
         <Text style={styles.headerTitle}>නිල පුවත්</Text>
         <View style={{ width: 40 }} />
       </View>
