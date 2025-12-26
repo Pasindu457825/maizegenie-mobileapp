@@ -12,6 +12,9 @@ import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
+import { useApp } from "../../context/AppContext";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 // =======================
 // Types
@@ -21,6 +24,8 @@ interface NewsItem {
   title: string;
   category: "price" | "weather" | "policy" | "alert";
   image_url?: string;
+  is_active: boolean;
+  is_visible_to_farmers: boolean;
 }
 
 type Lang = "si" | "en";
@@ -71,19 +76,26 @@ export default function TopOfficialNews() {
   const lang: Lang = language === "sinhala" ? "si" : "en";
   const t = translations[lang];
 
+  const { user } = useApp();
+  const isOfficer = user?.role === "officer";
+
   // =======================
   // Fetch top 3 news
   // =======================
-  useEffect(() => {
-    axios
-      .get(`${API_BASE}/official-news`)
-      .then((res) => {
-        setNews(res.data.slice(0, 3));
-      })
-      .catch((err) => {
-        console.error("TOP NEWS ERROR:", err);
-      });
-  }, []);
+  const fetchTopNews = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/official-news`);
+      setNews(res.data.slice(0, 3));
+    } catch (err) {
+      console.error("TOP NEWS ERROR:", err);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchTopNews();
+    }, [])
+  );
 
   // =======================
   // Pulse animation for NEW badge
@@ -182,65 +194,70 @@ export default function TopOfficialNews() {
         contentContainerStyle={styles.scrollContent}
       >
         {news.map((item, index) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.card, index === 0 && styles.firstCard]}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate("NewsDetail", { id: item.id })}
-          >
-            {/* NEW Badge for first item */}
-            {index === 0 && (
-              <Animated.View
-                style={[styles.newBadge, { transform: [{ scale: pulseAnim }] }]}
-              >
-                <Text style={styles.newBadgeText}>✨ {t.new}</Text>
-              </Animated.View>
-            )}
+          <View key={item.id} style={{ position: "relative" }}>
+            {/* ================= CARD ================= */}
+            <TouchableOpacity
+              style={[styles.card, index === 0 && styles.firstCard]}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate("NewsDetail", { id: item.id })}
+            >
+              {/* NEW badge */}
+              {index === 0 && (
+                <Animated.View
+                  style={[
+                    styles.newBadge,
+                    { transform: [{ scale: pulseAnim }] },
+                  ]}
+                >
+                  <Text style={styles.newBadgeText}>✨ {t.new}</Text>
+                </Animated.View>
+              )}
 
-            {/* Image with overlay gradient */}
-            {item.image_url && (
-              <View style={styles.imageContainer}>
-                <Image source={{ uri: item.image_url }} style={styles.image} />
-                <View style={styles.imageOverlay}>
-                  {/* Decorative corn on image */}
-                  <Text style={styles.imageCorngEmoji}>🌽</Text>
+              {/* Image */}
+              {item.image_url && (
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{ uri: item.image_url }}
+                    style={styles.image}
+                  />
                 </View>
+              )}
+
+              {/* Content */}
+              <View style={styles.cardContent}>
+                <View
+                  style={[
+                    styles.badge,
+                    { backgroundColor: categoryColor(item.category) },
+                  ]}
+                >
+                  <Text style={styles.badgeText}>
+                    {t.category[item.category]}
+                  </Text>
+                </View>
+
+                <Text style={styles.cardTitle} numberOfLines={2}>
+                  {item.title}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* ================= ADMIN ACTIONS (OFFICER ONLY) ================= */}
+            {isOfficer && (
+              <View style={styles.adminActions}>
+                {/* ✏️ EDIT */}
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate("AdminEditOfficialNews", {
+                      newsId: item.id,
+                    })
+                  }
+                >
+                  <Text style={styles.editBtn}>✏️</Text>
+                </TouchableOpacity>
               </View>
             )}
-
-            <View style={styles.cardContent}>
-              {/* Category Badge with icon */}
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: categoryColor(item.category) },
-                ]}
-              >
-                <Text style={styles.badgeIcon}>
-                  {categoryIcon(item.category)}
-                </Text>
-                <Text style={styles.badgeText}>
-                  {t.category[item.category]}
-                </Text>
-              </View>
-
-              {/* Title */}
-              <Text style={styles.cardTitle} numberOfLines={2}>
-                {item.title}
-              </Text>
-
-              {/* Read more indicator */}
-              <View style={styles.readMore}>
-                <Text style={styles.readMoreText}>තව කියවන්න</Text>
-                <Text style={styles.readMoreArrow}>›</Text>
-              </View>
-            </View>
-
-            {/* Bottom accent with pattern */}
-            <View style={styles.cardAccent}>
-              <View style={styles.accentPattern} />
-            </View>
-          </TouchableOpacity>
+          </View>
         ))}
 
         {/* End spacing */}
@@ -481,5 +498,31 @@ const styles = StyleSheet.create({
   },
   bottomCorn: {
     fontSize: 20,
+  },
+  adminActions: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    flexDirection: "row",
+    gap: 8,
+    zIndex: 20,
+  },
+  editBtn: {
+    fontSize: 16,
+    backgroundColor: "#e0f2fe",
+    padding: 6,
+    borderRadius: 8,
+  },
+  hideBtn: {
+    fontSize: 16,
+    backgroundColor: "#fef3c7",
+    padding: 6,
+    borderRadius: 8,
+  },
+  deleteBtn: {
+    fontSize: 16,
+    backgroundColor: "#fee2e2",
+    padding: 6,
+    borderRadius: 8,
   },
 });

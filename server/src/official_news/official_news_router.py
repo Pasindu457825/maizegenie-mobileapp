@@ -9,7 +9,7 @@ router = APIRouter(
 )
 
 # ===============================
-# REQUEST MODEL
+# CREATE MODEL (UNCHANGED)
 # ===============================
 class OfficialNewsCreate(BaseModel):
     title: str
@@ -21,7 +21,29 @@ class OfficialNewsCreate(BaseModel):
     district: str | None = None
     language: str = "si"
 
-    # 🔒 Auto-fix URLs like "www.abs.lk" → "https://www.abs.lk"
+    @field_validator("url", "image_url", mode="before")
+    @classmethod
+    def fix_urls(cls, v):
+        if v and isinstance(v, str):
+            if not v.startswith(("http://", "https://")):
+                return "https://" + v
+        return v
+
+
+# ===============================
+# UPDATE MODEL (NEW)
+# ===============================
+class OfficialNewsUpdate(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    category: str | None = None
+    source: str | None = None
+    url: HttpUrl | None = None
+    image_url: HttpUrl | None = None
+    district: str | None = None
+    language: str | None = None
+    is_visible_to_farmers: bool | None = None
+
     @field_validator("url", "image_url", mode="before")
     @classmethod
     def fix_urls(cls, v):
@@ -50,16 +72,93 @@ def add_official_news(payload: OfficialNewsCreate):
         "district": payload.district,
         "language": payload.language,
         "created_by": str(uuid.uuid4()),
-        "is_active": True
+        "is_active": True,
+        "is_visible_to_farmers": True
     }
 
     res = supabase.table("official_news").insert(data).execute()
 
-    return {
-        "success": True,
-        "data": res.data
-    }
+    return {"success": True, "data": res.data}
 
+
+# ===============================
+# ADMIN – UPDATE NEWS
+# ===============================
+@router.patch("/admin/{news_id}")
+def update_official_news(news_id: str, payload: OfficialNewsUpdate):
+
+    existing = (
+        supabase
+        .table("official_news")
+        .select("id")
+        .eq("id", news_id)
+        .single()
+        .execute()
+    )
+
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="News not found")
+
+    update_data = {}
+
+    for k, v in payload.model_dump().items():
+        if v is not None:
+            update_data[k] = str(v) if isinstance(v, HttpUrl) else v
+
+    if "category" in update_data:
+        if update_data["category"] not in ["price", "weather", "policy", "alert"]:
+            raise HTTPException(status_code=400, detail="Invalid category")
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data to update")
+
+    res = (
+        supabase
+        .table("official_news")
+        .update(update_data)
+        .eq("id", news_id)
+        .execute()
+    )
+
+    return {"success": True, "data": res.data}
+
+# ===============================
+# ADMIN – DELETE NEWS (SOFT)
+# ===============================
+@router.delete("/admin/{news_id}")
+def delete_official_news(news_id: str):
+
+    existing = (
+        supabase
+        .table("official_news")
+        .select("id")
+        .eq("id", news_id)
+        .single()
+        .execute()
+    )
+
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="News not found")
+
+    supabase.table("official_news").update(
+        {"is_active": False}
+    ).eq("id", news_id).execute()
+
+    return {"success": True, "message": "News deleted"}
+
+# ===============================
+# ADMIN – GET ALL NEWS (VISIBLE + HIDDEN)
+# ===============================
+@router.get("/admin/all")
+def get_all_news_admin():
+    res = (
+        supabase
+        .table("official_news")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return res.data
 
 # ===============================
 # FARMER – GET ALL NEWS
@@ -71,6 +170,8 @@ def get_official_news():
         .table("official_news")
         .select("*")
         .eq("is_active", True)
+        .eq("is_visible_to_farmers", True)
+        .eq("is_visible_to_farmers", True)
         .order("created_at", desc=True)
         .execute()
     )
@@ -78,7 +179,7 @@ def get_official_news():
 
 
 # ===============================
-# FARMER – GET SINGLE NEWS BY ID
+# FARMER – GET SINGLE NEWS
 # ===============================
 @router.get("/{news_id}")
 def get_single_official_news(news_id: str):
@@ -87,7 +188,6 @@ def get_single_official_news(news_id: str):
         .table("official_news")
         .select("*")
         .eq("id", news_id)
-        .eq("is_active", True)
         .single()
         .execute()
     )
@@ -96,3 +196,4 @@ def get_single_official_news(news_id: str):
         raise HTTPException(status_code=404, detail="News not found")
 
     return res.data
+
