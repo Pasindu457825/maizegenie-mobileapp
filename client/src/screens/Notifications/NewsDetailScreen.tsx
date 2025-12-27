@@ -16,8 +16,9 @@ import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "../../navigation";
+import { Linking, Alert } from "react-native";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 300;
 const HEADER_MIN_HEIGHT = 80;
 const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
@@ -53,7 +54,7 @@ export default function NewsDetailScreen() {
   const [news, setNews] = useState<NewsDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -87,48 +88,95 @@ export default function NewsDetailScreen() {
   const getCategoryConfig = (category: string) => {
     const configs = {
       price: { label: "මිල", color: "#059669", icon: "💰", bg: "#d1fae5" },
-      weather: { label: "කාලගුණය", color: "#0d9488", icon: "🌤️", bg: "#ccfbf1" },
-      policy: { label: "ප්‍රතිපත්ති", color: "#16a34a", icon: "📋", bg: "#dcfce7" },
-      alert: { label: "අනතුරු ඇඟවීම", color: "#ea580c", icon: "⚠️", bg: "#ffedd5" },
+      weather: {
+        label: "කාලගුණය",
+        color: "#0d9488",
+        icon: "🌤️",
+        bg: "#ccfbf1",
+      },
+      policy: {
+        label: "ප්‍රතිපත්ති",
+        color: "#16a34a",
+        icon: "📋",
+        bg: "#dcfce7",
+      },
+      alert: {
+        label: "අනතුරු ඇඟවීම",
+        color: "#ea580c",
+        icon: "⚠️",
+        bg: "#ffedd5",
+      },
       pest: { label: "පළිබෝධ", color: "#b45309", icon: "🐛", bg: "#fed7aa" },
       disease: { label: "රෝග", color: "#991b1b", icon: "🦠", bg: "#fecaca" },
-      fertilizer: { label: "පොහොර", color: "#15803d", icon: "🌱", bg: "#dcfce7" },
-      cultivation: { label: "වගා උපදෙස්", color: "#0f766e", icon: "🌾", bg: "#ccfbf1" },
-      program: { label: "වැඩසටහන්", color: "#1d4ed8", icon: "📅", bg: "#dbeafe" },
+      fertilizer: {
+        label: "පොහොර",
+        color: "#15803d",
+        icon: "🌱",
+        bg: "#dcfce7",
+      },
+      cultivation: {
+        label: "වගා උපදෙස්",
+        color: "#0f766e",
+        icon: "🌾",
+        bg: "#ccfbf1",
+      },
+      program: {
+        label: "වැඩසටහන්",
+        color: "#1d4ed8",
+        icon: "📅",
+        bg: "#dbeafe",
+      },
     };
-    return  { label: category, color: "#10b981", icon: "📢", bg: "#d1fae5" };
+    return { label: category, color: "#10b981", icon: "📢", bg: "#d1fae5" };
   };
 
   // Parallax header animations
   const headerHeight = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
 
   const imageOpacity = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
     outputRange: [1, 0.5, 0],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
 
   const imageTranslate = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [0, -50],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
 
   const titleTranslate = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE],
     outputRange: [0, -20],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
 
   const headerBackgroundOpacity = scrollY.interpolate({
     inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
     outputRange: [0, 0.5, 1],
-    extrapolate: 'clamp',
+    extrapolate: "clamp",
   });
+
+  const openExternalLink = async (url: string) => {
+    try {
+      const supported = await Linking.canOpenURL(url);
+
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert(
+          "Link open කරන්න බැහැ",
+          "මෙම ලින්ක් එක open කරන්න device එකට නොහැක"
+        );
+      }
+    } catch (err) {
+      Alert.alert("Error", "ලින්ක් එක open කිරීමේදී දෝෂයක් ඇතිවිය");
+    }
+  };
 
   /* ================= STATES ================= */
   if (loading) {
@@ -158,7 +206,7 @@ export default function NewsDetailScreen() {
           </View>
           <Text style={styles.errorTitle}>අපොයි!</Text>
           <Text style={styles.errorText}>{error || "පුවත හමු නොවීය"}</Text>
-          <Pressable 
+          <Pressable
             style={styles.retryButton}
             onPress={() => navigation.goBack()}
           >
@@ -176,14 +224,9 @@ export default function NewsDetailScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {/* Animated Header with Parallax Image */}
-      <Animated.View 
-        style={[
-          styles.header,
-          { height: headerHeight }
-        ]}
-      >
+      <Animated.View style={[styles.header, { height: headerHeight }]}>
         {/* Header Image Background */}
         {news.image_url && (
           <Animated.View
@@ -195,8 +238,8 @@ export default function NewsDetailScreen() {
               },
             ]}
           >
-            <Image 
-              source={{ uri: news.image_url }} 
+            <Image
+              source={{ uri: news.image_url }}
               style={styles.headerImage}
               resizeMode="cover"
             />
@@ -205,17 +248,17 @@ export default function NewsDetailScreen() {
         )}
 
         {/* Solid Background for collapsed state */}
-        <Animated.View 
+        <Animated.View
           style={[
             styles.headerSolidBackground,
-            { opacity: headerBackgroundOpacity }
+            { opacity: headerBackgroundOpacity },
           ]}
         />
 
         {/* Header Content */}
         <View style={styles.headerContent}>
           {/* Back Button */}
-          <Pressable 
+          <Pressable
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
@@ -226,7 +269,7 @@ export default function NewsDetailScreen() {
           <Animated.View
             style={[
               styles.headerTitleContainer,
-              { opacity: headerBackgroundOpacity }
+              { opacity: headerBackgroundOpacity },
             ]}
           >
             <Text style={styles.headerTitle} numberOfLines={1}>
@@ -247,20 +290,23 @@ export default function NewsDetailScreen() {
         )}
       >
         {/* Spacer for header */}
-    <View style={{ height: news.image_url ? HEADER_MAX_HEIGHT + 20 : 40 }} />
-
+        <View
+          style={{ height: news.image_url ? HEADER_MAX_HEIGHT + 20 : 40 }}
+        />
 
         {/* Content Card with Fade In */}
-        <Animated.View 
-          style={[
-            styles.contentCard,
-            { opacity: fadeAnim }
-          ]}
-        >
+        <Animated.View style={[styles.contentCard, { opacity: fadeAnim }]}>
           {/* Floating Category Badge */}
-          <View style={[styles.categoryBadge, { backgroundColor: categoryConfig.bg }]}>
+          <View
+            style={[
+              styles.categoryBadge,
+              { backgroundColor: categoryConfig.bg },
+            ]}
+          >
             <Text style={styles.categoryIcon}>{categoryConfig.icon}</Text>
-            <Text style={[styles.categoryText, { color: categoryConfig.color }]}>
+            <Text
+              style={[styles.categoryText, { color: categoryConfig.color }]}
+            >
               {categoryConfig.label}
             </Text>
           </View>
@@ -271,39 +317,61 @@ export default function NewsDetailScreen() {
           {/* Meta Information Grid */}
           <View style={styles.metaGrid}>
             <View style={styles.metaCard}>
-              <View style={[styles.metaIconContainer, { backgroundColor: '#dbeafe' }]}>
+              <View
+                style={[
+                  styles.metaIconContainer,
+                  { backgroundColor: "#dbeafe" },
+                ]}
+              >
                 <Ionicons name="calendar-outline" size={18} color="#2563eb" />
               </View>
               <View style={styles.metaContent}>
                 <Text style={styles.metaLabel}>දිනය</Text>
                 <Text style={styles.metaValue}>
                   {new Date(news.created_at).toLocaleDateString("si-LK", {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
                   })}
                 </Text>
               </View>
             </View>
 
             <View style={styles.metaCard}>
-              <View style={[styles.metaIconContainer, { backgroundColor: '#fef3c7' }]}>
+              <View
+                style={[
+                  styles.metaIconContainer,
+                  { backgroundColor: "#fef3c7" },
+                ]}
+              >
                 <Ionicons name="newspaper-outline" size={18} color="#f59e0b" />
               </View>
               <View style={styles.metaContent}>
                 <Text style={styles.metaLabel}>මූලාශ්‍රය</Text>
-                <Text style={styles.metaValue} numberOfLines={1}>{news.source}</Text>
+                <Text style={styles.metaValue} numberOfLines={1}>
+                  {news.source}
+                </Text>
               </View>
             </View>
 
             {news.district && (
               <View style={[styles.metaCard, styles.metaCardFull]}>
-                <View style={[styles.metaIconContainer, { backgroundColor: '#dcfce7' }]}>
+                <View
+                  style={[
+                    styles.metaIconContainer,
+                    { backgroundColor: "#dcfce7" },
+                  ]}
+                >
                   <Ionicons name="location" size={18} color="#16a34a" />
                 </View>
                 <View style={styles.metaContent}>
                   <Text style={styles.metaLabel}>දිස්ත්‍රික්කය</Text>
-                  <Text style={[styles.metaValue, { color: '#16a34a', fontWeight: '700' }]}>
+                  <Text
+                    style={[
+                      styles.metaValue,
+                      { color: "#16a34a", fontWeight: "700" },
+                    ]}
+                  >
                     {news.district}
                   </Text>
                 </View>
@@ -333,9 +401,9 @@ export default function NewsDetailScreen() {
 
           {/* External Link Button */}
           {news.url && (
-            <Pressable 
+            <Pressable
               style={styles.linkButton}
-              onPress={() => {/* Handle link opening */}}
+              onPress={() => openExternalLink(news.url!)}
             >
               <View style={styles.linkIconContainer}>
                 <Ionicons name="link" size={20} color="#ffffff" />
@@ -369,66 +437,66 @@ const styles = StyleSheet.create({
 
   /* ================= HEADER STYLES ================= */
   header: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   headerImageContainer: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
   headerImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   headerGradient: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
   },
   headerSolidBackground: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
   },
   headerContent: {
     flex: 1,
     paddingTop: 50,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   headerTitleContainer: {
     flex: 1,
     marginLeft: 12,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: "700",
+    color: "#ffffff",
   },
 
   /* ================= SCROLL CONTENT ================= */
@@ -438,11 +506,11 @@ const styles = StyleSheet.create({
 
   /* ================= CONTENT CARD ================= */
   contentCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 32,
     padding: 24,
     elevation: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -451,16 +519,16 @@ const styles = StyleSheet.create({
 
   /* ================= CATEGORY BADGE ================= */
   categoryBadge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginBottom: 20,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -470,15 +538,15 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.3,
   },
 
   /* ================= TITLE ================= */
   title: {
     fontSize: 26,
-    fontWeight: '800',
-    color: '#1f2937',
+    fontWeight: "800",
+    color: "#1f2937",
     lineHeight: 38,
     marginBottom: 24,
     letterSpacing: 0.2,
@@ -486,68 +554,68 @@ const styles = StyleSheet.create({
 
   /* ================= META GRID ================= */
   metaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 12,
     marginBottom: 24,
   },
   metaCard: {
     flex: 1,
-    minWidth: '45%',
-    flexDirection: 'row',
-    alignItems: 'center',
+    minWidth: "45%",
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     padding: 14,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
+    borderColor: "#f3f4f6",
   },
   metaCardFull: {
     flex: 1,
-    minWidth: '100%',
+    minWidth: "100%",
   },
   metaIconContainer: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   metaContent: {
     flex: 1,
   },
   metaLabel: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#9ca3af',
+    fontWeight: "600",
+    color: "#9ca3af",
     marginBottom: 2,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
     letterSpacing: 0.5,
   },
   metaValue: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
+    fontWeight: "600",
+    color: "#374151",
   },
 
   /* ================= DIVIDER ================= */
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
   },
   dividerDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
   },
 
   /* ================= SUMMARY ================= */
@@ -555,8 +623,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   summaryHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     marginBottom: 16,
   },
@@ -564,34 +632,34 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#dcfce7',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#dcfce7",
+    justifyContent: "center",
+    alignItems: "center",
   },
   summaryTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#16a34a',
+    fontWeight: "700",
+    color: "#16a34a",
   },
   summary: {
     fontSize: 16,
     lineHeight: 28,
-    color: '#4b5563',
+    color: "#4b5563",
     letterSpacing: 0.2,
   },
 
   /* ================= LINK BUTTON ================= */
   linkButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 12,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 20,
     elevation: 6,
-    shadowColor: '#16a34a',
+    shadowColor: "#16a34a",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -601,23 +669,23 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   linkText: {
     flex: 1,
     fontSize: 15,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: "700",
+    color: "#ffffff",
     letterSpacing: 0.3,
   },
 
   /* ================= BOTTOM DECORATION ================= */
   bottomDecoration: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: 16,
     paddingTop: 12,
   },
@@ -628,30 +696,30 @@ const styles = StyleSheet.create({
   decorationLine: {
     flex: 1,
     height: 2,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
     borderRadius: 1,
   },
 
   /* ================= LOADING STATE ================= */
   center: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
     padding: 24,
   },
   loadingContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   loadingCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#ffffff",
+    justifyContent: "center",
+    alignItems: "center",
     elevation: 8,
-    shadowColor: '#16a34a',
+    shadowColor: "#16a34a",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -659,19 +727,19 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#6b7280',
+    fontWeight: "600",
+    color: "#6b7280",
     marginBottom: 16,
   },
   loadingDots: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#16a34a',
+    backgroundColor: "#16a34a",
   },
   dotDelay1: {
     opacity: 0.6,
@@ -682,48 +750,48 @@ const styles = StyleSheet.create({
 
   /* ================= ERROR STATE ================= */
   errorContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     maxWidth: 320,
   },
   errorIconContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#fee2e2',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#fee2e2",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
   },
   errorTitle: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#1f2937',
+    fontWeight: "800",
+    color: "#1f2937",
     marginBottom: 8,
   },
   errorText: {
     fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
+    color: "#6b7280",
+    textAlign: "center",
     lineHeight: 24,
     marginBottom: 24,
   },
   retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
-    backgroundColor: '#dc2626',
+    backgroundColor: "#dc2626",
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 16,
     elevation: 4,
-    shadowColor: '#dc2626',
+    shadowColor: "#dc2626",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
   retryText: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#ffffff',
+    fontWeight: "700",
+    color: "#ffffff",
   },
 });
