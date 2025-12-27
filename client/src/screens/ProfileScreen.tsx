@@ -255,17 +255,10 @@ Planting Date: ${formatDate(prediction.planting_date)}
 
 I would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
 
-    navigation.navigate("PredictYield", {
-      screen: "AgriculturalAdvisoryChat",
-      params: {
-        prefilledMessage: contextMessage,
-        context: "yield_prediction",
-        advisoryType: "yield",
-        advisoryData: {
-          prediction: prediction,
-          farmer: user,
-        },
-      },
+    // Navigate to main Chat screen with prediction context
+    navigation.navigate("Chat", {
+      prefilledMessage: contextMessage,
+      context: "yield_prediction",
     });
   };
 
