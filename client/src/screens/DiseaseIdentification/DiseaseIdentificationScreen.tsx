@@ -340,7 +340,7 @@ const DiseaseIdentificationScreen = () => {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/disease/identify?model=${diseaseModel}&conf=0.4`,
+        `${API_BASE_URL}/api/disease/identify?model=${diseaseModel}`,
         formData,
         {
           headers: {
@@ -1042,8 +1042,7 @@ const DiseaseIdentificationScreen = () => {
                             styles.resultSubtitle,
                             { textAlign: "center", marginTop: 8 },
                           ]}
-                        >
-                        </Text>
+                        ></Text>
 
                         {/* Confidence line (same language only) */}
                         <Text
