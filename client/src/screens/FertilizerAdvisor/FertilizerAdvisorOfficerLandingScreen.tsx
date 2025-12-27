@@ -220,7 +220,7 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                     {/* Chat With Farmers Card */}
                     <TouchableOpacity
                         style={styles.serviceCard}
-                        onPress={() => navigation.navigate("Chat", { roomId: null, userId: "" })}
+                        onPress={() => navigation.navigate("OfficerRooms")}
                         activeOpacity={0.7}
                     >
                         <LinearGradient
