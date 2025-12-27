@@ -7,7 +7,7 @@ import YieldPredictionFormScreen from "../screens/YieldPrediction/YieldPredictio
 import YieldPredictionResultsScreen from "../screens/YieldPrediction/YieldPredictionFarmerResultsScreen";
 
 // Officer Screens
-import YieldPredictionOfficerFormScreen from "../screens/YieldPrediction/YieldPredictionOfficerFormScreen";
+import YieldPredictionOfficerFormScreen from "../screens/YieldPrediction/YieldPredictionOfficerFormScreenNew";
 import YieldPredictionOfficerResultsScreen from "../screens/YieldPrediction/YieldPredictionOfficerResultsScreen";
 
 // Fertilizer Advisor Screens - Farmer Side
@@ -28,7 +28,7 @@ export type YieldPredictionStackParamList = {
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
   YieldPredictionResultsScreen: { data: any; language: 'si' | 'en' };
   YieldPredictionOfficerFormScreen: { language: 'si' | 'en' };
-  YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en' };
+  YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en'; requestData?: any };
   FertilizerAdvisorLanding: undefined;
   FertilizerAdvisorOfficerLanding: undefined;
   RuleBasedAdvisoryInputScreen: undefined;

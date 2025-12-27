@@ -78,7 +78,7 @@ class PredictionData(BaseModel):
     
     # Model info
     prediction_method: Literal['ml_model', 'rule_based', 'hybrid'] = Field(..., description="Method used")
-    model_version: str = Field(default="v1.0", description="Model version")
+    ml_model_version: str = Field(default="v1.0", description="Model version")
 
 class FarmerPredictionResponse(BaseModel):
     """

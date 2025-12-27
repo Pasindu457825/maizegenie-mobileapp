@@ -6,6 +6,7 @@ import {
   StyleSheet,
   StatusBar,
   Dimensions,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -35,6 +36,10 @@ export default function MaizeGenieHome({
     navigation.navigate("PestRiskMeter");
   };
 
+  const handlePestFeedback = () => {
+    navigation.navigate("PestFeedback");
+  };
+
   /* 📝 TEXT CONTENT */
   const content = {
     si: {
@@ -44,8 +49,10 @@ export default function MaizeGenieHome({
         "කෘමි හඳුනාගැනීම සහ වගා කළමනාකරණය සඳහා \nඔබේ ස්මාර්ට් සහායක",
       pestBtnTitle: "කෘමියා හඳුනාගන්න",
       pestBtnSub: "AI මගින් ක්ෂණිකව හඳුනාගන්න",
-      riskBtnTitle: "කෘමි අවධානම බලන්න ☠️",
+      riskBtnTitle: "කෘමි අවධානම බලන්න",
       riskBtnSub: "වගාවට පෙර අවදානම හදුනාගන්න",
+      feedbackBtnTitle: "කෘමි ගැටලු හා උපදෙස්",
+      feedbackBtnSub: "ප්‍රජා අත්දැකීම් සහ විසඳුම්",
     },
     en: {
       tagline: "Smart Farming Companion",
@@ -54,8 +61,10 @@ export default function MaizeGenieHome({
         "Your smart assistant for pest detection \nand crop management",
       pestBtnTitle: "Identify Pest",
       pestBtnSub: "Instant AI-powered identification",
-      riskBtnTitle: "View Pest Risk ☠️",
+      riskBtnTitle: "View Pest Risk",
       riskBtnSub: "Check risk level before cultivation",
+      feedbackBtnTitle: "Pest Issues & Advice",
+      feedbackBtnSub: "Community experiences and solutions",
     },
   };
 
@@ -72,74 +81,102 @@ export default function MaizeGenieHome({
         <View style={[styles.circle, styles.circle2]} />
         <View style={[styles.circle, styles.circle3]} />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logoCircle}>
-              <Text style={styles.logoIcon}>🌾</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <View style={styles.logoCircle}>
+                <Text style={styles.logoIcon}>🌾</Text>
+              </View>
+            </View>
+
+            <Text style={styles.tagline}>
+              {content[language].tagline}
+            </Text>
+            <Text style={styles.subtitle}>
+              {content[language].subtitle}
+            </Text>
+
+            <View style={styles.divider} />
+          </View>
+
+          {/* Main Content */}
+          <View style={styles.content}>
+            <Text style={styles.descriptionText}>
+              {content[language].description}
+            </Text>
+
+            {/* Buttons */}
+            <View style={styles.buttonContainer}>
+              {/* Primary Button - Identify Pest */}
+              <TouchableOpacity
+                style={styles.primaryButton}
+                onPress={handlePestIdentification}
+                activeOpacity={0.8}
+              >
+                <View style={styles.buttonIcon}>
+                  <Text style={styles.iconText}>🔍</Text>
+                </View>
+                <Text style={styles.primaryButtonText}>
+                  {content[language].pestBtnTitle}
+                </Text>
+                <Text style={styles.primaryButtonSubtext}>
+                  {content[language].pestBtnSub}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Secondary Button - Pest Risk */}
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={handleCropDetails}
+                activeOpacity={0.8}
+              >
+                <View style={styles.buttonIcon}>
+                  <Text style={styles.iconText}>☠️</Text>
+                </View>
+                <Text style={styles.secondaryButtonText}>
+                  {content[language].riskBtnTitle}
+                </Text>
+                <Text style={styles.buttonSubtext}>
+                  {content[language].riskBtnSub}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Secondary Button - Pest Feedback */}
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={handlePestFeedback}
+                activeOpacity={0.8}
+              >
+                <View style={styles.buttonIcon}>
+                  <Text style={styles.iconText}>💬</Text>
+                </View>
+                <Text style={styles.secondaryButtonText}>
+                  {content[language].feedbackBtnTitle}
+                </Text>
+                <Text style={styles.buttonSubtext}>
+                  {content[language].feedbackBtnSub}
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <Text style={styles.tagline}>
-            {content[language].tagline}
-          </Text>
-          <Text style={styles.subtitle}>
-            {content[language].subtitle}
-          </Text>
-
-          <View style={styles.divider} />
-        </View>
-
-        {/* Main Content */}
-        <View style={styles.content}>
-          <Text style={styles.descriptionText}>
-            {content[language].description}
-          </Text>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handlePestIdentification}
-              activeOpacity={0.8}
-            >
-              <View style={styles.buttonIcon}>
-                <Text style={styles.iconText}>🔍</Text>
-              </View>
-              <Text style={styles.primaryButtonText}>
-                {content[language].pestBtnTitle}
-              </Text>
-              <Text style={styles.buttonSubtext}>
-                {content[language].pestBtnSub}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleCropDetails}
-              activeOpacity={0.8}
-            >
-              <View style={styles.buttonIcon}>
-                <Text style={styles.iconText}>📊</Text>
-              </View>
-              <Text style={styles.secondaryButtonText}>
-                {content[language].riskBtnTitle}
-              </Text>
-              <Text style={styles.buttonSubtext}>
-                {content[language].riskBtnSub}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </ScrollView>
       </LinearGradient>
     </View>
   );
 }
 
-/* 🎨 STYLES — unchanged */
+/* 🎨 STYLES */
 const styles = StyleSheet.create({
   container: { flex: 1 },
   gradient: { flex: 1, position: "relative" },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 30,
+  },
   circle: {
     position: "absolute",
     borderRadius: 1000,
@@ -188,6 +225,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 30,
+    paddingTop: 20,
   },
   descriptionText: {
     fontSize: 16,
@@ -196,39 +234,48 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     lineHeight: 24,
   },
-  buttonContainer: { width: "100%", gap: 20 },
+  buttonContainer: { width: "100%", gap: 16 },
   primaryButton: {
     backgroundColor: "#ffffff",
     borderRadius: 20,
     padding: 25,
     alignItems: "center",
     elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   secondaryButton: {
     backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
-    padding: 25,
+    padding: 22,
     alignItems: "center",
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.4)",
   },
-  buttonIcon: { marginBottom: 12 },
-  iconText: { fontSize: 36 },
+  buttonIcon: { marginBottom: 10 },
+  iconText: { fontSize: 32 },
   primaryButtonText: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: "bold",
     color: "#1a7a5e",
     marginBottom: 6,
   },
+  primaryButtonSubtext: {
+    fontSize: 13,
+    color: "#64b896",
+    fontWeight: "500",
+  },
   secondaryButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     color: "#ffffff",
     marginBottom: 6,
   },
   buttonSubtext: {
-    fontSize: 13,
-    color: "#64b896",
+    fontSize: 12,
+    color: "#d0f0e0",
     fontWeight: "500",
   },
 });
