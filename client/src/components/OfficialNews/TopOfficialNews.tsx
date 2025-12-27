@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   Animated,
+  Dimensions,
 } from "react-native";
 import axios from "axios";
 import { API_BASE } from "../../services/api";
@@ -15,6 +16,11 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useApp } from "../../context/AppContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.85;
+const CARD_SPACING = 16;
 
 // =======================
 // Types
@@ -33,7 +39,7 @@ interface NewsItem {
     | "cultivation"
     | "program";
   image_url?: string;
-  district?: string | null; // ✅ NEW
+  district?: string | null;
   is_active: boolean;
   is_visible_to_farmers: boolean;
 }
@@ -86,13 +92,12 @@ const translations: Record<
   },
 };
 
-
 export default function TopOfficialNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [pulseAnim] = useState(new Animated.Value(1));
+  const [scrollX] = useState(new Animated.Value(0));
   const navigation = useNavigation<any>();
 
-  // 🌐 Language from context
   const { language } = useLanguage();
   const lang: Lang = language === "sinhala" ? "si" : "en";
   const t = translations[lang];
@@ -125,13 +130,13 @@ export default function TopOfficialNews() {
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.1,
-          duration: 800,
+          toValue: 1.15,
+          duration: 1000,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 800,
+          duration: 1000,
           useNativeDriver: true,
         }),
       ])
@@ -141,64 +146,22 @@ export default function TopOfficialNews() {
   }, []);
 
   // =======================
-  // Category color
+  // Category configurations
   // =======================
-const categoryColor = (cat: string) => {
-  switch (cat) {
-    case "price":
-      return "#059669"; // Emerald green
-    case "weather":
-      return "#0d9488"; // Teal
-    case "policy":
-      return "#16a34a"; // Green
-    case "alert":
-      return "#ea580c"; // Orange (alerts)
-
-    case "pest":
-      return "#b45309"; // Brown (pests)
-    case "disease":
-      return "#991b1b"; // Dark red (diseases)
-    case "fertilizer":
-      return "#15803d"; // Deep green (nutrition)
-    case "cultivation":
-      return "#0f766e"; // Blue-green (practices)
-    case "program":
-      return "#1d4ed8"; // Blue (programs)
-
-    default:
-      return "#10b981"; // Default green
-  }
-};
-
-  // =======================
-  // Category icon
-  // =======================
- const categoryIcon = (cat: string) => {
-  switch (cat) {
-    case "price":
-      return "💰";
-    case "weather":
-      return "🌤️";
-    case "policy":
-      return "📋";
-    case "alert":
-      return "⚠️";
-
-    case "pest":
-      return "🐛";
-    case "disease":
-      return "🦠";
-    case "fertilizer":
-      return "🌱";
-    case "cultivation":
-      return "🌾";
-    case "program":
-      return "📅";
-
-    default:
-      return "📢";
-  }
-};
+  const categoryConfig = (cat: string) => {
+    const configs = {
+      price: { color: "#059669", gradient: ["#059669", "#047857"], icon: "💰" },
+      weather: { color: "#0d9488", gradient: ["#0d9488", "#0f766e"], icon: "🌤️" },
+      policy: { color: "#16a34a", gradient: ["#16a34a", "#15803d"], icon: "📋" },
+      alert: { color: "#ea580c", gradient: ["#ea580c", "#c2410c"], icon: "⚠️" },
+      pest: { color: "#b45309", gradient: ["#b45309", "#92400e"], icon: "🐛" },
+      disease: { color: "#991b1b", gradient: ["#991b1b", "#7f1d1d"], icon: "🦠" },
+      fertilizer: { color: "#15803d", gradient: ["#15803d", "#166534"], icon: "🌱" },
+      cultivation: { color: "#0f766e", gradient: ["#0f766e", "#115e59"], icon: "🌾" },
+      program: { color: "#1d4ed8", gradient: ["#1d4ed8", "#1e40af"], icon: "📅" },
+    };
+    return  { color: "#10b981", gradient: ["#10b981", "#059669"], icon: "📢" };
+  };
 
   // =======================
   // UI
@@ -207,172 +170,252 @@ const categoryColor = (cat: string) => {
 
   return (
     <View style={styles.wrapper}>
-      {/* Header with corn decorations */}
+      {/* Modern Glass Header */}
       <View style={styles.headerContainer}>
-        {/* Decorative corn pattern background */}
-        <View style={styles.cornPattern}>
-          <Text style={styles.cornEmoji}>🌽</Text>
-          <Text style={styles.cornEmoji}>🌽</Text>
-          <Text style={styles.cornEmoji}>🌽</Text>
-        </View>
-
-        <View style={styles.header}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.cornIcon}>🌾</Text>
+        <View style={styles.glassHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.iconCircle}>
+              <Text style={styles.headerIcon}>🌾</Text>
+            </View>
             <Text style={styles.title}>{t.title}</Text>
           </View>
 
           <TouchableOpacity
             onPress={() => navigation.navigate("OfficialNews")}
             style={styles.moreButton}
+            activeOpacity={0.7}
           >
             <Text style={styles.more}>{t.more}</Text>
-            <Text style={styles.arrow}>→</Text>
+            <View style={styles.arrowCircle}>
+              <Text style={styles.arrow}>→</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Horizontal Scroll */}
-      <ScrollView
+      {/* Card Carousel with Parallax */}
+      <Animated.ScrollView
         horizontal
+        pagingEnabled={false}
+        decelerationRate="fast"
+        snapToInterval={CARD_WIDTH + CARD_SPACING}
+        snapToAlignment="start"
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: false }
+        )}
+        scrollEventThrottle={16}
       >
-        {news.map((item, index) => (
-          <View key={item.id} style={{ position: "relative" }}>
-            {/* ================= CARD ================= */}
-            <TouchableOpacity
-              style={[styles.card, index === 0 && styles.firstCard]}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate("NewsDetail", { id: item.id })}
+        {news.map((item, index) => {
+          const config = categoryConfig(item.category);
+          const inputRange = [
+            (index - 1) * (CARD_WIDTH + CARD_SPACING),
+            index * (CARD_WIDTH + CARD_SPACING),
+            (index + 1) * (CARD_WIDTH + CARD_SPACING),
+          ];
+
+          const scale = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.9, 1, 0.9],
+            extrapolate: 'clamp',
+          });
+
+          const opacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.6, 1, 0.6],
+            extrapolate: 'clamp',
+          });
+
+          return (
+            <Animated.View
+              key={item.id}
+              style={[
+                styles.cardWrapper,
+                {
+                  transform: [{ scale }],
+                  opacity,
+                },
+              ]}
             >
-              {/* NEW badge */}
-              {index === 0 && (
-                <Animated.View
-                  style={[
-                    styles.newBadge,
-                    { transform: [{ scale: pulseAnim }] },
-                  ]}
-                >
-                  <Text style={styles.newBadgeText}>✨ {t.new}</Text>
-                </Animated.View>
-              )}
-
-              {/* Image */}
-              {item.image_url && (
-                <View style={styles.imageContainer}>
-                  <Image
-                    source={{ uri: item.image_url }}
-                    style={styles.image}
-                  />
-                </View>
-              )}
-
-              {/* Content */}
-              <View style={styles.cardContent}>
-                <View
-                  style={[
-                    styles.badge,
-                    { backgroundColor: categoryColor(item.category) },
-                  ]}
-                >
-                  <Text style={styles.badgeText}>
-                    {t.category[item.category]}
-                  </Text>
-                </View>
-
-                <Text style={styles.cardTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-                {item.district && (
-                  <Text style={styles.districtText} numberOfLines={1}>
-                    📍 {item.district}
-                  </Text>
+              <TouchableOpacity
+                style={styles.card}
+                activeOpacity={0.95}
+                onPress={() => navigation.navigate("NewsDetail", { id: item.id })}
+              >
+                {/* NEW Badge with Glow */}
+                {index === 0 && (
+                  <Animated.View
+                    style={[
+                      styles.newBadge,
+                      { transform: [{ scale: pulseAnim }] },
+                    ]}
+                  >
+                    <View style={styles.newBadgeGlow} />
+                    <Text style={styles.newBadgeText}>✨ {t.new}</Text>
+                  </Animated.View>
                 )}
-              </View>
-            </TouchableOpacity>
 
-            {/* ================= ADMIN ACTIONS (OFFICER ONLY) ================= */}
-            {isOfficer && (
-              <View style={styles.adminActions}>
-                {/* ✏️ EDIT */}
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("AdminEditOfficialNews", {
-                      newsId: item.id,
-                    })
-                  }
-                >
-                  <Text style={styles.editBtn}>✏️</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        ))}
+                {/* Image with Gradient Overlay */}
+                <View style={styles.imageContainer}>
+                  {item.image_url ? (
+                    <>
+                      <Image
+                        source={{ uri: item.image_url }}
+                        style={styles.image}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.imageGradient}>
+                        <View style={styles.gradientOverlay} />
+                      </View>
+                    </>
+                  ) : (
+                    <View style={[styles.placeholderImage, { backgroundColor: config.color }]}>
+                      <Text style={styles.placeholderIcon}>{config.icon}</Text>
+                    </View>
+                  )}
 
-        {/* End spacing */}
-        <View style={styles.endSpacer} />
-      </ScrollView>
+                  {/* Floating Category Badge */}
+                  <View style={[styles.floatingBadge, { backgroundColor: config.color }]}>
+                    <Text style={styles.badgeIcon}>{config.icon}</Text>
+                    <Text style={styles.badgeText}>{t.category[item.category]}</Text>
+                  </View>
+                </View>
 
-      {/* Bottom decorative line */}
-      <View style={styles.bottomDecoration}>
-        <View style={styles.bottomLine} />
-        <View style={styles.bottomLine} />
+                {/* Content Section */}
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>
+                    {item.title}
+                  </Text>
+
+                  {item.district && (
+                    <View style={styles.districtContainer}>
+                      <View style={styles.locationDot} />
+                      <Text style={styles.districtText} numberOfLines={1}>
+                        {item.district}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Read More Indicator */}
+                  <View style={styles.readMoreContainer}>
+                    <View style={styles.readMoreLine} />
+                    <Text style={styles.readMoreText}>තව කියවන්න</Text>
+                    <View style={styles.readMoreArrowContainer}>
+                      <Text style={styles.readMoreArrow}>→</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Bottom Accent Line */}
+                <View style={[styles.accentLine, { backgroundColor: config.color }]} />
+              </TouchableOpacity>
+
+              {/* Admin Actions (Officer Only) */}
+              {isOfficer && (
+                <View style={styles.adminActions}>
+                  <TouchableOpacity
+                    style={styles.adminButton}
+                    onPress={() =>
+                      navigation.navigate("AdminEditOfficialNews", {
+                        newsId: item.id,
+                      })
+                    }
+                  >
+                    <Text style={styles.adminIcon}>✏️</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </Animated.View>
+          );
+        })}
+      </Animated.ScrollView>
+
+      {/* Scroll Indicators */}
+      <View style={styles.indicatorContainer}>
+        {news.map((_, index) => {
+          const inputRange = [
+            (index - 1) * (CARD_WIDTH + CARD_SPACING),
+            index * (CARD_WIDTH + CARD_SPACING),
+            (index + 1) * (CARD_WIDTH + CARD_SPACING),
+          ];
+
+          const dotWidth = scrollX.interpolate({
+            inputRange,
+            outputRange: [8, 24, 8],
+            extrapolate: 'clamp',
+          });
+
+          const dotOpacity = scrollX.interpolate({
+            inputRange,
+            outputRange: [0.3, 1, 0.3],
+            extrapolate: 'clamp',
+          });
+
+          return (
+            <Animated.View
+              key={index}
+              style={[
+                styles.indicator,
+                {
+                  width: dotWidth,
+                  opacity: dotOpacity,
+                },
+              ]}
+            />
+          );
+        })}
       </View>
     </View>
   );
 }
 
 // =======================
-// Styles
+// Modern Styles
 // =======================
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 28,
+    marginBottom: 32,
   },
   headerContainer: {
-    position: "relative",
-    marginBottom: 16,
-    overflow: "hidden",
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  cornPattern: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    flexDirection: "row",
-    opacity: 0.1,
-    gap: 8,
-  },
-  cornEmoji: {
-    fontSize: 40,
-    transform: [{ rotate: "15deg" }],
-  },
-  header: {
+  glassHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#f0fdf4",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
-    borderLeftWidth: 5,
-    borderLeftColor: "#16a34a",
-    elevation: 2,
-    shadowColor: "#166534",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.1)",
+    elevation: 8,
+    shadowColor: "#16a34a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
-  titleContainer: {
+  headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
-  cornIcon: {
-    fontSize: 24,
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#dcfce7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerIcon: {
+    fontSize: 20,
   },
   title: {
-    fontSize: 19,
+    fontSize: 20,
     fontWeight: "800",
     color: "#14532d",
     letterSpacing: 0.3,
@@ -382,203 +425,234 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#16a34a",
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-    elevation: 3,
-    shadowColor: "#000",
+    paddingVertical: 10,
+    borderRadius: 25,
+    gap: 8,
+    elevation: 4,
+    shadowColor: "#16a34a",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
   more: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: "#ffffff",
   },
+  arrowCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
   arrow: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#ffffff",
     fontWeight: "700",
   },
   scrollContent: {
-    paddingVertical: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  cardWrapper: {
+    width: CARD_WIDTH,
+    marginRight: CARD_SPACING,
   },
   card: {
-    width: 280,
+    width: "100%",
+    height: 380,
     backgroundColor: "#ffffff",
-    borderRadius: 20,
-    marginRight: 16,
-    elevation: 6,
-    shadowColor: "#166534",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    borderWidth: 2,
-    borderColor: "#dcfce7",
+    borderRadius: 24,
+    elevation: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
     overflow: "hidden",
-    position: "relative",
-  },
-  firstCard: {
-    marginLeft: 2,
-    borderColor: "#fbbf24",
-    borderWidth: 2,
   },
   newBadge: {
     position: "absolute",
-    top: 12,
-    right: 12,
+    top: 16,
+    right: 16,
     backgroundColor: "#fbbf24",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    zIndex: 10,
-    elevation: 5,
+    zIndex: 20,
+    elevation: 8,
     shadowColor: "#f59e0b",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
-    shadowRadius: 4,
+    shadowRadius: 8,
+  },
+  newBadgeGlow: {
+    position: "absolute",
+    top: -2,
+    left: -2,
+    right: -2,
+    bottom: -2,
+    backgroundColor: "#fbbf24",
+    borderRadius: 22,
+    opacity: 0.3,
   },
   newBadgeText: {
     color: "#ffffff",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "900",
     letterSpacing: 0.5,
   },
   imageContainer: {
-    position: "relative",
     width: "100%",
-    height: 150,
-    backgroundColor: "#e5e7eb",
+    height: 200,
+    backgroundColor: "#f3f4f6",
+    position: "relative",
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  imageOverlay: {
+  placeholderImage: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    opacity: 0.9,
+  },
+  placeholderIcon: {
+    fontSize: 64,
+    opacity: 0.7,
+  },
+  imageGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 60,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    paddingRight: 12,
-    paddingBottom: 8,
+    height: 100,
   },
-
-  imageCorngEmoji: {
-    fontSize: 28,
-    opacity: 0.7,
+  gradientOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
   },
-  cardContent: {
-    padding: 14,
-  },
-  badge: {
-    alignSelf: "flex-start",
+  floatingBadge: {
+    position: "absolute",
+    bottom: 16,
+    left: 16,
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    marginBottom: 10,
-    elevation: 3,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 16,
+    elevation: 6,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   badgeIcon: {
-    fontSize: 13,
+    fontSize: 14,
   },
   badgeText: {
     color: "#ffffff",
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800",
     letterSpacing: 0.5,
   },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#14532d",
-    lineHeight: 22,
-    marginBottom: 10,
+  cardContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "space-between",
   },
-  readMore: {
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1f2937",
+    lineHeight: 26,
+    marginBottom: 12,
+  },
+  districtContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
+    marginBottom: 12,
+  },
+  locationDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#16a34a",
+  },
+  districtText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  readMoreContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  readMoreLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#e5e7eb",
   },
   readMoreText: {
     fontSize: 12,
     fontWeight: "600",
     color: "#16a34a",
   },
-  readMoreArrow: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#16a34a",
-  },
-  cardAccent: {
-    height: 5,
-    backgroundColor: "#bbf7d0",
-    position: "relative",
-  },
-  accentPattern: {
-    height: "100%",
-    width: "50%",
-    backgroundColor: "#86efac",
-  },
-  endSpacer: {
-    width: 4,
-  },
-  bottomDecoration: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 16,
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  bottomLine: {
-    flex: 1,
-    height: 2,
+  readMoreArrowContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: "#dcfce7",
-    borderRadius: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  bottomCorn: {
-    fontSize: 20,
+  readMoreArrow: {
+    fontSize: 14,
+    color: "#16a34a",
+    fontWeight: "700",
+  },
+  accentLine: {
+    height: 4,
+    width: "100%",
   },
   adminActions: {
     position: "absolute",
-    top: 10,
-    left: 10,
+    top: 16,
+    left: 16,
+    zIndex: 30,
+  },
+  adminButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  adminIcon: {
+    fontSize: 18,
+  },
+  indicatorContainer: {
     flexDirection: "row",
-    gap: 8,
-    zIndex: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 20,
   },
-  editBtn: {
-    fontSize: 16,
-    backgroundColor: "#e0f2fe",
-    padding: 6,
-    borderRadius: 8,
-  },
-  hideBtn: {
-    fontSize: 16,
-    backgroundColor: "#fef3c7",
-    padding: 6,
-    borderRadius: 8,
-  },
-  deleteBtn: {
-    fontSize: 16,
-    backgroundColor: "#fee2e2",
-    padding: 6,
-    borderRadius: 8,
-  },
-  districtText: {
-    marginTop: 6,
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#475569",
+  indicator: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#16a34a",
   },
 });
