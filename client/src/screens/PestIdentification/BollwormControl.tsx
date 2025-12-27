@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Bell,
 } from "lucide-react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 type Language = "si" | "en";
 
@@ -93,14 +94,19 @@ function atCustomTime(dateOnly: Date, timeOfDay: Date) {
 }
 
 export default function BollwormControl() {
-  const [language, setLanguage] = useState<Language>("si");
+  // ✅ UPDATED: Use global language context
+  const { language: appLang } = useLanguage();
+  const language: Language = appLang === "sinhala" ? "si" : "en";
+
   const [todoMode, setTodoMode] = useState<boolean>(false);
   const [expandedInfo, setExpandedInfo] = useState<boolean>(true);
 
   const [pickerTodoId, setPickerTodoId] = useState<number | null>(null);
-  
+
   // State for reminder time picker
-  const [reminderTime, setReminderTime] = useState<Date>(new Date(0, 0, 0, 9, 0)); // Default 9:00 AM
+  const [reminderTime, setReminderTime] = useState<Date>(
+    new Date(0, 0, 0, 9, 0)
+  ); // Default 9:00 AM
   const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
 
   const preventionSteps: PreventionStep[] = useMemo(
@@ -301,9 +307,7 @@ export default function BollwormControl() {
     }
 
     setTodos((prev) =>
-      prev.map((x) =>
-        x.id === todoId ? { ...x, notificationId: null } : x
-      )
+      prev.map((x) => (x.id === todoId ? { ...x, notificationId: null } : x))
     );
   };
 
@@ -341,7 +345,9 @@ export default function BollwormControl() {
           style: "destructive",
           onPress: async () => {
             // cancel all scheduled reminders
-            const ids = todos.map((t) => t.notificationId).filter(Boolean) as string[];
+            const ids = todos
+              .map((t) => t.notificationId)
+              .filter(Boolean) as string[];
             for (const nid of ids) {
               try {
                 await Notifications.cancelScheduledNotificationAsync(nid);
@@ -416,7 +422,9 @@ export default function BollwormControl() {
     for (const t of schedulable) {
       if (t.notificationId) {
         try {
-          await Notifications.cancelScheduledNotificationAsync(t.notificationId);
+          await Notifications.cancelScheduledNotificationAsync(
+            t.notificationId
+          );
         } catch {}
       }
     }
@@ -435,9 +443,7 @@ export default function BollwormControl() {
       const nid = await Notifications.scheduleNotificationAsync({
         content: {
           title:
-            language === "si"
-              ? "MaizeGenie Reminder"
-              : "MaizeGenie Reminder",
+            language === "si" ? "MaizeGenie Reminder" : "MaizeGenie Reminder",
           body: t.title[language],
         },
         trigger: {
@@ -457,7 +463,9 @@ export default function BollwormControl() {
       })
     );
 
-    const timeStr = `${reminderTime.getHours()}:${String(reminderTime.getMinutes()).padStart(2, '0')}`;
+    const timeStr = `${reminderTime.getHours()}:${String(
+      reminderTime.getMinutes()
+    ).padStart(2, "0")}`;
     Alert.alert(
       language === "si" ? "Reminders සකස් වුනා" : "Reminders scheduled",
       language === "si"
@@ -482,37 +490,6 @@ export default function BollwormControl() {
             ? "YOLO හඳුනාගැනීමෙන් පසු IPM මත පදනම් වූ ක්‍රියාමාර්ග"
             : "IPM-based actions after YOLO detection"}
         </Text>
-      </View>
-
-      {/* Language Toggle */}
-      <View style={styles.toggleRow}>
-        <TouchableOpacity
-          style={[styles.toggleBtn, language === "si" && styles.toggleActive]}
-          onPress={() => setLanguage("si")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              language === "si" && styles.toggleTextActive,
-            ]}
-          >
-            සිංහල
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.toggleBtn, language === "en" && styles.toggleActive]}
-          onPress={() => setLanguage("en")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              language === "en" && styles.toggleTextActive,
-            ]}
-          >
-            English
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Mode Toggle */}
@@ -547,7 +524,9 @@ export default function BollwormControl() {
               onPress={() => setExpandedInfo((s) => !s)}
             >
               <Text style={styles.sectionTitle}>
-                {language === "si" ? "විස්තර / තොරතුරු" : "Information & Context"}
+                {language === "si"
+                  ? "විස්තර / තොරතුරු"
+                  : "Information & Context"}
               </Text>
               <Text style={styles.sectionHint}>
                 {expandedInfo ? "Hide" : "Show"}
@@ -659,10 +638,12 @@ export default function BollwormControl() {
                 onPress={() => setShowTimePicker(true)}
               >
                 <Text style={styles.timePickerText}>
-                  {`${reminderTime.getHours()}:${String(reminderTime.getMinutes()).padStart(2, '0')}`}
+                  {`${reminderTime.getHours()}:${String(
+                    reminderTime.getMinutes()
+                  ).padStart(2, "0")}`}
                 </Text>
               </TouchableOpacity>
-              
+
               {showTimePicker && (
                 <DateTimePicker
                   value={reminderTime}
@@ -697,7 +678,9 @@ export default function BollwormControl() {
               >
                 <Bell size={16} color="#fff" />
                 <Text style={styles.notifyBtnText}>
-                  {language === "si" ? "Reminders සකස් කරන්න" : "Schedule reminders"}
+                  {language === "si"
+                    ? "Reminders සකස් කරන්න"
+                    : "Schedule reminders"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -715,7 +698,9 @@ export default function BollwormControl() {
                 </TouchableOpacity>
 
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.todoTitle, todo.done && styles.todoDone]}>
+                  <Text
+                    style={[styles.todoTitle, todo.done && styles.todoDone]}
+                  >
                     {todo.title[language]}
                   </Text>
 
@@ -724,9 +709,9 @@ export default function BollwormControl() {
                   <TouchableOpacity onPress={() => setPickerTodoId(todo.id)}>
                     <Text style={styles.todoDate}>
                       {todo.date
-                        ? `${language === "si" ? "දිනය" : "Date"}: ${formatDate(
-                            todo.date
-                          )}`
+                        ? `${
+                            language === "si" ? "දිනය" : "Date"
+                          }: ${formatDate(todo.date)}`
                         : language === "si"
                         ? "දිනය තෝරන්න"
                         : "Select date"}
@@ -779,28 +764,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: "bold", color: "#14532d" },
   headerSubtitle: { fontSize: 13, color: "#166534", marginTop: 4 },
 
-  toggleRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginVertical: 10,
-  },
-  toggleBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 20,
-    borderRadius: 20,
-    backgroundColor: "#e5e7eb",
-    marginHorizontal: 6,
-  },
-  toggleActive: { backgroundColor: "#16a34a" },
-  toggleText: { fontSize: 14, color: "#374151" },
-  toggleTextActive: { color: "#ffffff", fontWeight: "600" },
-
   modeRow: {
     flexDirection: "row",
     justifyContent: "center",
     gap: 10,
     paddingHorizontal: 16,
-    marginBottom: 6,
+    marginVertical: 12,
   },
   modeBtn: {
     flexDirection: "row",
@@ -928,7 +897,12 @@ const styles = StyleSheet.create({
   todoTitle: { fontSize: 14, fontWeight: "700", color: "#064e3b" },
   todoDesc: { fontSize: 12, color: "#374151", marginTop: 4, lineHeight: 17 },
   todoDone: { textDecorationLine: "line-through", color: "#6b7280" },
-  todoDate: { fontSize: 12, color: "#2563eb", marginTop: 6, fontWeight: "700" },
+  todoDate: {
+    fontSize: 12,
+    color: "#2563eb",
+    marginTop: 6,
+    fontWeight: "700",
+  },
 
   todoNote: {
     marginTop: 10,
@@ -939,7 +913,12 @@ const styles = StyleSheet.create({
     borderColor: "#ecfdf5",
   },
   todoNoteTitle: { fontSize: 13, fontWeight: "800", color: "#064e3b" },
-  todoNoteText: { fontSize: 12, color: "#374151", marginTop: 6, lineHeight: 17 },
+  todoNoteText: {
+    fontSize: 12,
+    color: "#374151",
+    marginTop: 6,
+    lineHeight: 17,
+  },
 
   /* ========== ✅ NEW STYLES (ONLY for new features) ========== */
 

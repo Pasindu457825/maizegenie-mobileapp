@@ -16,6 +16,7 @@ import { Leaf, Users, Package, ArrowLeft, Sparkles } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import DataConfirmationModal from "../../components/DataConfirmationModal";
 
 const { width } = Dimensions.get("window");
 
@@ -29,6 +30,7 @@ const YieldPredictionLoadingScreen = () => {
   const { language: lang } = useLanguage();
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const { user } = useApp();
 
@@ -58,6 +60,10 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
+      farmerForecastTitle: "දළ පුරෝකථනය",
+      farmerForecastDesc: "ඉක්මන් සහ සරල අස්වැන්න පුරෝකථනය",
+      officerForecastTitle: "වෘත්තීය/උසස් විශ්ලේෂණය",
+      officerForecastDesc: "සවිස්තරාත්මක සහ ගැඹුරු අස්වැන්න විශ්ලේෂණය",
       fertilizerTitle: "පොහොර උපදේශ",
       fertilizerDesc: "පුද්ගලාරෝපිත පොහොර නිර්දේශ ලබා ගන්න",
       fertilizerRecommendation: "පොහොර නිර්දේශ",
@@ -72,6 +78,10 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
+      farmerForecastTitle: "Gross Forecast",
+      farmerForecastDesc: "Quick and simple yield prediction",
+      officerForecastTitle: "Professional/Advanced Analysis",
+      officerForecastDesc: "Detailed and deep yield analysis",
       fertilizerTitle: "Fertilizer Advices",
       fertilizerDesc: "Get personalized fertilizer recommendations",
       fertilizerRecommendation: "Fertilizer Recommendation",
@@ -80,6 +90,15 @@ const YieldPredictionLoadingScreen = () => {
       farmerRequestsDesc: "Coming soon",
       comingSoon: "Coming soon",
     },
+  };
+
+  const showOfficerDataConfirmation = () => {
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmProceed = () => {
+    setShowConfirmationModal(false);
+    navigation.navigate("YieldPredictionOfficerFormScreen", { language });
   };
 
   const handleRoleSelect = (role: "farmer" | "officer") => {
@@ -117,7 +136,8 @@ const YieldPredictionLoadingScreen = () => {
     if (role === "farmer") {
       navigation.navigate("YieldPredictionFormScreen", { role, language });
     } else {
-      navigation.navigate("YieldPredictionOfficerFormScreen", { language });
+      // Show data confirmation checklist for officers
+      showOfficerDataConfirmation();
     }
   };
 
@@ -202,10 +222,10 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                   <View style={styles.roleContent}>
                     <Text style={styles.roleTitle}>
-                      {content[language].startTitle}
+                      {content[language].farmerForecastTitle}
                     </Text>
                     <Text style={styles.roleDesc}>
-                      {content[language].startDesc}
+                      {content[language].farmerForecastDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>
@@ -262,10 +282,10 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                   <View style={styles.roleContent}>
                     <Text style={styles.roleTitle}>
-                      {content[language].startTitle}
+                      {content[language].officerForecastTitle}
                     </Text>
                     <Text style={styles.roleDesc}>
-                      {content[language].startDesc}
+                      {content[language].officerForecastDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>
@@ -307,6 +327,14 @@ const YieldPredictionLoadingScreen = () => {
         </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Data Confirmation Modal */}
+      <DataConfirmationModal
+        visible={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        onConfirm={handleConfirmProceed}
+        language={language}
+      />
     </View>
   );
 };
