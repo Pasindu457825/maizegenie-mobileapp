@@ -230,10 +230,11 @@ export default function OfficialNewsScreen() {
         {isOfficer ? (
           <TouchableOpacity
             onPress={() => navigation.navigate("AdminAddOfficialNews")}
-            style={styles.addButton}
-            activeOpacity={0.8}
+            style={styles.addNewsButton}
+            activeOpacity={0.85}
           >
-            <Ionicons name="add" size={22} color="#fff" />
+            <Ionicons name="add-circle-outline" size={20} color="#fff" />
+            <Text style={styles.addNewsText}>Add News</Text>
           </TouchableOpacity>
         ) : (
           <View style={{ width: 40 }} />
@@ -490,12 +491,19 @@ const styles = StyleSheet.create({
     paddingVertical: 64,
   },
   emptyText: { marginTop: 16, fontSize: 16, color: "#9ca3af" },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#16A34A",
-    justifyContent: "center",
+  addNewsButton: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#16A34A",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+
+  addNewsText: {
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
