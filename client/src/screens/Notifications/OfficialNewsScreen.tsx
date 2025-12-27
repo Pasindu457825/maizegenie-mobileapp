@@ -117,59 +117,59 @@ export default function OfficialNewsScreen() {
   // =======================
   // Helpers
   // =======================
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case "price":
-      return "#2563eb"; // Blue
-    case "weather":
-      return "#0891b2"; // Cyan
-    case "policy":
-      return "#7c3aed"; // Purple
-    case "alert":
-      return "#dc2626"; // Red
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case "price":
+        return "#2563eb"; // Blue
+      case "weather":
+        return "#0891b2"; // Cyan
+      case "policy":
+        return "#7c3aed"; // Purple
+      case "alert":
+        return "#dc2626"; // Red
 
-    case "pest":
-      return "#b45309"; // Brown
-    case "disease":
-      return "#991b1b"; // Dark red
-    case "fertilizer":
-      return "#15803d"; // Deep green
-    case "cultivation":
-      return "#0f766e"; // Teal
-    case "program":
-      return "#1d4ed8"; // Indigo / official
+      case "pest":
+        return "#b45309"; // Brown
+      case "disease":
+        return "#991b1b"; // Dark red
+      case "fertilizer":
+        return "#15803d"; // Deep green
+      case "cultivation":
+        return "#0f766e"; // Teal
+      case "program":
+        return "#1d4ed8"; // Indigo / official
 
-    default:
-      return "#6b7280"; // Gray
-  }
-};
+      default:
+        return "#6b7280"; // Gray
+    }
+  };
 
-const getCategoryLabel = (category: string) => {
-  switch (category) {
-    case "price":
-      return "මිල";
-    case "weather":
-      return "කාලගුණය";
-    case "policy":
-      return "ප්‍රතිපත්ති";
-    case "alert":
-      return "අනතුරු ඇඟවීම";
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case "price":
+        return "මිල";
+      case "weather":
+        return "කාලගුණය";
+      case "policy":
+        return "ප්‍රතිපත්ති";
+      case "alert":
+        return "අනතුරු ඇඟවීම";
 
-    case "pest":
-      return "පළිබෝධ";
-    case "disease":
-      return "රෝග";
-    case "fertilizer":
-      return "පොහොර";
-    case "cultivation":
-      return "වගා උපදෙස්";
-    case "program":
-      return "වැඩසටහන්";
+      case "pest":
+        return "පළිබෝධ";
+      case "disease":
+        return "රෝග";
+      case "fertilizer":
+        return "පොහොර";
+      case "cultivation":
+        return "වගා උපදෙස්";
+      case "program":
+        return "වැඩසටහන්";
 
-    default:
-      return category;
-  }
-};
+      default:
+        return category;
+    }
+  };
 
   // =======================
   // 🔑 FIXED navigation
@@ -213,7 +213,9 @@ const getCategoryLabel = (category: string) => {
   return (
     <View style={styles.container}>
       {/* HEADER */}
+      {/* HEADER */}
       <View style={styles.header}>
+        {/* LEFT */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -221,37 +223,21 @@ const getCategoryLabel = (category: string) => {
           <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
 
-        {/* 🔒 Officer Only – Add Official News */}
-        {isOfficer && (
+        {/* CENTER */}
+        <Text style={styles.headerTitle}>නිල පුවත්</Text>
+
+        {/* RIGHT – Officer Only */}
+        {isOfficer ? (
           <TouchableOpacity
             onPress={() => navigation.navigate("AdminAddOfficialNews")}
-            style={{
-              backgroundColor: "#16A34A",
-              paddingVertical: 14,
-              paddingHorizontal: 16,
-              borderRadius: 12,
-              alignItems: "center",
-              marginTop: 14,
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 8,
-            }}
-            activeOpacity={0.85}
+            style={styles.addButton}
+            activeOpacity={0.8}
           >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 15,
-                fontWeight: "800",
-              }}
-            >
-              📰add news
-            </Text>
+            <Ionicons name="add" size={22} color="#fff" />
           </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
         )}
-
-        <Text style={styles.headerTitle}>නිල පුවත්</Text>
-        <View style={{ width: 40 }} />
       </View>
 
       <FlatList
@@ -504,4 +490,12 @@ const styles = StyleSheet.create({
     paddingVertical: 64,
   },
   emptyText: { marginTop: 16, fontSize: 16, color: "#9ca3af" },
+  addButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#16A34A",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
