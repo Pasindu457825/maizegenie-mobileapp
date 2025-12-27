@@ -241,6 +241,11 @@ const PriceAdvisorScreen: React.FC = () => {
     any | null
   >(null);
   const [harvestAdvisoryLoading, setHarvestAdvisoryLoading] = useState(false);
+  const [advisorGuideResult, setAdvisorGuideResult] = useState<any | null>(
+    null
+  );
+  const [advisorGuideLoading, setAdvisorGuideLoading] = useState(false);
+  const [showAdvisorGuide, setShowAdvisorGuide] = useState(false);
 
   const {
     locationName,
@@ -1096,6 +1101,45 @@ const PriceAdvisorScreen: React.FC = () => {
     return res.json();
   };
 
+  const fetchAdvisorGuide = async (payload: {
+    location: string;
+    plantingDate: string;
+    seedVariety: string;
+    experience: string;
+    landSize: string;
+    irrigationAvailable: boolean;
+    preparedness: {
+      seedReady: boolean;
+      waterReady: boolean;
+      fertilizerReady: boolean;
+      storageReady: boolean;
+      financeReady: boolean;
+    };
+  }) => {
+    const url = `${API_URL}/price-window/advisor-guide`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: payload.location,
+        plantingDate: payload.plantingDate,
+        seedVariety: payload.seedVariety,
+        experience: payload.experience,
+        landSize: payload.landSize,
+        irrigationAvailable: payload.irrigationAvailable,
+        preparedness: payload.preparedness,
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || "Failed to fetch advisor guide");
+    }
+
+    return res.json();
+  };
+
   type ToggleRowProps = {
     label: string;
     value: boolean;
@@ -1298,6 +1342,42 @@ const PriceAdvisorScreen: React.FC = () => {
       setHarvestAdvisoryResult(null);
     } finally {
       setHarvestAdvisoryLoading(false);
+    }
+
+    // 3️⃣ NEW — Advisor Guide (ADD)
+    try {
+      setAdvisorGuideLoading(true);
+
+      if (form.plantingDateExact) {
+        const apiLocation = toApiLocation(form.district);
+        const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
+
+        const guide = await fetchAdvisorGuide({
+          location: apiLocation,
+          plantingDate: form.plantingDateExact,
+          seedVariety: seed,
+          experience: form.experienceLevel, // "new" | "some" | "experienced"
+          landSize: form.area || "0",
+          irrigationAvailable: form.hasIrrigation,
+          preparedness: {
+            seedReady: form.readiness.seeds,
+            waterReady: form.readiness.water,
+            fertilizerReady: form.readiness.fertilizer,
+            storageReady: form.readiness.land, // (ඔයාට storageReady වෙනම field එකක් නැති නිසා mapping)
+            financeReady: form.readiness.capital,
+          },
+        });
+
+        setAdvisorGuideResult(guide);
+        setShowAdvisorGuide(true); // open by default
+      } else {
+        setAdvisorGuideResult(null);
+      }
+    } catch (e) {
+      console.log("Advisor guide unavailable:", e);
+      setAdvisorGuideResult(null);
+    } finally {
+      setAdvisorGuideLoading(false);
     }
 
     // --------------------------------------------------
@@ -1510,6 +1590,8 @@ const PriceAdvisorScreen: React.FC = () => {
       setShowForm(true);
       setFullAdvisorText(null);
       setFullAdvisorTag(null);
+      setAdvisorGuideResult(null);
+      setShowAdvisorGuide(false);
 
       alert(
         language === "si"
@@ -1602,28 +1684,26 @@ const PriceAdvisorScreen: React.FC = () => {
     );
 
     // ✅ Option 3 copy (Sinhala/English)
-const leftLine1 =
-  language === "si"
-    ? `${base.year} ${base.monthLabel} ${weekOrdinal(
-        base.weekOfMonth,
-        "si"
-      )} සතියේ `
-    : `If you sell in the ${weekOrdinal(
-        base.weekOfMonth,
-        "en"
-      )} week of ${base.monthLabel} ${base.year}`;
+    const leftLine1 =
+      language === "si"
+        ? `${base.year} ${base.monthLabel} ${weekOrdinal(
+            base.weekOfMonth,
+            "si"
+          )} සතියේ `
+        : `If you sell in the ${weekOrdinal(base.weekOfMonth, "en")} week of ${
+            base.monthLabel
+          } ${base.year}`;
 
-const leftLine2 =
-  language === "si"
-    ? "මිල සාමාන්‍යයි"
-    : "the market price will be moderate";
+    const leftLine2 =
+      language === "si"
+        ? "මිල සාමාන්‍යයි"
+        : "the market price will be moderate";
 
-// optional: keep week number for system clarity
-//const leftSub =
- // language === "si"
- //   ? `(Week ${baseWeek})`
-  //  : `(Week ${baseWeek})`;
-
+    // optional: keep week number for system clarity
+    //const leftSub =
+    // language === "si"
+    //   ? `(Week ${baseWeek})`
+    //  : `(Week ${baseWeek})`;
 
     const midTitle =
       language === "si"
@@ -1645,8 +1725,8 @@ const leftLine2 =
         ? "හොඳම විකුණුම් මිල"
         : "you can get the best selling price";
 
- //   const rightSub =
-  //    language === "si" ? `(Week ${bestWeek})` : `(Week ${bestWeek})`;
+    //   const rightSub =
+    //    language === "si" ? `(Week ${bestWeek})` : `(Week ${bestWeek})`;
 
     return (
       <View style={styles.timelineCard}>
@@ -1658,7 +1738,7 @@ const leftLine2 =
             <Text style={styles.timelineTitle}>{leftLine1}</Text>
             <Text style={styles.timelineDesc}>{leftLine2}</Text>
 
-        {/*    <Text style={styles.timelineWeek}>{leftSub}</Text> */}
+            {/*    <Text style={styles.timelineWeek}>{leftSub}</Text> */}
           </View>
 
           {/* Middle */}
@@ -1677,7 +1757,7 @@ const leftLine2 =
             <Text style={styles.timelineTitle}>{rightLine1}</Text>
             <Text style={styles.timelineDesc}>{rightLine2}</Text>
 
-       {/*    <Text style={styles.timelineWeek}>{rightSub}</Text> */}
+            {/*    <Text style={styles.timelineWeek}>{rightSub}</Text> */}
           </View>
         </View>
       </View>
@@ -1987,6 +2067,131 @@ const leftLine2 =
                     <View style={styles.advisorySection}>
                       <Text style={styles.advisoryText}>{fullAdvisorText}</Text>
                     </View>
+
+                                                                {/* ✅ Advisor Guide (NEW) */}
+                {(advisorGuideLoading || advisorGuideResult?.advisor_guide) && (
+                  <View style={{ marginTop: 14 }}>
+                    <TouchableOpacity
+                      onPress={() => setShowAdvisorGuide((s) => !s)}
+                      style={{
+                        padding: 14,
+                        borderRadius: 14,
+                        backgroundColor: "#F0FDF4",
+                        borderWidth: 1.5,
+                        borderColor: "#A7F3D0",
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "800",
+                          color: "#065F46",
+                        }}
+                      >
+                        {language === "si"
+                          ? "📘 උපදේශක මාර්ගෝපදේශය"
+                          : "📘 Advisor Guide"}
+                      </Text>
+
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: "#047857",
+                        }}
+                      >
+                        {showAdvisorGuide
+                          ? language === "si"
+                            ? "Hide"
+                            : "Hide"
+                          : language === "si"
+                          ? "Show"
+                          : "Show"}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {showAdvisorGuide && (
+                      <View
+                        style={{
+                          marginTop: 10,
+                          padding: 14,
+                          borderRadius: 14,
+                          backgroundColor: "#FFFFFF",
+                          borderWidth: 1,
+                          borderColor: "#D1FAE5",
+                        }}
+                      >
+                        {advisorGuideLoading ? (
+                          <Text style={{ color: "#6B7280" }}>
+                            {language === "si"
+                              ? "ලබාගැනෙමින්..."
+                              : "Loading..."}
+                          </Text>
+                        ) : (
+                          <>
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                              }}
+                            >
+                              🌱 {advisorGuideResult?.advisor_guide?.seed}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              💧 {advisorGuideResult?.advisor_guide?.water}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              🧪 {advisorGuideResult?.advisor_guide?.fertilizer}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              🏠 {advisorGuideResult?.advisor_guide?.storage}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              💰 {advisorGuideResult?.advisor_guide?.finance}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+
 
                     {/* Divider */}
                     <View style={styles.sectionDivider} />
@@ -3011,122 +3216,121 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "600",
   },
-timelineCard: {
-  marginTop: 12,
-  marginBottom: 12,
-  paddingVertical: 12,      // 🔧 top/bottom balance
-  paddingHorizontal: 14,
-  borderRadius: 16,
-  backgroundColor: "#ECFDF5",
-  borderWidth: 1.5,
-  borderColor: "#A7F3D0",
-},
+  timelineCard: {
+    marginTop: 12,
+    marginBottom: 12,
+    paddingVertical: 12, // 🔧 top/bottom balance
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+  },
 
-timelineRow: {
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",   // ✅ center everything
-  gap: 8,                     // ✅ controlled spacing
-},
+  timelineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center", // ✅ center everything
+    gap: 8, // ✅ controlled spacing
+  },
 
+  timelineStep: {
+    flex: 1, // ✅ responsive width
+    minHeight: 104,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 6, // 🔧 side empty space reduce
+  },
 
-timelineStep: {
-  flex: 1,                    // ✅ responsive width
-  minHeight: 104,
-  alignItems: "center",
-  justifyContent: "center",
-  paddingVertical: 6,
-  paddingHorizontal: 6,       // 🔧 side empty space reduce
-},
+  timelineStepBest: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 8, // 🔧 slightly more than left
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  timelineIcon: {
+    fontSize: 20,
+    marginBottom: 2, // 🔧 from 4 → 2
+  },
 
-timelineStepBest: {
-  backgroundColor: "#FFFFFF",
-  borderRadius: 14,
-  paddingVertical: 8,         // 🔧 slightly more than left
-  paddingHorizontal: 8,
-  borderWidth: 1,
-  borderColor: "#D1FAE5",
-},
-timelineIcon: {
-  fontSize: 20,
-  marginBottom: 2,            // 🔧 from 4 → 2
-},
+  timelineTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#065F46",
+    textAlign: "center",
+    lineHeight: 16, // 🔧 text spacing consistency
+  },
 
-timelineTitle: {
-  fontSize: 12,
-  fontWeight: "800",
-  color: "#065F46",
-  textAlign: "center",
-  lineHeight: 16,           // 🔧 text spacing consistency
-},
+  timelineDesc: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#065F46",
+    textAlign: "center",
+    lineHeight: 16,
+    marginTop: 2, // 🔧 controlled gap between lines
+  },
 
-timelineDesc: {
-  fontSize: 12,
-  fontWeight: "700",
-  color: "#065F46",
-  textAlign: "center",
-  lineHeight: 16,
-  marginTop: 2,             // 🔧 controlled gap between lines
-},
+  timelineWeek: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7280", // 🔧 de-emphasize week label
+    textAlign: "center",
+  },
 
-timelineWeek: {
-  marginTop: 2,
-  fontSize: 11,
-  fontWeight: "700",
-  color: "#6B7280",         // 🔧 de-emphasize week label
-  textAlign: "center",
-},
+  timelineMiddle: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    height: 52,
+    marginHorizontal: 6, // ⬅️ from 4 → 6 (breathing space)
+  },
+  timelineLine: {
+    position: "absolute",
+    height: 4,
+    left: 10,
+    right: 10,
+    borderRadius: 999,
+    backgroundColor: "#10B981",
+    opacity: 0.25,
+  },
+  timelinePill: {
+    paddingHorizontal: 14, // ⬅️ from 12 → 14
+    paddingVertical: 6,
+    minWidth: 100, // ⬅️ from 82 → 100 (MAIN FIX)
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
-timelineMiddle: {
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "center",
-  position: "relative",
-  height: 52,
-  marginHorizontal: 6,      // ⬅️ from 4 → 6 (breathing space)
-},
-timelineLine: {
-  position: "absolute",
-  height: 4,
-  left: 10,
-  right: 10,
-  borderRadius: 999,
-  backgroundColor: "#10B981",
-  opacity: 0.25,
-},
-timelinePill: {
-  paddingHorizontal: 14,     // ⬅️ from 12 → 14
-  paddingVertical: 6,
-  minWidth: 100,             // ⬅️ from 82 → 100 (MAIN FIX)
-  borderRadius: 999,
-  backgroundColor: "#FFFFFF",
-  borderWidth: 1.5,
-  borderColor: "#10B981",
-  alignItems: "center",
-  justifyContent: "center",
-},
+  timelinePillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#047857",
+    lineHeight: 14,
+    textAlign: "center",
+  },
 
-timelinePillText: {
-  fontSize: 11,
-  fontWeight: "800",
-  color: "#047857",
-  lineHeight: 14,
-  textAlign: "center",
-},
-
-timelineArrow: {
-  position: "absolute",
-  right: -6,                // ⬅️ from 2 → -6 (push arrow outward)
-  width: 0,
-  height: 0,
-  borderTopWidth: 6,
-  borderBottomWidth: 6,
-  borderLeftWidth: 10,
-  borderTopColor: "transparent",
-  borderBottomColor: "transparent",
-  borderLeftColor: "#10B981",
-  opacity: 0.6,
-},
+  timelineArrow: {
+    position: "absolute",
+    right: -6, // ⬅️ from 2 → -6 (push arrow outward)
+    width: 0,
+    height: 0,
+    borderTopWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftWidth: 10,
+    borderTopColor: "transparent",
+    borderBottomColor: "transparent",
+    borderLeftColor: "#10B981",
+    opacity: 0.6,
+  },
 
   quickAnswerBox: {
     padding: 14,
