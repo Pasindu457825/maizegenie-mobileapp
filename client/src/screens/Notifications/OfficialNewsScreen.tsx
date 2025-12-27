@@ -338,33 +338,33 @@ export default function OfficialNewsScreen() {
               )}
             </View>
 
-            <View style={styles.readMoreContainer}>
-              <Text style={styles.readMoreText}>තව කියවන්න</Text>
-              <Ionicons name="chevron-forward" size={16} color="#22c55e" />
-            </View>
-
-            {/* 🔐 OFFICER ONLY ACTIONS */}
-            {isOfficer && (
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "flex-end",
-                  marginTop: 10,
-                  gap: 16,
-                }}
+            <View style={styles.actionRow}>
+              {/* READ MORE – BIG TAP AREA */}
+              <TouchableOpacity
+                style={styles.readMoreButton}
+                onPress={() => handleNewsPress(item)}
+                activeOpacity={0.8}
               >
-                {/* ✏️ EDIT */}
+                <Text style={styles.readMoreText}>තව කියවන්න</Text>
+                <Ionicons name="chevron-forward" size={16} color="#16A34A" />
+              </TouchableOpacity>
+
+              {/* EDIT – OFFICER ONLY */}
+              {isOfficer && (
                 <TouchableOpacity
+                  style={styles.editButton}
                   onPress={() =>
                     navigation.navigate("AdminEditOfficialNews", {
                       newsId: item.id,
                     })
                   }
+                  activeOpacity={0.8}
                 >
-                  <Ionicons name="create-outline" size={20} color="#2563eb" />
+                  <Ionicons name="create-outline" size={18} color="#16A34A" />
+                  <Text style={styles.editText}>Edit</Text>
                 </TouchableOpacity>
-              </View>
-            )}
+              )}
+            </View>
           </TouchableOpacity>
         )}
       />
@@ -477,12 +477,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "flex-end",
   },
-  readMoreText: {
-    fontSize: 14,
-    color: "#22c55e",
-    fontWeight: "600",
-    marginRight: 4,
-  },
 
   emptyContainer: {
     flex: 1,
@@ -505,5 +499,47 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 13,
     fontWeight: "700",
+  },
+  actionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 14,
+  },
+
+  readMoreButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    gap: 4,
+  },
+
+  readMoreText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#16A34A",
+  },
+
+  editButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    backgroundColor: "#F0FDF4",
+    gap: 6,
+  },
+
+  editText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#16A34A",
   },
 });

@@ -247,7 +247,8 @@ export default function NewsDetailScreen() {
         )}
       >
         {/* Spacer for header */}
-        <View style={{ height: news.image_url ? HEADER_MAX_HEIGHT - 100 : 20 }} />
+    <View style={{ height: news.image_url ? HEADER_MAX_HEIGHT + 20 : 40 }} />
+
 
         {/* Content Card with Fade In */}
         <Animated.View 
@@ -392,7 +393,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   headerSolidBackground: {
     position: 'absolute',
@@ -445,6 +446,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
+    marginTop: 12,
   },
 
   /* ================= CATEGORY BADGE ================= */
