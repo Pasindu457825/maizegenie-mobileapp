@@ -93,23 +93,68 @@ def remove_duplicate_detections(preds: List[Dict]) -> List[Dict]:
 # =============================================================================
 # SEVERITY
 # =============================================================================
-def calculate_severity(preds: List[Dict], shape):
-    h, w = shape[:2]
-    leaf_area = h * w
-    infected = 0
 
-    for p in preds:
-        x1, y1, x2, y2 = p["box_xyxy"]
-        infected += max(0, x2 - x1) * max(0, y2 - y1)
+def calculate_severity(preds, image):
+    """
+    FINAL calibrated severity:
+    rust_pixels / actual leaf pixels
+    (aligned with maize-leaf validation)
+    """
 
-    score = min(max(infected / leaf_area, 0), 1)
+    if image is None or image.size == 0:
+        return 0.0, "None"
 
-    if score < 0.10:
-        return score, "Low"
-    elif score < 0.30:
-        return score, "Medium"
-    return score, "High"
+    lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+    L, A, B = cv2.split(lab)
 
+    # --------------------------------------------------
+    # 1️⃣ LEAF MASK — MATCH VALIDATION LOGIC
+    # --------------------------------------------------
+    # Include green, yellow, and rusted leaf tissue
+    leaf_mask = (
+        (L > 25) &
+        (B > 95) &          # allow dark yellow / brown leaf
+        (A < 210)           # allow severe rust tissue
+    )
+
+    leaf_mask = leaf_mask.astype(np.uint8) * 255
+    leaf_mask = cv2.medianBlur(leaf_mask, 7)
+    leaf_mask = cv2.morphologyEx(
+        leaf_mask,
+        cv2.MORPH_CLOSE,
+        np.ones((13, 13), np.uint8)
+    )
+    leaf_mask = leaf_mask > 0
+
+    leaf_pixels = int(np.sum(leaf_mask))
+    if leaf_pixels == 0:
+        return 0.0, "None"
+
+    # --------------------------------------------------
+    # 2️⃣ RUST / BROWN MASK — WIDE & REALISTIC
+    # --------------------------------------------------
+    rust_mask = (
+        (A > 125) &          # reddish/brown
+        (B > 95) &           # include dark brown rust
+        (L > 30)             # allow shaded rust
+    )
+
+    rust_pixels = int(np.sum(rust_mask & leaf_mask))
+
+    # --------------------------------------------------
+    # 3️⃣ SEVERITY (NO ARTIFICIAL DAMPENING)
+    # --------------------------------------------------
+    severity = rust_pixels / leaf_pixels
+    severity = float(np.clip(severity, 0.0, 1.0))
+
+    if severity < 0.10:
+        label = "Low"
+    elif severity < 0.30:
+        label = "Medium"
+    else:
+        label = "High"
+
+    return round(severity, 3), label
 
 # =============================================================================
 # ERROR RESPONSE
@@ -218,7 +263,8 @@ def predict_disease_enhanced(image_bytes: bytes, conf=0.4, return_image=False):
         if not filtered:
             filtered = disease_preds
 
-        sev, label = calculate_severity(filtered, img.shape)
+        sev, label = calculate_severity(filtered, img)   # ✅ not img.shape
+
 
         return {
             "success": True,
