@@ -99,7 +99,7 @@ def test_irrigation_suggestions():
         print(f"   ❌ Suggestion triggered (unexpected)")
     else:
         print(f"   ✅ No suggestion (correct - adequate rainfall)")
-     XGBoost Yield Prediction model loaded successfully!
+
     # Scenario 3: Irrigated (no suggestion needed)
     print("\n📌 Scenario 3: Irrigated")
     data3 = {
