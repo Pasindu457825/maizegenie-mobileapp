@@ -18,6 +18,7 @@ import type { RootStackParamList } from "../../navigation";
 import { Image } from "react-native";
 import { useApp } from "../../context/AppContext";
 import { supabase } from "../../lib/supabase";
+import { SafeAreaView, Platform, StatusBar } from "react-native";
 
 // =======================
 // Types
@@ -269,32 +270,34 @@ export default function OfficialNewsScreen() {
   return (
     <View style={styles.container}>
       {/* HEADER */}
-      <View style={styles.header}>
-        {/* LEFT */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#1f2937" />
-        </TouchableOpacity>
-
-        {/* CENTER */}
-        <Text style={styles.headerTitle}>නිල පුවත්</Text>
-
-        {/* RIGHT – Officer Only */}
-        {isOfficer ? (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          {/* LEFT */}
           <TouchableOpacity
-            onPress={() => navigation.navigate("AdminAddOfficialNews")}
-            style={styles.addNewsButton}
-            activeOpacity={0.85}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            <Ionicons name="add-circle-outline" size={20} color="#fff" />
-            <Text style={styles.addNewsText}>Add News</Text>
+            <Ionicons name="arrow-back" size={24} color="#1f2937" />
           </TouchableOpacity>
-        ) : (
-          <View style={{ width: 40 }} />
-        )}
-      </View>
+
+          {/* CENTER */}
+          <Text style={styles.headerTitle}>නිල පුවත්</Text>
+
+          {/* RIGHT */}
+          {isOfficer ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("AdminAddOfficialNews")}
+              style={styles.addNewsButton}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="add-circle-outline" size={20} color="#fff" />
+              <Text style={styles.addNewsText}>Add News</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 40 }} />
+          )}
+        </View>
+      </SafeAreaView>
 
       {/* 🔎 SEARCH + FILTER BAR */}
       <View style={styles.toolsWrap}>
@@ -364,7 +367,8 @@ export default function OfficialNewsScreen() {
         {/* Small info row */}
         <View style={styles.resultRow}>
           <Text style={styles.resultText}>
-            ප්‍රතිඵල: <Text style={{ fontWeight: "800" }}>{filteredNews.length}</Text>
+            ප්‍රතිඵල:{" "}
+            <Text style={{ fontWeight: "800" }}>{filteredNews.length}</Text>
           </Text>
 
           <TouchableOpacity
@@ -693,7 +697,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 64,
   },
-  emptyText: { marginTop: 16, fontSize: 16, color: "#9ca3af", textAlign: "center" },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#9ca3af",
+    textAlign: "center",
+  },
 
   addNewsButton: {
     flexDirection: "row",
@@ -751,5 +760,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#16A34A",
+  },
+  safeArea: {
+    backgroundColor: "#ffffff",
+    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
 });
