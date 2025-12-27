@@ -4,6 +4,7 @@ Enhanced endpoint for AgriOfficers with fertilizer scheduling
 """
 
 from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi.responses import StreamingResponse
 from datetime import datetime
 import uuid
 from typing import Dict, Any
@@ -14,6 +15,7 @@ from .officer_models import (
     PredictionErrorResponse
 )
 from .officer_service import predict_officer_yield
+from .report_generator import generate_officer_report
 
 # Create router with v1 prefix to match frontend expectations
 router = APIRouter(prefix="/api/v1", tags=["Officer Yield Prediction"])
@@ -85,6 +87,54 @@ async def get_officer_predictions(officer_id: str, limit: int = 20, offset: int 
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="Prediction history not implemented in simplified setup"
     )
+
+@router.post("/yield-prediction/officer/report")
+async def generate_prediction_report(
+    request: OfficerPredictionRequest
+):
+    """
+    Generate a professional PDF report for officer yield prediction
+    
+    Returns:
+        StreamingResponse: PDF file download
+    """
+    try:
+        # Convert request to dict format
+        request_data = request.model_dump()
+        
+        # Get prediction data
+        prediction_response = predict_officer_yield(request_data)
+        
+        # Flatten prediction data for report generator
+        report_data = {
+            **prediction_response['prediction'],
+            **request_data.get('soil_profile', {}),
+            **request_data.get('climate_data', {}),
+            **request_data.get('crop_information', {}),
+        }
+        
+        # Generate PDF
+        pdf_buffer = generate_officer_report(report_data)
+        
+        # Create filename with timestamp and district
+        district = request_data.get('soil_profile', {}).get('district', 'Unknown')
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"MaizeGenie_YieldReport_{district}_{timestamp}.pdf"
+        
+        # Return as streaming response
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Report generation failed: {str(e)}"
+        )
 
 @router.patch("/predictions/{prediction_id}/fertilizer-application")
 async def update_fertilizer_application(

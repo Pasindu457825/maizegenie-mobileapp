@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { useLanguage } from "../../context/LanguageContext";
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 import {
   View,
   Text,
@@ -9,6 +12,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -28,6 +32,8 @@ import {
   MapPin,
   Calendar,
   Sprout,
+  Download,
+  FileText,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BarChart, LineChart, ProgressChart } from "react-native-chart-kit";
@@ -48,6 +54,16 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
 
   const { language: lang } = useLanguage();
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
+  
+  const [downloadingReport, setDownloadingReport] = useState(false);
+  
+  // Get API URL based on platform
+  const getApiUrl = () => {
+    if (Platform.OS === 'android' || Platform.OS === 'ios') {
+      return process.env.EXPO_PUBLIC_API_BASE || 'http://192.168.8.117:8000';
+    }
+    return 'http://localhost:8000';
+  };
   const [fadeAnim] = useState(new Animated.Value(0));
 
   React.useEffect(() => {
@@ -105,6 +121,150 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   // State for comparison table and impact factor filter
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [impactFilter, setImpactFilter] = useState<'all' | 'positive' | 'negative'>('all');
+  
+  // Download report function for React Native
+  const handleDownloadReport = async () => {
+    setDownloadingReport(true);
+    
+    try {
+      // Get the original request data from route params
+      const requestData = (route.params as any)?.requestData;
+      
+      if (!requestData) {
+        Alert.alert(
+          language === "si" ? "දෝෂයකි" : "Error",
+          language === "si" 
+            ? "වාර්තාව බාගත කිරීමට අවශ්‍ය දත්ත නොමැත"
+            : "Required data not available for report generation"
+        );
+        setDownloadingReport(false);
+        return;
+      }
+      
+      // Generate filename
+      const district = requestData?.soil_profile?.district || 'Unknown';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const filename = `MaizeGenie_YieldReport_${district}_${timestamp}.pdf`;
+      const fileUri = FileSystem.documentDirectory + filename;
+      
+      const apiUrl = getApiUrl();
+      
+      // Use XMLHttpRequest for better React Native compatibility
+      const downloadPDF = () => {
+        return new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('POST', `${apiUrl}/api/v1/yield-prediction/officer/report`);
+          xhr.setRequestHeader('Content-Type', 'application/json');
+          xhr.responseType = 'arraybuffer';
+          
+          xhr.onload = async () => {
+            if (xhr.status === 200) {
+              try {
+                // Convert array buffer to base64
+                const arrayBuffer = xhr.response;
+                const bytes = new Uint8Array(arrayBuffer);
+                let binary = '';
+                const chunkSize = 0x8000; // Process in chunks to avoid stack overflow
+                for (let i = 0; i < bytes.length; i += chunkSize) {
+                  const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+                  binary += String.fromCharCode.apply(null, Array.from(chunk));
+                }
+                
+                // Use base64 encoding that works in React Native
+                const base64 = binary.split('').map(char => {
+                  return char.charCodeAt(0).toString(16).padStart(2, '0');
+                }).join('');
+                
+                // Actually, let's use a simpler approach - write the buffer directly
+                // Convert to base64 using a library-free method
+                const base64String = arrayBufferToBase64(arrayBuffer);
+                
+                await FileSystem.writeAsStringAsync(fileUri, base64String, {
+                  encoding: FileSystem.EncodingType.Base64,
+                });
+                
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            } else {
+              reject(new Error(`Report generation failed: ${xhr.status}`));
+            }
+          };
+          
+          xhr.onerror = () => reject(new Error('Network request failed'));
+          xhr.send(JSON.stringify(requestData));
+        });
+      };
+      
+      // Helper function to convert ArrayBuffer to base64
+      const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+        const bytes = new Uint8Array(buffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        // Use Buffer if available, otherwise manual conversion
+        if (typeof Buffer !== 'undefined') {
+          return Buffer.from(binary, 'binary').toString('base64');
+        }
+        // Fallback for environments without Buffer
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        let result = '';
+        let i = 0;
+        while (i < binary.length) {
+          const a = binary.charCodeAt(i++);
+          const b = i < binary.length ? binary.charCodeAt(i++) : 0;
+          const c = i < binary.length ? binary.charCodeAt(i++) : 0;
+          
+          const bitmap = (a << 16) | (b << 8) | c;
+          result += chars[(bitmap >> 18) & 63];
+          result += chars[(bitmap >> 12) & 63];
+          result += i - 2 < binary.length ? chars[(bitmap >> 6) & 63] : '=';
+          result += i - 1 < binary.length ? chars[bitmap & 63] : '=';
+        }
+        return result;
+      };
+      
+      await downloadPDF();
+      
+      // Step 4: Share the file
+      const isAvailable = await Sharing.isAvailableAsync();
+      
+      if (isAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: language === "si" ? "වාර්තාව බෙදාගන්න" : "Share Report",
+          UTI: 'com.adobe.pdf',
+        });
+        
+        Alert.alert(
+          language === "si" ? "සාර්ථකයි" : "Success",
+          language === "si" 
+            ? "වාර්තාව සාර්ථකව ජනනය කරන ලදී"
+            : "Report generated successfully"
+        );
+      } else {
+        Alert.alert(
+          language === "si" ? "සාර්ථකයි" : "Success",
+          language === "si" 
+            ? `වාර්තාව සුරකින ලදී: ${fileUri}`
+            : `Report saved to: ${fileUri}`
+        );
+      }
+      
+    } catch (error) {
+      console.error('Report download error:', error);
+      Alert.alert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si" 
+          ? "වාර්තාව බාගත කිරීමේදී දෝෂයක් ඇතිවිය"
+          : "Failed to download report. Please try again."
+      );
+    } finally {
+      setDownloadingReport(false);
+    }
+  };
   
   const analysisData = data?.analysis_data || {};
   const impactFactors = data?.impact_factors || [];
@@ -244,6 +404,17 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
             <Text style={styles.headerTitle}>{content[language].title}</Text>
             <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
           </View>
+          <TouchableOpacity 
+            onPress={handleDownloadReport} 
+            style={styles.downloadButton}
+            disabled={downloadingReport}
+          >
+            {downloadingReport ? (
+              <ActivityIndicator color="#ffffff" size="small" />
+            ) : (
+              <Download color="#ffffff" size={24} />
+            )}
+          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -925,7 +1096,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   backButton: {
-    marginRight: 12,
+    padding: 8,
+  },
+  downloadButton: {
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 8,
   },
   headerCenter: {
     flex: 1,

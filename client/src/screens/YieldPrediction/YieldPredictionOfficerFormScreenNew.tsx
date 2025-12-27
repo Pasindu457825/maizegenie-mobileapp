@@ -412,6 +412,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
                 navigation.navigate("YieldPredictionOfficerResultsScreen", {
                     data: result,
                     language,
+                    requestData: payload, // Pass original request for report generation
                 });
             } else {
                 // Handle error message - convert array to string if needed

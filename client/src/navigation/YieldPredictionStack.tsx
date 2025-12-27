@@ -28,7 +28,7 @@ export type YieldPredictionStackParamList = {
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
   YieldPredictionResultsScreen: { data: any; language: 'si' | 'en' };
   YieldPredictionOfficerFormScreen: { language: 'si' | 'en' };
-  YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en' };
+  YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en'; requestData?: any };
   FertilizerAdvisorLanding: undefined;
   FertilizerAdvisorOfficerLanding: undefined;
   RuleBasedAdvisoryInputScreen: undefined;
