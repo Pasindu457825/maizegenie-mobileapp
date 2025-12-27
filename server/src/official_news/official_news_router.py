@@ -59,7 +59,15 @@ class OfficialNewsUpdate(BaseModel):
 @router.post("/admin")
 def add_official_news(payload: OfficialNewsCreate):
 
-    if payload.category not in ["price", "weather", "policy", "alert"]:
+    if payload.category not in [        "price",
+        "weather",
+        "policy",
+        "alert",
+        "pest",
+        "disease",
+        "fertilizer",
+        "cultivation",
+        'program']:
         raise HTTPException(status_code=400, detail="Invalid category")
 
     data = {
@@ -106,7 +114,15 @@ def update_official_news(news_id: str, payload: OfficialNewsUpdate):
             update_data[k] = str(v) if isinstance(v, HttpUrl) else v
 
     if "category" in update_data:
-        if update_data["category"] not in ["price", "weather", "policy", "alert"]:
+        if update_data["category"] not in [        "price",
+        "weather",
+        "policy",
+        "alert",
+        "pest",
+        "disease",
+        "fertilizer",
+        "cultivation",
+        'program']:
             raise HTTPException(status_code=400, detail="Invalid category")
 
     if not update_data:
@@ -174,7 +190,6 @@ def get_official_news():
         .table("official_news")
         .select("*")
         .eq("is_active", True)
-        .eq("is_visible_to_farmers", True)
         .eq("is_visible_to_farmers", True)
         .order("updated_at", desc=True)
         .execute()

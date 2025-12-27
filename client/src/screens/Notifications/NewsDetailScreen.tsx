@@ -20,7 +20,16 @@ interface NewsDetail {
   id: string;
   title: string;
   summary: string | null;
-  category: "price" | "weather" | "policy" | "alert";
+  category:
+    | "price"
+    | "weather"
+    | "policy"
+    | "alert"
+    | "pest"
+    | "disease"
+    | "fertilizer"
+    | "cultivation"
+    | "program";
   source: string;
   district?: string | null;
   created_at: string;
@@ -58,20 +67,32 @@ export default function NewsDetailScreen() {
     fetchNewsDetail();
   }, [newsId]);
 
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case "price":
-        return "මිල";
-      case "weather":
-        return "කාලගුණය";
-      case "policy":
-        return "ප්‍රතිපත්ති";
-      case "alert":
-        return "අනතුරු ඇඟවීම";
-      default:
-        return category;
-    }
-  };
+const getCategoryLabel = (category: string) => {
+  switch (category) {
+    case "price":
+      return "මිල";
+    case "weather":
+      return "කාලගුණය";
+    case "policy":
+      return "ප්‍රතිපත්ති";
+    case "alert":
+      return "අනතුරු ඇඟවීම";
+
+    case "pest":
+      return "පළිබෝධ";
+    case "disease":
+      return "රෝග";
+    case "fertilizer":
+      return "පොහොර";
+    case "cultivation":
+      return "වගා උපදෙස්";
+    case "program":
+      return "වැඩසටහන්";
+
+    default:
+      return category;
+  }
+};
 
   /* ================= STATES ================= */
   if (loading) {
@@ -143,9 +164,7 @@ export default function NewsDetailScreen() {
           )}
 
           {/* SUMMARY */}
-          {news.summary && (
-            <Text style={styles.summary}>{news.summary}</Text>
-          )}
+          {news.summary && <Text style={styles.summary}>{news.summary}</Text>}
 
           {/* LINK */}
           {news.url && (

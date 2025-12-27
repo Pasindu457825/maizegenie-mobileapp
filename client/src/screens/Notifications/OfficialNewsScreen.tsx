@@ -25,7 +25,16 @@ interface OfficialNews {
   id: string;
   title: string;
   summary: string;
-  category: "price" | "weather" | "policy" | "alert";
+  category:
+    | "price"
+    | "weather"
+    | "policy"
+    | "alert"
+    | "pest"
+    | "disease"
+    | "fertilizer"
+    | "cultivation"
+    | "program";
   source: string;
   district?: string;
   language: string;
@@ -108,35 +117,59 @@ export default function OfficialNewsScreen() {
   // =======================
   // Helpers
   // =======================
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "price":
-        return "#2563eb";
-      case "weather":
-        return "#0891b2";
-      case "policy":
-        return "#7c3aed";
-      case "alert":
-        return "#dc2626";
-      default:
-        return "#6b7280";
-    }
-  };
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case "price":
+      return "#2563eb"; // Blue
+    case "weather":
+      return "#0891b2"; // Cyan
+    case "policy":
+      return "#7c3aed"; // Purple
+    case "alert":
+      return "#dc2626"; // Red
 
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case "price":
-        return "මිල";
-      case "weather":
-        return "කාලගුණය";
-      case "policy":
-        return "ප්‍රතිපත්ති";
-      case "alert":
-        return "අනතුරු ඇඟවීම";
-      default:
-        return category;
-    }
-  };
+    case "pest":
+      return "#b45309"; // Brown
+    case "disease":
+      return "#991b1b"; // Dark red
+    case "fertilizer":
+      return "#15803d"; // Deep green
+    case "cultivation":
+      return "#0f766e"; // Teal
+    case "program":
+      return "#1d4ed8"; // Indigo / official
+
+    default:
+      return "#6b7280"; // Gray
+  }
+};
+
+const getCategoryLabel = (category: string) => {
+  switch (category) {
+    case "price":
+      return "මිල";
+    case "weather":
+      return "කාලගුණය";
+    case "policy":
+      return "ප්‍රතිපත්ති";
+    case "alert":
+      return "අනතුරු ඇඟවීම";
+
+    case "pest":
+      return "පළිබෝධ";
+    case "disease":
+      return "රෝග";
+    case "fertilizer":
+      return "පොහොර";
+    case "cultivation":
+      return "වගා උපදෙස්";
+    case "program":
+      return "වැඩසටහන්";
+
+    default:
+      return category;
+  }
+};
 
   // =======================
   // 🔑 FIXED navigation

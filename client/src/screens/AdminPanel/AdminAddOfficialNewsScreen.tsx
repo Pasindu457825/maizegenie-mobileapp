@@ -15,6 +15,7 @@ import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
 import { supabase } from "../../lib/supabase"; // ✅ ADD THIS
 import { Platform } from "react-native"; // ✅ REQUIRED
+import { Picker } from "@react-native-picker/picker";
 
 // 🌐 Language
 import { useLanguage } from "../../context/LanguageContext";
@@ -60,6 +61,18 @@ export default function AdminAddOfficialNewsScreen() {
       imageUrl: "Image URL (optional)",
     },
   };
+
+  const CATEGORY_OPTIONS = [
+    { value: "price", si: "මිල", en: "Price" },
+    { value: "weather", si: "කාලගුණය", en: "Weather" },
+    { value: "policy", si: "ප්‍රතිපත්ති", en: "Policy" },
+    { value: "alert", si: "අනතුරු ඇඟවීම", en: "Alert" },
+    { value: "pest", si: "පළිබෝධ", en: "Pest" },
+    { value: "disease", si: "රෝග", en: "Disease" },
+    { value: "fertilizer", si: "පොහොර", en: "Fertilizer" },
+    { value: "cultivation", si: "වගා උපදෙස්", en: "Cultivation" },
+    { value: "program", si: "වැඩසටහන්", en: "Program" },
+  ];
 
   const t = content[uiLang];
 
@@ -137,7 +150,7 @@ export default function AdminAddOfficialNewsScreen() {
         source,
         url: url || null,
         image_url: imageUrl,
-        district: district || null, 
+        district: district || null,
       });
 
       Alert.alert("Success", "News published");
@@ -208,13 +221,20 @@ export default function AdminAddOfficialNewsScreen() {
         />
 
         <Text style={styles.label}>{t.category}</Text>
-        <TextInput
-          style={styles.input}
-          value={category}
-          onChangeText={setCategory}
-          placeholder="price / weather / policy / alert"
-          autoCapitalize="none"
-        />
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={category}
+            onValueChange={(value) => setCategory(value)}
+          >
+            {CATEGORY_OPTIONS.map((item) => (
+              <Picker.Item
+                key={item.value}
+                label={uiLang === "si" ? item.si : item.en}
+                value={item.value}
+              />
+            ))}
+          </Picker>
+        </View>
 
         <Text style={styles.label}>{t.source}</Text>
         <TextInput
@@ -350,5 +370,12 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
+  },
+  pickerWrapper: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
   },
 });

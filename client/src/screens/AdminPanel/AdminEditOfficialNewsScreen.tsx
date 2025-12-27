@@ -17,12 +17,25 @@ import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
+import { Picker } from "@react-native-picker/picker";
 
 export default function AdminEditOfficialNewsScreen({
   route,
   navigation,
 }: any) {
   const { newsId } = route.params;
+
+  const CATEGORY_OPTIONS = [
+    { value: "price", label: "මිල / Price" },
+    { value: "weather", label: "කාලගුණය / Weather" },
+    { value: "policy", label: "ප්‍රතිපත්ති / Policy" },
+    { value: "alert", label: "අනතුරු ඇඟවීම / Alert" },
+    { value: "pest", label: "පළිබෝධ / Pest" },
+    { value: "disease", label: "රෝග / Disease" },
+    { value: "fertilizer", label: "පොහොර / Fertilizer" },
+    { value: "cultivation", label: "වගා උපදෙස් / Cultivation" },
+    { value: "program", label: "වැඩසටහන් / Program" },
+  ];
 
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -269,13 +282,21 @@ export default function AdminEditOfficialNewsScreen({
           <View style={styles.row}>
             <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>Category</Text>
-              <TextInput
-                value={category}
-                onChangeText={setCategory}
-                placeholder="price / weather / policy"
-                placeholderTextColor="#94A3B8"
-                style={styles.input}
-              />
+
+              <View style={styles.pickerWrapper}>
+                <Picker
+                  selectedValue={category}
+                  onValueChange={(value) => setCategory(value)}
+                >
+                  {CATEGORY_OPTIONS.map((item) => (
+                    <Picker.Item
+                      key={item.value}
+                      label={item.label}
+                      value={item.value}
+                    />
+                  ))}
+                </Picker>
+              </View>
             </View>
 
             <View style={styles.field}>
@@ -538,4 +559,12 @@ const styles = StyleSheet.create({
     color: "#0F172A",
     fontWeight: "700",
   },
+  pickerWrapper: {
+  backgroundColor: "#F8FAFC",
+  borderWidth: 1,
+  borderColor: "#E2E8F0",
+  borderRadius: 12,
+  overflow: "hidden",
+},
+
 });

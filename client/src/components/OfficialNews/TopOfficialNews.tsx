@@ -22,7 +22,16 @@ import { useCallback } from "react";
 interface NewsItem {
   id: string;
   title: string;
-  category: "price" | "weather" | "policy" | "alert";
+  category:
+    | "price"
+    | "weather"
+    | "policy"
+    | "alert"
+    | "pest"
+    | "disease"
+    | "fertilizer"
+    | "cultivation"
+    | "program";
   image_url?: string;
   district?: string | null; // ✅ NEW
   is_active: boolean;
@@ -52,6 +61,11 @@ const translations: Record<
       weather: "කාලගුණය",
       policy: "ප්‍රතිපත්ති",
       alert: "අනතුරු ඇඟවීම",
+      pest: "පළිබෝධ",
+      disease: "රෝග",
+      fertilizer: "පොහොර",
+      cultivation: "වගා උපදෙස්",
+      program: "වැඩසටහන්",
     },
   },
   en: {
@@ -63,9 +77,15 @@ const translations: Record<
       weather: "Weather",
       policy: "Policy",
       alert: "Alert",
+      pest: "Pest",
+      disease: "Disease",
+      fertilizer: "Fertilizer",
+      cultivation: "Cultivation",
+      program: "Program",
     },
   },
 };
+
 
 export default function TopOfficialNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -123,38 +143,62 @@ export default function TopOfficialNews() {
   // =======================
   // Category color
   // =======================
-  const categoryColor = (cat: string) => {
-    switch (cat) {
-      case "price":
-        return "#059669"; // Emerald green
-      case "weather":
-        return "#0d9488"; // Teal
-      case "policy":
-        return "#16a34a"; // Green
-      case "alert":
-        return "#ea580c"; // Orange (for alerts)
-      default:
-        return "#10b981"; // Default green
-    }
-  };
+const categoryColor = (cat: string) => {
+  switch (cat) {
+    case "price":
+      return "#059669"; // Emerald green
+    case "weather":
+      return "#0d9488"; // Teal
+    case "policy":
+      return "#16a34a"; // Green
+    case "alert":
+      return "#ea580c"; // Orange (alerts)
+
+    case "pest":
+      return "#b45309"; // Brown (pests)
+    case "disease":
+      return "#991b1b"; // Dark red (diseases)
+    case "fertilizer":
+      return "#15803d"; // Deep green (nutrition)
+    case "cultivation":
+      return "#0f766e"; // Blue-green (practices)
+    case "program":
+      return "#1d4ed8"; // Blue (programs)
+
+    default:
+      return "#10b981"; // Default green
+  }
+};
 
   // =======================
   // Category icon
   // =======================
-  const categoryIcon = (cat: string) => {
-    switch (cat) {
-      case "price":
-        return "💰";
-      case "weather":
-        return "🌤️";
-      case "policy":
-        return "📋";
-      case "alert":
-        return "⚠️";
-      default:
-        return "📢";
-    }
-  };
+ const categoryIcon = (cat: string) => {
+  switch (cat) {
+    case "price":
+      return "💰";
+    case "weather":
+      return "🌤️";
+    case "policy":
+      return "📋";
+    case "alert":
+      return "⚠️";
+
+    case "pest":
+      return "🐛";
+    case "disease":
+      return "🦠";
+    case "fertilizer":
+      return "🌱";
+    case "cultivation":
+      return "🌾";
+    case "program":
+      return "📅";
+
+    default:
+      return "📢";
+  }
+};
 
   // =======================
   // UI
