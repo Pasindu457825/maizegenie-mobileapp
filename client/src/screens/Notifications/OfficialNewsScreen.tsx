@@ -105,12 +105,26 @@ export default function OfficialNewsScreen() {
         : `${API_BASE}/official-news`;
 
       const res = await axios.get(endpoint);
-      setNews(res.data || []);
+
+      const data = res.data.filter((n: OfficialNews) => {
+        // ❌ Deleted news → never show to anyone (farmer & officer)
+        if (!n.is_active) return false;
+
+        // 👨‍🌾 Farmer: only visible news
+        if (isFarmer) {
+          return n.is_visible_to_farmers === true;
+        }
+
+        // 👮 Officer: see all active (even hidden)
+        return true;
+      });
+
+      setNews(data || []);
     } catch (err) {
       console.log("❌ FETCH NEWS ERROR:", err);
       setError("පුවත් ලබාගැනීමට නොහැකි විය");
     } finally {
-      setLoading(false); // 🔥 THIS WAS MISSING
+      setLoading(false);
     }
   };
 

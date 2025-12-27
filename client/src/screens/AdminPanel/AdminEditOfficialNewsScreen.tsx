@@ -18,6 +18,8 @@ import * as ImagePicker from "expo-image-picker";
 import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
 import { Picker } from "@react-native-picker/picker";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback } from "react";
 
 export default function AdminEditOfficialNewsScreen({
   route,
@@ -205,6 +207,7 @@ export default function AdminEditOfficialNewsScreen({
 
   const previewUri = imageAsset?.uri || imageUrl || null;
 
+
   return (
     <KeyboardAvoidingView
       style={styles.root}
@@ -280,7 +283,8 @@ export default function AdminEditOfficialNewsScreen({
           </View>
 
           <View style={styles.row}>
-            <View style={[styles.field, { flex: 1 }]}>
+            {/* Category */}
+            <View style={[styles.field, { flex: 1.2 }]}>
               <Text style={styles.label}>Category</Text>
 
               <View style={styles.pickerWrapper}>
@@ -299,12 +303,15 @@ export default function AdminEditOfficialNewsScreen({
               </View>
             </View>
 
-            <View style={styles.field}>
+            <View style={{ width: 12 }} />
+
+            {/* District */}
+            <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>District (optional)</Text>
               <TextInput
                 value={district}
                 onChangeText={setDistrict}
-                placeholder="Anuradhapura / Polonnaruwa / Kurunegala"
+                placeholder="Kurunegala"
                 placeholderTextColor="#94A3B8"
                 style={styles.input}
                 autoCapitalize="words"
@@ -313,12 +320,13 @@ export default function AdminEditOfficialNewsScreen({
 
             <View style={{ width: 12 }} />
 
+            {/* Source */}
             <View style={[styles.field, { flex: 1 }]}>
               <Text style={styles.label}>Source</Text>
               <TextInput
                 value={source}
                 onChangeText={setSource}
-                placeholder="HARTI / DoA / ..."
+                placeholder="HARTI"
                 placeholderTextColor="#94A3B8"
                 style={styles.input}
               />
@@ -560,11 +568,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   pickerWrapper: {
-  backgroundColor: "#F8FAFC",
-  borderWidth: 1,
-  borderColor: "#E2E8F0",
-  borderRadius: 12,
-  overflow: "hidden",
-},
-
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
 });
