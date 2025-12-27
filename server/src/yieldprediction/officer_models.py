@@ -132,7 +132,7 @@ class PredictionData(BaseModel):
     yield_unit: str = Field(default="kg/ha", description="Yield unit")
     confidence_score: float = Field(..., ge=0, le=1, description="Confidence score (0-1)")
     yield_category: str = Field(..., description="Yield category (High/Medium/Low)")
-    
+    prediction_method: str = Field(..., description="Method used: ml_model or rule_based")
     harvest_window: dict = Field(..., description="Harvest window information")
 
 class OfficerPredictionResponse(BaseModel):
@@ -148,6 +148,7 @@ class OfficerPredictionResponse(BaseModel):
     impact_factors: List[ImpactFactor]
     recommendations: List[Recommendation]
     officer_insights: OfficerInsights
+    analysis_data: dict = Field(..., description="Analysis data for charts and visualization")
 
 class PredictionErrorResponse(BaseModel):
     status: Literal['error'] = 'error'
