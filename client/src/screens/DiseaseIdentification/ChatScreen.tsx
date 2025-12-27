@@ -71,6 +71,10 @@ export default function ChatScreen({ route, navigation }: any) {
   const incomingRoomId = route?.params?.roomId ?? null;
   const incomingUserId = route?.params?.userId ?? null;
   const isOfficer = !!incomingRoomId;
+  
+  // Params for prefilled message (from predictions)
+  const prefilledMessage = route?.params?.prefilledMessage ?? "";
+  const context = route?.params?.context ?? null;
 
   // Farmer values
   const farmerId = user?.id ?? null;
@@ -78,7 +82,7 @@ export default function ChatScreen({ route, navigation }: any) {
 
   const [roomId, setRoomId] = useState<string | null>(incomingRoomId);
   const [messages, setMessages] = useState<any[]>([]);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(prefilledMessage);
   const [dateGroups, setDateGroups] = useState<Record<string, any[]>>({});
   const [isLoadingChat, setIsLoadingChat] = useState(true);
   const flatListRef = useRef<FlatList>(null);
