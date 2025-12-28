@@ -22,7 +22,15 @@ import { Picker } from "@react-native-picker/picker";
 import { useLanguage } from "../../context/LanguageContext";
 
 // Icons
-import { ArrowLeft, Send, Upload, FileText, Globe, Tag, MapPin } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Send,
+  Upload,
+  FileText,
+  Globe,
+  Tag,
+  MapPin,
+} from "lucide-react-native";
 
 export default function AdminAddOfficialNewsScreen() {
   const navigation = useNavigation();
@@ -90,34 +98,38 @@ export default function AdminAddOfficialNewsScreen() {
   // 📝 Form state
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
-  const [category, setCategory] = useState("price");
+  const [category, setCategory] = useState("");
   const [source, setSource] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [imageAsset, setImageAsset] = useState<any | null>(null);
   const [district, setDistrict] = useState("");
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   const pickImage = async () => {
-    try {
-      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert(
-          "Permission required",
-          "Please allow photo access to pick an image."
-        );
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission required", "Allow photo access");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      const asset = result.assets[0];
+
+      // ✅ size validation (5MB)
+      if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+        Alert.alert("Image too large", "Max size is 5MB");
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        quality: 0.8,
-      });
-
-      if (!result.canceled) {
-        setImageAsset(result.assets[0]);
-      }
-    } catch (e: any) {
-      Alert.alert("Error", e?.message || "Image picker failed");
+      setImageAsset(asset);
     }
   };
 
@@ -149,8 +161,41 @@ export default function AdminAddOfficialNewsScreen() {
 
   // 🚀 Submit
   const submitNews = async () => {
-    if (!title || !category || !source) {
-      Alert.alert(t.error, "Please fill Title, Category, and Source");
+    let hasError = false;
+
+    // 🔴 Title validation
+    if (!title.trim()) {
+      setTitleError(uiLang === "si" ? "ශීර්ෂය අවශ්‍යයි" : "Title is required");
+      hasError = true;
+    }
+
+    // 🔴 Source validation
+    if (!source.trim()) {
+      setSourceError(
+        uiLang === "si" ? "මූලාශ්‍රය අවශ්‍යයි" : "Source is required"
+      );
+      hasError = true;
+    }
+
+    // 🔴 Category validation
+    if (!category) {
+      setCategoryError(
+        uiLang === "si" ? "වර්ගය තෝරන්න" : "Category is required"
+      );
+      hasError = true;
+    }
+
+    // ❌ Stop submit if any required field missing
+    if (hasError) return;
+
+    // 🔴 URL format validation (optional field)
+    if (url && !isValidUrl(url)) {
+      Alert.alert(
+        uiLang === "si" ? "වලංගු ලින්ක් එකක් ඇතුලත් කරන්න" : "Invalid URL",
+        uiLang === "si"
+          ? "කරුණාකර නිවැරදි URL එකක් ඇතුලත් කරන්න"
+          : "Please enter a valid URL"
+      );
       return;
     }
 
@@ -164,10 +209,10 @@ export default function AdminAddOfficialNewsScreen() {
       }
 
       await axios.post(`${API_BASE}/official-news/admin`, {
-        title,
+        title: title.trim(),
         summary,
         category: category.trim().toLowerCase(),
-        source,
+        source: source.trim(),
         url: url || null,
         image_url: imageUrl,
         district: district || null,
@@ -175,13 +220,18 @@ export default function AdminAddOfficialNewsScreen() {
 
       Alert.alert(t.success, "");
 
+      // 🟢 Reset form
       setTitle("");
       setSummary("");
-      setCategory("price");
+      setCategory("");
       setSource("");
       setUrl("");
       setImageAsset(null);
       setDistrict("");
+
+      setTitleError(null);
+      setSourceError(null);
+      setCategoryError(null);
     } catch (err: any) {
       console.log("❌ SUBMIT ERROR:", err);
       console.log("❌ RESPONSE:", err?.response?.data);
@@ -194,12 +244,21 @@ export default function AdminAddOfficialNewsScreen() {
     }
   };
 
+  const isValidUrl = (value: string) => {
+    try {
+      new URL(value.startsWith("http") ? value : `https://${value}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   return (
     <View style={styles.wrapper}>
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
@@ -214,8 +273,8 @@ export default function AdminAddOfficialNewsScreen() {
       </View>
 
       {/* FORM */}
-      <ScrollView 
-        style={styles.container} 
+      <ScrollView
+        style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -224,7 +283,9 @@ export default function AdminAddOfficialNewsScreen() {
         <View style={styles.card}>
           <View style={styles.labelRow}>
             <Upload size={16} color="#0F172A" />
-            <Text style={styles.label}>{t.imageLabel} {t.optional}</Text>
+            <Text style={styles.label}>
+              {t.imageLabel} {t.optional}
+            </Text>
           </View>
 
           <TouchableOpacity
@@ -256,19 +317,25 @@ export default function AdminAddOfficialNewsScreen() {
             </View>
           </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, titleError && { borderColor: "#DC2626" }]}
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(text) => {
+              setTitle(text);
+              setTitleError(null);
+            }}
             placeholder={t.newsTitle}
-            placeholderTextColor="#94A3B8"
           />
+
+          {titleError && <Text style={styles.errorText}>{titleError}</Text>}
         </View>
 
         {/* Summary */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
             <FileText size={16} color="#0F172A" />
-            <Text style={styles.label}>{t.summary} {t.optional}</Text>
+            <Text style={styles.label}>
+              {t.summary} {t.optional}
+            </Text>
           </View>
           <TextInput
             style={[styles.input, styles.textarea]}
@@ -289,11 +356,30 @@ export default function AdminAddOfficialNewsScreen() {
               <Text style={styles.badgeText}>{t.required}</Text>
             </View>
           </View>
-          <View style={styles.pickerBox}>
+          <View
+            style={[
+              styles.pickerBox,
+              categoryError && { borderColor: "#DC2626" }, // 🔴 red border
+            ]}
+          >
             <Picker
               selectedValue={category}
-              onValueChange={(value) => setCategory(value)}
+              onValueChange={(value) => {
+                setCategory(value);
+                setCategoryError(null); // 🟢 error clear when selected
+              }}
             >
+              {/* 🔹 Placeholder option */}
+              <Picker.Item
+                label={
+                  uiLang === "si"
+                    ? "-- වර්ගය තෝරන්න --"
+                    : "-- Select Category --"
+                }
+                value=""
+                color="#94A3B8"
+              />
+
               {CATEGORY_OPTIONS.map((item) => (
                 <Picker.Item
                   key={item.value}
@@ -303,13 +389,20 @@ export default function AdminAddOfficialNewsScreen() {
               ))}
             </Picker>
           </View>
+
+          {/* 🔴 Error text */}
+          {categoryError && (
+            <Text style={styles.errorText}>{categoryError}</Text>
+          )}
         </View>
 
         {/* District */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
             <MapPin size={16} color="#0F172A" />
-            <Text style={styles.label}>{t.district} {t.optional}</Text>
+            <Text style={styles.label}>
+              {t.district} {t.optional}
+            </Text>
           </View>
           <TextInput
             style={styles.input}
@@ -331,19 +424,25 @@ export default function AdminAddOfficialNewsScreen() {
             </View>
           </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, sourceError && { borderColor: "#DC2626" }]}
             value={source}
-            onChangeText={setSource}
+            onChangeText={(text) => {
+              setSource(text);
+              setSourceError(null);
+            }}
             placeholder="HARTI / Met Dept / DMC / Gazette"
-            placeholderTextColor="#94A3B8"
           />
+
+          {sourceError && <Text style={styles.errorText}>{sourceError}</Text>}
         </View>
 
         {/* URL */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
             <Globe size={16} color="#0F172A" />
-            <Text style={styles.label}>{t.url} {t.optional}</Text>
+            <Text style={styles.label}>
+              {t.url} {t.optional}
+            </Text>
           </View>
           <TextInput
             style={styles.input}
@@ -518,5 +617,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "900",
     letterSpacing: 0.2,
+  },
+  errorText: {
+    marginTop: 6,
+    marginLeft: 4,
+    color: "#DC2626",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
