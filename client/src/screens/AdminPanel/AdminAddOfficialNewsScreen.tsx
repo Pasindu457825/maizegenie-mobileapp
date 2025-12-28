@@ -110,6 +110,7 @@ export default function AdminAddOfficialNewsScreen() {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -220,33 +221,7 @@ export default function AdminAddOfficialNewsScreen() {
         district: district || null,
       });
 
-      Alert.alert(
-        t.success,
-        "",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // 🟢 Reset form
-              setTitle("");
-              setSummary("");
-              setCategory("");
-              setSource("");
-              setUrl("");
-              setImageAsset(null);
-              setDistrict("");
-
-              setTitleError(null);
-              setSourceError(null);
-              setCategoryError(null);
-
-              // 🚀 Navigate to Home
-              navigation.goBack();
-            },
-          },
-        ],
-        { cancelable: false }
-      );
+      setShowSuccessModal(true);
     } catch (err: any) {
       console.log("❌ SUBMIT ERROR:", err);
       console.log("❌ RESPONSE:", err?.response?.data);
@@ -530,6 +505,51 @@ export default function AdminAddOfficialNewsScreen() {
             </View>
           </View>
         </Modal>
+        <Modal visible={showSuccessModal} transparent animationType="fade">
+          <View style={styles.successOverlay}>
+            <View style={styles.successCard}>
+              <View style={styles.successIconCircle}>
+                <Send size={34} color="#2E7D32" />
+              </View>
+
+              <Text style={styles.successTitle}>
+                {uiLang === "si"
+                  ? "නිල ප්‍රවෘත්තිය සාර්ථකව ප්‍රකාශිතයි"
+                  : "Official News Published"}
+              </Text>
+
+              <Text style={styles.successSubtitle}>
+                {uiLang === "si"
+                  ? "ගොවීන්ට දැන් මෙම දැනුම්දීම් දෘශ්‍යමාන වේ"
+                  : "This update is now visible to farmers"}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.successBtn}
+                activeOpacity={0.9}
+                onPress={() => {
+                  // reset form
+                  setTitle("");
+                  setSummary("");
+                  setCategory("");
+                  setSource("");
+                  setUrl("");
+                  setImageAsset(null);
+                  setDistrict("");
+
+                  setTitleError(null);
+                  setSourceError(null);
+                  setCategoryError(null);
+
+                  setShowSuccessModal(false);
+                  navigation.goBack();
+                }}
+              >
+                <Text style={styles.successBtnText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
@@ -792,4 +812,61 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     fontSize: 14,
   },
+  successOverlay: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.4)",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+successCard: {
+  backgroundColor: "#FFFFFF",
+  borderRadius: 22,
+  padding: 24,
+  width: "85%",
+  alignItems: "center",
+  borderWidth: 1.5,
+  borderColor: "#C8E6C9",
+},
+
+successIconCircle: {
+  width: 72,
+  height: 72,
+  borderRadius: 36,
+  backgroundColor: "#E8F5E9",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 14,
+},
+
+successTitle: {
+  fontSize: 16,
+  fontWeight: "900",
+  color: "#1B5E20",
+  textAlign: "center",
+  marginBottom: 6,
+},
+
+successSubtitle: {
+  fontSize: 13,
+  color: "#4CAF50",
+  textAlign: "center",
+  fontWeight: "600",
+  marginBottom: 18,
+},
+
+successBtn: {
+  backgroundColor: "#2E7D32",
+  paddingHorizontal: 34,
+  paddingVertical: 12,
+  borderRadius: 14,
+},
+
+successBtnText: {
+  color: "#FFFFFF",
+  fontSize: 14,
+  fontWeight: "900",
+  letterSpacing: 0.4,
+},
+
 });
