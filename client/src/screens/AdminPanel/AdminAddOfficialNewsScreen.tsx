@@ -10,6 +10,7 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import axios from "axios";
 import { API_BASE } from "../../services/api";
@@ -18,7 +19,6 @@ import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../lib/supabase";
 import { Picker } from "@react-native-picker/picker";
 import { ROUTES } from "../../constants";
-
 
 // 🌐 Language
 import { useLanguage } from "../../context/LanguageContext";
@@ -109,7 +109,7 @@ export default function AdminAddOfficialNewsScreen() {
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
-
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -277,7 +277,7 @@ export default function AdminAddOfficialNewsScreen() {
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <ArrowLeft size={22} color="#64748B" />
+            <ArrowLeft size={22} color="#E8F5E9" />
           </TouchableOpacity>
 
           <View style={styles.headerTextContainer}>
@@ -297,7 +297,9 @@ export default function AdminAddOfficialNewsScreen() {
         {/* Image Upload Section */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <Upload size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <Upload size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>
               {t.imageLabel} {t.optional}
             </Text>
@@ -315,8 +317,13 @@ export default function AdminAddOfficialNewsScreen() {
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <Upload size={28} color="#94A3B8" />
+                <View style={styles.uploadIconContainer}>
+                  <Upload size={32} color="#4CAF50" />
+                </View>
                 <Text style={styles.placeholderText}>{t.selectImage}</Text>
+                <Text style={styles.placeholderSubtext}>
+                  {uiLang === "si" ? "5MB දක්වා" : "Max 5MB"}
+                </Text>
               </View>
             )}
           </TouchableOpacity>
@@ -325,20 +332,23 @@ export default function AdminAddOfficialNewsScreen() {
         {/* Title */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <FileText size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <FileText size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>{t.newsTitle}</Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{t.required}</Text>
             </View>
           </View>
           <TextInput
-            style={[styles.input, titleError && { borderColor: "#DC2626" }]}
+            style={[styles.input, titleError && styles.inputError]}
             value={title}
             onChangeText={(text) => {
               setTitle(text);
               setTitleError(null);
             }}
             placeholder={t.newsTitle}
+            placeholderTextColor="#A5D6A7"
           />
 
           {titleError && <Text style={styles.errorText}>{titleError}</Text>}
@@ -347,7 +357,9 @@ export default function AdminAddOfficialNewsScreen() {
         {/* Summary */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <FileText size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <FileText size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>
               {t.summary} {t.optional}
             </Text>
@@ -358,54 +370,40 @@ export default function AdminAddOfficialNewsScreen() {
             onChangeText={setSummary}
             multiline
             placeholder={t.summary}
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#A5D6A7"
           />
         </View>
 
         {/* Category */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <Tag size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <Tag size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>{t.category}</Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{t.required}</Text>
             </View>
           </View>
-          <View
-            style={[
-              styles.pickerBox,
-              categoryError && { borderColor: "#DC2626" }, // 🔴 red border
-            ]}
+
+          <TouchableOpacity
+            style={[styles.dropdownBtn, categoryError && styles.inputError]}
+            activeOpacity={0.85}
+            onPress={() => setShowCategoryPicker(true)}
           >
-            <Picker
-              selectedValue={category}
-              onValueChange={(value) => {
-                setCategory(value);
-                setCategoryError(null); // 🟢 error clear when selected
-              }}
+            <Text
+              style={[styles.dropdownText, !category && { color: "#81C784" }]}
             >
-              {/* 🔹 Placeholder option */}
-              <Picker.Item
-                label={
-                  uiLang === "si"
-                    ? "-- වර්ගය තෝරන්න --"
-                    : "-- Select Category --"
-                }
-                value=""
-                color="#94A3B8"
-              />
+              {category
+                ? CATEGORY_OPTIONS.find((c) => c.value === category)?.[uiLang]
+                : uiLang === "si"
+                ? "-- වර්ගය තෝරන්න --"
+                : "-- Select Category --"}
+            </Text>
 
-              {CATEGORY_OPTIONS.map((item) => (
-                <Picker.Item
-                  key={item.value}
-                  label={uiLang === "si" ? item.si : item.en}
-                  value={item.value}
-                />
-              ))}
-            </Picker>
-          </View>
+            <Tag size={18} color="#2E7D32" />
+          </TouchableOpacity>
 
-          {/* 🔴 Error text */}
           {categoryError && (
             <Text style={styles.errorText}>{categoryError}</Text>
           )}
@@ -414,7 +412,9 @@ export default function AdminAddOfficialNewsScreen() {
         {/* District */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <MapPin size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <MapPin size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>
               {t.district} {t.optional}
             </Text>
@@ -424,7 +424,7 @@ export default function AdminAddOfficialNewsScreen() {
             value={district}
             onChangeText={setDistrict}
             placeholder="Anuradhapura / Polonnaruwa / Kurunegala"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#A5D6A7"
             autoCapitalize="words"
           />
         </View>
@@ -432,20 +432,23 @@ export default function AdminAddOfficialNewsScreen() {
         {/* Source */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <FileText size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <FileText size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>{t.source}</Text>
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{t.required}</Text>
             </View>
           </View>
           <TextInput
-            style={[styles.input, sourceError && { borderColor: "#DC2626" }]}
+            style={[styles.input, sourceError && styles.inputError]}
             value={source}
             onChangeText={(text) => {
               setSource(text);
               setSourceError(null);
             }}
             placeholder="HARTI / Met Dept / DMC / Gazette"
+            placeholderTextColor="#A5D6A7"
           />
 
           {sourceError && <Text style={styles.errorText}>{sourceError}</Text>}
@@ -454,7 +457,9 @@ export default function AdminAddOfficialNewsScreen() {
         {/* URL */}
         <View style={styles.card}>
           <View style={styles.labelRow}>
-            <Globe size={16} color="#0F172A" />
+            <View style={styles.iconCircle}>
+              <Globe size={16} color="#2E7D32" />
+            </View>
             <Text style={styles.label}>
               {t.url} {t.optional}
             </Text>
@@ -464,7 +469,7 @@ export default function AdminAddOfficialNewsScreen() {
             value={url}
             onChangeText={setUrl}
             placeholder="https://..."
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#A5D6A7"
             autoCapitalize="none"
           />
         </View>
@@ -487,6 +492,44 @@ export default function AdminAddOfficialNewsScreen() {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
+        <Modal visible={showCategoryPicker} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>
+                {uiLang === "si" ? "වර්ගය තෝරන්න" : "Select Category"}
+              </Text>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {CATEGORY_OPTIONS.map((item) => (
+                  <TouchableOpacity
+                    key={item.value}
+                    style={styles.optionRow}
+                    onPress={() => {
+                      setCategory(item.value);
+                      setCategoryError(null);
+                      setShowCategoryPicker(false);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.optionText}>
+                      {uiLang === "si" ? item.si : item.en}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              <TouchableOpacity
+                onPress={() => setShowCategoryPicker(false)}
+                style={styles.cancelBtn}
+                activeOpacity={0.9}
+              >
+                <Text style={styles.cancelText}>
+                  {uiLang === "si" ? "අවලංගු කරන්න" : "Cancel"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
@@ -495,40 +538,47 @@ export default function AdminAddOfficialNewsScreen() {
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#F1F8E9",
   },
   header: {
     paddingTop: Platform.OS === "ios" ? 52 : 18,
-    paddingBottom: 14,
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: "#0F172A",
+    backgroundColor: "#2E7D32",
+    shadowColor: "#1B5E20",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerContent: {
     flexDirection: "row",
     alignItems: "center",
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
   headerTextContainer: {
-    marginLeft: 12,
+    marginLeft: 14,
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: "800",
     color: "#FFFFFF",
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.7)",
-    marginTop: 2,
+    color: "#C8E6C9",
+    marginTop: 3,
     fontWeight: "600",
   },
   container: {
@@ -536,70 +586,90 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingTop: 14,
+    paddingTop: 16,
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: "#C8E6C9",
+    shadowColor: "#2E7D32",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
   labelRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
     gap: 8,
   },
+  iconCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#E8F5E9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "800",
-    color: "#0F172A",
+    color: "#1B5E20",
+    flex: 1,
   },
   badge: {
-    backgroundColor: "#FEE2E2",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    backgroundColor: "#FFEBEE",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   badgeText: {
-    color: "#DC2626",
+    color: "#C62828",
     fontSize: 11,
     fontWeight: "800",
   },
   input: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: "#0F172A",
+    backgroundColor: "#F1F8E9",
+    borderWidth: 1.5,
+    borderColor: "#C8E6C9",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#1B5E20",
     fontSize: 14,
+    fontWeight: "600",
+  },
+  inputError: {
+    borderColor: "#EF5350",
+    backgroundColor: "#FFEBEE",
   },
   textarea: {
-    minHeight: 92,
+    minHeight: 100,
     textAlignVertical: "top",
   },
   pickerBox: {
-    backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
+    backgroundColor: "#F1F8E9",
+    borderWidth: 1.5,
+    borderColor: "#C8E6C9",
+    borderRadius: 14,
     overflow: "hidden",
   },
   imageButton: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    backgroundColor: "#F1F8E9",
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#C8E6C9",
+    borderStyle: "dashed",
     overflow: "hidden",
-    minHeight: 190,
+    minHeight: 200,
   },
   previewImage: {
     width: "100%",
-    height: 190,
+    height: 200,
     resizeMode: "cover",
   },
   imagePlaceholder: {
@@ -608,36 +678,118 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 40,
   },
+  uploadIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: "#E8F5E9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
   placeholderText: {
-    marginTop: 10,
-    fontSize: 13,
-    color: "#64748B",
+    marginTop: 8,
+    fontSize: 14,
+    color: "#2E7D32",
+    fontWeight: "700",
+  },
+  placeholderSubtext: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#66BB6A",
     fontWeight: "600",
   },
   submitBtn: {
-    marginTop: 6,
-    backgroundColor: "#16A34A",
-    borderRadius: 14,
-    paddingVertical: 14,
+    marginTop: 8,
+    backgroundColor: "#388E3C",
+    borderRadius: 16,
+    paddingVertical: 16,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
+    shadowColor: "#1B5E20",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   btnDisabled: {
-    opacity: 0.55,
+    opacity: 0.6,
   },
   submitBtnText: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "900",
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
   },
   errorText: {
-    marginTop: 6,
+    marginTop: 8,
     marginLeft: 4,
-    color: "#DC2626",
+    color: "#C62828",
     fontSize: 12,
-    fontWeight: "600",
+    fontWeight: "700",
+  },
+  dropdownBtn: {
+    backgroundColor: "#F1F8E9",
+    borderWidth: 1.5,
+    borderColor: "#C8E6C9",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  dropdownText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1B5E20",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+
+  modalCard: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 20,
+    maxHeight: "70%",
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1B5E20",
+    marginBottom: 12,
+  },
+
+  optionRow: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E8F5E9",
+  },
+
+  optionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#2E7D32",
+  },
+
+  cancelBtn: {
+    marginTop: 10,
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+
+  cancelText: {
+    color: "#C62828",
+    fontWeight: "800",
+    fontSize: 14,
   },
 });
