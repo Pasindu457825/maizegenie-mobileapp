@@ -234,7 +234,7 @@ const ProfileScreen = () => {
 
   const handleCopyPrediction = async (prediction: any) => {
     try {
-      const copyText = `🌾 Maize Yield Prediction
+      const copyText = `🌽 Maize Yield Prediction
 
 📝 Farmer: ${user?.full_name || "Farmer"}
 📍 District: ${prediction.district}
