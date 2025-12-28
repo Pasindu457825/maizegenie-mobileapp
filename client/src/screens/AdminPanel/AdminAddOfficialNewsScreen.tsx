@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -111,6 +111,12 @@ export default function AdminAddOfficialNewsScreen() {
   const [sourceError, setSourceError] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+
+  const titleRef = useRef<View>(null);
+  const categoryRef = useRef<View>(null);
+  const sourceRef = useRef<View>(null);
+
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
@@ -170,14 +176,12 @@ export default function AdminAddOfficialNewsScreen() {
     if (!title.trim()) {
       setTitleError(uiLang === "si" ? "ශීර්ෂය අවශ්‍යයි" : "Title is required");
       hasError = true;
-    }
 
-    // 🔴 Source validation
-    if (!source.trim()) {
-      setSourceError(
-        uiLang === "si" ? "මූලාශ්‍රය අවශ්‍යයි" : "Source is required"
-      );
-      hasError = true;
+      // 👇 scroll to title
+      titleRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
+        scrollRef.current?.scrollTo({ y: y - 20, animated: true });
+      });
+      return;
     }
 
     // 🔴 Category validation
@@ -185,20 +189,22 @@ export default function AdminAddOfficialNewsScreen() {
       setCategoryError(
         uiLang === "si" ? "වර්ගය තෝරන්න" : "Category is required"
       );
-      hasError = true;
+
+      categoryRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
+        scrollRef.current?.scrollTo({ y: y - 20, animated: true });
+      });
+      return;
     }
 
-    // ❌ Stop submit if any required field missing
-    if (hasError) return;
-
-    // 🔴 URL format validation (optional field)
-    if (url && !isValidUrl(url)) {
-      Alert.alert(
-        uiLang === "si" ? "වලංගු ලින්ක් එකක් ඇතුලත් කරන්න" : "Invalid URL",
-        uiLang === "si"
-          ? "කරුණාකර නිවැරදි URL එකක් ඇතුලත් කරන්න"
-          : "Please enter a valid URL"
+    // 🔴 Source validation
+    if (!source.trim()) {
+      setSourceError(
+        uiLang === "si" ? "මූලාශ්‍රය අවශ්‍යයි" : "Source is required"
       );
+
+      sourceRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
+        scrollRef.current?.scrollTo({ y: y - 20, animated: true });
+      });
       return;
     }
 
@@ -264,6 +270,7 @@ export default function AdminAddOfficialNewsScreen() {
 
       {/* FORM */}
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -305,7 +312,7 @@ export default function AdminAddOfficialNewsScreen() {
         </View>
 
         {/* Title */}
-        <View style={styles.card}>
+        <View style={styles.card} ref={titleRef}>
           <View style={styles.labelRow}>
             <View style={styles.iconCircle}>
               <FileText size={16} color="#2E7D32" />
@@ -350,7 +357,7 @@ export default function AdminAddOfficialNewsScreen() {
         </View>
 
         {/* Category */}
-        <View style={styles.card}>
+        <View style={styles.card} ref={categoryRef}>
           <View style={styles.labelRow}>
             <View style={styles.iconCircle}>
               <Tag size={16} color="#2E7D32" />
@@ -405,7 +412,7 @@ export default function AdminAddOfficialNewsScreen() {
         </View>
 
         {/* Source */}
-        <View style={styles.card}>
+        <View style={styles.card} ref={sourceRef}>
           <View style={styles.labelRow}>
             <View style={styles.iconCircle}>
               <FileText size={16} color="#2E7D32" />
@@ -813,60 +820,59 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   successOverlay: {
-  flex: 1,
-  backgroundColor: "rgba(0,0,0,0.4)",
-  justifyContent: "center",
-  alignItems: "center",
-},
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-successCard: {
-  backgroundColor: "#FFFFFF",
-  borderRadius: 22,
-  padding: 24,
-  width: "85%",
-  alignItems: "center",
-  borderWidth: 1.5,
-  borderColor: "#C8E6C9",
-},
+  successCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 24,
+    width: "85%",
+    alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#C8E6C9",
+  },
 
-successIconCircle: {
-  width: 72,
-  height: 72,
-  borderRadius: 36,
-  backgroundColor: "#E8F5E9",
-  alignItems: "center",
-  justifyContent: "center",
-  marginBottom: 14,
-},
+  successIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#E8F5E9",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 14,
+  },
 
-successTitle: {
-  fontSize: 16,
-  fontWeight: "900",
-  color: "#1B5E20",
-  textAlign: "center",
-  marginBottom: 6,
-},
+  successTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#1B5E20",
+    textAlign: "center",
+    marginBottom: 6,
+  },
 
-successSubtitle: {
-  fontSize: 13,
-  color: "#4CAF50",
-  textAlign: "center",
-  fontWeight: "600",
-  marginBottom: 18,
-},
+  successSubtitle: {
+    fontSize: 13,
+    color: "#4CAF50",
+    textAlign: "center",
+    fontWeight: "600",
+    marginBottom: 18,
+  },
 
-successBtn: {
-  backgroundColor: "#2E7D32",
-  paddingHorizontal: 34,
-  paddingVertical: 12,
-  borderRadius: 14,
-},
+  successBtn: {
+    backgroundColor: "#2E7D32",
+    paddingHorizontal: 34,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
 
-successBtnText: {
-  color: "#FFFFFF",
-  fontSize: 14,
-  fontWeight: "900",
-  letterSpacing: 0.4,
-},
-
+  successBtnText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.4,
+  },
 });
