@@ -13,8 +13,12 @@ import SplashScreen from "../screens/Startup/SplashScreen";
 import LanguageSelectScreen from "../screens/Startup/LanguageSelectScreen";
 import Onboarding1 from "../screens/Startup/Onboarding1";
 import Onboarding2 from "../screens/Startup/Onboarding2";
+import OfficialNewsScreen from "../screens/Notifications/OfficialNewsScreen";
 
 import NotificationsScreen from "../screens/Notifications/NotificationsScreen";
+import NewsDetailScreen from "../screens/Notifications/NewsDetailScreen";
+import AdminAddOfficialNewsScreen from "@screens/AdminPanel/AdminAddOfficialNewsScreen";
+import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNewsScreen";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -22,6 +26,15 @@ export type RootStackParamList = {
   Onboarding1: undefined;
   Onboarding2: undefined;
   Notifications: undefined;
+  OfficialNews: undefined;
+  AdminAddOfficialNews: undefined;
+  AdminEditOfficialNews: {
+    newsId: string;
+  };
+
+  NewsDetail: {
+    id: string;
+  };
 
   [ROUTES.AUTH.LOGIN]: undefined;
   [ROUTES.AUTH.SIGNUP]: undefined;
@@ -45,7 +58,7 @@ export default function RootNavigator() {
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
-      initialRouteName="Splash"     // ⭐ ADDED — Forces Splash to load first
+      initialRouteName="Splash" // ⭐ ADDED — Forces Splash to load first
     >
       {/* STARTUP FLOW */}
       <Stack.Screen name="Splash" component={SplashScreen} />
@@ -68,6 +81,25 @@ export default function RootNavigator() {
         name="Notifications"
         component={NotificationsScreen}
         options={{ headerShown: false }}
+      />
+
+      {/* 🆕 OFFICIAL NEWS */}
+      <Stack.Screen name="OfficialNews" component={OfficialNewsScreen} />
+
+      {/* 🆕 NEWS DETAIL */}
+      <Stack.Screen
+        name="NewsDetail"
+        component={NewsDetailScreen}
+        options={{ headerShown: false }}
+      />
+
+      <Stack.Screen
+        name="AdminAddOfficialNews"
+        component={AdminAddOfficialNewsScreen}
+      />
+      <Stack.Screen
+        name="AdminEditOfficialNews"
+        component={AdminEditOfficialNewsScreen}
       />
     </Stack.Navigator>
   );

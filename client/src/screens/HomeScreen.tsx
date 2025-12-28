@@ -21,6 +21,7 @@ import {
   Settings,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
+import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 
 const { width } = Dimensions.get("window");
 
@@ -116,6 +117,10 @@ export default function HomeScreen() {
   const { language: lang } = useLanguage();
   const language: LanguageType = lang === "sinhala" ? "si" : "en";
   const t = translations[language];
+
+  // Role-based authentication using Supabase user data
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
 
   // ✨ Animations
   const fadeAnim = new Animated.Value(0);
@@ -237,6 +242,8 @@ export default function HomeScreen() {
               <Text style={styles.emojiText}>👨‍🌾</Text>
             </View>
           </LinearGradient>
+
+          <TopOfficialNews />
 
           {/* Chat Button */}
           {user?.role === "farmer" ? (

@@ -202,36 +202,37 @@ export default function SeverityDetailsScreen({ route }: Props) {
     },
   };
 
-  // Status text logic
+  const getSeverityUI = (label: string) => {
+    const l = label.toLowerCase();
+
+    if (l.includes("low") || l.includes("mild")) {
+      return {
+        level: "low",
+        color: "#10B981", // green
+      };
+    }
+
+    if (l.includes("moderate") || l.includes("medium")) {
+      return {
+        level: "medium",
+        color: "#F59E0B", // yellow
+      };
+    }
+
+    return {
+      level: "high",
+      color: "#EF4444", // red
+    };
+  };
+
+  const severityUI = getSeverityUI(severity_label);
+
   const statusText =
-    severity_score < 0.33
+    severityUI.level === "low"
       ? content[language].mild
-      : severity_score < 0.66
+      : severityUI.level === "medium"
       ? content[language].moderate
       : content[language].severe;
-
-  // Get severity color
-  const getSeverityColor = (score: number) => {
-    if (score < 0.33) return "#10B981"; // Green
-    if (score < 0.66) return "#F59E0B"; // Yellow
-    return "#EF4444"; // Red
-  };
-
-  // Get severity label
-  const getSeverityLabel = (score: number) => {
-    if (score < 0.33) return content[language].healthy;
-    if (score < 0.5) return content[language].lowRisk;
-    if (score < 0.66) return content[language].mediumRisk;
-    if (score < 0.8) return content[language].highRisk;
-    return content[language].critical;
-  };
-
-  // Get severity icon
-  const getSeverityIcon = (score: number) => {
-    if (score < 0.33) return "🟢";
-    if (score < 0.66) return "🟡";
-    return "🔴";
-  };
 
   // Format disease name
   const formatDiseaseName = (name: string) => {
@@ -471,19 +472,27 @@ export default function SeverityDetailsScreen({ route }: Props) {
           <View style={styles.severityLevelContainer}>
             <View style={styles.severityLevelInfo}>
               <View style={styles.severityLevelBadge}>
-                <Text style={styles.severityLevelIcon}>
-                  {getSeverityIcon(severity_score)}
-                </Text>
+                <View style={styles.severityLevelIconWrap}>
+                  {severityUI.level === "low" ? (
+                    <CheckCircle size={20} color={severityUI.color} />
+                  ) : severityUI.level === "medium" ? (
+                    <AlertTriangle size={20} color={severityUI.color} />
+                  ) : (
+                    <AlertCircle size={20} color={severityUI.color} />
+                  )}
+                </View>
+
                 <Text
                   style={[
                     styles.severityLevelText,
-                    { color: getSeverityColor(severity_score) },
+                    { color: severityUI.color },
                   ]}
                 >
                   {severity_label}
                 </Text>
               </View>
-              <Text style={styles.severityScore}>
+
+              <Text style={[styles.severityScore, { color: severityUI.color }]}>
                 {Math.round(severity_score * 100)}%
               </Text>
             </View>
@@ -501,14 +510,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
           {/* Status Description */}
           <View style={styles.statusContainer}>
             <View style={styles.statusIcon}>
-              {severity_score < 0.33 ? (
-                <CheckCircle size={24} color="#10B981" />
-              ) : severity_score < 0.66 ? (
-                <AlertTriangle size={24} color="#F59E0B" />
+              {severityUI.level === "low" ? (
+                <CheckCircle size={24} color={severityUI.color} />
+              ) : severityUI.level === "medium" ? (
+                <AlertTriangle size={24} color={severityUI.color} />
               ) : (
-                <AlertCircle size={24} color="#EF4444" />
+                <AlertCircle size={24} color={severityUI.color} />
               )}
             </View>
+
             <Text style={styles.statusText}>{statusText}</Text>
           </View>
         </View>
@@ -1198,6 +1208,12 @@ const styles = StyleSheet.create({
   gaugeContainer: {
     marginBottom: 20,
   },
+  severityLevelIconWrap: {
+    width: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
   statusContainer: {
     flexDirection: "row",
     alignItems: "flex-start",

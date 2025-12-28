@@ -11,6 +11,7 @@ import {
   Animated,
   Dimensions,
   StatusBar,
+  Clipboard,
 } from "react-native";
 import { useApp } from "../context/AppContext";
 import { getFarmerPredictionHistory } from "../services/yieldPredictionApi";
@@ -231,41 +232,54 @@ const ProfileScreen = () => {
     loadPredictionHistory();
   };
 
-  const handleCopyPrediction = (prediction: any) => {
+  const handleCopyPrediction = async (prediction: any) => {
     try {
-      Alert.alert("Copied!", "Prediction details copied to clipboard");
+      const copyText = `🌾 Maize Yield Prediction
+
+📝 Farmer: ${user?.full_name || "Farmer"}
+📍 District: ${prediction.district}
+📅 Date: ${formatDate(prediction.created_at)}
+
+🌱 Crop Details:
+• Variety: ${prediction.variety || "N/A"}
+• Season: ${prediction.season}
+• Land Size: ${prediction.land_size || "N/A"}
+• Planting Date: ${formatDate(prediction.planting_date)}
+
+📊 Prediction:
+• Yield: ${prediction.predicted_yield || "N/A"} kg/ha
+• Confidence: ${prediction.confidence_level || "N/A"}
+
+Status: ${prediction.status || "Active"}`;
+      
+      Clipboard.setString(copyText);
+      Alert.alert(
+        language === "sinhala" ? "පිටපත් කරන ලදී!" : "Copied!",
+        language === "sinhala" 
+          ? "පුරෝකථන විස්තර පිටපත් කරන ලදී"
+          : "Prediction details copied to clipboard"
+      );
     } catch (error) {
       console.error("Copy failed:", error);
-      Alert.alert("Error", "Failed to copy prediction details");
+      Alert.alert(
+        language === "sinhala" ? "දෝෂයකි" : "Error",
+        language === "sinhala"
+          ? "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය"
+          : "Failed to copy prediction details"
+      );
     }
   };
 
   const handleShareWithOfficer = (prediction: any) => {
-    const contextMessage = `🌾 Maize Yield Prediction Request
+    const contextMessage = language === "sinhala"
+      ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
+      : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
 
-📝 Farmer Details:
-Name: ${user?.full_name || "Farmer"}
-District: ${prediction.district}
-
-🌱 Crop Information:
-Variety: ${prediction.variety || "N/A"}
-Season: ${prediction.season}
-Land Size: ${prediction.land_size || "N/A"}
-Planting Date: ${formatDate(prediction.planting_date)}
-
-I would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
-
-    navigation.navigate("PredictYield", {
-      screen: "AgriculturalAdvisoryChat",
-      params: {
-        prefilledMessage: contextMessage,
-        context: "yield_prediction",
-        advisoryType: "yield",
-        advisoryData: {
-          prediction: prediction,
-          farmer: user,
-        },
-      },
+    // Navigate to main Chat screen with prediction context
+    navigation.navigate("Chat", {
+      prefilledMessage: contextMessage,
+      context: "yield_prediction",
+      predictionData: prediction,
     });
   };
 
@@ -1220,7 +1234,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   bottomSpacer: {
-    height: 40,
+    height: 100,
   },
 });
 

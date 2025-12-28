@@ -37,6 +37,8 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.6):
     # ---- Decode image ----
     img_array = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # ✅ FIX
+
 
     if img is None:
         return _return_error("invalid_image", "Invalid image")
@@ -113,7 +115,8 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.6):
             "No recognizable maize disease found"
         )
 
-    sev, label = calculate_severity(disease_preds, img.shape)
+    sev, label = calculate_severity(disease_preds, img)
+
 
     return {
         "success": True,
