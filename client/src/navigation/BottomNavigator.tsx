@@ -9,7 +9,6 @@ import PriceForecastStack from "./PriceForecastStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
 import YieldPredictionStack from "./YieldPredictionStack";
-import AdminStack from "./AdminStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {

@@ -17,6 +17,8 @@ import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../lib/supabase";
 import { Picker } from "@react-native-picker/picker";
+import { ROUTES } from "../../constants";
+
 
 // 🌐 Language
 import { useLanguage } from "../../context/LanguageContext";
@@ -218,20 +220,33 @@ export default function AdminAddOfficialNewsScreen() {
         district: district || null,
       });
 
-      Alert.alert(t.success, "");
+      Alert.alert(
+        t.success,
+        "",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // 🟢 Reset form
+              setTitle("");
+              setSummary("");
+              setCategory("");
+              setSource("");
+              setUrl("");
+              setImageAsset(null);
+              setDistrict("");
 
-      // 🟢 Reset form
-      setTitle("");
-      setSummary("");
-      setCategory("");
-      setSource("");
-      setUrl("");
-      setImageAsset(null);
-      setDistrict("");
+              setTitleError(null);
+              setSourceError(null);
+              setCategoryError(null);
 
-      setTitleError(null);
-      setSourceError(null);
-      setCategoryError(null);
+              // 🚀 Navigate to Home
+              navigation.goBack();
+            },
+          },
+        ],
+        { cancelable: false }
+      );
     } catch (err: any) {
       console.log("❌ SUBMIT ERROR:", err);
       console.log("❌ RESPONSE:", err?.response?.data);
