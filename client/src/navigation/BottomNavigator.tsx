@@ -37,7 +37,7 @@ export default function BottomNavigator() {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: "#e2e8f0",
-          height: 60 + insets.bottom,
+          height: 45 + insets.bottom,
           paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
         },
