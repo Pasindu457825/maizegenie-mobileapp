@@ -17,7 +17,10 @@ from .farmer_models import (
     Recommendation
 )
 from .service import predict_yield_service, build_impact_factors
-from .ml_model import USE_ML
+try:
+    from .ml_prediction_service import MODEL_LOADED as USE_ML
+except ImportError:
+    USE_ML = False
 from src.database.supabase_service_yieldNfert import (
     save_farmer_input,
     save_prediction,
@@ -177,7 +180,7 @@ async def predict_yield_farmer(
             yield_lower_bound=round(yield_lower, 2),
             yield_upper_bound=round(yield_upper, 2),
             prediction_method='ml_model' if USE_ML else 'rule_based',
-            model_version='v1.0'
+            ml_model_version='v1.0'
         )
         
         # Step 8: Save prediction to database
@@ -190,7 +193,7 @@ async def predict_yield_farmer(
                     'yield_upper_bound': prediction_data.yield_upper_bound,
                     'confidence_level': prediction_data.confidence_level,
                     'confidence_score': prediction_data.confidence_score,
-                    'model_version': prediction_data.model_version,
+                    'ml_model_version': prediction_data.ml_model_version,
                     'primary_limiting_factors': primary_limiting,
                     'prediction_method': prediction_data.prediction_method
                 }
@@ -427,17 +430,36 @@ async def get_farmer_prediction_history(
         # Format predictions with shareable text
         formatted_predictions = []
         for pred in predictions:
+            # Debug: Print prediction data to see field names
+            print(f"🔍 DEBUG - Prediction fields: {pred.keys()}")
+            print(f"🔍 DEBUG - Variety value: {pred.get('variety')}")
+            
             # Generate shareable text for officer chat
             shareable_text = generate_shareable_text(pred)
+            
+            # Extract prediction details from predictions table
+            prediction_data = pred.get("predictions", [])
+            predicted_yield = None
+            confidence_level = None
+            
+            if prediction_data and len(prediction_data) > 0:
+                latest_prediction = prediction_data[0]  # Get most recent prediction
+                predicted_yield = latest_prediction.get("predicted_yield_kg_per_ha")
+                confidence_level = latest_prediction.get("confidence_level")
+            
+            # Handle both 'variety' and 'seed_variety' field names
+            variety = pred.get("variety") or pred.get("seed_variety")
             
             formatted_predictions.append({
                 "id": pred.get("id"),
                 "district": pred.get("district"),
                 "season": pred.get("season"),
-                "variety": pred.get("variety"),
+                "variety": variety,
                 "land_size": f"{pred.get('land_size_value')} {pred.get('land_size_unit')}",
                 "planting_date": pred.get("planting_date"),
                 "created_at": pred.get("created_at"),
+                "predicted_yield": predicted_yield,
+                "confidence_level": confidence_level,
                 "shareable_text": shareable_text,
                 "prediction_data": pred.get("predictions")
             })

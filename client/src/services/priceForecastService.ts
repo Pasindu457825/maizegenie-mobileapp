@@ -1,23 +1,42 @@
 // client/src/services/priceForecastService.ts
-import { API_BASE } from "../services/api";
+import { API_BASE } from "./api";
 
+// =====================================================
+// TYPES (Frontend-facing)
+// =====================================================
 export type Language = "si" | "en";
 
 export interface PriceForecastPayload {
-  year: string;
-  week: string;
+  year: number;
+  week: number;
   district: string;
   season: string;
-  productionCostPerKg: number;
+
+  fuel_price: number;
+  rainfall: number;
+  temperature: number;
+  demand_index: number;
+  import_tax: number;
+  last_price: number;
+
   weeks_ahead?: number;
 }
 
+/**
+ * 🔁 IMPORTANT:
+ * - Existing fields: sarimax, ensemble (DO NOT REMOVE)
+ * - New fields: confidence_pct, confidence_tag (OPTIONAL)
+ */
 export interface WeekForecast {
   week: number;
-  sarimax: number;
-  ensemble: number;
-  xgb?: number; // optional now
-  lstm?: number; // optional now
+
+  // EXISTING (UI already uses these)
+  sarimax: number;   // mapped from rf_price
+  ensemble: number;  // mapped from rf_price
+
+  // NEW (for confidence bar & tag)
+  confidence_pct?: number;           // 0–100
+  confidence_tag?: "High" | "Medium";
 }
 
 export interface PriceForecastResponse {
@@ -25,19 +44,44 @@ export interface PriceForecastResponse {
   weeks: WeekForecast[];
 }
 
+// =====================================================
+// API CALL
+// =====================================================
 export async function getPriceForecast(
   payload: PriceForecastPayload
 ): Promise<PriceForecastResponse> {
   const res = await fetch(`${API_BASE}/api/price-forecast/next-weeks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      weeks_ahead: payload.weeks_ahead ?? 4,
+    }),
   });
 
   if (!res.ok) {
-    console.log("Price forecast error:", res.status);
+    console.error("Price forecast API error:", res.status);
     throw new Error("Price forecast request failed");
   }
 
-  return res.json();
+  const data = await res.json();
+
+  // =====================================================
+  // 🔁 ADAPTER: Backend → UI FORMAT
+  // (Backward compatible)
+  // =====================================================
+  return {
+    success: data.success,
+    weeks: (data.weeks || []).map((w: any) => ({
+      week: w.week,
+
+      // EXISTING UI MAPPING (KEEP AS-IS)
+      sarimax: w.rf_price,
+      ensemble: w.rf_price,
+
+      // NEW (SAFE – UI can ignore if unused)
+      confidence_pct: w.confidence_pct,
+      confidence_tag: w.confidence_tag,
+    })),
+  };
 }

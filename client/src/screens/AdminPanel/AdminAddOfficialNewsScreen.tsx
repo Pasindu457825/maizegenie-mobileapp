@@ -7,16 +7,22 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Image,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
 import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
+import * as ImagePicker from "expo-image-picker";
+import { supabase } from "../../lib/supabase";
+import { Picker } from "@react-native-picker/picker";
 
 // 🌐 Language
 import { useLanguage } from "../../context/LanguageContext";
 
 // Icons
-import { ArrowLeft, Send } from "lucide-react-native";
+import { ArrowLeft, Send, Upload, FileText, Globe, Tag, MapPin } from "lucide-react-native";
 
 export default function AdminAddOfficialNewsScreen() {
   const navigation = useNavigation();
@@ -32,28 +38,52 @@ export default function AdminAddOfficialNewsScreen() {
       subtitle: "ගොවීන්ට පෙන්වීමට නිල දැනුම්දීම් ප්‍රකාශ කරන්න",
       newsTitle: "ශීර්ෂය",
       summary: "සාරාංශය",
-      category: "වර්ගය (price / weather / policy / alert)",
-      source: "මූලාශ්‍රය (HARTI / Met Dept / DMC / Gazette)",
-      url: "නිල වෙබ් ලින්ක් (URL)",
+      category: "වර්ගය",
+      source: "මූලාශ්‍රය",
+      url: "නිල වෙබ් ලින්ක්",
+      district: "දිස්ත්‍රික්කය",
       publish: "ප්‍රකාශ කරන්න",
       back: "ආපසු",
       error: "අනිවාර්ය ක්ෂේත්‍ර හිස්",
       success: "නිල ප්‍රවෘත්තිය සාර්ථකව ප්‍රකාශිතයි",
+      imageLabel: "පින්තූරය",
+      optional: "(විකල්ප)",
+      required: "*",
+      selectImage: "පින්තූරයක් තෝරන්න",
+      publishing: "ප්‍රකාශ වෙමින්...",
     },
     en: {
       title: "Add Official News",
       subtitle: "Publish official updates for farmers",
       newsTitle: "Title",
       summary: "Summary",
-      category: "Category (price / weather / policy / alert)",
-      source: "Source (HARTI / Met Dept / DMC / Gazette)",
+      category: "Category",
+      source: "Source",
       url: "Official Source URL",
+      district: "District",
       publish: "Publish",
       back: "Back",
       error: "Required fields are missing",
       success: "Official news published successfully",
+      imageLabel: "Image",
+      optional: "(optional)",
+      required: "*",
+      selectImage: "Select an image",
+      publishing: "Publishing...",
     },
   };
+
+  const CATEGORY_OPTIONS = [
+    { value: "price", si: "මිල", en: "Price" },
+    { value: "weather", si: "කාලගුණය", en: "Weather" },
+    { value: "policy", si: "ප්‍රතිපත්ති", en: "Policy" },
+    { value: "alert", si: "අනතුරු ඇඟවීම", en: "Alert" },
+    { value: "pest", si: "පළිබෝධ", en: "Pest" },
+    { value: "disease", si: "රෝග", en: "Disease" },
+    { value: "fertilizer", si: "පොහොර", en: "Fertilizer" },
+    { value: "cultivation", si: "වගා උපදෙස්", en: "Cultivation" },
+    { value: "program", si: "වැඩසටහන්", en: "Program" },
+  ];
 
   const t = content[uiLang];
 
@@ -64,37 +94,101 @@ export default function AdminAddOfficialNewsScreen() {
   const [source, setSource] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [imageAsset, setImageAsset] = useState<any | null>(null);
+  const [district, setDistrict] = useState("");
+
+  const pickImage = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          "Permission required",
+          "Please allow photo access to pick an image."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setImageAsset(result.assets[0]);
+      }
+    } catch (e: any) {
+      Alert.alert("Error", e?.message || "Image picker failed");
+    }
+  };
+
+  const uploadOfficialNewsImage = async (asset: any): Promise<string> => {
+    const fileExt = asset.uri.split(".").pop() || "jpg";
+    const fileName = `official_news_${Date.now()}.${fileExt}`;
+    const filePath = `news/${fileName}`;
+
+    const response = await fetch(asset.uri);
+    const arrayBuffer = await response.arrayBuffer();
+
+    const { error } = await supabase.storage
+      .from("official-news-images")
+      .upload(filePath, arrayBuffer, {
+        contentType: "image/jpeg",
+        upsert: false,
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    const { data } = supabase.storage
+      .from("official-news-images")
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
 
   // 🚀 Submit
   const submitNews = async () => {
     if (!title || !category || !source) {
-      Alert.alert("Error", t.error);
+      Alert.alert(t.error, "Please fill Title, Category, and Source");
       return;
     }
 
     try {
       setLoading(true);
 
+      let imageUrl: string | null = null;
+
+      if (imageAsset) {
+        imageUrl = await uploadOfficialNewsImage(imageAsset);
+      }
+
       await axios.post(`${API_BASE}/official-news/admin`, {
         title,
         summary,
-        category,
+        category: category.trim().toLowerCase(),
         source,
-        url,
+        url: url || null,
+        image_url: imageUrl,
+        district: district || null,
       });
 
-      Alert.alert("Success", t.success);
+      Alert.alert(t.success, "");
 
-      // reset
       setTitle("");
       setSummary("");
       setCategory("price");
       setSource("");
       setUrl("");
-
-      navigation.goBack();
-    } catch (err) {
-      Alert.alert("Error", "Failed to publish news");
+      setImageAsset(null);
+      setDistrict("");
+    } catch (err: any) {
+      console.log("❌ SUBMIT ERROR:", err);
+      console.log("❌ RESPONSE:", err?.response?.data);
+      Alert.alert(
+        "Error",
+        err?.response?.data?.detail || "Failed to publish news"
+      );
     } finally {
       setLoading(false);
     }
@@ -104,69 +198,178 @@ export default function AdminAddOfficialNewsScreen() {
     <View style={styles.wrapper}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft size={22} color="#0F172A" />
-        </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <ArrowLeft size={22} color="#64748B" />
+          </TouchableOpacity>
 
-        <View style={{ marginLeft: 12 }}>
-          <Text style={styles.title}>{t.title}</Text>
-          <Text style={styles.subtitle}>{t.subtitle}</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>{t.title}</Text>
+            <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+          </View>
         </View>
       </View>
 
       {/* FORM */}
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <Text style={styles.label}>{t.newsTitle}</Text>
-        <TextInput
-          style={styles.input}
-          value={title}
-          onChangeText={setTitle}
-          placeholder={t.newsTitle}
-        />
+      <ScrollView 
+        style={styles.container} 
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Image Upload Section */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <Upload size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.imageLabel} {t.optional}</Text>
+          </View>
 
-        <Text style={styles.label}>{t.summary}</Text>
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          value={summary}
-          onChangeText={setSummary}
-          multiline
-          placeholder={t.summary}
-        />
+          <TouchableOpacity
+            onPress={pickImage}
+            style={styles.imageButton}
+            activeOpacity={0.9}
+          >
+            {imageAsset ? (
+              <Image
+                source={{ uri: imageAsset.uri }}
+                style={styles.previewImage}
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Upload size={28} color="#94A3B8" />
+                <Text style={styles.placeholderText}>{t.selectImage}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
-        <Text style={styles.label}>{t.category}</Text>
-        <TextInput
-          style={styles.input}
-          value={category}
-          onChangeText={setCategory}
-          placeholder="price / weather / policy / alert"
-          autoCapitalize="none"
-        />
+        {/* Title */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <FileText size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.newsTitle}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{t.required}</Text>
+            </View>
+          </View>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder={t.newsTitle}
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
 
-        <Text style={styles.label}>{t.source}</Text>
-        <TextInput
-          style={styles.input}
-          value={source}
-          onChangeText={setSource}
-          placeholder="HARTI / Met Dept / DMC / Gazette"
-        />
+        {/* Summary */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <FileText size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.summary} {t.optional}</Text>
+          </View>
+          <TextInput
+            style={[styles.input, styles.textarea]}
+            value={summary}
+            onChangeText={setSummary}
+            multiline
+            placeholder={t.summary}
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
 
-        <Text style={styles.label}>{t.url}</Text>
-        <TextInput
-          style={styles.input}
-          value={url}
-          onChangeText={setUrl}
-          placeholder="https://..."
-          autoCapitalize="none"
-        />
+        {/* Category */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <Tag size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.category}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{t.required}</Text>
+            </View>
+          </View>
+          <View style={styles.pickerBox}>
+            <Picker
+              selectedValue={category}
+              onValueChange={(value) => setCategory(value)}
+            >
+              {CATEGORY_OPTIONS.map((item) => (
+                <Picker.Item
+                  key={item.value}
+                  label={uiLang === "si" ? item.si : item.en}
+                  value={item.value}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
 
-        {/* SUBMIT */}
+        {/* District */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <MapPin size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.district} {t.optional}</Text>
+          </View>
+          <TextInput
+            style={styles.input}
+            value={district}
+            onChangeText={setDistrict}
+            placeholder="Anuradhapura / Polonnaruwa / Kurunegala"
+            placeholderTextColor="#94A3B8"
+            autoCapitalize="words"
+          />
+        </View>
+
+        {/* Source */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <FileText size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.source}</Text>
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{t.required}</Text>
+            </View>
+          </View>
+          <TextInput
+            style={styles.input}
+            value={source}
+            onChangeText={setSource}
+            placeholder="HARTI / Met Dept / DMC / Gazette"
+            placeholderTextColor="#94A3B8"
+          />
+        </View>
+
+        {/* URL */}
+        <View style={styles.card}>
+          <View style={styles.labelRow}>
+            <Globe size={16} color="#0F172A" />
+            <Text style={styles.label}>{t.url} {t.optional}</Text>
+          </View>
+          <TextInput
+            style={styles.input}
+            value={url}
+            onChangeText={setUrl}
+            placeholder="https://..."
+            placeholderTextColor="#94A3B8"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {/* SUBMIT BUTTON */}
         <TouchableOpacity
-          style={[styles.btn, loading && { opacity: 0.6 }]}
+          style={[styles.submitBtn, loading && styles.btnDisabled]}
           onPress={submitNews}
           disabled={loading}
+          activeOpacity={0.9}
         >
-          <Send size={18} color="#FFFFFF" />
-          <Text style={styles.btnText}>{t.publish}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <Send size={20} color="#FFFFFF" />
+          )}
+          <Text style={styles.submitBtnText}>
+            {loading ? t.publishing : t.publish}
+          </Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -181,61 +384,139 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8FAFC",
   },
   header: {
+    paddingTop: Platform.OS === "ios" ? 52 : 18,
+    paddingBottom: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "#0F172A",
+  },
+  headerContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#0F172A",
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  subtitle: {
-    fontSize: 13,
-    color: "#64748B",
+  headerTextContainer: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
     marginTop: 2,
+    fontWeight: "600",
   },
   container: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    flex: 1,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#334155",
-    marginBottom: 6,
-    marginTop: 14,
+  scrollContent: {
+    padding: 16,
+    paddingTop: 14,
   },
-  input: {
+  card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
+  },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+    gap: 8,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  badge: {
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeText: {
+    color: "#DC2626",
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: "#0F172A",
     fontSize: 14,
   },
-  textArea: {
-    height: 100,
+  textarea: {
+    minHeight: 92,
     textAlignVertical: "top",
   },
-  btn: {
-    marginTop: 28,
-    backgroundColor: "#059669",
-    borderRadius: 16,
-    paddingVertical: 16,
+  pickerBox: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  imageButton: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    overflow: "hidden",
+    minHeight: 190,
+  },
+  previewImage: {
+    width: "100%",
+    height: 190,
+    resizeMode: "cover",
+  },
+  imagePlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 40,
+  },
+  placeholderText: {
+    marginTop: 10,
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "600",
+  },
+  submitBtn: {
+    marginTop: 6,
+    backgroundColor: "#16A34A",
+    borderRadius: 14,
+    paddingVertical: 14,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 10,
   },
-  btnText: {
+  btnDisabled: {
+    opacity: 0.55,
+  },
+  submitBtnText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 14,
+    fontWeight: "900",
+    letterSpacing: 0.2,
   },
 });

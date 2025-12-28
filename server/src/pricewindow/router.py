@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Query
 from datetime import datetime
-
+from .service import generate_advisor_guide
 from .model import PriceWindowModel
 from .service import (
     build_recommendation,
@@ -219,4 +219,35 @@ def price_window_by_date(
         "message_si": message_si,
         "storage_advice": storage_advice,
         "options_checked": options
+    }
+
+# --------------------------------------------------
+# 4) ➕ NEW — Advisor Guide (EXPLANATION LAYER ONLY)
+# --------------------------------------------------
+@router.post("/advisor-guide")
+def advisor_guide(payload: dict):
+    """
+    Advisor guide endpoint
+    - Uses EXISTING /by-date logic
+    - Does NOT change price or harvest decision
+    - Adds farmer-friendly explanation only
+    """
+
+    # 1) Reuse existing date-based advisory
+    price_result = price_window_by_date(
+        location=payload["location"],
+        planting_date=payload["plantingDate"],
+        seed_variety=payload.get("seedVariety", "Local Variety")
+    )
+
+    if "error" in price_result:
+        return price_result
+
+    # 2) Generate advisor guide (NEW)
+    advisor = generate_advisor_guide(payload, price_result)
+
+    # 3) Combine (NO existing keys removed)
+    return {
+        **price_result,
+        "advisor_guide": advisor
     }

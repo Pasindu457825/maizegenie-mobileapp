@@ -18,6 +18,7 @@ import OfficialNewsScreen from "../screens/Notifications/OfficialNewsScreen";
 import NotificationsScreen from "../screens/Notifications/NotificationsScreen";
 import NewsDetailScreen from "../screens/Notifications/NewsDetailScreen";
 import AdminAddOfficialNewsScreen from "@screens/AdminPanel/AdminAddOfficialNewsScreen";
+import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNewsScreen";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -27,6 +28,9 @@ export type RootStackParamList = {
   Notifications: undefined;
   OfficialNews: undefined;
   AdminAddOfficialNews: undefined;
+  AdminEditOfficialNews: {
+    newsId: string;
+  };
 
   NewsDetail: {
     id: string;
@@ -92,6 +96,10 @@ export default function RootNavigator() {
       <Stack.Screen
         name="AdminAddOfficialNews"
         component={AdminAddOfficialNewsScreen}
+      />
+      <Stack.Screen
+        name="AdminEditOfficialNews"
+        component={AdminEditOfficialNewsScreen}
       />
     </Stack.Navigator>
   );

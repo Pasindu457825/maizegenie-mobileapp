@@ -1,3 +1,4 @@
+from .model import PriceWindowModel
 from datetime import datetime
 
 # --------------------------------------------------
@@ -11,7 +12,6 @@ SEED_MATURITY_WEEKS = {
     "Commando": 15,
     "Local Variety": 14
 }
-
 
 # --------------------------------------------------
 # Utility: Date → ISO week
@@ -232,3 +232,124 @@ def harvest_time_advisory(
         "storage_advice": storage_advice,
         "options_checked": options
     }
+
+# ==================================================
+# 4) ADVISOR GUIDE (ADD-ON ONLY — NO EXISTING CHANGE)
+# ==================================================
+
+def generate_advisor_guide(form: dict, price: dict):
+    """
+    Generate farmer-friendly advisor guidance based on:
+    - full farmer form input
+    - historical price-window decision
+    (NO impact on price logic)
+    """
+    return {
+        "seed": _advisor_seed(form),
+        "water": _advisor_water(form),
+        "fertilizer": _advisor_fertilizer(form),
+        "storage": _advisor_storage(form, price),
+        "finance": _advisor_finance(form)
+    }
+
+
+def _advisor_seed(f):
+    if f.get("preparedness", {}).get("seedReady"):
+        return (
+            "බීජ සූදානම දැනටමත් සම්පූර්ණයි."
+            "වපුරන දිනයට බීජ හොඳ තත්ත්වයෙන් තබාගෙන යා හැක."
+            "අමතර සූදානම් අවශ්‍ය නොවේ."
+        )
+
+    if f.get("experience") == "new":
+        return (
+            f"{f.get('seedVariety')} බීජ වපුරනට පෙර හොඳින් වියළි කර තෝරාගන්න."
+            "බිඳුණු, රෝග ලක්ෂණ ඇති බීජ ඉවත් කරන්න."
+            "හොඳ germination rate එකක් ලබාගැනීමට මෙය වැදගත්ය."
+        )
+
+    return (
+        "හොඳ germination rate ඇති, රෝග රහිත බීජ භාවිතා කරන්න.\n"
+        "පසුගිය වගා කාලයන්හි හොඳ ප්‍රතිඵල දුන් බීජ වර්ග තෝරන්න.\n"
+        "මෙය අස්වැන්න සහ ඒකාකාර වර්ධනයට උපකාරී වේ."
+    )
+
+
+def _advisor_water(f):
+    irrigation = f.get("irrigationAvailable", False)
+    water_ready = f.get("preparedness", {}).get("waterReady", False)
+
+    if irrigation and water_ready:
+        return (
+            "ජල වාරිමාර්ග සහ ජල සැපයුම දැනටමත් සූදානම්."
+            "වගාව ආරම්භ කිරීමේදී ජල ගැටළු ඇති නොවේ."
+            "නිසි වාරිකව ජලය ලබාදීම පවත්වාගෙන යන්න."
+        )
+
+    if irrigation and not water_ready:
+        return (
+            "ජල වාරිමාර්ග ඇතත් ජල සැපයුම තවම සූදානම් නැත."
+            "වගාව ආරම්භයට පෙර ජල සැපයුම සූදානම් කරගන්න."
+            "ආරම්භක අවධියේ ජල හිඟය වගාවට හානිකර වේ."
+        )
+
+    return (
+        "ජල වාරිමාර්ග නොමැති බැවින් වැසි මත පමණක් වගා කරයි."
+        "වියළි කාලයන්දී වගාවට අවදානම වැඩි විය හැක."
+        "වැසි රටාව සැලකිල්ලට ගනිමින් වගා කාලය සැලසුම් කරන්න."
+    )
+
+
+def _advisor_fertilizer(f):
+    if f.get("preparedness", {}).get("fertilizerReady"):
+        return (
+            "පොහොර සැලසුම දැනටමත් සූදානම්."
+            "මුල් පොහොර සහ top dressing සඳහා අවශ්‍ය ද්‍රව්‍ය ඇත."
+            "නිසි වේලාවට පොහොර දමන්න."
+        )
+
+    land = f.get("landSize")
+    return (
+        f"භූමි ප්‍රමාණය {land} අනුව පොහොර සැලසුම සකස් කරන්න."
+        "මුල් පොහොර සහ top dressing සඳහා ප්‍රමාණය ගණනය කරන්න."
+        "නිසි පොහොර සැලසුම අස්වැන්න වැඩි කිරීමට උපකාරී වේ."
+    )
+
+
+def _advisor_storage(f, price):
+    delay = price.get("storage_advice", {}).get("duration_weeks", 0)
+
+    if delay == 0:
+        return (
+            "වහාම harvest කර විකුනන නිසා ගබඩා අවශ්‍ය නැත."
+            "අස්වැන්න නෙලීමෙන් පසු සෘජුවම වෙළඳපොළට ගෙන යා හැක."
+            "අමතර ගබඩා වියදම් නොපැමිණේ."
+        )
+
+    if f.get("preparedness", {}).get("storageReady"):
+        return (
+            f"සති {delay}ක් සඳහා ගබඩා දැනටමත් සූදානම්."
+            "වියළි සහ හොඳ වායු සරණි සහිත පරිසරයක් ඇත."
+            "අස්වැන්න ආරක්ෂිතව තබාගත හැක."
+        )
+
+    return (
+        f"සති {delay}ක් harvest පමා වන නිසා ගබඩා අවශ්‍ය වේ."
+        "වියළි සහ හොඳ වායු සරණි සහිත ගබඩාවක් සූදානම් කරන්න."
+        "අස්වැන්න නාස්ති වීම වැළැක්වීමට මෙය වැදගත්ය."
+    )
+
+
+def _advisor_finance(f):
+    if f.get("preparedness", {}).get("financeReady"):
+        return (
+            "මුදල් සැලසුම් දැනටමත් සූදානම්."
+            "වගා කාලය තුළ අමතර වියදම් සඳහා ප්‍රශ්න නොමැත."
+            "වැඩ කටයුතු සාමාන්‍ය ලෙස කරගෙන යා හැක."
+        )
+
+    return (
+        "පොහොර, ගබඩා සහ ප්‍රවාහන වියදම් කල්තියා ගණනය කරන්න."
+        "අස්වැන්න නෙලීමේදී මුදල් හිඟයක් නොවීමට සැලසුම් කරන්න."
+        "හොඳ මුදල් සැලසුම වගාවේ සාර්ථකත්වයට උපකාරී වේ."
+    )

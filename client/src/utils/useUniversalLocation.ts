@@ -11,6 +11,8 @@ type Result = {
   weatherCondition: string | null;
   weatherIcon: string | null;
 
+  rainfallMm: number | null; // ✅ ADD (no removal)
+
   isLoading: boolean;
   error: string | null;
 };
@@ -55,6 +57,8 @@ export default function useUniversalLocation(
   const [weatherCondition, setWeatherCondition] = useState<string | null>(null);
   const [weatherIcon, setWeatherIcon] = useState<string | null>(null);
 
+  const [rainfallMm, setRainfallMm] = useState<number | null>(null); // ✅ ADD
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,6 +93,16 @@ export default function useUniversalLocation(
         setWeatherCondition(json.weather[0].description ?? null);
         setWeatherIcon(json.weather[0].icon ?? null);
       }
+
+      // ✅ ADD: Rainfall (OpenWeatherMap)
+      const rain =
+        typeof json?.rain?.["1h"] === "number"
+          ? json.rain["1h"]
+          : typeof json?.rain?.["3h"] === "number"
+          ? json.rain["3h"]
+          : 0;
+
+      setRainfallMm(rain);
     } catch {
       // silent fail (weather is optional)
     }
@@ -192,6 +206,7 @@ export default function useUniversalLocation(
     temperature,
     weatherCondition,
     weatherIcon,
+    rainfallMm, // ✅ ADD
     isLoading,
     error,
   };

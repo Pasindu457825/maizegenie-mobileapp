@@ -94,19 +94,11 @@ export default function RuleBasedAdvisoryResultsScreen() {
       ? `🌾 පොහොර උපදේශ ප්‍රතිඵල\n\n📝 මගේ ආදානය:\n${data.farmer_input || data.input_text}\n\n💡 ලැබුණු නිර්දේශ:\n${data.advice}\n\n⚠️ අවවාද: ${data.warnings?.length || 0}\n✅ අද යෙදීම: ${canApplyToday ? "සුදුසුයි" : "නිර්දේශ නොකරයි"}\n\nකරුණාකර මට වැඩිදුර උපදෙස් දෙන්න.`
       : `🌾 Fertilizer Advisory Results\n\n📝 My Input:\n${data.farmer_input || data.input_text}\n\n💡 Recommendations Received:\n${data.advice}\n\n⚠️ Warnings: ${data.warnings?.length || 0}\n✅ Apply Today: ${canApplyToday ? "Yes" : "No"}\n\nPlease provide me with further guidance.`;
 
-    // Navigate to Agricultural Advisory Chat screen with pre-filled message
-    navigation.navigate("AgriculturalAdvisoryChat", {
+    // Navigate to main Chat screen with pre-filled message
+    navigation.navigate("Chat" as never, {
       prefilledMessage: contextMessage,
       context: "fertilizer_advisory",
-      advisoryType: "fertilizer",
-      advisoryData: {
-        input: data.farmer_input || data.input_text,
-        recommendations: data.recommendations,
-        warnings: data.warnings,
-        apply_today: canApplyToday,
-        language: language,
-      },
-    });
+    } as never);
   };
 
   const getPriorityColor = (priority: string) => {

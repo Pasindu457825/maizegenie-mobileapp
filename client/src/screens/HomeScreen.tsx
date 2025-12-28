@@ -21,6 +21,7 @@ import {
   Settings,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
+import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 
 const { width } = Dimensions.get("window");
 
@@ -242,6 +243,8 @@ export default function HomeScreen() {
             </View>
           </LinearGradient>
 
+          <TopOfficialNews />
+
           {/* Chat Button */}
           {user?.role === "farmer" ? (
             <TouchableOpacity
@@ -344,58 +347,6 @@ export default function HomeScreen() {
             })}
           </View>
         </Animated.View>
-
-        <TouchableOpacity
-          onPress={() => navigation.navigate("OfficialNews")}
-          style={{
-            backgroundColor: "#2563EB",
-            paddingVertical: 12,
-            paddingHorizontal: 16,
-            borderRadius: 10,
-            alignItems: "center",
-            marginTop: 16,
-          }}
-        >
-          <Text
-            style={{
-              color: "#FFFFFF",
-              fontSize: 15,
-              fontWeight: "700",
-            }}
-          >
-            නිල පුවත් බලන්න
-          </Text>
-        </TouchableOpacity>
-
-        {/* 🔒 Officer Only – Add Official News */}
-        {isOfficer && (
-          <TouchableOpacity
-            onPress={() => navigation.navigate("AdminAddOfficialNews")}
-            style={{
-              backgroundColor: "#16A34A",
-              paddingVertical: 14,
-              paddingHorizontal: 16,
-              borderRadius: 12,
-              alignItems: "center",
-              marginTop: 14,
-              flexDirection: "row",
-              justifyContent: "center",
-              gap: 8,
-            }}
-            activeOpacity={0.85}
-          >
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: 15,
-                fontWeight: "800",
-              }}
-            >
-              📰{" "}
-              {language === "si" ? "නිල පුවත් එක් කරන්න" : "Add Official News"}
-            </Text>
-          </TouchableOpacity>
-        )}
 
         {/* Tips Section */}
         <Animated.View

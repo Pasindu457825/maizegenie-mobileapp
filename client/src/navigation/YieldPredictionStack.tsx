@@ -20,27 +20,18 @@ import FertilizerAdvisorOfficerLandingScreen from "../screens/FertilizerAdvisor/
 import OfficerAdvisoryInputScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryInputScreen";
 import OfficerAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryResultsScreen";
 
-// Agricultural Advisory Chat
-import AgriculturalAdvisoryChatScreen from "../screens/YieldPrediction/AgriculturalAdvisoryChatScreen";
-
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
   YieldPredictionResultsScreen: { data: any; language: 'si' | 'en' };
   YieldPredictionOfficerFormScreen: { language: 'si' | 'en' };
-  YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en' };
+  YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en'; requestData?: any };
   FertilizerAdvisorLanding: undefined;
   FertilizerAdvisorOfficerLanding: undefined;
   RuleBasedAdvisoryInputScreen: undefined;
   RuleBasedAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
   OfficerAdvisoryInputScreen: undefined;
   OfficerAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
-  AgriculturalAdvisoryChat: {
-    prefilledMessage?: string;
-    context?: string;
-    advisoryType?: 'fertilizer' | 'yield' | 'general';
-    advisoryData?: any;
-  };
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -94,10 +85,6 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="OfficerAdvisoryResultsScreen"
         component={OfficerAdvisoryResultsScreen}
-      />
-      <Stack.Screen
-        name="AgriculturalAdvisoryChat"
-        component={AgriculturalAdvisoryChatScreen}
       />
     </Stack.Navigator>
   );

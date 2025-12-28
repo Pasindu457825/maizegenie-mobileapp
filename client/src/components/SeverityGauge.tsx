@@ -10,6 +10,10 @@ const startAngle = -120;
 const endAngle = 120;
 const totalAngle = endAngle - startAngle;
 
+const clamp = (v: number, min = 0, max = 1) => Math.min(Math.max(v, min), max);
+
+const scoreToAngle = (score: number) => startAngle + clamp(score) * totalAngle;
+
 function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
   const rad = ((angle - 90) * Math.PI) / 180;
   return {
@@ -18,7 +22,13 @@ function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
   };
 }
 
-function createArc(cx: number, cy: number, r: number, start: number, end: number) {
+function createArc(
+  cx: number,
+  cy: number,
+  r: number,
+  start: number,
+  end: number
+) {
   const startPoint = polarToCartesian(cx, cy, r, end);
   const endPoint = polarToCartesian(cx, cy, r, start);
   const largeArc = end - start <= 180 ? "0" : "1";
@@ -32,12 +42,27 @@ export default function SeverityGauge({ severity }: Props) {
   const r = 120;
 
   // Needle rotation based on severity 0–1
-  const needleAngle = startAngle + severity * totalAngle;
+  const needleAngle = scoreToAngle(severity);
 
   const segments = [
-    { start: -120, end: -40, color: "#22C55E", label: "LOW" },      // Green
-    { start: -40, end: 40, color: "#FACC15", label: "MEDIUM" },     // Yellow
-    { start: 40, end: 120, color: "#DC2626", label: "HIGH" },       // Red
+    {
+      start: scoreToAngle(0),
+      end: scoreToAngle(0.1), // 0–10%
+      color: "#22C55E",
+      label: "LOW",
+    },
+    {
+      start: scoreToAngle(0.1),
+      end: scoreToAngle(0.3), // 10–30%
+      color: "#FACC15",
+      label: "MEDIUM",
+    },
+    {
+      start: scoreToAngle(0.3),
+      end: scoreToAngle(1), // >30%
+      color: "#DC2626",
+      label: "HIGH",
+    },
   ];
 
   return (

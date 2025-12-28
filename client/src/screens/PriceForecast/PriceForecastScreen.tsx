@@ -99,6 +99,7 @@ interface ForecastData {
 }
 
 const PriceForecastScreen = () => {
+  const hasRunForecastRef = useRef(false);
   const [weeklyForecast, setWeeklyForecast] = useState<WeekForecast[]>([]);
   const notificationSentRef = useRef(false);
   const rootNavigation = useNavigation<RootNavProp>();
@@ -119,6 +120,7 @@ const PriceForecastScreen = () => {
     temperature,
     weatherCondition,
     weatherIcon,
+    rainfallMm,
     isLoading,
   } = useUniversalLocation(language);
 
@@ -407,9 +409,6 @@ const PriceForecastScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Generate forecast (mock - replace with API call)
-    generateForecast();
   }, []);
 
   // Update district and weather when location data changes
@@ -431,13 +430,23 @@ const PriceForecastScreen = () => {
         weatherCondition,
         language
       );
-      setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
+      setWeather(
+        `${Math.round(temperature)}°C • ${translatedCondition}${
+          rainfallMm !== null ? ` • ${rainfallMm.toFixed(1)}mm` : ""
+        }`
+      );
     } else {
       setWeather(
         language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
       );
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
+
+  const getSeasonFromWeek = (week: number): "Maha" | "Yala" => {
+    // Maha: Oct–Mar → ISO weeks 40–52, 1–13
+    if (week >= 40 || week <= 13) return "Maha";
+    return "Yala";
+  };
 
   const generateForecast = async () => {
     try {
@@ -448,14 +457,72 @@ const PriceForecastScreen = () => {
         (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
       );
 
+      const weekNum = Number(formData.week);
+
+      // 🛡️ hard guard (prevents 422)
+      if (!Number.isFinite(weekNum)) {
+        throw new Error("Invalid week number");
+      }
+
+      const seasonCode = getSeasonFromWeek(weekNum);
+
+      // 🛡️ numeric sanitizers
+      const safeNumber = (v: any, fallback: number) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      const fuelPriceValue = safeNumber(
+        String(formData.fuelPrice).replace(/[^0-9.]/g, ""),
+        277
+      );
+
+      const lastPriceValue = safeNumber(
+        String(formData.farmGatePrice).replace(/[^0-9.]/g, ""),
+        160
+      );
+
+      const importTaxValue = safeNumber(
+        String(formData.cornImportTax).replace(/[^0-9.]/g, ""),
+        0
+      );
+
+      const rainfallValue =
+        rainfallMm && rainfallMm > 0
+          ? rainfallMm
+          : seasonCode === "Maha"
+          ? 30 // realistic Maha minimum
+          : 10;
+
+      let temperatureValue = safeNumber(
+        temperature,
+        seasonCode === "Maha" ? 26 : 28
+      );
+
+      // Sri Lanka invalid guard (0°C, negative, etc.)
+      if (temperatureValue < 10 || temperatureValue > 45) {
+        temperatureValue = seasonCode === "Maha" ? 26 : 28;
+      }
+
+      const demandIndexValue = seasonCode === "Maha" ? 0.85 : 0.7;
+
       const payload = {
-        year: formData.year,
-        week: formData.week,
-        district: formData.district,
-        season: formData.season,
-        productionCostPerKg: formData.productionCostPerKg,
+        year: safeNumber(formData.year, new Date().getFullYear()),
+        week: weekNum,
+        district: formData.district || "Anuradhapura",
+        season: seasonCode,
+
+        fuel_price: fuelPriceValue,
+        rainfall: rainfallValue,
+        temperature: temperatureValue,
+        demand_index: demandIndexValue,
+        import_tax: importTaxValue,
+        last_price: lastPriceValue,
+
         weeks_ahead: 4,
       };
+
+      console.log("📤 RF PAYLOAD (final):", payload);
 
       const res = await getPriceForecast(payload);
 
@@ -465,8 +532,11 @@ const PriceForecastScreen = () => {
 
       setWeeklyForecast(res.weeks);
 
-      // First week value use karala main card ekata price set karamu
       const first = res.weeks[0];
+      const firstWeek = res.weeks[0];
+
+      // if you are using ensemble first.ensemble etc keep your existing logic
+      setConfidenceScore(firstWeek?.confidence_pct ?? 70);
 
       setPredictedPrice(first.ensemble);
 
@@ -476,35 +546,34 @@ const PriceForecastScreen = () => {
         (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
         0
       );
-// 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
-if (!notificationSentRef.current) {
-  if (bestIdx === 0) {
-    await sendNotification(
-      language === "si"
-        ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
-        : "⭐ Best time to sell is this week",
-      language === "si"
-        ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
-        : "The current week has the highest predicted price",
-      "price"
-    );
-  } else {
-    const daysToSell = bestIdx * 7;
+      // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
+      if (!notificationSentRef.current) {
+        if (bestIdx === 0) {
+          await sendNotification(
+            language === "si"
+              ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
+              : "⭐ Best time to sell is this week",
+            language === "si"
+              ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
+              : "The current week has the highest predicted price",
+            "price"
+          );
+        } else {
+          const daysToSell = bestIdx * 7;
 
-    await sendNotification(
-      language === "si"
-        ? `🗓 දින ${daysToSell} කින් විකිණන්න`
-        : `🗓 Sell in ${daysToSell} days`,
-      language === "si"
-        ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
-        : "Best price expected in the selected week",
-      "price"
-    );
-  }
+          await sendNotification(
+            language === "si"
+              ? `🗓 දින ${daysToSell} කින් විකිණන්න`
+              : `🗓 Sell in ${daysToSell} days`,
+            language === "si"
+              ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
+              : "Best price expected in the selected week",
+            "price"
+          );
+        }
 
-  notificationSentRef.current = true;
-}
-
+        notificationSentRef.current = true;
+      }
 
       if (currentPriceNumeric > 0) {
         const change =
@@ -536,6 +605,15 @@ if (!notificationSentRef.current) {
       setIsLoadingForecast(false);
     }
   };
+
+  useEffect(() => {
+    if (hasRunForecastRef.current) return;
+
+    if (!isLoading && temperature !== null && rainfallMm !== null) {
+      hasRunForecastRef.current = true;
+      generateForecast();
+    }
+  }, [isLoading, temperature, rainfallMm]);
 
   const calculateProfit = () => {
     if (!formData) return { revenue: 0, profit: 0, margin: 0 };
@@ -765,8 +843,16 @@ if (!notificationSentRef.current) {
             {/* Confidence Score */}
             <View style={styles.confidenceBar}>
               <Text style={styles.confidenceLabel}>
-                {content[language].confidence}
+                {content[language].confidence} •{" "}
+                {confidenceScore >= 75
+                  ? language === "si"
+                    ? "ඉහළ"
+                    : "High"
+                  : language === "si"
+                  ? "මධ්‍යම"
+                  : "Medium"}
               </Text>
+
               <View style={styles.progressBarContainer}>
                 <View
                   style={[
@@ -933,10 +1019,14 @@ if (!notificationSentRef.current) {
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 20 }}
                 style={{ marginTop: 8 }}
               >
                 {weeklyForecast.map((w, index) => {
                   const isBest = index === bestWeekIndex;
+                  // ✅ DEFINE VARIABLES HERE (JS scope)
+                  const confPct = w.confidence_pct ?? 70;
+                  const confTag = w.confidence_tag ?? "Medium";
 
                   return (
                     <View
@@ -951,7 +1041,6 @@ if (!notificationSentRef.current) {
                           </Text>
                         </View>
                       )}
-
                       {/* WEEK DATE RANGE */}
                       <Text style={styles.weekLabel}>
                         {getISOWeekRangeWithOffset(
@@ -961,11 +1050,38 @@ if (!notificationSentRef.current) {
                           language
                         )}
                       </Text>
-
                       {/* PRICE */}
                       <Text style={styles.weekPrice}>
                         Rs {w.ensemble.toFixed(2)}
                       </Text>
+                      <View
+                        style={[
+                          styles.confBadge,
+                          {
+                            backgroundColor:
+                              confTag === "High" ? "#D1FAE5" : "#FEF3C7",
+                            borderColor:
+                              confTag === "High" ? "#10B981" : "#F59E0B",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.confBadgeText,
+                            {
+                              color: confTag === "High" ? "#047857" : "#92400E",
+                            },
+                          ]}
+                        >
+                          {confTag === "High"
+                            ? language === "si"
+                              ? `ඉහළ • ${confPct.toFixed(0)}%`
+                              : `High • ${confPct.toFixed(0)}%`
+                            : language === "si"
+                            ? `මධ්‍යම • ${confPct.toFixed(0)}%`
+                            : `Medium • ${confPct.toFixed(0)}%`}
+                        </Text>
+                      </View>
 
                       {/* MODEL DETAILS */}
                       <Text style={styles.weekSub}>
@@ -1566,7 +1682,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   weekCard: {
-    width: "100%",
+    width: width * 0.78,
     maxWidth: 320,
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
@@ -1674,6 +1790,18 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  confBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  confBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
 });
 
