@@ -168,90 +168,79 @@ const WeatherForecastScreen = () => {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const [hasUserRetried, setHasUserRetried] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   // 🕒 HOURLY RAIN DATA (NEW)
   const [hourlyData, setHourlyData] = useState<
     { time: string; precipitation: number }[]
   >([]);
 
-  // ✨ UPDATED: Generate 7-day weather summary text - ENGLISH ONLY
-  const generateWeatherSummary = (
+  // ✨ UPDATED: Generate 7-day weather summary text -
+
+  const generateWeeklyFarmerVoice = (
     predictions: WeatherDay[],
-    lang: Language
+    language: Language
   ): string => {
     if (!predictions || predictions.length === 0) return "";
 
-    const weatherSummaryContent = {
-      intro: "Here is the weather forecast for the next 7 days.",
-      today: "Today",
-      tomorrow: "Tomorrow",
-      nextDays: "For the next 5 days",
-      temp: "temperature",
-      rain: "rainfall",
-      mm: "millimeters",
-      celsius: "celsius",
-      good: "good farming conditions",
-      caution: "caution advised",
-      risky: "risky conditions",
-      average: "Average",
-      total: "total",
-      farmingDays: "farming days",
-    };
+    let goodDays = 0;
+    let rainRiskDays = 0;
+    let dryDays = 0;
 
-    const content = weatherSummaryContent;
-    let summary = content.intro + " ";
+    predictions.slice(0, 7).forEach((day) => {
+      const rain = day.rain_mm ?? 0;
+      const temp = day.temperature ?? 0;
 
-    // Today's forecast
-    const today = predictions[0];
-    if (today) {
-      summary += `${content.today}: ${Math.round(
-        today.temperature_min
-      )}-${Math.round(today.temperature_max)} ${content.celsius}, ${
-        content.rain
-      } ${(today.rain_mm || 0).toFixed(1)} ${content.mm}. `;
-
-      if ((today.rain_mm ?? 0) > 25) {
-        summary += content.risky + ". ";
-      } else if ((today.rain_mm ?? 0) >= 5 && today.temperature >= 25) {
-        summary += content.good + ". ";
-      } else {
-        summary += content.caution + ". ";
+      if (rain >= 30) {
+        rainRiskDays++;
+      } else if (rain < 2 && temp >= 33) {
+        dryDays++;
+      } else if (rain >= 5 && rain <= 20 && temp >= 24 && temp <= 32) {
+        goodDays++;
       }
+    });
+
+    // 🌾 Farmer-friendly Sinhala advisory
+    if (language === "sinhala") {
+      if (rainRiskDays >= 3) {
+        return (
+          "ඊළඟ සතිය තුළ වැසි වැඩි දින කිහිපයක් තියෙනවා. " +
+          "ඒ නිසා මේ සතිය වගා කටයුතු සඳහා සුදුසු නැහැ. " +
+          "දැනට තියෙන වගා සහ අස්වැන්න ආරක්ෂා කරගන්න."
+        );
+      }
+
+      if (dryDays >= 3) {
+        return (
+          "ඊළඟ සතිය වියළි කාලගුණයක් වගේ පෙනෙනවා. " +
+          "වැසි අඩු නිසා වගාවට වතුර දීම අවශ්‍ය වෙයි. " +
+          "වතුර දීම සඳහා කලින්ම සැලසුම් කරගන්න."
+        );
+      }
+
+      if (goodDays >= 4) {
+        return (
+          "ඊළඟ සතිය වගා කටයුතු සඳහා හොඳ සතියක්. " +
+          "වැසිත් උෂ්ණත්වයත් වගාවට සුදුසුයි. " +
+          "බීජ දමන්න සහ වගා වැඩ කරගෙන යන්න පුළුවන්."
+        );
+      }
+
+      return (
+        "ඊළඟ සතිය මිශ්‍ර කාලගුණයක් තියෙනවා. " +
+        "කොහොම වෙයිද කියලා දවසින් දවස වෙනස් වෙන්න පුළුවන්. " +
+        "ඒ නිසා කාලගුණය නිතර බලලා අවධානයෙන් වගා කටයුතු කරන්න."
+      );
     }
 
-    // Tomorrow's forecast
-    const tomorrow = predictions[1];
-    if (tomorrow) {
-      summary += `${content.tomorrow}: ${Math.round(
-        tomorrow.temperature_min
-      )}-${Math.round(tomorrow.temperature_max)} ${content.celsius}, ${
-        content.rain
-      } ${(tomorrow.rain_mm || 0).toFixed(1)} ${content.mm}. `;
-    }
-
-    // Next 5 days summary
-    summary += content.nextDays + ": ";
-    const next5Days = predictions.slice(2, 7);
-    if (next5Days.length > 0) {
-      const avgTemp =
-        next5Days.reduce((sum, d) => sum + d.temperature, 0) / next5Days.length;
-      const totalRain = next5Days.reduce((sum, d) => sum + (d.rain_mm || 0), 0);
-      const goodDays = next5Days.filter(
-        (d) =>
-          (d.rain_mm ?? 0) >= 5 &&
-          (d.rain_mm ?? 0) <= 25 &&
-          d.temperature >= 25 &&
-          d.temperature <= 33
-      ).length;
-
-      summary += `${content.average} ${content.temp} ${Math.round(avgTemp)} ${
-        content.celsius
-      }, ${content.total} ${content.rain} ${totalRain.toFixed(1)} ${
-        content.mm
-      }. ${goodDays} ${content.farmingDays}.`;
-    }
-
-    return summary;
+    // 🌍 English fallback
+    if (rainRiskDays >= 3)
+      return "Heavy rainfall is expected during the coming week. Avoid farming activities and protect existing crops.";
+    if (dryDays >= 3)
+      return "Dry conditions are expected next week. Plan irrigation in advance.";
+    if (goodDays >= 4)
+      return "The coming week is suitable for farming activities. You may proceed with cultivation.";
+    return "Mixed weather conditions are expected. Monitor the forecast daily and proceed with caution.";
   };
 
   // ✨ FIXED: Speak weather forecast - ENGLISH ONLY
@@ -261,7 +250,7 @@ const WeatherForecastScreen = () => {
       await Speech.stop();
       setIsSpeaking(true);
 
-      const summary = generateWeatherSummary(predictions, language);
+      const summary = generateWeeklyFarmerVoice(predictions, language);
 
       if (!summary) {
         console.log("No summary to speak");
@@ -271,8 +260,8 @@ const WeatherForecastScreen = () => {
 
       const speechOptions: any = {
         pitch: 1,
-        rate: 0.85,
-        language: "en",
+        rate: language === "sinhala" ? 0.85 : 0.9,
+        language: language === "sinhala" ? "si-LK" : "en-US",
         onDone: () => {
           console.log("Speech finished");
           setIsSpeaking(false);
@@ -283,7 +272,10 @@ const WeatherForecastScreen = () => {
         },
       };
 
-      console.log("Speaking with language: English");
+      console.log(
+        "Speaking with language:",
+        language === "sinhala" ? "Sinhala" : "English"
+      );
       console.log("Summary:", summary.substring(0, 50) + "...");
 
       await Speech.speak(summary, speechOptions);
@@ -676,17 +668,26 @@ const WeatherForecastScreen = () => {
           elevation: 3,
         }}
       >
-        <Text style={{ fontSize: 14, fontWeight: "800", color: "#047857" }}>
+        <Text
+          style={{
+            fontSize: 14,
+            fontWeight: "800",
+            color: "#047857",
+          }}
+        >
           {language === "sinhala"
             ? "⏱️ ඉදිරි පැය – වගාවට කොහොමද?"
             : "⏱️ Next few hours – farming suitability"}
         </Text>
 
-        <View
-          style={{
+        {/* ✅ HORIZONTAL SCROLL FIX */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginTop: 14 }}
+          contentContainerStyle={{
             flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 14,
+            paddingRight: 12,
           }}
         >
           {hourlyData.slice(0, 12).map((h, idx) => {
@@ -707,7 +708,14 @@ const WeatherForecastScreen = () => {
             });
 
             return (
-              <View key={idx} style={{ alignItems: "center", width: 44 }}>
+              <View
+                key={idx}
+                style={{
+                  alignItems: "center",
+                  width: 56, // ✅ mobile friendly width
+                  marginRight: 6, // ✅ spacing between hours
+                }}
+              >
                 {/* ICON CIRCLE */}
                 <View
                   style={{
@@ -747,7 +755,7 @@ const WeatherForecastScreen = () => {
               </View>
             );
           })}
-        </View>
+        </ScrollView>
       </View>
     );
   };
@@ -1342,22 +1350,38 @@ const WeatherForecastScreen = () => {
     );
   }
 
-  if (error || !weatherData)
+  if ((error || !weatherData) && hasUserRetried)
     return (
       <View style={styles.centered}>
         <AlertCircle size={64} color="#ef4444" />
         <Text style={styles.errorText}>{content[language].error}</Text>
+
         <TouchableOpacity
           style={styles.retryBtn}
-          onPress={() =>
-            fetchWeatherData(latitude ?? DEFAULT_LAT, longitude ?? DEFAULT_LON)
-          }
+          onPress={() => {
+            setHasUserRetried(true);
+            fetchWeatherData(latitude ?? DEFAULT_LAT, longitude ?? DEFAULT_LON);
+          }}
         >
           <RefreshCw size={20} color="#fff" />
           <Text style={styles.retryTxt}>{content[language].retry}</Text>
         </TouchableOpacity>
       </View>
     );
+
+  // ✅ ADD THIS SAFETY GUARD
+  if (!weatherData) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#10B981" />
+        <Text style={styles.loadingTxt}>
+          {language === "sinhala"
+            ? "කාලගුණ දත්ත සකස් වෙමින්..."
+            : "Preparing weather data..."}
+        </Text>
+      </View>
+    );
+  }
 
   const predictions = weatherData.predictions;
   const farmingAdvice = getFarmingAdvice(predictions);
@@ -1386,6 +1410,12 @@ const WeatherForecastScreen = () => {
       strokeDasharray: "",
       stroke: "#e5e7eb",
       strokeWidth: 1,
+    },
+    propsForLabels: {
+      fontSize: 10, // 👈 Y-axis 1.0 mm size
+    },
+    propsForVerticalLabels: {
+      fontSize: 10, // 👈 X-axis day labels
     },
   };
 
@@ -1486,17 +1516,22 @@ const WeatherForecastScreen = () => {
             <CloudRain size={20} color="#0ea5e9" />
             <Text style={styles.chartTitle}>{content[language].rainTrend}</Text>
           </View>
-          <BarChart
-            data={rainChartData}
-            width={screenWidth - 40}
-            height={220}
-            chartConfig={chartConfig}
-            style={styles.chart}
-            showValuesOnTopOfBars={true}
-            fromZero={true}
-            yAxisSuffix=" mm"
-            yAxisLabel=""
-          />
+          <View style={styles.chartClip}>
+            <View style={{ paddingRight: 8 }}>
+              <BarChart
+                data={rainChartData}
+                width={screenWidth - 56}
+                height={210}
+                chartConfig={chartConfig}
+                style={styles.chart}
+                showValuesOnTopOfBars={true}
+                fromZero={true}
+                yAxisSuffix=" mm"
+                yAxisLabel=""
+                verticalLabelRotation={-15}
+              />
+            </View>
+          </View>
           <Text style={styles.chartNote}>
             {language === "sinhala"
               ? "* 5-25mm වර්ෂාව බඩ ඉරිඟු වගාවට හිතකරයි"
@@ -1847,5 +1882,10 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  chartClip: {
+    width: "100%",
+    overflow: "hidden",
+    borderRadius: 12, // styles.chart borderRadius එකට match කරලා
   },
 });

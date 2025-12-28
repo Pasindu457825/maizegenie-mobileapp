@@ -1,9 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 /* =======================
@@ -33,8 +28,7 @@ type NotificationContextType = {
   ) => Promise<void>;
 };
 
-const NotificationContext =
-  createContext<NotificationContextType | null>(null);
+const NotificationContext = createContext<NotificationContextType | null>(null);
 
 /* =======================
    PROVIDER
@@ -45,8 +39,7 @@ export const NotificationProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [notifications, setNotifications] =
-    useState<AppNotification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
 
   /* =======================
@@ -83,48 +76,66 @@ export const NotificationProvider = ({
      REALTIME LISTENER
   ======================= */
   useEffect(() => {
-    if (!userId) return;
+    let channel: any = null;
 
-    const channel = supabase
-      .channel(`notifications-${userId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "INSERT") {
-            setNotifications((prev) => {
-              if (prev.some((n) => n.id === payload.new.id))
-                return prev;
-              return [payload.new as AppNotification, ...prev];
-            });
-          }
+    const initRealtime = async () => {
+      let uid = userId;
 
-          if (payload.eventType === "DELETE") {
-            setNotifications((prev) =>
-              prev.filter((n) => n.id !== payload.old.id)
-            );
-          }
+      if (!uid) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        uid = sessionData?.session?.user?.id ?? null;
 
-          if (payload.eventType === "UPDATE") {
-            setNotifications((prev) =>
-              prev.map((n) =>
-                n.id === payload.new.id
-                  ? (payload.new as AppNotification)
-                  : n
-              )
-            );
-          }
+        if (!uid) {
+          console.error("❌ No user session. Realtime not started.");
+          return;
         }
-      )
-      .subscribe();
+
+        setUserId(uid);
+        return;
+      }
+
+      channel = supabase
+        .channel(`notifications-${uid}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${uid}`,
+          },
+          (payload) => {
+            if (payload.eventType === "INSERT") {
+              setNotifications((prev) => {
+                if (prev.some((n) => n.id === payload.new.id)) return prev;
+                return [payload.new as AppNotification, ...prev];
+              });
+            }
+
+            if (payload.eventType === "DELETE") {
+              setNotifications((prev) =>
+                prev.filter((n) => n.id !== payload.old.id)
+              );
+            }
+
+            if (payload.eventType === "UPDATE") {
+              setNotifications((prev) =>
+                prev.map((n) =>
+                  n.id === payload.new.id ? (payload.new as AppNotification) : n
+                )
+              );
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    initRealtime();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [userId]);
 
@@ -141,7 +152,8 @@ export const NotificationProvider = ({
     const { data, error } = await supabase
       .from("notifications")
       .insert({
-        user_id: userId,
+        user_id:
+          userId ?? (await supabase.auth.getSession()).data.session?.user?.id,
         title,
         message,
         type,
@@ -156,10 +168,7 @@ export const NotificationProvider = ({
     }
 
     if (data) {
-      setNotifications((prev) => [
-        data as AppNotification,
-        ...prev,
-      ]);
+      setNotifications((prev) => [data as AppNotification, ...prev]);
     }
   };
 
@@ -170,9 +179,7 @@ export const NotificationProvider = ({
     if (!userId) return;
 
     // optimistic UI
-    setNotifications((prev) =>
-      prev.filter((n) => n.id !== id)
-    );
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
 
     const { error } = await supabase
       .from("notifications")
@@ -199,9 +206,7 @@ export const NotificationProvider = ({
   ======================= */
   const markAsRead = async (id: string) => {
     setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      )
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
 
     await supabase
@@ -214,9 +219,7 @@ export const NotificationProvider = ({
   const markAllAsRead = async () => {
     if (!userId) return;
 
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, read: true }))
-    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
     await supabase
       .from("notifications")
@@ -224,9 +227,7 @@ export const NotificationProvider = ({
       .eq("user_id", userId);
   };
 
-  const unreadCount = notifications.filter(
-    (n) => !n.read
-  ).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <NotificationContext.Provider

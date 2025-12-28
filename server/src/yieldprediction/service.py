@@ -195,8 +195,13 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
 # ============================================================
 def predict_yield_service(data: Dict) -> Dict:
     """
-    Main prediction service.
+    Main prediction service with ML-first approach.
     Returns format that matches frontend expectations EXACTLY.
+    
+    Strategy:
+    1. Try ML model first (XGBoost) - most accurate
+    2. Fallback to rule-based if ML fails
+    3. Return comprehensive prediction with impact factors
     
     Frontend expects:
     {
@@ -215,14 +220,17 @@ def predict_yield_service(data: Dict) -> Dict:
     # Try ML prediction first (XGBoost model)
     if ML_AVAILABLE:
         try:
-            logger.info("🤖 Using ML prediction (XGBoost)")
+            logger.info("🤖 Using ML prediction (XGBoost) for farmer")
             response = get_ml_prediction(data)
+            logger.info(f"✅ ML prediction successful: {response['predicted_yield']:.2f} kg/ha")
             return response
         except Exception as e:
             logger.warning(f"⚠️ ML prediction failed, falling back to rule-based: {e}")
+    else:
+        logger.info("⚠️ ML model not available, using rule-based prediction")
     
     # Fallback to rule-based prediction
-    logger.info("📊 Using rule-based prediction")
+    logger.info("📊 Using rule-based prediction for farmer")
     multipliers = {}
     yield_kg_ha, multipliers = rule_based_yield(data)
     confidence_score = 0.7
@@ -230,6 +238,10 @@ def predict_yield_service(data: Dict) -> Dict:
     # Determine confidence level
     if data.get("gps_lat") and data.get("gps_lng"):
         confidence_score += 0.05  # Bonus for GPS data
+    
+    # Adjust confidence based on data quality
+    if data.get("soil_condition") == "Good" and data.get("irrigation_type") == "Irrigated":
+        confidence_score += 0.05
     
     if confidence_score >= 0.85:
         confidence = "High"
@@ -266,5 +278,7 @@ def predict_yield_service(data: Dict) -> Dict:
         "model_version": "Rule-Based_v1.0",
         "prediction_method": "Rule-Based",
     }
+    
+    logger.info(f"✅ Rule-based prediction: {yield_kg_ha:.2f} kg/ha")
     
     return response
