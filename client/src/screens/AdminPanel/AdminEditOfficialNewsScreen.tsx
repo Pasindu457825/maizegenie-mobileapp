@@ -44,11 +44,14 @@ export default function AdminEditOfficialNewsScreen({
   const [category, setCategory] = useState("price");
   const [source, setSource] = useState("");
   const [url, setUrl] = useState("");
-  const [district, setDistrict] = useState(""); // ✅ NEW
+  const [district, setDistrict] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageAsset, setImageAsset] = useState<any>(null);
   const [visibleToFarmers, setVisibleToFarmers] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
+  const [sourceError, setSourceError] = useState<string | null>(null);
 
   // ===============================
   // LOAD NEWS (same logic)
@@ -68,9 +71,14 @@ export default function AdminEditOfficialNewsScreen({
         setCategory(n.category);
         setSource(n.source);
         setUrl(n.url || "");
-        setDistrict(n.district || ""); // ✅ NEW
+        setDistrict(n.district || "");
         setImageUrl(n.image_url);
         setVisibleToFarmers(n.is_visible_to_farmers);
+
+        // 🔄 clear errors on load
+        setTitleError(null);
+        setSourceError(null);
+        setCategoryError(null);
       } catch (e: any) {
         Alert.alert("Error", e?.message || "Failed to load news");
       } finally {
@@ -133,26 +141,51 @@ export default function AdminEditOfficialNewsScreen({
     return data.publicUrl;
   };
 
-  const canSubmit = useMemo(() => {
-    const t = title.trim();
-    const s = source.trim();
-    const c = category.trim();
-    return t.length >= 3 && s.length >= 2 && c.length >= 2;
-  }, [title, source, category]);
+  // ===============================
+  // URL VALIDATION (added)
+  // ===============================
+  const isValidUrl = (value: string) => {
+    try {
+      new URL(value.startsWith("http") ? value : `https://${value}`);
+      return true;
+    } catch {
+      return false;
+    }
+  };
 
   // ===============================
-  // UPDATE (same logic)
+  // UPDATE (same logic + validation added)
   // ===============================
   const updateNews = async () => {
-    try {
-      if (!canSubmit) {
-        Alert.alert(
-          "Missing details",
-          "Please fill Title, Category, and Source."
-        );
-        return;
-      }
+    let hasError = false;
 
+    // 🔴 Title validation
+    if (!title.trim()) {
+      setTitleError("Title is required");
+      hasError = true;
+    }
+
+    // 🔴 Source validation
+    if (!source.trim()) {
+      setSourceError("Source is required");
+      hasError = true;
+    }
+
+    // 🔴 Category validation
+    if (!category) {
+      setCategoryError("Category is required");
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    // 🔴 URL validation (optional)
+    if (url && !isValidUrl(url)) {
+      Alert.alert("Invalid URL", "Please enter a valid URL");
+      return;
+    }
+
+    try {
       setLoading(true);
 
       let finalImageUrl = imageUrl;
@@ -166,7 +199,7 @@ export default function AdminEditOfficialNewsScreen({
         category: category.trim(),
         source: source.trim(),
         url: url?.trim() ? url.trim() : null,
-        district: district?.trim() ? district.trim() : null, // ✅ NEW
+        district: district?.trim() ? district.trim() : null,
         image_url: finalImageUrl,
         is_visible_to_farmers: visibleToFarmers,
       });
@@ -206,7 +239,6 @@ export default function AdminEditOfficialNewsScreen({
   };
 
   const previewUri = imageAsset?.uri || imageUrl || null;
-
 
   return (
     <KeyboardAvoidingView
@@ -259,17 +291,23 @@ export default function AdminEditOfficialNewsScreen({
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Details</Text>
 
+          {/* Title */}
           <View style={styles.field}>
             <Text style={styles.label}>Title</Text>
             <TextInput
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(text) => {
+                setTitle(text);
+                setTitleError(null);
+              }}
               placeholder="Enter title"
               placeholderTextColor="#94A3B8"
-              style={styles.input}
+              style={[styles.input, titleError && { borderColor: "#DC2626" }]}
             />
+            {titleError && <Text style={styles.errorText}>{titleError}</Text>}
           </View>
 
+          {/* Summary */}
           <View style={styles.field}>
             <Text style={styles.label}>Summary</Text>
             <TextInput
@@ -287,11 +325,20 @@ export default function AdminEditOfficialNewsScreen({
             <View style={[styles.field, { flex: 1.2 }]}>
               <Text style={styles.label}>Category</Text>
 
-              <View style={styles.pickerWrapper}>
+              <View
+                style={[
+                  styles.pickerWrapper,
+                  categoryError && { borderColor: "#DC2626" },
+                ]}
+              >
                 <Picker
                   selectedValue={category}
-                  onValueChange={(value) => setCategory(value)}
+                  onValueChange={(value) => {
+                    setCategory(value);
+                    setCategoryError(null);
+                  }}
                 >
+                  <Picker.Item label="-- Select Category --" value="" />
                   {CATEGORY_OPTIONS.map((item) => (
                     <Picker.Item
                       key={item.value}
@@ -301,6 +348,10 @@ export default function AdminEditOfficialNewsScreen({
                   ))}
                 </Picker>
               </View>
+
+              {categoryError && (
+                <Text style={styles.errorText}>{categoryError}</Text>
+              )}
             </View>
 
             <View style={{ width: 12 }} />
@@ -325,14 +376,24 @@ export default function AdminEditOfficialNewsScreen({
               <Text style={styles.label}>Source</Text>
               <TextInput
                 value={source}
-                onChangeText={setSource}
+                onChangeText={(text) => {
+                  setSource(text);
+                  setSourceError(null);
+                }}
                 placeholder="HARTI"
                 placeholderTextColor="#94A3B8"
-                style={styles.input}
+                style={[
+                  styles.input,
+                  sourceError && { borderColor: "#DC2626" },
+                ]}
               />
+              {sourceError && (
+                <Text style={styles.errorText}>{sourceError}</Text>
+              )}
             </View>
           </View>
 
+          {/* URL */}
           <View style={styles.field}>
             <Text style={styles.label}>URL (optional)</Text>
             <TextInput
@@ -370,11 +431,8 @@ export default function AdminEditOfficialNewsScreen({
         <View style={styles.actions}>
           <TouchableOpacity
             onPress={updateNews}
-            disabled={loading || !canSubmit}
-            style={[
-              styles.primaryBtn,
-              (loading || !canSubmit) && styles.btnDisabled,
-            ]}
+            disabled={loading}
+            style={[styles.primaryBtn, loading && styles.btnDisabled]}
             activeOpacity={0.9}
           >
             <Text style={styles.primaryBtnText}>
@@ -573,5 +631,12 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     borderRadius: 12,
     overflow: "hidden",
+  },
+  errorText: {
+    marginTop: 6,
+    marginLeft: 4,
+    color: "#DC2626",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });
