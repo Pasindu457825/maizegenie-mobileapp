@@ -51,7 +51,6 @@ const translations = {
     status: {
       active: "Active",
       waiting: "Waiting",
-      resolved: "Resolved",
     },
   },
   si: {
@@ -73,7 +72,6 @@ const translations = {
     status: {
       active: "සක්‍රිය",
       waiting: "රැඳී සිටී",
-      resolved: "විසඳූ",
     },
   },
 };
@@ -130,9 +128,9 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
           room.last_message_time ||
           new Date(Date.now() - index * 3600000).toISOString(),
         unread_count: room.unread_count || Math.floor(Math.random() * 5),
-        status: ["active", "waiting", "resolved"][
-          Math.floor(Math.random() * 3)
-        ] as "active" | "waiting" | "resolved",
+        status: ["active", "waiting"][Math.floor(Math.random() * 3)] as
+          | "active"
+          | "waiting",
       }));
       setRooms(enhancedData);
     } catch (err) {
@@ -187,8 +185,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
         return "#10B981";
       case "waiting":
         return "#F59E0B";
-      case "resolved":
-        return "#6B7280";
       default:
         return "#6B7280";
     }
@@ -200,8 +196,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
         return "rgba(16, 185, 129, 0.1)";
       case "waiting":
         return "rgba(245, 158, 11, 0.1)";
-      case "resolved":
-        return "rgba(107, 114, 128, 0.1)";
       default:
         return "rgba(107, 114, 128, 0.1)";
     }
@@ -218,7 +212,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
     { key: "all", label: "All" },
     { key: "active", label: t.status.active },
     { key: "waiting", label: t.status.waiting },
-    { key: "resolved", label: t.status.resolved },
   ];
 
   return (
@@ -400,12 +393,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
                   <Text style={styles.statLabel}>{t.status.waiting}</Text>
                 </View>
                 <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: "#6B7280" }]}>
-                    {rooms.filter((r) => r.status === "resolved").length}
-                  </Text>
-                  <Text style={styles.statLabel}>{t.status.resolved}</Text>
-                </View>
               </LinearGradient>
             </Animated.View>
 
