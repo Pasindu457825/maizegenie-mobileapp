@@ -39,13 +39,10 @@ import { useApp } from "../../context/AppContext";
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
-    // Real Android device → read from .env
     return process.env.EXPO_PUBLIC_API_BASE;
   } else if (Platform.OS === "ios") {
-    // iOS simulator
     return "http://localhost:8000";
   } else {
-    // Web fallback
     return "http://localhost:8000";
   }
 };
@@ -114,6 +111,12 @@ const PriceForecastLoadingScreen = () => {
   const [leafAnim] = useState(new Animated.Value(0));
   const [buttonFadeAnim] = useState(new Animated.Value(0));
   const [pulseAnim] = useState(new Animated.Value(1));
+
+  // New animations for header
+  const [headerGradientAnim] = useState(new Animated.Value(0));
+  const [bellShakeAnim] = useState(new Animated.Value(0));
+  const [locationPulseAnim] = useState(new Animated.Value(1));
+
   const {
     locationName,
     temperature,
@@ -123,7 +126,6 @@ const PriceForecastLoadingScreen = () => {
   } = useUniversalLocation(language);
   const { user } = useApp();
 
-  // Role-based authentication using Supabase user data
   const isFarmer = user?.role === "farmer";
   const isOfficer = user?.role === "officer";
 
@@ -173,13 +175,11 @@ const PriceForecastLoadingScreen = () => {
 
     let enName = rawName.trim();
 
-    // Remove words like "District", "Province"
     enName = enName
       .replace(/District/i, "")
       .replace(/Province/i, "")
       .trim();
 
-    // Province translations
     const provinceMap: Record<string, string> = {
       Western: "බස්නාහිර",
       Southern: "දකුණු",
@@ -194,7 +194,6 @@ const PriceForecastLoadingScreen = () => {
 
     if (provinceMap[enName]) return provinceMap[enName] + " පළාත";
 
-    // District translations
     const districtMap: Record<string, string> = {
       Colombo: "කොළඹ",
       Gampaha: "ගම්පහ",
@@ -225,11 +224,53 @@ const PriceForecastLoadingScreen = () => {
 
     if (districtMap[enName]) return districtMap[enName];
 
-    // If town/village not detected, show English name
     return rawName;
   };
 
   useEffect(() => {
+    // Bell shake animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bellShakeAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellShakeAnim, {
+          toValue: -1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellShakeAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellShakeAnim, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.delay(3000),
+      ])
+    ).start();
+
+    // Location pulse animation
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(locationPulseAnim, {
+          toValue: 1.08,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+        Animated.timing(locationPulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
@@ -257,7 +298,6 @@ const PriceForecastLoadingScreen = () => {
       ])
     ).start();
 
-    // Pulse animation for main circle
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -284,7 +324,7 @@ const PriceForecastLoadingScreen = () => {
     }, 80);
 
     return () => clearInterval(interval);
-  }, [fadeAnim, scaleAnim, leafAnim, pulseAnim]);
+  }, []);
 
   useEffect(() => {
     if (progress === 100) {
@@ -296,10 +336,19 @@ const PriceForecastLoadingScreen = () => {
     }
   }, [progress, buttonFadeAnim]);
 
-
   const leafTranslate = leafAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [0, -20],
+  });
+
+  const bellRotate = bellShakeAnim.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ["-15deg", "15deg"],
+  });
+
+  const headerGradientColor = headerGradientAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ["#059669", "#10B981", "#059669"],
   });
 
   const handleGetStarted = () => {
@@ -320,34 +369,26 @@ const PriceForecastLoadingScreen = () => {
     });
   };
 
-    const handleAddPriceDetails = () => {
+  const handleAddPriceDetails = () => {
     navigation.navigate("AdminPanelScreen");
   };
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
-    if (!condition) return <Cloud size={size} color="#10B981" />;
+    if (!condition) return <Cloud size={size} color="#FFFFFF" />;
 
     const c = condition.toLowerCase();
 
-    if (c.includes("clear")) return <Sun size={size} color="#f59e0b" />;
-
+    if (c.includes("clear")) return <Sun size={size} color="#FCD34D" />;
     if (c.includes("shower") || c.includes("light rain"))
-      return <CloudDrizzle size={size} color="#0ea5e9" />;
-
-    if (c.includes("light rain"))
-      return <CloudDrizzle size={size} color="#0ea5e9" />;
-
-    if (c.includes("rain")) return <CloudRain size={size} color="#0284c7" />;
-
+      return <CloudDrizzle size={size} color="#E0F2FE" />;
+    if (c.includes("rain")) return <CloudRain size={size} color="#BAE6FD" />;
     if (c.includes("thunder"))
-      return <CloudLightning size={size} color="#dc2626" />;
-
+      return <CloudLightning size={size} color="#FEF3C7" />;
     if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
-      return <CloudFog size={size} color="#6b7280" />;
+      return <CloudFog size={size} color="#F3F4F6" />;
+    if (c.includes("cloud")) return <Cloud size={size} color="#FFFFFF" />;
 
-    if (c.includes("cloud")) return <Cloud size={size} color="#10B981" />;
-
-    return <Cloud size={size} color="#10B981" />;
+    return <Cloud size={size} color="#FFFFFF" />;
   };
 
   const getWeatherTranslation = (
@@ -366,7 +407,6 @@ const PriceForecastLoadingScreen = () => {
       return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
     if (c.includes("heavy") && c.includes("rain"))
       return lang === "si" ? "බර වැසි" : "Heavy Rain";
-
     if (c.includes("clear"))
       return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
     if (c.includes("few clouds"))
@@ -377,10 +417,8 @@ const PriceForecastLoadingScreen = () => {
       return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
     if (c.includes("overcast"))
       return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
-
     if (c.includes("thunder"))
       return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
-
     if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
       return lang === "si" ? "මීදුම" : "Mist";
 
@@ -389,35 +427,45 @@ const PriceForecastLoadingScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>
-            {headerContent[language].title}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {headerContent[language].subtitle}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerIconButton}
-            onPress={() => rootNavigation.navigate("Notifications")}
-          >
-            <Bell color="#10B981" size={20} />
+      {/* Enhanced Green Gradient Header */}
+      <Animated.View
+        style={[styles.header, { backgroundColor: headerGradientColor }]}
+      >
+        {/* Decorative circles */}
+        <View style={styles.headerDecorCircle1} />
+        <View style={styles.headerDecorCircle2} />
+        <View style={styles.headerDecorCircle3} />
 
-            {unreadCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+        <View style={styles.headerContent}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>
+              {headerContent[language].title}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {headerContent[language].subtitle}
+            </Text>
+          </View>
+          <View style={styles.headerRight}>
+            <Animated.View style={{ transform: [{ rotate: bellRotate }] }}>
+              <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={() => rootNavigation.navigate("Notifications")}
+              >
+                <Bell color="#FFFFFF" size={22} />
+                {unreadCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
-      {/* Sub-header with Location & Weather */}
+      {/* Enhanced Sub-header with Location & Weather */}
       <View style={styles.subHeader}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
@@ -425,17 +473,21 @@ const PriceForecastLoadingScreen = () => {
           </View>
           <View style={styles.locationInfo}>
             <View style={styles.locationRow}>
-              <MapPin color="#047857" size={14} />
+              <MapPin color="#FFFFFF" size={16} />
               <Text style={styles.locationText}>
                 {getTranslatedLocation(locationName, language)}
               </Text>
             </View>
             <View style={styles.weatherRow}>
-              {getWeatherIcon(weatherCondition, 16)}
+              {getWeatherIcon(weatherCondition, 18)}
               <Text style={styles.tempText}>
                 {temperature !== null ? `${Math.round(temperature)}°C` : "..."}
               </Text>
-              <Text style={styles.conditionText}>
+              <Text
+                style={styles.conditionText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
                 {weatherCondition
                   ? getWeatherTranslation(weatherCondition, language)
                   : ""}
@@ -521,12 +573,11 @@ const PriceForecastLoadingScreen = () => {
             </View>
           </View>
 
-          {/* Feature Cards - Shows when ready */}
+          {/* Feature Cards */}
           {progress === 100 && (
             <Animated.View
               style={[styles.cardsContainer, { opacity: buttonFadeAnim }]}
             >
-              {/* Price Forecast Card */}
               <TouchableOpacity
                 style={[styles.featureCard, styles.priceCard]}
                 onPress={handleGetStarted}
@@ -550,7 +601,6 @@ const PriceForecastLoadingScreen = () => {
                 </View>
               </TouchableOpacity>
 
-              {/* Weather Forecast Card */}
               <TouchableOpacity
                 style={[styles.featureCard, styles.weatherCard]}
                 onPress={handleWeatherForecast}
@@ -575,7 +625,7 @@ const PriceForecastLoadingScreen = () => {
                   <Text style={styles.arrowText}>→</Text>
                 </View>
               </TouchableOpacity>
-              {/* Cultivation Advisor Card */}
+
               <TouchableOpacity
                 style={[styles.featureCard, styles.priceCard]}
                 onPress={handleAdvisor}
@@ -588,7 +638,7 @@ const PriceForecastLoadingScreen = () => {
                 </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle}>
-                    {language === "si" ? "වගා උපදෙස්" : "Cultivation Advisor"}
+                    {language === "si" ? "🌱 වගා උපදෙස්" : "🌱 Cultivation Advisor"}
                   </Text>
                   <Text style={styles.cardDescription}>
                     {language === "si"
@@ -601,7 +651,6 @@ const PriceForecastLoadingScreen = () => {
                 </View>
               </TouchableOpacity>
 
-              {/* 🔒 Officer-only: Add Price Details */}
               {isOfficer && (
                 <TouchableOpacity
                   style={[styles.featureCard, styles.priceCard]}
@@ -613,21 +662,18 @@ const PriceForecastLoadingScreen = () => {
                       <TrendingUp color="#DC2626" size={28} />
                     </View>
                   </View>
-
                   <View style={styles.cardContent}>
                     <Text style={styles.cardTitle}>
                       {language === "si"
                         ? "මිල තොරතුරු එකතු කරන්න"
                         : "Add Price Details"}
                     </Text>
-
                     <Text style={styles.cardDescription}>
                       {language === "si"
                         ? "නිලධාරීන් සඳහා මිල දත්ත ඇතුළත් කිරීම"
                         : "Officer-only price data entry"}
                     </Text>
                   </View>
-
                   <View style={styles.cardArrow}>
                     <Text style={styles.arrowText}>→</Text>
                   </View>
@@ -657,30 +703,63 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    backgroundColor: "#FFFFFF",
     paddingTop: 50,
-    paddingBottom: 12,
+    paddingBottom: 16,
     paddingHorizontal: 20,
+    position: "relative",
+    overflow: "hidden",
+    zIndex: 100,
+  },
+  headerDecorCircle1: {
+    position: "absolute",
+    top: -30,
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  },
+  headerDecorCircle2: {
+    position: "absolute",
+    top: 20,
+    right: 60,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  headerDecorCircle3: {
+    position: "absolute",
+    bottom: -20,
+    left: -20,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "rgba(255, 255, 255, 0.07)",
+  },
+  headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    zIndex: 100,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    zIndex: 1,
   },
   headerLeft: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
-    color: "#1F2937",
-    lineHeight: 22,
+    color: "#FFFFFF",
+    lineHeight: 26,
+    textShadowColor: "rgba(0, 0, 0, 0.1)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: "#6B7280",
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.9)",
     marginTop: 2,
+    fontWeight: "500",
   },
   headerRight: {
     flexDirection: "row",
@@ -688,45 +767,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   headerIconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F0FDF4",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1FAE5",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
     position: "relative",
   },
-  notificationDot: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#EF4444",
-  },
-  langButtonHeader: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#10B981",
-  },
-  langText: {
-    color: "#10B981",
-    fontSize: 13,
-    fontWeight: "bold",
-  },
   subHeader: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#047857",
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    paddingVertical: 14,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     zIndex: 99,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   logoContainer: {
     flexDirection: "row",
@@ -734,17 +796,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   logoCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#D1FAE5",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#10B981",
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
   logoText: {
-    fontSize: 24,
+    fontSize: 26,
   },
   locationInfo: {
     flex: 1,
@@ -752,33 +814,34 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 6,
     marginBottom: 4,
   },
   locationText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#047857",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   weatherRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    flexWrap: "wrap",
+    gap: 8,
+    flexWrap: "nowrap", // 🔥 IMPORTANT
   },
   tempText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "bold",
-    color: "#10B981",
+    color: "#FFFFFF",
+    minWidth: 48,
   },
   conditionText: {
-    fontSize: 13,
-    color: "#059669",
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.95)",
     fontWeight: "500",
   },
   gradientTop: {
     position: "absolute",
-    top: 140,
+    top: 180,
     left: 0,
     right: 0,
     height: "40%",
@@ -796,13 +859,13 @@ const styles = StyleSheet.create({
   },
   floatingLeaf1: {
     position: "absolute",
-    top: 190,
+    top: 220,
     left: 30,
     zIndex: 1,
   },
   floatingLeaf2: {
     position: "absolute",
-    top: 240,
+    top: 270,
     right: 40,
     zIndex: 1,
   },
@@ -988,22 +1051,22 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: "absolute",
-    top: 4,
-    right: 4,
-    backgroundColor: "#EF4444",
+    top: 2,
+    right: 2,
+    backgroundColor: "#FCD34D",
     borderRadius: 10,
-    paddingHorizontal: 5,
-    minWidth: 16,
-    height: 16,
+    paddingHorizontal: 6,
+    minWidth: 18,
+    height: 18,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
-
   badgeText: {
-    color: "#FFFFFF",
+    color: "#047857",
     fontSize: 10,
     fontWeight: "bold",
   },
 });
-
 export default PriceForecastLoadingScreen;
