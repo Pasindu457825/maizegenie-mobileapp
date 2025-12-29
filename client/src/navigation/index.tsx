@@ -21,8 +21,6 @@ import NewsDetailScreen from "../screens/Notifications/NewsDetailScreen";
 import AdminAddOfficialNewsScreen from "@screens/AdminPanel/AdminAddOfficialNewsScreen";
 import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNewsScreen";
 
-// SOIL TEST & PAYMENT SCREENS
-import SoilTestRequestScreen from "../screens/SoilTest/SoilTestRequestScreen";
 import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
 
@@ -120,8 +118,7 @@ export default function RootNavigator() {
         component={AdminEditOfficialNewsScreen}
       />
 
-      {/* SOIL TEST & PAYMENT */}
-      <Stack.Screen name="SoilTestRequest" component={SoilTestRequestScreen} />
+      {/* PAYMENT */}
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
     </Stack.Navigator>
