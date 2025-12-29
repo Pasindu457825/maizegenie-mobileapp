@@ -105,13 +105,22 @@ async def predict_yield_farmer(
                 'gps_lng': request.gps_lng
             }
             
+            print(f"🔄 Calling prediction service...")
             result = predict_yield_service(prediction_input)
             predicted_yield = result.get('predicted_yield')  # kg/ha from service
+            prediction_method = result.get('prediction_method', 'unknown')
+            model_version = result.get('model_version', 'unknown')
             
             if predicted_yield is None:
                 raise ValueError("Prediction service returned no yield value")
             
             print(f"📊 Predicted Yield: {predicted_yield:.2f} kg/ha")
+            print(f"🤖 Prediction Method: {prediction_method}")
+            print(f"📦 Model Version: {model_version}")
+            
+            # Store full result for response
+            ml_factors = result.get('factors', [])
+            ml_harvest_window = result.get('harvest_window', {})
             
         except Exception as pred_error:
             print(f"❌ Prediction error: {pred_error}")
@@ -142,14 +151,20 @@ async def predict_yield_farmer(
         yield_lower = predicted_yield * 0.85
         yield_upper = predicted_yield * 1.15
         
-        # Step 5: Build impact factors (simplified for farmers)
-        impact_factors = build_farmer_impact_factors(
-            soil_condition=request.soil_condition,
-            irrigation_type=request.irrigation_type,
-            rainfall_condition=request.rainfall_condition,
-            variety=request.variety,
-            season=request.season
-        )
+        # Step 5: Build impact factors
+        # Use ML factors if available, otherwise build simplified factors
+        if ml_factors and len(ml_factors) > 0:
+            print(f"✅ Using {len(ml_factors)} ML-based impact factors")
+            impact_factors = convert_ml_factors_to_farmer_format(ml_factors)
+        else:
+            print(f"⚠️ Using simplified impact factors")
+            impact_factors = build_farmer_impact_factors(
+                soil_condition=request.soil_condition,
+                irrigation_type=request.irrigation_type,
+                rainfall_condition=request.rainfall_condition,
+                variety=request.variety,
+                season=request.season
+            )
         
         # Identify primary limiting factors
         primary_limiting = []
@@ -179,8 +194,8 @@ async def predict_yield_farmer(
             confidence_score=round(confidence_score, 1),
             yield_lower_bound=round(yield_lower, 2),
             yield_upper_bound=round(yield_upper, 2),
-            prediction_method='ml_model' if USE_ML else 'rule_based',
-            ml_model_version='v1.0'
+            prediction_method=prediction_method,  # Use actual method from service
+            ml_model_version=model_version  # Use actual version from service
         )
         
         # Step 8: Save prediction to database
@@ -203,7 +218,21 @@ async def predict_yield_farmer(
             print(f"⚠️  Prediction save failed: {db_error}")
             # Continue even if DB save fails
         
-        # Step 9: Generate summary messages
+        # Step 9: Calculate district optimal yield for comparison
+        from .officer_service import get_optimal_district_yield
+        district_optimal_yield = get_optimal_district_yield(
+            district=request.district,
+            variety=request.variety,
+            season=request.season
+        )
+        
+        # Calculate comparison percentage
+        comparison_percentage = ((predicted_yield - district_optimal_yield) / district_optimal_yield) * 100
+        
+        print(f"📊 District Optimal: {district_optimal_yield:.2f} kg/ha")
+        print(f"📈 Comparison: {comparison_percentage:+.1f}% vs district optimal")
+        
+        # Step 10: Generate summary messages
         yield_tons = prediction_data.predicted_yield_tons_per_ha
         
         summary_english = f"Expected yield: {yield_tons:.1f} tons per hectare with {confidence_level.lower()} confidence. "
@@ -216,7 +245,7 @@ async def predict_yield_farmer(
             summary_english += "Consider soil improvement for better yields."
             summary_sinhala += "වඩා හොඳ අස්වැන්නක් සඳහා පස වැඩිදියුණු කිරීම සලකා බලන්න."
         
-        # Step 10: Build response
+        # Step 11: Build response with comparison data
         response = FarmerPredictionResponse(
             prediction_id=prediction_id,
             farmer_input_id=farmer_input_id,
@@ -227,7 +256,16 @@ async def predict_yield_farmer(
             recommendations=recommendations,
             summary_english=summary_english,
             summary_sinhala=summary_sinhala,
-            status='completed'
+            status='completed',
+            yield_comparison={
+                'predicted_yield_kg_ha': round(predicted_yield, 2),
+                'district_optimal_kg_ha': round(district_optimal_yield, 2),
+                'difference_kg_ha': round(predicted_yield - district_optimal_yield, 2),
+                'percentage_difference': round(comparison_percentage, 1),
+                'district': request.district,
+                'variety': request.variety,
+                'season': request.season
+            }
         )
         
         print(f"\n{'='*60}")
@@ -257,6 +295,61 @@ async def predict_yield_farmer(
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
+
+def convert_ml_factors_to_farmer_format(ml_factors: list) -> list[ImpactFactor]:
+    """
+    Convert ML model factors to farmer-friendly ImpactFactor format
+    ML factors have: name, impact, value, importance
+    """
+    farmer_factors = []
+    
+    for factor in ml_factors:
+        factor_name = factor.get('name', 'Unknown')
+        impact = factor.get('impact', 'neutral')
+        importance = factor.get('importance', 0.5)
+        
+        # Create bilingual descriptions
+        description_map = {
+            'Nitrogen Status': {
+                'en': 'Nitrogen levels affect plant growth and leaf development',
+                'si': 'නයිට්‍රජන් මට්ටම් ශාක වර්ධනය සහ කොළ වර්ධනයට බලපායි'
+            },
+            'Soil Condition': {
+                'en': 'Soil quality affects nutrient availability and root growth',
+                'si': 'පස් තත්ත්වය පෝෂක ලබා ගැනීම සහ මූල වර්ධනයට බලපායි'
+            },
+            'Soil Fertility Index': {
+                'en': 'Overall soil health impacts crop productivity',
+                'si': 'සමස්ත පස් සෞඛ්‍යය බෝග ඵලදායිතාවයට බලපායි'
+            },
+            'Irrigation Type': {
+                'en': 'Water management affects plant stress and yield',
+                'si': 'ජල කළමනාකරණය ශාක ආතතිය සහ අස්වැන්නට බලපායි'
+            },
+            'Seed Variety': {
+                'en': 'Variety selection determines yield potential',
+                'si': 'ප්‍රභේද තෝරා ගැනීම අස්වැන්න විභවය තීරණය කරයි'
+            },
+            'Season': {
+                'en': 'Growing season affects rainfall and temperature',
+                'si': 'වගා කන්නය වර්ෂාපතනය සහ උෂ්ණත්වයට බලපායි'
+            }
+        }
+        
+        descriptions = description_map.get(factor_name, {
+            'en': f'{factor_name} affects crop yield',
+            'si': f'{factor_name} බෝග අස්වැන්නට බලපායි'
+        })
+        
+        farmer_factors.append(ImpactFactor(
+            factor=factor_name,
+            impact=impact,
+            description_english=descriptions['en'],
+            description_sinhala=descriptions['si'],
+            weight=importance
+        ))
+    
+    return farmer_factors
 
 def build_farmer_impact_factors(
     soil_condition: str,

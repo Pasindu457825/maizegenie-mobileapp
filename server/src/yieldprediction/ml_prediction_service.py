@@ -531,7 +531,7 @@ def get_ml_prediction(data: Dict) -> Dict:
             },
             "factors": impact_factors,
             "model_version": "XGBoost_v1.0",
-            "prediction_method": "ML",
+            "prediction_method": "ml_model",
         }
         
         return response
