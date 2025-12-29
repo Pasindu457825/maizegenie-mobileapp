@@ -12,11 +12,12 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { Leaf, Users, Package, ArrowLeft, Sparkles } from "lucide-react-native";
+import { Leaf, Users, Package, ArrowLeft, Sparkles, TestTube } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 import DataConfirmationModal from "../../components/DataConfirmationModal";
+import ProUpgradePopup from "../../components/ProUpgradePopup";
 
 const { width } = Dimensions.get("window");
 
@@ -32,6 +33,7 @@ const YieldPredictionLoadingScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
+  const [showProPopup, setShowProPopup] = useState(false);
   const { user } = useApp();
 
   // Role-based authentication using Supabase user data
@@ -71,6 +73,8 @@ const YieldPredictionLoadingScreen = () => {
       farmerRequests: "ගොවි ඉල්ලීම්",
       farmerRequestsDesc: "ඉදිරි දිනවල",
       comingSoon: "ඉදිරි දිනවල",
+      soilTestTitle: "පස් පරීක්ෂණ ඉල්ලීම",
+      soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න - ආසන්නතම කෘෂිකර්ම නිලධාරියා සම්බන්ධ කරගන්න",
     },
     en: {
       title: "Yield Prediction and Fertilizer Advisory",
@@ -89,6 +93,8 @@ const YieldPredictionLoadingScreen = () => {
       farmerRequests: "Farmer Requests",
       farmerRequestsDesc: "Coming soon",
       comingSoon: "Coming soon",
+      soilTestTitle: "Request Soil Testing",
+      soilTestDesc: "Request a soil test for your land - Contact nearest agri officer",
     },
   };
 
@@ -262,6 +268,39 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
+
+              {/* Card 3: Soil Test Request (Pro Feature) */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => setShowProPopup(true)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#FEF3C7", "#FDE68A"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
+                    <TestTube color="#f59e0b" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <View style={styles.proFeatureBadge}>
+                      <Sparkles size={12} color="#f59e0b" />
+                      <Text style={styles.proFeatureText}>Pro</Text>
+                    </View>
+                    <Text style={styles.roleTitle}>
+                      {content[language].soilTestTitle}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].soilTestDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -334,6 +373,16 @@ const YieldPredictionLoadingScreen = () => {
         onClose={() => setShowConfirmationModal(false)}
         onConfirm={handleConfirmProceed}
         language={language}
+      />
+
+      {/* Pro Upgrade Popup */}
+      <ProUpgradePopup
+        visible={showProPopup}
+        onClose={() => setShowProPopup(false)}
+        onUpgrade={() => {
+          setShowProPopup(false);
+          navigation.navigate("Payment" as any, { plan: "pro", amount: 2499 });
+        }}
       />
     </View>
   );
@@ -511,6 +560,23 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#1F2937",
     fontWeight: "700",
+  },
+  proFeatureBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 6,
+  },
+  proFeatureText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#f59e0b",
+    letterSpacing: 0.5,
   },
 });
 
