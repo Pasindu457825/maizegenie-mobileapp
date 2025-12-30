@@ -8,7 +8,6 @@ import { generalTreatments } from "./generalTreatments";
 export const sriLankanTreatments: TreatmentsData = {
   "gray spot": grayLeafSpotTreatments,
   "common rust": commonRustTreatments,
-  "northern leaf blight": leafBlightTreatments,
   "leaf blight": leafBlightTreatments,
 };
 
