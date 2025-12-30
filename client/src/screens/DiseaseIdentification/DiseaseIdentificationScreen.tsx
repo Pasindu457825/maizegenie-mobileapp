@@ -97,7 +97,6 @@ const DiseaseIdentificationScreen = () => {
       permissionDenied: "ප්‍රවේශ අවසරය අවශ්‍යයි",
       serverError: "සේවාදායකයට සම්බන්ධ විය නොහැක",
       viewDetails: "වැඩි විස්තර බලන්න",
-      scanLeaf: "කොළය ස්කෑන් කරන්න",
       uploadPhoto: "ඡායාරූපය උඩුගත කරන්න",
       modernAgriculture: "නවීන කෘෂිකර්මය",
       aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
@@ -145,7 +144,6 @@ const DiseaseIdentificationScreen = () => {
       permissionDenied: "Permission required",
       serverError: "Cannot connect to server",
       viewDetails: "View More Details",
-      scanLeaf: "Scan Leaf",
       uploadPhoto: "Upload Photo",
       modernAgriculture: "Modern Agriculture",
       aiPowered: "AI Powered Analysis",
@@ -636,12 +634,6 @@ const DiseaseIdentificationScreen = () => {
                   >
                     <X size={20} color="#FFFFFF" />
                   </TouchableOpacity>
-                  <View style={styles.imageLabel}>
-                    <Scan size={16} color="#FFFFFF" />
-                    <Text style={styles.imageLabelText}>
-                      {content[language].scanLeaf}
-                    </Text>
-                  </View>
                 </View>
               </View>
             </Animated.View>
