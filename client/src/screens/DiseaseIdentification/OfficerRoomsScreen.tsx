@@ -27,7 +27,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { getOfficerRooms } from "../../services/officerApi";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { useApp } from "../../context/AppContext";
 const { width } = Dimensions.get("window");
 
 // ✨ Language translations
@@ -80,7 +80,9 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
   const { language } = useLanguage();
   const t = translations[language === "sinhala" ? "si" : "en"];
 
-  const officerId = route?.params?.officerId;
+  const { user } = useApp();
+  const officerId = user?.id; // ✅ UUID
+
   const [rooms, setRooms] = useState<any[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -118,21 +120,20 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
 
   async function loadRooms() {
     try {
-      const data = await getOfficerRooms(officerId);
-      // Add mock data for demonstration
-      const enhancedData = (data || []).map((room: any, index: number) => ({
+      const data = await getOfficerRooms(officerId as string);
+
+      const cleanedData = (data || []).map((room: any) => ({
         ...room,
-        farmer_name: room.farmer_name || `Farmer ${index + 1}`,
-        last_message: room.last_message || "Hello, I need help with my crops",
-        last_message_time:
-          room.last_message_time ||
-          new Date(Date.now() - index * 3600000).toISOString(),
-        unread_count: room.unread_count || Math.floor(Math.random() * 5),
-        status: ["active", "waiting"][Math.floor(Math.random() * 3)] as
-          | "active"
-          | "waiting",
+        farmer_name: room.farmer?.full_name || "Unknown Farmer",
+
+        // keep backend fields if they exist, otherwise null
+        last_message: room.last_message ?? null,
+        last_message_time: room.last_message_time ?? null,
+        unread_count: room.unread_count ?? 0,
+        status: room.status ?? "active",
       }));
-      setRooms(enhancedData);
+
+      setRooms(cleanedData);
     } catch (err) {
       console.log("Failed to load officer rooms:", err);
     }
