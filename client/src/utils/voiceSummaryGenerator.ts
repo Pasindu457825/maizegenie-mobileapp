@@ -12,8 +12,8 @@ export interface VoiceSummaryParams {
 }
 
 /**
- * Generate a friendly 15-20 second voice summary for farmers
- * Simple language, no technical terms, no AI/algorithm words
+ * Generate a detailed 5 second voice summary for farmers
+ * Simple language, comprehensive information
  */
 export const generateVoiceSummary = (params: VoiceSummaryParams): string => {
   const {
@@ -52,33 +52,39 @@ const generateSinhalaSummary = (
   hasStorage: boolean,
   recommendation: string
 ): string => {
-  // Line 1: District + current week status
+  // Line 1: District greeting
+  const line1 = `${district} දිස්ත්‍රික්කයේ ඉරිඟු වගේ කරන ඔබට සුභ දිනක්.`;
+
+  // Line 2: Current price and trend
   const trendStatus = getTrendStatusSinhala(weeklyForecast);
-  const line1 = `${district} දිස්ත්‍රික්කයේ මේ සතියේ ඉරිඟු මිල ${trendStatus}.`;
+  const currentWeekPrice =
+    weeklyForecast.length > 0
+      ? weeklyForecast[0].ensemble.toFixed(0)
+      : currentPrice.toFixed(0);
+  const line2 = `මේ සතියේ බඩු මිල රුපියල් ${currentWeekPrice} පයින් පිටුපසින් තිබෙන අතර එය ${trendStatus}.`;
 
-  // Line 2: Next 1-2 weeks outlook
-  const outlook = getOutlookSinhala(weeklyForecast);
-  const line2 = `ඉදිරි සති දෙක තුළ ${outlook}.`;
+  // Line 3: Best week information
+  const bestWeekInfo = getBestWeekSinhala(weeklyForecast);
+  const line3 = `ඉදිරි සති අතර ${bestWeekInfo}.`;
 
-  // Line 3: Action suggestion
-  let line3 = "";
+  // Line 4: Detailed recommendation
+  let line4 = "";
   if (recommendation === "sell_now" || recommendation === "sell_immediately") {
-    line3 = "දැන් විකිණීම හොඳ තීරණයකි. ඔබගේ අවශ්‍යතාවයට අනුව තීරණය ගන්න.";
+    line4 = `දැන් විකිණීම හොඳ තීරණයකි. ඔබ තරම් නිසි සිටිනේ නම් මිල එතරම් සුඩු ඉතුරු තැබීම නුසුදුසුයි.`;
   } else if (recommendation === "storage") {
     if (hasStorage) {
-      line3 =
-        "ඔබට ගබඩා තිබේ නම් ටිකක් රැඳී සිටීම ලාභදායකයි. මිල වැඩිවීමට බලා සිටින්න.";
+      line4 = `ඔබට ගබඩා පහසුකම් තිබේ නම් තව සතියක් හෝ ඉහළ බලා සිටීම ලාභදායකයි. මිල බඩු දිගටම ඉහළ යෑමේ ඉඩ තිබේ.`;
     } else {
-      line3 = "ඇතැම් ස්ථානයක ගබඩා කර ටිකක් රැඳී සිටීම හොඳය.";
+      line4 = `නිසි ගබඩා ස්ථානයක බඩු අඩු කර තව සතියක් බලා බලන්න. මිල වැඩි වීමට ඉඩ තිබේ.`;
     }
   } else {
-    line3 = "තව සතියක් බලා සිටීම ලාභදායකයි. ඒ දෙයට අනුව තීරණය ගන්න.";
+    line4 = `තව සතියක් හෝ දෙයක් බලා සිටීම වඩා ලාභදායකයි. විශේෂයෙන්ගෙන් ඉදිරි සති දෙකේ බඩු මිල ඉහළ යෑමේ අවස්ථා තිබේ.`;
   }
 
-  // Line 4: Closing
-  const line4 = "ශුභ පතනක්.";
+  // Line 5: Closing
+  const line5 = `ඔබේ සිතින් තීරණය ගනින්න. සුභ පතනක්.`;
 
-  return `${line1} ${line2} ${line3} ${line4}`;
+  return `${line1} ${line2} ${line3} ${line4} ${line5}`;
 };
 
 const getTrendStatusSinhala = (weeklyForecast: WeekForecast[]): string => {
@@ -98,6 +104,28 @@ const getTrendStatusSinhala = (weeklyForecast: WeekForecast[]): string => {
     return "පහළ යයි";
   } else {
     return "ස්ථාවරයි";
+  }
+};
+
+const getBestWeekSinhala = (weeklyForecast: WeekForecast[]): string => {
+  if (weeklyForecast.length < 2) {
+    return "විශේෂ වෙනසක් නොමැත";
+  }
+
+  const bestIdx = weeklyForecast.reduce(
+    (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
+    0
+  );
+
+  const bestPrice = weeklyForecast[bestIdx].ensemble.toFixed(0);
+
+  if (bestIdx === 0) {
+    return `මේ සතිය හොඳම මිල රුපියල් ${bestPrice} පයින්නට ලබා දෙයි`;
+  } else {
+    const daysAway = (bestIdx + 1) * 7;
+    return `සතිය ${
+      bestIdx + 1
+    }වන සතියේ හොඳම මිල රුපියල් ${bestPrice} ලබා දිය හැකි බැවින් එතෙක් බලා සිටීම හොඳයි`;
   }
 };
 
@@ -130,34 +158,39 @@ const generateEnglishSummary = (
   hasStorage: boolean,
   recommendation: string
 ): string => {
-  // Line 1: District + current week status
+  // Line 1: District greeting
+  const line1 = `Hello farmer in ${district} district. Here is your maize price update.`;
+
+  // Line 2: Current price and trend
   const trendStatus = getTrendStatusEnglish(weeklyForecast);
-  const line1 = `In ${district} district, maize prices are ${trendStatus} this week.`;
+  const currentWeekPrice =
+    weeklyForecast.length > 0
+      ? weeklyForecast[0].ensemble.toFixed(0)
+      : currentPrice.toFixed(0);
+  const line2 = `This week maize prices are around rupees ${currentWeekPrice} per kilogram and the trend is ${trendStatus}.`;
 
-  // Line 2: Next 1-2 weeks outlook
-  const outlook = getOutlookEnglish(weeklyForecast);
-  const line2 = `There is a chance of ${outlook} in the next two weeks.`;
+  // Line 3: Best week information
+  const bestWeekInfo = getBestWeekEnglish(weeklyForecast);
+  const line3 = `In the coming weeks, ${bestWeekInfo}.`;
 
-  // Line 3: Action suggestion
-  let line3 = "";
+  // Line 4: Detailed recommendation
+  let line4 = "";
   if (recommendation === "sell_now" || recommendation === "sell_immediately") {
-    line3 = "Now is a good time to sell. Decide based on your needs.";
+    line4 = `Now is a good time to sell your maize. If you have an urgent need for money, you should sell immediately without waiting further.`;
   } else if (recommendation === "storage") {
     if (hasStorage) {
-      line3 =
-        "If you have storage, waiting a little longer may be more profitable.";
+      line4 = `If you have proper storage facility, waiting one or two more weeks would be more profitable. The prices are expected to increase in the coming weeks.`;
     } else {
-      line3 =
-        "Storing your maize for a bit longer may help you get better prices.";
+      line4 = `Try to store your maize in a good storage place and wait for one more week. There is good chance that prices will increase.`;
     }
   } else {
-    line3 = "Waiting another week or two may give you better prices.";
+    line4 = `Waiting one or two more weeks would give you better prices. The coming two weeks show good opportunity for price increase based on market analysis.`;
   }
 
-  // Line 4: Closing
-  const line4 = "Take care.";
+  // Line 5: Closing
+  const line5 = `Make your decision based on your needs. Good luck with your harvest.`;
 
-  return `${line1} ${line2} ${line3} ${line4}`;
+  return `${line1} ${line2} ${line3} ${line4} ${line5}`;
 };
 
 const getTrendStatusEnglish = (weeklyForecast: WeekForecast[]): string => {
@@ -177,6 +210,26 @@ const getTrendStatusEnglish = (weeklyForecast: WeekForecast[]): string => {
     return "falling";
   } else {
     return "stable";
+  }
+};
+
+const getBestWeekEnglish = (weeklyForecast: WeekForecast[]): string => {
+  if (weeklyForecast.length < 2) {
+    return "prices remain relatively stable";
+  }
+
+  const bestIdx = weeklyForecast.reduce(
+    (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
+    0
+  );
+
+  const bestPrice = weeklyForecast[bestIdx].ensemble.toFixed(0);
+
+  if (bestIdx === 0) {
+    return `this week offers the best price at rupees ${bestPrice} per kilogram`;
+  } else {
+    const weekNum = bestIdx + 1;
+    return `week number ${weekNum} shows the best price around rupees ${bestPrice} per kilogram, so waiting until then would be beneficial`;
   }
 };
 

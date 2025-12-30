@@ -739,7 +739,7 @@ const PriceForecastScreen = () => {
   useEffect(() => {
     if (weeklyForecast.length > 0 && predictedPrice !== null) {
       const summaryParams: VoiceSummaryParams = {
-        district: district || formData?.district || "Anuradhapura",
+        district: formData?.district || "Anuradhapura", // ✅ USE FORM DISTRICT
         language,
         currentPrice: predictedPrice,
         weeklyForecast,
@@ -750,23 +750,42 @@ const PriceForecastScreen = () => {
       const summary = generateVoiceSummary(summaryParams);
       setVoiceSummaryText(summary);
     }
-  }, [weeklyForecast, predictedPrice, language, recommendation]);
+  }, [
+    weeklyForecast,
+    predictedPrice,
+    language,
+    recommendation,
+    formData?.district,
+  ]);
 
-  // 🔥 HANDLE VOICE PLAYBACK
+  // 🔥 IMPROVED: HANDLE VOICE PLAYBACK with proper stop
   const handlePlayVoice = async () => {
-    if (!voiceSummaryText) return;
+    if (isSpeaking) {
+      // STOP SPEECH
+      try {
+        await Speech.stop();
+        setIsSpeaking(false);
+      } catch (error) {
+        console.error("Stop speech error:", error);
+        setIsSpeaking(false);
+      }
+    } else {
+      // START SPEECH
+      if (!voiceSummaryText) return;
 
-    try {
-      setIsSpeaking(true);
-      await Speech.speak(voiceSummaryText, {
-        language: language === "si" ? "si-LK" : "en-US",
-        pitch: 1,
-        rate: 0.85, // Slower for clarity
-      });
-      setIsSpeaking(false);
-    } catch (error) {
-      console.error("Speech error:", error);
-      setIsSpeaking(false);
+      try {
+        setIsSpeaking(true);
+        await Speech.speak(voiceSummaryText, {
+          language: language === "si" ? "si-LK" : "en-US",
+          pitch: 1,
+          rate: 0.85,
+          onDone: () => setIsSpeaking(false),
+          onError: () => setIsSpeaking(false),
+        });
+      } catch (error) {
+        console.error("Speech error:", error);
+        setIsSpeaking(false);
+      }
     }
   };
 
@@ -833,7 +852,7 @@ const PriceForecastScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* 🔥 NEW: VOICE SUMMARY CARD (at top) */}
+          {/* 🔥 VOICE SUMMARY CARD - Only show when voice text is ready */}
           {voiceSummaryText && (
             <View style={styles.voiceSummaryCard}>
               <View style={styles.voiceSummaryHeader}>
@@ -846,16 +865,21 @@ const PriceForecastScreen = () => {
                     isSpeaking && styles.voicePlayButtonActive,
                   ]}
                   onPress={handlePlayVoice}
-                  disabled={isSpeaking}
                 >
                   <Text style={styles.voicePlayButtonIcon}>
-                    {isSpeaking ? "⏸" : "▶"}
+                    {isSpeaking ? "⏹" : "▶"}
                   </Text>
                 </TouchableOpacity>
               </View>
-              <Text style={styles.voiceSummaryText}>{voiceSummaryText}</Text>
+              {/* 🔥 REMOVED: Voice text display */}
               <Text style={styles.voiceSummaryHint}>
-                {language === "si" ? "(▶ ටින්න අසන්න)" : "(Tap ▶ to listen)"}
+                {isSpeaking
+                  ? language === "si"
+                    ? "(⏹ නැවතීමට ඔබ)"
+                    : "(⏹ Tap to stop)"
+                  : language === "si"
+                  ? "(▶ ටින්න අසන්න)"
+                  : "(Tap ▶ to listen)"}
               </Text>
             </View>
           )}
