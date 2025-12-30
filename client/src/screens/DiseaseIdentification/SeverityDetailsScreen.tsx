@@ -226,6 +226,19 @@ export default function SeverityDetailsScreen({ route }: Props) {
         : content.si.highRisk
       : severity_label;
 
+  const severityPrefixLabel =
+    language === "si"
+      ? severityUI.level === "low"
+        ? "අඩු ආසාදන සඳහා"
+        : severityUI.level === "medium"
+        ? "මධ්‍යම ආසාදන සඳහා"
+        : "ඉහළ ආසාදන සඳහා"
+      : severityUI.level === "low"
+      ? "For Low Infection"
+      : severityUI.level === "medium"
+      ? "For Moderate Infection"
+      : "For High Infection";
+
   const statusText =
     severityUI.level === "low"
       ? content[language].mild
@@ -750,11 +763,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Pill size={24} color="#DC2626" />
               <View style={styles.treatmentHeaderContent}>
                 <Text style={styles.treatmentTitle}>
-                  {content[language].chemicalOptions}
-                </Text>
-                <Text style={styles.treatmentSubtitle}>
-                  {displaySeverityLabel}{" "}, 
-                  {content[language].recommendedForSeverity} :-
+                  {severityPrefixLabel} {content[language].chemicalOptions}
                 </Text>
               </View>
             </View>
