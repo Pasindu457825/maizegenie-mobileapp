@@ -79,15 +79,13 @@ export default function SeverityDetailsScreen({ route }: Props) {
     si: {
       back: "ආපසු",
       header: "පැලැස්ම සෞඛ්‍ය තත්ත්වය",
-      currentSeverity: "වත්මන් තත්ත්වය",
-      infectionDetected: "ආසාදනය හමුවිය",
       mild: "ඔබේ බිම හොඳ තත්ත්වයකි. සුළු රෝග ලක්ෂණ තිබේ.",
       moderate: "සැලකිල්ලක් යොමු කරන්න. රෝගය මධ්‍යම ලෙස පැතිරෙමින් ඇත.",
       severe:
         "අවදානම් තත්ත්වයකි! දැඩි ආසාදනයක් හමුවිය. වහාම ක්‍රියාමාර්ග ගන්න.",
       viewDetails: "සම්පූර්ණ විස්තර බලන්න",
       plantSeverity: "පත්‍රයේ රෝග ආසාදනය",
-      severityAnalysis: "දැඩි තත්ත්වය විශ්ලේෂණය",
+      severityAnalysis: "වත්මන් ආසාදිත තත්ත්වය",
       infectionLevel: "ආසාදන මට්ටම",
       nextSteps: "ඊළඟ පියවර",
       viewDiseaseInfo: "රෝග විස්තර",
@@ -140,15 +138,13 @@ export default function SeverityDetailsScreen({ route }: Props) {
     en: {
       back: "Back",
       header: "Plant Health Status",
-      currentSeverity: "Current Severity Level",
-      infectionDetected: "Infection Detected",
       mild: "Your plant is in good condition. Mild signs of disease detected.",
       moderate: "Your plant needs attention. Disease is spreading moderately.",
       severe:
         "Warning! Severe infection levels detected. Immediate action required.",
       viewDetails: "View Full Disease Details",
       plantSeverity: "Leaf Disease Infection Status",
-      severityAnalysis: "Severity Analysis",
+      severityAnalysis: "Current Severity Level",
       infectionLevel: "Infection Level",
       nextSteps: "Next Steps",
       viewDiseaseInfo: "View Disease Information",
@@ -481,17 +477,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                 letterSpacing: 0.3,
                 marginBottom: 4,
               }}
-            >
-              {content[language].currentSeverity}
-            </Text>
-            <View
-              style={{
-                height: 3,
-                width: 40,
-                backgroundColor: severityUI.color + "40",
-                borderRadius: 2,
-              }}
-            />
+            ></Text>
           </View>
 
           <View
@@ -505,7 +491,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
             <View style={{ flex: 1 }}>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   color: "#64748B",
                   marginBottom: 10,
                   letterSpacing: 0.2,
@@ -553,7 +539,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
             <View style={{ flex: 1, alignItems: "flex-end" }}>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 14,
                   color: "#64748B",
                   marginBottom: 8,
                   letterSpacing: 0.2,
@@ -684,9 +670,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
               }}
             >
               {content[language].status}
-            </Text>
-            <Text style={styles.statusText}>
-              {content[language].infectionDetected}
             </Text>
           </View>
         </View>
