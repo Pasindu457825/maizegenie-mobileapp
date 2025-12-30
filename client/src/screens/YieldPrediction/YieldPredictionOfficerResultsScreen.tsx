@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BarChart, LineChart, ProgressChart } from "react-native-chart-kit";
+import ConfidenceBreakdownModal from "./ConfidenceBreakdownModal";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -56,6 +57,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [showConfidenceBreakdown, setShowConfidenceBreakdown] = useState(false);
   
   // Get API URL based on platform
   const getApiUrl = () => {
@@ -452,18 +454,18 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                 {(confidenceScore * 100).toFixed(0)}%
               </Text>
               <TouchableOpacity 
-                style={styles.infoIcon}
-                onPress={() => {
-                  Alert.alert(
-                    language === "si" ? "විශ්වාසය ගණනය කිරීම" : "Confidence Calculation",
-                    language === "si" 
-                      ? `විශ්වාසය ප්‍රතිශතය මෙම කරුණු මත පදනම් වේ:\n\n• ආදාන දත්ත සම්පූර්ණත්වය (${(confidenceScore * 40).toFixed(0)}%)\n• මාදිලියේ ස්ථායීතාව (${(confidenceScore * 35).toFixed(0)}%)\n• ඓතිහාසික නිරවද්‍යතාව (${(confidenceScore * 25).toFixed(0)}%)\n\nඉහළ විශ්වාසය = වඩා විශ්වසනීය පුරෝකථනය`
-                      : `Confidence percentage is based on:\n\n• Input data completeness (${(confidenceScore * 40).toFixed(0)}%)\n• Model stability (${(confidenceScore * 35).toFixed(0)}%)\n• Historical accuracy (${(confidenceScore * 25).toFixed(0)}%)\n\nHigher confidence = More reliable prediction`,
-                    [{ text: "OK" }]
-                  );
-                }}
+                style={styles.ejectButton}
+                onPress={() => setShowConfidenceBreakdown(true)}
+                activeOpacity={0.7}
               >
-                <Info color="#6B7280" size={16} />
+                <LinearGradient
+                  colors={["#10b981", "#059669"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ejectButtonGradient}
+                >
+                  <Activity color="#ffffff" size={14} strokeWidth={2.5} />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
             
@@ -1075,6 +1077,15 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* Confidence Breakdown Modal */}
+      <ConfidenceBreakdownModal
+        visible={showConfidenceBreakdown}
+        onClose={() => setShowConfidenceBreakdown(false)}
+        language={language}
+        confidenceScore={confidenceScore}
+        predictionMethod={predictionMethod}
+      />
     </View>
   );
 };
@@ -1223,8 +1234,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#10B981",
   },
-  infoIcon: {
-    marginLeft: 4,
+  ejectButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ejectButtonGradient: {
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
   },
   methodBadgeContainer: {
     alignItems: "center",
