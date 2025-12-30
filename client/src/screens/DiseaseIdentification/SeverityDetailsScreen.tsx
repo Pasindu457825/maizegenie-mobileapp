@@ -97,7 +97,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       lowRisk: "අවදානම අඩු",
       mediumRisk: "මධ්‍යම අවදානම",
       highRisk: "අවදානම ඉහළ",
-      critical: "අවදානම්කාරී",
 
       // Treatment section translations
       treatmentGuide: "ශ්‍රී ලංකාවේ භාවිත කළ හැකි සුව කිරීමේ ක්‍රම",
@@ -155,7 +154,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       lowRisk: "Low Risk",
       mediumRisk: "Medium Risk",
       highRisk: "High Risk",
-      critical: "Critical",
 
       // Treatment section translations
       treatmentGuide: "Treatments Available in Sri Lanka",
@@ -218,6 +216,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
   };
 
   const severityUI = getSeverityUI(severity_label);
+
+  const displaySeverityLabel =
+    language === "si"
+      ? severityUI.level === "low"
+        ? content.si.lowRisk
+        : severityUI.level === "medium"
+        ? content.si.mediumRisk
+        : content.si.highRisk
+      : severity_label;
 
   const statusText =
     severityUI.level === "low"
@@ -562,7 +569,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                     letterSpacing: 0.3,
                   }}
                 >
-                  {severity_label}
+                  {displaySeverityLabel}
                 </Text>
               </View>
             </View>
@@ -746,7 +753,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   {content[language].chemicalOptions}
                 </Text>
                 <Text style={styles.treatmentSubtitle}>
-                  {severity_label} {content[language].recommendedForSeverity}
+                  {displaySeverityLabel}{" "}
+                  {content[language].recommendedForSeverity}
                 </Text>
               </View>
             </View>
