@@ -710,7 +710,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   </View>
 
                   {/* Availability & Cost */}
-                  <View style={styles.availabilityRow}>
+                  <View style={styles.availabilityWrapper}>
+                    {/* WHERE TO BUY */}
                     <View style={styles.availabilityColumn}>
                       <Text style={styles.sectionLabel}>
                         {content[language].whereToBuy}:
@@ -718,19 +719,19 @@ export default function SeverityDetailsScreen({ route }: Props) {
                       {treatment.availability[language].map((place, i) => (
                         <Text
                           key={i}
-                          style={[styles.availabilityText, styles.chemicalText]}
+                          style={[styles.availabilityText, styles.organicText]}
                         >
                           • {place}
                         </Text>
                       ))}
                     </View>
+
+                    {/* COST */}
                     <View style={styles.costContainer}>
-                      <Text
-                        style={[styles.costLabel, styles.chemicalCostLabel]}
-                      >
-                        {content[language].costEstimate}:
+                      <Text style={[styles.costLabel, styles.organicCostLabel]}>
+                        {content[language].costEstimate}
                       </Text>
-                      <Text style={[styles.costValue, styles.chemicalCost]}>
+                      <Text style={[styles.costValue, styles.organicCost]}>
                         {treatment.costEstimate}
                       </Text>
                     </View>
@@ -1535,39 +1536,49 @@ const styles = StyleSheet.create({
     gap: 16,
     marginTop: 8,
   },
-  availabilityColumn: {
-    flex: 1,
-    minWidth: "60%", // Takes more space on mobile
+  availabilityWrapper: {
+    flexDirection: "column", // 🔑 STACK vertically
+    gap: 12,
+    marginTop: 12,
   },
+
+  availabilityColumn: {
+    width: "100%",
+  },
+
   costContainer: {
-    flex: 1,
-    minWidth: 120, // Ensures cost container has enough width
+    width: "100%",
     backgroundColor: "#F0FDF4",
-    padding: 12,
-    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "#A7F3D0",
-  },
-  costContent: {
-    flexDirection: "column",
     alignItems: "center",
   },
+
   costLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 6,
     textAlign: "center",
+  },
+
+  costValue: {
+    fontSize: 16,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+
+  costContent: {
+    flexDirection: "column",
+    alignItems: "center",
   },
   chemicalCostLabel: {
     color: "#991B1B",
   },
   organicCostLabel: {
     color: "#047857",
-  },
-  costValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    textAlign: "center",
   },
   chemicalCost: {
     color: "#DC2626",
