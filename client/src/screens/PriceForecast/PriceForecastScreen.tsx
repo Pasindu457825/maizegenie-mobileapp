@@ -7,6 +7,7 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -110,6 +111,8 @@ const PriceForecastScreen = () => {
   const rootNavigation = useNavigation<RootNavProp>();
   const localNavigation = useNavigation<LocalNavProp>();
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
+  const loadingOpacity = useRef(new Animated.Value(0)).current;
+  const loadingScale = useRef(new Animated.Value(0.8)).current;
   const { unreadCount, sendNotification } = useNotifications();
   const route = useRoute();
   // Global language from context
@@ -461,6 +464,20 @@ const PriceForecastScreen = () => {
     try {
       setIsLoadingForecast(true);
 
+      // 🔥 START LOADING ANIMATION
+      Animated.parallel([
+        Animated.timing(loadingOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(loadingScale, {
+          toValue: 1,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       // current farm gate price (string -> number)
       const currentPriceNumeric = parseFloat(
         (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
@@ -612,6 +629,13 @@ const PriceForecastScreen = () => {
       // fallback – (optional) you can keep your old random logic here
     } finally {
       setIsLoadingForecast(false);
+
+      // 🔥 FADE OUT LOADING ANIMATION
+      Animated.timing(loadingOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     }
   };
 
@@ -1348,6 +1372,32 @@ const PriceForecastScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* 🔥 NEW: LOADING OVERLAY */}
+      {isLoadingForecast && (
+        <Animated.View
+          style={[
+            styles.loadingOverlay,
+            {
+              opacity: loadingOpacity,
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.loadingContent,
+              {
+                transform: [{ scale: loadingScale }],
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.loadingText}>
+              {language === "si" ? "විශ්ලේෂණය කරමින්..." : "Analyzing..."}
+            </Text>
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -1583,7 +1633,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  // END NEW CHART STYLES
   recommendationCard: {
     backgroundColor: "#ECFDF5",
     borderRadius: 16,
@@ -1952,6 +2001,37 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "right",
   },
+  // 🔥 NEW LOADING STYLES
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loadingContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 40,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+
+  // ...rest of existing styles...
 });
 
 export default PriceForecastScreen;
