@@ -27,6 +27,7 @@ import {
   Package,
   BarChart3,
 } from "lucide-react-native";
+import useUniversalLocation from "../../utils/useUniversalLocation";
 
 const { width } = Dimensions.get("window");
 
@@ -95,6 +96,52 @@ const getISOWeekRange = (year: number, week: number, lang: "si" | "en") => {
 };
 
 /* ===============================
+   VALIDATION HELPER (NEW)
+================================ */
+const validateRequiredNumber = (
+  value: any,
+  fieldName: string,
+  minValue?: number,
+  maxValue?: number
+): number => {
+  // Sanitize string inputs (remove currency symbols, etc.)
+  let sanitized = value;
+  if (typeof value === "string") {
+    sanitized = value.replace(/[^0-9.-]/g, "");
+  }
+
+  const num = Number(sanitized);
+
+  // Check for valid number
+  if (!Number.isFinite(num)) {
+    throw new Error(`Invalid ${fieldName}: "${value}" is not a valid number`);
+  }
+
+  // Check min/max bounds
+  if (minValue !== undefined && num < minValue) {
+    throw new Error(
+      `${fieldName} (${num}) is below minimum allowed (${minValue})`
+    );
+  }
+
+  if (maxValue !== undefined && num > maxValue) {
+    throw new Error(
+      `${fieldName} (${num}) exceeds maximum allowed (${maxValue})`
+    );
+  }
+
+  return num;
+};
+
+const validateRequiredString = (value: any, fieldName: string): string => {
+  const str = String(value || "").trim();
+  if (!str) {
+    throw new Error(`${fieldName} is required but missing or empty`);
+  }
+  return str;
+};
+
+/* ===============================
    MAIN SCREEN
 ================================ */
 export default function OfficerPriceForecastScreen() {
@@ -105,6 +152,10 @@ export default function OfficerPriceForecastScreen() {
 
   const { language: globalLang } = useLanguage();
   const language = globalLang === "sinhala" ? "si" : "en";
+
+  // 🔥 GET WEATHER DATA FROM HOOK (instead of formData)
+  const { temperature, rainfallMm, weatherCondition } =
+    useUniversalLocation(language);
 
   const T = {
     si: {
@@ -237,45 +288,78 @@ export default function OfficerPriceForecastScreen() {
   const [scaleAnim] = useState(new Animated.Value(0.9));
 
   /* ===============================
-     BACKEND CALL (UNCHANGED LOGIC)
+     BACKEND CALL (REFACTORED)
   ================================ */
   useEffect(() => {
     const fetchForecast = async () => {
       try {
         if (!formData) throw new Error(t.missingData);
 
-        const season = normalizeSeason(formData.season);
+        // ✅ STRICT VALIDATION - Form Data Only
+        const year = validateRequiredNumber(formData.year, "Year", 2020, 2100);
+        const week = validateRequiredNumber(formData.week, "Week", 1, 52);
+        const district = validateRequiredString(formData.district, "District");
+        const season = validateRequiredString(formData.season, "Season");
+
+        // ✅ Environmental data from WEATHER HOOK (not formData)
+        const fuelPrice = validateRequiredNumber(
+          formData.fuel_price ?? 277,
+          "Fuel Price",
+          0,
+          10000
+        );
+
+        // 🔥 Use rainfallMm from hook, fallback to season default
+        const rainfall =
+          rainfallMm && rainfallMm > 0
+            ? rainfallMm
+            : normalizeSeason(season) === "Maha"
+            ? 30
+            : 10;
+
+        // 🔥 Use temperature from hook, with validation
+        // ✅ RENAME: Use `temperatureValue` instead of `temperature` to avoid conflict
+        let temperatureValue: number =
+          temperature ?? (normalizeSeason(season) === "Maha" ? 26 : 28);
+        if (temperatureValue < 10 || temperatureValue > 45) {
+          temperatureValue = normalizeSeason(season) === "Maha" ? 26 : 28;
+        }
+
+        // Demand index based on season
+        const demandIndex = normalizeSeason(season) === "Maha" ? 0.85 : 0.7;
+
+        // 🔥 FIX: Extract import_tax from formData.cornImportTax (string) → convert to number
+        let importTaxValue = 0;
+        if (formData.cornImportTax) {
+          const sanitized = String(formData.cornImportTax)
+            .replace(/[^0-9.]/g, "")
+            .trim();
+          importTaxValue = parseFloat(sanitized);
+          if (!Number.isFinite(importTaxValue)) {
+            importTaxValue = 0;
+          }
+        }
+
+        const lastPrice = validateRequiredNumber(
+          formData.last_price ?? 160,
+          "Last Market Price",
+          0,
+          10000
+        );
+
+        const normalizedSeason = normalizeSeason(season);
 
         const payload = {
-          year: Number(formData.year ?? new Date().getFullYear()),
-          week: Number(formData.week ?? 1),
-          district: String(formData.district ?? "Anuradhapura"),
-          season,
-
-          fuel_price:
-            Number(formData.fuel_price) > 0 ? Number(formData.fuel_price) : 277,
-
-          rainfall:
-            Number(formData.rainfall) > 0
-              ? Number(formData.rainfall)
-              : season === "Maha"
-              ? 30
-              : 10,
-
-          temperature:
-            Number(formData.temperature) > 10
-              ? Number(formData.temperature)
-              : season === "Maha"
-              ? 26
-              : 28,
-
-          demand_index: season === "Maha" ? 0.85 : 0.7,
-
-          import_tax: Number(formData.import_tax ?? 0),
-
-          last_price:
-            Number(formData.last_price) > 0 ? Number(formData.last_price) : 160,
-
+          year,
+          week,
+          district,
+          season: normalizedSeason,
+          fuel_price: fuelPrice,
+          rainfall: rainfall, // 🔥 FROM HOOK
+          temperature: temperatureValue, // 🔥 FROM HOOK (using renamed variable)
+          demand_index: demandIndex,
+          import_tax: importTaxValue, // 🔥 FROM formData.cornImportTax (converted)
+          last_price: lastPrice,
           weeks_ahead: 4,
         };
 
@@ -306,9 +390,12 @@ export default function OfficerPriceForecastScreen() {
       }
     };
 
-    fetchForecast();
+    // 🔥 Wait for weather data to load before calling forecast
+    if (temperature !== null && rainfallMm !== null) {
+      fetchForecast();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData]);
+  }, [formData, temperature, rainfallMm]);
 
   useEffect(() => {
     Animated.parallel([
