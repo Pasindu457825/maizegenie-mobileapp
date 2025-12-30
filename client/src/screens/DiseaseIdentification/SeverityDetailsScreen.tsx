@@ -86,7 +86,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
       severe:
         "අවදානම් තත්ත්වයකි! දැඩි ආසාදනයක් හමුවිය. වහාම ක්‍රියාමාර්ග ගන්න.",
       viewDetails: "සම්පූර්ණ විස්තර බලන්න",
-      plantHealth: "පැලැස්ම සෞඛ්‍ය තත්ත්වය",
+      plantSeverity: "පත්‍රයේ රෝග ආසාදනය",
       severityAnalysis: "දැඩි තත්ත්වය විශ්ලේෂණය",
       infectionLevel: "ආසාදන මට්ටම",
       nextSteps: "ඊළඟ පියවර",
@@ -148,7 +148,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
       severe:
         "Warning! Severe infection levels detected. Immediate action required.",
       viewDetails: "View Full Disease Details",
-      plantHealth: "Plant Health Status",
+     plantSeverity: "Leaf Disease Infection Status",
       severityAnalysis: "Severity Analysis",
       infectionLevel: "Infection Level",
       nextSteps: "Next Steps",
@@ -404,7 +404,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
-            {content[language].plantHealth}
+            {content[language].plantSeverity}
           </Text>
           <View style={styles.headerSubtitleContainer}>
             <Sparkles size={12} color="#D1FAE5" />
@@ -433,14 +433,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                 style={styles.imagePreview}
                 resizeMode="cover"
               />
-              <View style={styles.imageOverlay}>
-                <View style={styles.imageLabel}>
-                  <Leaf size={16} color="#FFFFFF" />
-                  <Text style={styles.imageLabelText}>
-                    {content[language].plantHealth}
-                  </Text>
-                </View>
-              </View>
+              <View style={styles.imageOverlay}></View>
             </View>
           </View>
         )}
