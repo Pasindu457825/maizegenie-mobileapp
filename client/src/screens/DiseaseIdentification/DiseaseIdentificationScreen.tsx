@@ -99,7 +99,6 @@ const DiseaseIdentificationScreen = () => {
       viewDetails: "වැඩි විස්තර බලන්න",
       uploadPhoto: "ඡායාරූපය උඩුගත කරන්න",
       modernAgriculture: "නවීන කෘෂිකර්මය",
-      aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
       healthyCrop: "සෞඛ්‍ය සම්පන්න බෝග",
       back: "ආපසු",
       newDetection: "නව හඳුනාගැනීම",
@@ -146,7 +145,6 @@ const DiseaseIdentificationScreen = () => {
       viewDetails: "View More Details",
       uploadPhoto: "Upload Photo",
       modernAgriculture: "Modern Agriculture",
-      aiPowered: "AI Powered Analysis",
       healthyCrop: "Healthy Crop",
       back: "Back",
       newDetection: "New Detection",
@@ -549,12 +547,7 @@ const DiseaseIdentificationScreen = () => {
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
-          <View style={styles.headerSubtitleContainer}>
-            <Sparkles size={12} color="#D1FAE5" />
-            <Text style={styles.headerSubtitle}>
-              {content[language].aiPowered}
-            </Text>
-          </View>
+          
         </View>
       </LinearGradient>
 
@@ -577,12 +570,7 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
-              <View style={styles.aiBadge}>
-                <Sparkles size={14} color="#10B981" />
-                <Text style={styles.aiBadgeText}>
-                  {content[language].aiPowered}
-                </Text>
-              </View>
+              
 
               <View style={styles.heroIconContainer}>
                 <Animated.View
