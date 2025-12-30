@@ -489,22 +489,26 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
                           )}
                         </View>
 
-                        {/* Last Message */}
-                        <View style={styles.messagePreview}>
-                          <MessageSquare size={14} color="#9ca3af" />
-                          <Text style={styles.previewText} numberOfLines={2}>
-                            {room.last_message || "No messages yet"}
-                          </Text>
-                        </View>
+                        {room.last_message && (
+                          <View style={styles.messagePreview}>
+                            <MessageSquare size={14} color="#9ca3af" />
+                            <Text style={styles.previewText} numberOfLines={2}>
+                              {room.last_message}
+                            </Text>
+                          </View>
+                        )}
 
                         {/* Footer */}
                         <View style={styles.roomFooter}>
-                          <View style={styles.timeInfo}>
-                            <Clock size={12} color="#9ca3af" />
-                            <Text style={styles.timeText}>
-                              {getTimeAgo(room.last_message_time)}
-                            </Text>
-                          </View>
+                          {room.last_message_time && (
+                            <View style={styles.timeInfo}>
+                              <Clock size={12} color="#9ca3af" />
+                              <Text style={styles.timeText}>
+                                {getTimeAgo(room.last_message_time)}
+                              </Text>
+                            </View>
+                          )}
+
                           <View style={styles.viewChatButton}>
                             <Text style={styles.viewChatText}>
                               {t.viewChat}
