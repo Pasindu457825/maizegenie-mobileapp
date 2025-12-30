@@ -127,7 +127,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     type: "chemical",
     name: {
       en: "Tebuconazole 250 EC (Severe infection)",
-      si: "ටෙබුකොනසෝල් 250 EC (දැඩි ආසාදනය)",
+      si: "ටෙබුකොනසෝල් 250 EC (ඉහළ ආසාදන සඳහා)",
     },
     availableProducts: {
       en: ["Folicur 250 EW", "Orius"],
