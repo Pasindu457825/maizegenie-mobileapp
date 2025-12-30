@@ -762,7 +762,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                       {treatment.availability[language].map((place, i) => (
                         <Text
                           key={i}
-                          style={[styles.availabilityText, styles.organicText]}
+                          style={[styles.availabilityText, styles.chemicalText]}
                         >
                           • {place}
                         </Text>
@@ -771,7 +771,9 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
                     {/* COST */}
                     <View style={styles.costContainer}>
-                      <Text style={[styles.costLabel, styles.chemicalCostLabel]}>
+                      <Text
+                        style={[styles.costLabel, styles.chemicalCostLabel]}
+                      >
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.chemicalCost]}>
@@ -937,7 +939,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   </View>
 
                   {/* Availability & Cost */}
-                  <View style={styles.availabilityRow}>
+                  <View style={styles.availabilityWrapper}>
+                    {/* WHERE TO BUY */}
                     <View style={styles.availabilityColumn}>
                       <Text style={styles.sectionLabel}>
                         {content[language].whereToBuy}:
@@ -951,37 +954,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         </Text>
                       ))}
                     </View>
-                    {/* Availability & Cost - FIXED FOR MOBILE */}
-                    <View style={styles.availabilityRow}>
-                      <View style={styles.availabilityColumn}>
-                        <Text style={styles.sectionLabel}>
-                          {content[language].whereToBuy}:
-                        </Text>
-                        {treatment.availability[language].map((place, i) => (
-                          <Text
-                            key={i}
-                            style={[
-                              styles.availabilityText,
-                              styles.organicText,
-                            ]}
-                          >
-                            • {place}
-                          </Text>
-                        ))}
-                      </View>
 
-                      <View style={styles.costContainer}>
-                        <View style={styles.costContent}>
-                          <Text
-                            style={[styles.costLabel, styles.organicCostLabel]}
-                          >
-                            {content[language].costEstimate}:
-                          </Text>
-                          <Text style={[styles.costValue, styles.organicCost]}>
-                            {treatment.costEstimate}
-                          </Text>
-                        </View>
-                      </View>
+                    {/* COST */}
+                    <View style={styles.costContainer}>
+                      <Text style={[styles.costLabel, styles.organicCostLabel]}>
+                        {content[language].costEstimate}
+                      </Text>
+                      <Text style={[styles.costValue, styles.organicCost]}>
+                        {treatment.costEstimate}
+                      </Text>
                     </View>
                   </View>
                 </View>
