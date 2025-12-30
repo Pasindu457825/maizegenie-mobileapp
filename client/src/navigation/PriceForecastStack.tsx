@@ -6,11 +6,13 @@ import PriceForecastScreen from "../screens/PriceForecast/PriceForecastScreen";
 import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen";
 import WeatherForecastScreen from "../screens/PriceForecast/WeatherForecastScreen";
 import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
+import OfficerPriceForecastScreen from "@screens/PriceForecast/OfficerPriceForecastScreen";
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
   PriceForecastFormScreen: undefined;
   PriceForecastScreen: { data: any };
+  OfficerPriceForecastScreen: { data: any };
   AdminPanelScreen: undefined;
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: {
@@ -45,6 +47,10 @@ const PriceForecastStack = () => {
       <Stack.Screen
         name="PriceForecastScreen"
         component={PriceForecastScreen}
+      />
+      <Stack.Screen
+        name="OfficerPriceForecastScreen"
+        component={OfficerPriceForecastScreen}
       />
       <Stack.Screen
         name="AdminPanelScreen"
