@@ -53,7 +53,7 @@ const generateSinhalaSummary = (
   recommendation: string
 ): string => {
   // Line 1: District greeting
-  const line1 = `${district} දිස්ත්‍රික්කයේ ඉරිඟු වගේ කරන ඔබට සුභ දිනක්.`;
+  const line1 = `${district} දිස්ත්‍රික්කයේ ඉරිඟු වගා කරන ඔබට සුභ දවසක්.`;
 
   // Line 2: Current price and trend
   const trendStatus = getTrendStatusSinhala(weeklyForecast);
@@ -61,28 +61,33 @@ const generateSinhalaSummary = (
     weeklyForecast.length > 0
       ? weeklyForecast[0].ensemble.toFixed(0)
       : currentPrice.toFixed(0);
-  const line2 = `මේ සතියේ බඩු මිල රුපියල් ${currentWeekPrice} පයින් පිටුපසින් තිබෙන අතර එය ${trendStatus}.`;
+
+  const line2 = `මෙම සතියේ ඉරිඟු කිලෝග්‍රෑමයක් රුපියල් ${currentWeekPrice} වටිනවා. ප්‍රවණතාවය ${trendStatus}.`;
 
   // Line 3: Best week information
   const bestWeekInfo = getBestWeekSinhala(weeklyForecast);
-  const line3 = `ඉදිරි සති අතර ${bestWeekInfo}.`;
+  const line3 = `ඊළඟ සති අතර, ${bestWeekInfo}.`;
 
   // Line 4: Detailed recommendation
   let line4 = "";
   if (recommendation === "sell_now" || recommendation === "sell_immediately") {
-    line4 = `දැන් විකිණීම හොඳ තීරණයකි. ඔබ තරම් නිසි සිටිනේ නම් මිල එතරම් සුඩු ඉතුරු තැබීම නුසුදුසුයි.`;
+    line4 =
+      "ඔබට මුදල් අවශ්‍ය නම් දැන්ම විකිණීම හොඳ තීරණයක්. තවත් කාලය බලා සිටීමෙන් ලාභ වැඩි වීමට අවස්ථාව අඩුයි.";
   } else if (recommendation === "storage") {
     if (hasStorage) {
-      line4 = `ඔබට ගබඩා පහසුකම් තිබේ නම් තව සතියක් හෝ ඉහළ බලා සිටීම ලාභදායකයි. මිල බඩු දිගටම ඉහළ යෑමේ ඉඩ තිබේ.`;
+      line4 =
+        "ඔබට හොඳ ගබඩා පහසුකම් තිබේ නම් තව සතියක් හෝ දෙකක් බලා සිටීම ලාභදායක වෙන්න පුළුවන්. ඉදිරියට මිල ටිකක් ඉහළ යාමේ ඉඩ තියෙනවා.";
     } else {
-      line4 = `නිසි ගබඩා ස්ථානයක බඩු අඩු කර තව සතියක් බලා බලන්න. මිල වැඩි වීමට ඉඩ තිබේ.`;
+      line4 =
+        "ඔබට ගබඩා පහසුකම් අඩු නම්, හැකි නම් වියළි සහ ආරක්ෂිත තැනක තබා තව සතියක් විතර බලා බලන්න. මිල වැඩි වීමට ඉඩ තියෙනවා.";
     }
   } else {
-    line4 = `තව සතියක් හෝ දෙයක් බලා සිටීම වඩා ලාභදායකයි. විශේෂයෙන්ගෙන් ඉදිරි සති දෙකේ බඩු මිල ඉහළ යෑමේ අවස්ථා තිබේ.`;
+    line4 =
+      "තව සතියක් හෝ දෙකක් බලා සිටීමෙන් වඩා හොඳ මිලක් ලැබෙන්න පුළුවන්. ඉදිරි සති දෙක තුනේ මිල ඉහළ යාමේ අවස්ථාව තියෙනවා.";
   }
 
   // Line 5: Closing
-  const line5 = `ඔබේ සිතින් තීරණය ගනින්න. සුභ පතනක්.`;
+  const line5 = "ඔබගේ අවශ්‍යතාවයට අනුව තීරණය ගන්න. සුභ පැතුම්.";
 
   return `${line1} ${line2} ${line3} ${line4} ${line5}`;
 };
@@ -99,9 +104,9 @@ const getTrendStatusSinhala = (weeklyForecast: WeekForecast[]): string => {
   const percentChange = ((last - first) / first) * 100;
 
   if (percentChange > 3) {
-    return "ඉහළ යයි";
+    return "ඉහළ යනවා";
   } else if (percentChange < -3) {
-    return "පහළ යයි";
+    return "පහළ යනවා";
   } else {
     return "ස්ථාවරයි";
   }
@@ -109,7 +114,7 @@ const getTrendStatusSinhala = (weeklyForecast: WeekForecast[]): string => {
 
 const getBestWeekSinhala = (weeklyForecast: WeekForecast[]): string => {
   if (weeklyForecast.length < 2) {
-    return "විශේෂ වෙනසක් නොමැත";
+    return "විශේෂ වෙනසක් නොපෙනේ";
   }
 
   const bestIdx = weeklyForecast.reduce(
@@ -120,12 +125,9 @@ const getBestWeekSinhala = (weeklyForecast: WeekForecast[]): string => {
   const bestPrice = weeklyForecast[bestIdx].ensemble.toFixed(0);
 
   if (bestIdx === 0) {
-    return `මේ සතිය හොඳම මිල රුපියල් ${bestPrice} පයින්නට ලබා දෙයි`;
+    return `මේ සතියේ හොඳම මිල කිලෝග්‍රෑමයකට රුපියල් ${bestPrice} වටිනවා`;
   } else {
-    const daysAway = (bestIdx + 1) * 7;
-    return `සතිය ${
-      bestIdx + 1
-    }වන සතියේ හොඳම මිල රුපියල් ${bestPrice} ලබා දිය හැකි බැවින් එතෙක් බලා සිටීම හොඳයි`;
+    return `සතිය ${bestIdx + 1} වන සතියේ හොඳම මිල කිලෝග්‍රෑමයකට රුපියල් ${bestPrice} වටිනවා. එතෙක් බලා සිටීම ලාභදායක වෙන්න පුළුවන්`;
   }
 };
 
