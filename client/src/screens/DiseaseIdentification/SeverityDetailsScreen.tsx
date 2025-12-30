@@ -95,7 +95,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       recommendations: "නිර්දේශ",
       takeAction: "ක්‍රියාමාර්ග ගන්න",
       monitoring: "සමීක්ෂණය",
-      aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
       severityLevel: "දැඩි මට්ටම",
       healthy: "සෞඛ්‍ය සම්පන්න",
       lowRisk: "අවදානම අඩු",
@@ -157,7 +156,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       recommendations: "Recommendations",
       takeAction: "Take Action",
       monitoring: "Monitoring",
-      aiPowered: "AI Powered Analysis",
       severityLevel: "Severity Level",
       healthy: "Healthy",
       lowRisk: "Low Risk",
@@ -406,12 +404,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
           <Text style={styles.headerTitle}>
             {content[language].plantSeverity}
           </Text>
-          <View style={styles.headerSubtitleContainer}>
-            <Sparkles size={12} color="#D1FAE5" />
-            <Text style={styles.headerSubtitle}>
-              {content[language].aiPowered}
-            </Text>
-          </View>
+          
         </View>
 
         <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
