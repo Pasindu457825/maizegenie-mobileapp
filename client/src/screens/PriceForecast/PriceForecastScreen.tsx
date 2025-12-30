@@ -49,6 +49,11 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation/index";
 import { supabase } from "../../lib/supabase";
+import {
+  generateVoiceSummary,
+  type VoiceSummaryParams,
+} from "../../utils/voiceSummaryGenerator";
+import * as Speech from "expo-speech";
 
 type RootNavProp = StackNavigationProp<RootStackParamList>;
 type LocalNavProp = StackNavigationProp<
@@ -162,6 +167,10 @@ const PriceForecastScreen = () => {
   const [savedPrice, setSavedPrice] = useState<any>(null);
   const [savedLocation, setSavedLocation] = useState<any>(null);
   const [savedWeather, setSavedWeather] = useState<any>(null);
+
+  // 🔥 ADD THESE NEW STATE VARIABLES
+  const [voiceSummaryText, setVoiceSummaryText] = useState<string>("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const content = {
     si: {
@@ -726,6 +735,41 @@ const PriceForecastScreen = () => {
   const trendAnalysis = getTrendAnalysis();
   const bestWeekProfit = getBestWeekProfitDifference();
 
+  // 🔥 GENERATE VOICE SUMMARY when forecast is ready
+  useEffect(() => {
+    if (weeklyForecast.length > 0 && predictedPrice !== null) {
+      const summaryParams: VoiceSummaryParams = {
+        district: district || formData?.district || "Anuradhapura",
+        language,
+        currentPrice: predictedPrice,
+        weeklyForecast,
+        hasStorage: formData?.hasStorage ?? false,
+        recommendation,
+      };
+
+      const summary = generateVoiceSummary(summaryParams);
+      setVoiceSummaryText(summary);
+    }
+  }, [weeklyForecast, predictedPrice, language, recommendation]);
+
+  // 🔥 HANDLE VOICE PLAYBACK
+  const handlePlayVoice = async () => {
+    if (!voiceSummaryText) return;
+
+    try {
+      setIsSpeaking(true);
+      await Speech.speak(voiceSummaryText, {
+        language: language === "si" ? "si-LK" : "en-US",
+        pitch: 1,
+        rate: 0.85, // Slower for clarity
+      });
+      setIsSpeaking(false);
+    } catch (error) {
+      console.error("Speech error:", error);
+      setIsSpeaking(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -789,6 +833,33 @@ const PriceForecastScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
+          {/* 🔥 NEW: VOICE SUMMARY CARD (at top) */}
+          {voiceSummaryText && (
+            <View style={styles.voiceSummaryCard}>
+              <View style={styles.voiceSummaryHeader}>
+                <Text style={styles.voiceSummaryTitle}>
+                  {language === "si" ? "🎧 ඔබට කිවීම" : "🎧 Listen"}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.voicePlayButton,
+                    isSpeaking && styles.voicePlayButtonActive,
+                  ]}
+                  onPress={handlePlayVoice}
+                  disabled={isSpeaking}
+                >
+                  <Text style={styles.voicePlayButtonIcon}>
+                    {isSpeaking ? "⏸" : "▶"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.voiceSummaryText}>{voiceSummaryText}</Text>
+              <Text style={styles.voiceSummaryHint}>
+                {language === "si" ? "(▶ ටින්න අසන්න)" : "(Tap ▶ to listen)"}
+              </Text>
+            </View>
+          )}
+
           {/* Main Price Card */}
           <View style={styles.priceCard}>
             <View style={styles.priceIconCircle}>
@@ -1802,6 +1873,60 @@ const styles = StyleSheet.create({
   confBadgeText: {
     fontSize: 11,
     fontWeight: "700",
+  },
+  // 🔥 NEW VOICE SUMMARY STYLES
+  voiceSummaryCard: {
+    backgroundColor: "#E0F2FE",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#0284C7",
+    shadowColor: "#0284C7",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  voiceSummaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  voiceSummaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0C4A6E",
+  },
+  voicePlayButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#0284C7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  voicePlayButtonActive: {
+    backgroundColor: "#F59E0B",
+  },
+  voicePlayButtonIcon: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+  voiceSummaryText: {
+    fontSize: 15,
+    color: "#0C4A6E",
+    lineHeight: 24,
+    fontWeight: "500",
+    marginBottom: 10,
+  },
+  voiceSummaryHint: {
+    fontSize: 12,
+    color: "#0284C7",
+    fontStyle: "italic",
+    textAlign: "right",
   },
 });
 
