@@ -277,7 +277,7 @@ export default function Onboarding2({ navigation, route }: any) {
       >
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => navigation.navigate("Login")}
+          onPress={() => navigation.navigate("Onboarding3")}
         >
           <LinearGradient
             colors={["#b45309", "#92400e"]}

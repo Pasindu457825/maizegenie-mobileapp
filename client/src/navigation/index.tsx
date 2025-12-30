@@ -13,6 +13,7 @@ import SplashScreen from "../screens/Startup/SplashScreen";
 import LanguageSelectScreen from "../screens/Startup/LanguageSelectScreen";
 import Onboarding1 from "../screens/Startup/Onboarding1";
 import Onboarding2 from "../screens/Startup/Onboarding2";
+import Onboarding3 from "../screens/Startup/Onboarding3";
 import OfficialNewsScreen from "../screens/Notifications/OfficialNewsScreen";
 
 import NotificationsScreen from "../screens/Notifications/NotificationsScreen";
@@ -20,11 +21,15 @@ import NewsDetailScreen from "../screens/Notifications/NewsDetailScreen";
 import AdminAddOfficialNewsScreen from "@screens/AdminPanel/AdminAddOfficialNewsScreen";
 import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNewsScreen";
 
+import PaymentScreen from "../screens/Payment/PaymentScreen";
+import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
+
 export type RootStackParamList = {
   Splash: undefined;
   LanguageSelect: undefined;
   Onboarding1: undefined;
   Onboarding2: undefined;
+  Onboarding3: undefined;
   Notifications: undefined;
   OfficialNews: undefined;
   AdminAddOfficialNews: undefined;
@@ -34,6 +39,16 @@ export type RootStackParamList = {
 
   NewsDetail: {
     id: string;
+  };
+
+  SoilTestRequest: undefined;
+  Payment: {
+    plan?: string;
+    amount?: number;
+  };
+  PaymentSuccess: {
+    orderId?: string;
+    amount?: number;
   };
 
   [ROUTES.AUTH.LOGIN]: undefined;
@@ -65,6 +80,7 @@ export default function RootNavigator() {
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
       <Stack.Screen name="Onboarding1" component={Onboarding1} />
       <Stack.Screen name="Onboarding2" component={Onboarding2} />
+      <Stack.Screen name="Onboarding3" component={Onboarding3} />
 
       {/* LOGIN */}
       <Stack.Screen name={ROUTES.AUTH.LOGIN} component={LoginScreen} />
@@ -101,6 +117,10 @@ export default function RootNavigator() {
         name="AdminEditOfficialNews"
         component={AdminEditOfficialNewsScreen}
       />
+
+      {/* PAYMENT */}
+      <Stack.Screen name="Payment" component={PaymentScreen} />
+      <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
     </Stack.Navigator>
   );
 }
