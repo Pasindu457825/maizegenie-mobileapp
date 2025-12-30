@@ -67,7 +67,14 @@ interface Prediction {
 }
 
 export default function SeverityDetailsScreen({ route }: Props) {
-  const { image, severity_score, severity_label, predictions } = route.params;
+  const {
+    image,
+    severity_score,
+    severity_label,
+    predictions,
+    diseaseNameEn,
+    diseaseNameSi,
+  } = route.params;
   const navigation = useNavigation<NavProp>();
 
   // 🌐 GLOBAL LANGUAGE (sinhala/english)
@@ -398,9 +405,11 @@ export default function SeverityDetailsScreen({ route }: Props) {
           <View style={styles.diseaseHeader}>
             <Bug size={24} color="#059669" />
             <View style={styles.diseaseHeaderContent}>
-              <Text style={styles.diseaseTitle}>
-                {diseaseName} {content[language].forDisease}
-              </Text>
+             <Text style={styles.diseaseTitle}>
+  {(language === "si" ? diseaseNameSi : diseaseNameEn) || diseaseName}{" "}
+  {content[language].forDisease}
+</Text>
+
               <Text style={styles.diseaseSubtitle}>
                 {content[language].effectiveAgainst}: {diseaseType}
               </Text>

@@ -32,6 +32,8 @@ export type DiseaseIdentifyStackParamList = {
     severity_score: number;
     severity_label: string;
     predictions: Prediction[];
+    diseaseNameEn?: string;
+    diseaseNameSi?: string;
   };
 
   DiseaseInfo: {
