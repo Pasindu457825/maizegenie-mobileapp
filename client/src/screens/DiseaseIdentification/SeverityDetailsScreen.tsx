@@ -110,7 +110,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
       safetyPrecautions: "ආරක්ෂිත ප්‍රවේශයන්",
       whereToBuy: "කොහෙන් ගන්නද",
       costEstimate: "ගණන් දර්ශනය (රුපියල්)",
-      spraySchedule: "සිදුරු කාලසටහන",
+      spraySchedule: "ස්ප්‍රේ කිරිමේ කාලසටහන",
       immediateAction: "ක්ෂණික ක්‍රියාමාර්ග",
       followUpTreatment: "අනුගමන සුව කිරීම",
       preventionTips: "නැවත ආසාදන වළක්වා ගැනීම",
@@ -352,13 +352,14 @@ export default function SeverityDetailsScreen({ route }: Props) {
         schedule: [
           {
             day: language === "si" ? "දින 1" : "Day 1",
-            action: language === "si" ? "පළමු සිදුරු කිරීම" : "First spray",
+            action:
+              language === "si" ? "පළමු ස්ප්‍රේ කිරිමේ කිරීම" : "First spray",
           },
           {
             day: language === "si" ? "දින 10" : "Day 10",
             action:
               language === "si"
-                ? "දෙවන සිදුරු කිරීම (අවශ්‍ය නම්)"
+                ? "දෙවන ස්ප්‍රේ කිරිමේ කිරීම (අවශ්‍ය නම්)"
                 : "Second spray (if needed)",
           },
           {
@@ -374,15 +375,18 @@ export default function SeverityDetailsScreen({ route }: Props) {
         schedule: [
           {
             day: language === "si" ? "දින 1" : "Day 1",
-            action: language === "si" ? "පළමු සිදුරු කිරීම" : "First spray",
+            action:
+              language === "si" ? "පළමු ස්ප්‍රේ කිරිමේ කිරීම" : "First spray",
           },
           {
             day: language === "si" ? "දින 7" : "Day 7",
-            action: language === "si" ? "දෙවන සිදුරු කිරීම" : "Second spray",
+            action:
+              language === "si" ? "දෙවන ස්ප්‍රේ කිරිමේ කිරීම" : "Second spray",
           },
           {
             day: language === "si" ? "දින 14" : "Day 14",
-            action: language === "si" ? "තෙවන සිදුරු කිරීම" : "Third spray",
+            action:
+              language === "si" ? "තෙවන ස්ප්‍රේ කිරිමේ කිරීම" : "Third spray",
           },
           {
             day: language === "si" ? "දින 21" : "Day 21",
@@ -397,19 +401,26 @@ export default function SeverityDetailsScreen({ route }: Props) {
           {
             day: language === "si" ? "දින 1" : "Day 1",
             action:
-              language === "si" ? "පළමු සිදුරු කිරීම" : "First spray (urgent)",
+              language === "si"
+                ? "පළමු ස්ප්‍රේ කිරිමේ කිරීම"
+                : "First spray (urgent)",
           },
           {
             day: language === "si" ? "දින 5" : "Day 5",
-            action: language === "si" ? "දෙවන සිදුරු කිරීම" : "Second spray",
+            action:
+              language === "si" ? "දෙවන ස්ප්‍රේ කිරිමේ කිරීම" : "Second spray",
           },
           {
             day: language === "si" ? "දින 10" : "Day 10",
-            action: language === "si" ? "තෙවන සිදුරු කිරීම" : "Third spray",
+            action:
+              language === "si" ? "තෙවන ස්ප්‍රේ කිරිමේ කිරීම" : "Third spray",
           },
           {
             day: language === "si" ? "දින 15" : "Day 15",
-            action: language === "si" ? "සිව්වන සිදුරු කිරීම" : "Fourth spray",
+            action:
+              language === "si"
+                ? "සිව්වන ස්ප්‍රේ කිරිමේ කිරීම"
+                : "Fourth spray",
           },
           {
             day: language === "si" ? "දින 25" : "Day 25",
@@ -1138,7 +1149,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
               </View>
               <Text style={styles.recommendationText}>
                 {language === "si"
-                  ? "ඉහත කාලසටහනට අනුව සිදුරු කිරීම ආරම්භ කරන්න"
+                  ? "ඉහත කාලසටහනට අනුව ස්ප්‍රේ කිරිමේ කිරීම ආරම්භ කරන්න"
                   : "Start spraying according to the above schedule"}
               </Text>
             </View>

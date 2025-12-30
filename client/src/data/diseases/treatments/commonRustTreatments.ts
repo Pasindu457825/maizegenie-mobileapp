@@ -18,7 +18,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Spray evenly on affected leaves",
-      si: "ආසාදිත කොළ මත සමානව සිදුරු කරන්න",
+      si: "ආසාදිත කොළ මත සමානව ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "3 ml per liter of water",
@@ -57,7 +57,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Light preventive spray covering leaf surface",
-      si: "කොළ මතුපිට ආවරණය වන පරිදි ලාභ සිදුරු කිරීම",
+      si: "කොළ මතුපිට ආවරණය වන පරිදි ලාභ ස්ප්‍රේ කිරිමේ කිරීම",
     },
     dosage: {
       en: "15 g per 10 L of water",
@@ -70,7 +70,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     },
     safety: {
       en: ["Avoid spraying in windy conditions"],
-      si: ["සුළං සහිත අවස්ථාවලදී සිදුරු කිරීමෙන් වළකින්න"],
+      si: ["සුළං සහිත අවස්ථාවලදී ස්ප්‍රේ කිරිමේ කිරීමෙන් වළකින්න"],
     },
     availability: {
       en: ["Agrochemical shops", "CIC centers"],
@@ -96,7 +96,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Preventive foliar spray covering both leaf surfaces",
-      si: "කොළ දෙපසම ආවරණය වන පරිදි සිදුරු කරන්න",
+      si: "කොළ දෙපසම ආවරණය වන පරිදි ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "20 g per 10 L of water",
@@ -109,7 +109,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     },
     safety: {
       en: ["Avoid spraying in windy conditions"],
-      si: ["සුළං සහිත අවස්ථාවලදී සිදුරු කිරීමෙන් වළකින්න"],
+      si: ["සුළං සහිත අවස්ථාවලදී ස්ප්‍රේ කිරිමේ කිරීමෙන් වළකින්න"],
     },
     availability: {
       en: ["Agrochemical shops", "CIC centers"],
@@ -135,7 +135,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Systemic spray with full leaf penetration",
-      si: "කොළ තුළට හොඳින් ශෝෂණය වන ලෙස සිදුරු කරන්න",
+      si: "කොළ තුළට හොඳින් ශෝෂණය වන ලෙස ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "7.5 ml per 10 L of water",
@@ -154,7 +154,7 @@ export const commonRustTreatments: SriLankanTreatment[] = [
       ],
       si: [
         "අත් ආවරණ හා මුඛ ආවරණ භාවිත කරන්න",
-        "මල් කාලයේදී සිදුරු කරන්න එපා",
+        "මල් කාලයේදී ස්ප්‍රේ කිරිමේ කරන්න එපා",
         "නැවත ඇතුල් වීම: දින 3",
       ],
     },
