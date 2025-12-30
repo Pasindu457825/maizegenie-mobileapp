@@ -92,11 +92,11 @@ export default function SeverityDetailsScreen({ route }: Props) {
       recommendations: "නිර්දේශ",
       takeAction: "ක්‍රියාමාර්ග ගන්න",
       monitoring: "සමීක්ෂණය",
-      severityLevel: "දැඩි මට්ටම",
+      severityLevel: "ආසාදිත මට්ටම",
       healthy: "සෞඛ්‍ය සම්පන්න",
-      lowRisk: "අවදානම අඩු",
-      mediumRisk: "මධ්‍යම අවදානම",
-      highRisk: "අවදානම ඉහළ",
+      lowRisk: "අවදානම අඩුයි",
+      mediumRisk: "අවදානම මධ්‍යමයි ",
+      highRisk: "අවදානම ඉහළයි",
 
       // Treatment section translations
       treatmentGuide: "ශ්‍රී ලංකාවේ භාවිත කළ හැකි සුව කිරීමේ ක්‍රම",
@@ -116,7 +116,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
       preventionTips: "නැවත ආසාදන වළක්වා ගැනීම",
       organicOptions: "කාබනික විකල්ප",
       chemicalOptions: "රසායනික විකල්ප",
-      recommendedForSeverity: "දැඩි තත්ත්වය සඳහා නිර්දේශිත",
+      recommendedForSeverity: "ආසාදිත තත්ත්වය සඳහා විසදුම්",
       stepByStepGuide: "පියවරෙන් පියවර මාර්ගෝපදේශය",
       day: "දින",
       days: "දින",
@@ -173,7 +173,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
       preventionTips: "Prevent Reinfection",
       organicOptions: "Organic Options",
       chemicalOptions: "Chemical Options",
-      recommendedForSeverity: "Recommended for Severity Level",
+      recommendedForSeverity: "Solutions for Severity Level",
       stepByStepGuide: "Step-by-Step Guide",
       day: "Day",
       days: "days",
@@ -753,8 +753,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   {content[language].chemicalOptions}
                 </Text>
                 <Text style={styles.treatmentSubtitle}>
-                  {displaySeverityLabel}{" "}
-                  {content[language].recommendedForSeverity}
+                  {displaySeverityLabel}{" "}, 
+                  {content[language].recommendedForSeverity} :-
                 </Text>
               </View>
             </View>
