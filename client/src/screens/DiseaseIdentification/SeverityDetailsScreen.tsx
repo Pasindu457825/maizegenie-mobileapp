@@ -79,23 +79,19 @@ export default function SeverityDetailsScreen({ route }: Props) {
     si: {
       back: "ආපසු",
       header: "පැලැස්ම සෞඛ්‍ය තත්ත්වය",
-      currentSeverity: "වත්මන් තත්ත්වය",
-      infectionDetected: "ආසාදනය හමුවිය",
       mild: "ඔබේ බිම හොඳ තත්ත්වයකි. සුළු රෝග ලක්ෂණ තිබේ.",
       moderate: "සැලකිල්ලක් යොමු කරන්න. රෝගය මධ්‍යම ලෙස පැතිරෙමින් ඇත.",
       severe:
         "අවදානම් තත්ත්වයකි! දැඩි ආසාදනයක් හමුවිය. වහාම ක්‍රියාමාර්ග ගන්න.",
       viewDetails: "සම්පූර්ණ විස්තර බලන්න",
-      plantHealth: "පැලැස්ම සෞඛ්‍ය තත්ත්වය",
-      severityAnalysis: "දැඩි තත්ත්වය විශ්ලේෂණය",
+      plantSeverity: "පත්‍රයේ රෝග ආසාදනය",
+      severityAnalysis: "වත්මන් ආසාදිත තත්ත්වය",
       infectionLevel: "ආසාදන මට්ටම",
       nextSteps: "ඊළඟ පියවර",
       viewDiseaseInfo: "රෝග විස්තර",
-      status: "තත්ත්වය",
       recommendations: "නිර්දේශ",
       takeAction: "ක්‍රියාමාර්ග ගන්න",
       monitoring: "සමීක්ෂණය",
-      aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
       severityLevel: "දැඩි මට්ටම",
       healthy: "සෞඛ්‍ය සම්පන්න",
       lowRisk: "අවදානම අඩු",
@@ -141,23 +137,19 @@ export default function SeverityDetailsScreen({ route }: Props) {
     en: {
       back: "Back",
       header: "Plant Health Status",
-      currentSeverity: "Current Severity Level",
-      infectionDetected: "Infection Detected",
       mild: "Your plant is in good condition. Mild signs of disease detected.",
       moderate: "Your plant needs attention. Disease is spreading moderately.",
       severe:
         "Warning! Severe infection levels detected. Immediate action required.",
       viewDetails: "View Full Disease Details",
-      plantHealth: "Plant Health Status",
-      severityAnalysis: "Severity Analysis",
+      plantSeverity: "Leaf Disease Infection Status",
+      severityAnalysis: "Current Severity Level",
       infectionLevel: "Infection Level",
       nextSteps: "Next Steps",
       viewDiseaseInfo: "View Disease Information",
-      status: "Status",
       recommendations: "Recommendations",
       takeAction: "Take Action",
       monitoring: "Monitoring",
-      aiPowered: "AI Powered Analysis",
       severityLevel: "Severity Level",
       healthy: "Healthy",
       lowRisk: "Low Risk",
@@ -404,14 +396,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
-            {content[language].plantHealth}
+            {content[language].plantSeverity}
           </Text>
-          <View style={styles.headerSubtitleContainer}>
-            <Sparkles size={12} color="#D1FAE5" />
-            <Text style={styles.headerSubtitle}>
-              {content[language].aiPowered}
-            </Text>
-          </View>
         </View>
 
         <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
@@ -433,14 +419,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                 style={styles.imagePreview}
                 resizeMode="cover"
               />
-              <View style={styles.imageOverlay}>
-                <View style={styles.imageLabel}>
-                  <Leaf size={16} color="#FFFFFF" />
-                  <Text style={styles.imageLabelText}>
-                    {content[language].plantHealth}
-                  </Text>
-                </View>
-              </View>
+              <View style={styles.imageOverlay}></View>
             </View>
           </View>
         )}
@@ -461,7 +440,24 @@ export default function SeverityDetailsScreen({ route }: Props) {
         </View>
 
         {/* Severity Analysis Card */}
-        <View style={styles.severityCard}>
+        <View
+          style={[
+            styles.severityCard,
+            {
+              backgroundColor: "#FFFFFF",
+              borderRadius: 20,
+              padding: 20,
+              borderWidth: 1,
+              borderColor: "#F1F5F9",
+              marginTop: 16,
+              shadowColor: severityUI.color + "30",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 12,
+              elevation: 3,
+            },
+          ]}
+        >
           <View style={styles.severityHeader}>
             <Shield size={24} color="#059669" />
             <Text style={styles.severityTitle}>
@@ -469,57 +465,187 @@ export default function SeverityDetailsScreen({ route }: Props) {
             </Text>
           </View>
 
-          <View style={styles.severityLevelContainer}>
-            <View style={styles.severityLevelInfo}>
-              <View style={styles.severityLevelBadge}>
-                <View style={styles.severityLevelIconWrap}>
-                  {severityUI.level === "low" ? (
-                    <CheckCircle size={20} color={severityUI.color} />
-                  ) : severityUI.level === "medium" ? (
-                    <AlertTriangle size={20} color={severityUI.color} />
-                  ) : (
-                    <AlertCircle size={20} color={severityUI.color} />
-                  )}
-                </View>
+          {/* Header */}
+          <View style={{ marginBottom: 20 }}>
+            <Text
+              style={{
+                fontSize: 15,
+                fontWeight: "600",
+                color: "#334155",
+                letterSpacing: 0.3,
+                marginBottom: 4,
+              }}
+            ></Text>
+          </View>
 
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            {/* Left Column - Severity Level */}
+            <View style={{ flex: 1 }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#64748B",
+                  marginBottom: 10,
+                  letterSpacing: 0.2,
+                }}
+              >
+                {content[language].severityLevel}
+              </Text>
+
+              <View
+                style={{
+                  alignSelf: "flex-start",
+                  backgroundColor: severityUI.color + "15",
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: severityUI.color + "30",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: severityUI.color,
+                  }}
+                />
                 <Text
-                  style={[
-                    styles.severityLevelText,
-                    { color: severityUI.color },
-                  ]}
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "700",
+                    color: severityUI.color,
+                    letterSpacing: 0.3,
+                  }}
                 >
                   {severity_label}
                 </Text>
               </View>
-
-              <Text style={[styles.severityScore, { color: severityUI.color }]}>
-                {Math.round(severity_score * 100)}%
-              </Text>
             </View>
 
-            <Text style={styles.severitySubtitle}>
-              {content[language].infectionLevel}
-            </Text>
+            {/* Right Column - Damage Percentage */}
+            <View style={{ flex: 1, alignItems: "flex-end" }}>
+              <Text
+                style={{
+                  fontSize: 14,
+                  color: "#64748B",
+                  marginBottom: 8,
+                  letterSpacing: 0.2,
+                }}
+              >
+                {language === "si"
+                  ? "පත්‍රයෙන් හානි වී ඇති ප්‍රතිශතය"
+                  : "Leaf Area Affected"}
+              </Text>
+
+              <View
+                style={{
+                  alignItems: "center",
+                  flexDirection: "row",
+                  gap: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 36,
+                    fontWeight: "800",
+                    color: severityUI.color,
+                    letterSpacing: -0.5,
+                    lineHeight: 40,
+                  }}
+                >
+                  {Math.round(severity_score * 100)}
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 18,
+                    fontWeight: "600",
+                    color: severityUI.color + "90",
+                    marginBottom: 6,
+                  }}
+                >
+                  %
+                </Text>
+              </View>
+
+              {/* Progress Indicator */}
+              <View
+                style={{
+                  width: 120,
+                  height: 6,
+                  backgroundColor: "#E2E8F0",
+                  borderRadius: 3,
+                  marginTop: 8,
+                  overflow: "hidden",
+                }}
+              >
+                <View
+                  style={{
+                    width: `${Math.round(severity_score * 100)}%`,
+                    height: "100%",
+                    backgroundColor: severityUI.color,
+                    borderRadius: 3,
+                  }}
+                />
+              </View>
+            </View>
           </View>
 
-          {/* Gauge */}
-          <View style={styles.gaugeContainer}>
+          {/* Gauge - Modern Design */}
+          <View style={{ marginTop: 24, marginBottom: 20 }}>
             <SeverityGauge severity={severity_score} />
           </View>
 
           {/* Status Description */}
-          <View style={styles.statusContainer}>
-            <View style={styles.statusIcon}>
+          <View
+            style={{
+              marginTop: 20,
+              paddingTop: 16,
+              borderTopWidth: 1,
+              borderTopColor: "#F1F5F9",
+              flexDirection: "row",
+              alignItems: "flex-start",
+              gap: 12,
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: severityUI.color + "15",
+                padding: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: severityUI.color + "30",
+                marginTop: 2,
+              }}
+            >
               {severityUI.level === "low" ? (
-                <CheckCircle size={24} color={severityUI.color} />
+                <CheckCircle size={20} color={severityUI.color} />
               ) : severityUI.level === "medium" ? (
-                <AlertTriangle size={24} color={severityUI.color} />
+                <AlertTriangle size={20} color={severityUI.color} />
               ) : (
-                <AlertCircle size={24} color={severityUI.color} />
+                <AlertCircle size={20} color={severityUI.color} />
               )}
             </View>
-
-            <Text style={styles.statusText}>{statusText}</Text>
+            <Text
+              style={{
+                flex: 1,
+                fontSize: 13,
+                color: "#475569",
+                lineHeight: 18,
+              }}
+            >
+              {statusText}
+            </Text>
           </View>
         </View>
 
