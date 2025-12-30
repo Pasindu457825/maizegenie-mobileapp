@@ -618,7 +618,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
           </View>
         </View>
 
-
         {/* Chemical Treatments Card */}
         {chemicalTreatments.length > 0 && (
           <View style={styles.treatmentCard}>
@@ -683,7 +682,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
                     </View>
                   </View>
 
-                  {/* Schedule */}
                   {/* Schedule - FIXED FOR MOBILE */}
                   <View style={styles.scheduleInfo}>
                     <View style={styles.scheduleRow}>
@@ -773,10 +771,10 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
                     {/* COST */}
                     <View style={styles.costContainer}>
-                      <Text style={[styles.costLabel, styles.organicCostLabel]}>
+                      <Text style={[styles.costLabel, styles.chemicalCostLabel]}>
                         {content[language].costEstimate}
                       </Text>
-                      <Text style={[styles.costValue, styles.organicCost]}>
+                      <Text style={[styles.costValue, styles.chemicalCost]}>
                         {treatment.costEstimate}
                       </Text>
                     </View>
