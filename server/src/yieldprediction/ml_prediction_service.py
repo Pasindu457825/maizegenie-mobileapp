@@ -80,13 +80,14 @@ def prepare_features(data: Dict) -> pd.DataFrame:
     Prepare features for ML model prediction (FARMER endpoint)
     Based on the training notebook feature engineering
     
-    Expected input features from mobile app:
-    - district, location, season, planting_date
-    - field_size_ha, seed_variety, soil_type, soil_condition
-    - irrigation_type, rainfall_condition
-    - soil_ph, soil_nitrogen_n, soil_phosphorus_p, soil_potassium_k
-    - avg_temperature_c, max_temperature_c, avg_humidity_pct
-    - rainfall_30d_mm, seasonal_rainfall_mm, sunshine_hours
+    Handles simplified farmer input with smart defaults for missing fields.
+    
+    Required fields from farmer:
+    - district, season, planting_date, variety
+    - soil_condition, irrigation_type, rainfall_condition
+    
+    Optional fields (will use smart defaults):
+    - location, soil_type, soil_ph, NPK values, weather data, land_size
     """
     
     # Parse planting date
@@ -98,15 +99,22 @@ def prepare_features(data: Dict) -> pd.DataFrame:
     planting_dayofyear = planting_date.timetuple().tm_yday
     
     # Estimate fertilizer timing (based on typical practices)
-    # First fertilizer: 14-21 days after planting
-    # Second fertilizer: 21-30 days after first
-    days_to_first_fert = 18  # Average
-    days_between_ferts = 25  # Average
+    days_to_first_fert = 18  # Average: 14-21 days after planting
+    days_between_ferts = 25  # Average: 21-30 days between applications
     
-    # Soil fertility index (calculated from NPK values)
-    soil_n = data.get("soil_nitrogen_n", 70.0)
-    soil_p = data.get("soil_phosphorus_p", 15.0)
-    soil_k = data.get("soil_potassium_k", 160.0)
+    # Smart defaults for NPK based on soil condition
+    soil_condition = data.get("soil_condition", "Medium")
+    if soil_condition == "Good":
+        default_n, default_p, default_k = 85.0, 22.0, 210.0
+    elif soil_condition == "Poor":
+        default_n, default_p, default_k = 45.0, 8.0, 120.0
+    else:  # Medium
+        default_n, default_p, default_k = 70.0, 15.0, 160.0
+    
+    # Get NPK values (use smart defaults if not provided)
+    soil_n = float(data.get("soil_nitrogen_n", default_n))
+    soil_p = float(data.get("soil_phosphorus_p", default_p))
+    soil_k = float(data.get("soil_potassium_k", default_k))
     
     # Normalize and calculate fertility index
     n_norm = min(soil_n / 125.0, 1.0)  # Max from training data
@@ -119,15 +127,39 @@ def prepare_features(data: Dict) -> pd.DataFrame:
     p_status_class = "High" if soil_p > 20 else "Medium" if soil_p > 10 else "Low"
     k_status_class = "High" if soil_k > 200 else "Medium" if soil_k > 100 else "Low"
     
+    # Smart defaults for weather based on district and season
+    district = data.get("district", "Anuradhapura")
+    season = data.get("season", "Maha")
+    
+    # District-based weather defaults
+    district_weather = {
+        "Anuradhapura": {"temp": 28.5, "humidity": 72, "rainfall_30d": 320, "seasonal": 850},
+        "Monaragala": {"temp": 27.0, "humidity": 75, "rainfall_30d": 280, "seasonal": 800},
+        "Badulla": {"temp": 26.5, "humidity": 78, "rainfall_30d": 350, "seasonal": 900},
+        "Ampara": {"temp": 28.0, "humidity": 74, "rainfall_30d": 300, "seasonal": 820},
+    }
+    weather_defaults = district_weather.get(district, district_weather["Anuradhapura"])
+    
+    # Season adjustment for rainfall
+    if season in ["Maha", "Maha Season"]:
+        rainfall_multiplier = 1.2  # More rain in Maha
+    else:
+        rainfall_multiplier = 0.8  # Less rain in Yala
+    
+    # Convert land size to hectares if provided in acres
+    land_size_value = data.get("land_size_value", 1.0)
+    land_size_acres = data.get("land_size_acres", land_size_value)
+    field_size_ha = land_size_acres / 2.47105  # Convert acres to hectares
+    
     # Build feature dictionary matching training data
     features = {
         # Categorical features
-        "district": data.get("district", "Anuradhapura"),
+        "district": district,
         "location": data.get("location", "Unknown"),
-        "season": data.get("season", "Maha"),
+        "season": season,
         "seed_variety": data.get("variety", "Local Variety"),
-        "soil_type": data.get("soil_type", "RBE"),
-        "soil_condition": data.get("soil_condition", "Medium"),
+        "soil_type": data.get("soil_type", "RBE"),  # Default: Red-Brown Earth
+        "soil_condition": soil_condition,
         "irrigation_type": data.get("irrigation_type", "Mixed"),
         "rainfall_condition": data.get("rainfall_condition", "Normal"),
         "n_status_class": n_status_class,
@@ -136,14 +168,14 @@ def prepare_features(data: Dict) -> pd.DataFrame:
         
         # Numeric features
         "planting_month": planting_month,
-        "field_size_ha": float(data.get("land_size_value", 1.0)),
-        "rainfall_30d_mm": float(data.get("rainfall_30d_mm", 300.0)),
-        "seasonal_rainfall_mm": float(data.get("seasonal_rainfall_mm", 830.0)),
-        "avg_temperature_c": float(data.get("avg_temperature_c", 27.5)),
-        "max_temperature_c": float(data.get("max_temperature_c", 31.7)),
-        "avg_humidity_pct": float(data.get("avg_humidity_pct", 73.0)),
+        "field_size_ha": float(field_size_ha),
+        "rainfall_30d_mm": float(data.get("rainfall_30d_mm", weather_defaults["rainfall_30d"] * rainfall_multiplier)),
+        "seasonal_rainfall_mm": float(data.get("seasonal_rainfall_mm", weather_defaults["seasonal"] * rainfall_multiplier)),
+        "avg_temperature_c": float(data.get("avg_temperature_c", weather_defaults["temp"])),
+        "max_temperature_c": float(data.get("max_temperature_c", weather_defaults["temp"] + 4.0)),
+        "avg_humidity_pct": float(data.get("avg_humidity_pct", weather_defaults["humidity"])),
         "sunshine_hours": float(data.get("sunshine_hours", 7.5)),
-        "soil_ph": float(data.get("soil_ph", 6.25)),
+        "soil_ph": float(data.get("soil_ph", 6.25)),  # Optimal pH for maize
         "soil_nitrogen_n": soil_n,
         "soil_phosphorus_p": soil_p,
         "soil_potassium_k": soil_k,
@@ -154,6 +186,10 @@ def prepare_features(data: Dict) -> pd.DataFrame:
         "days_to_first_fert": days_to_first_fert,
         "days_between_ferts": days_between_ferts,
     }
+    
+    logger.info(f"Farmer features prepared: variety={features['seed_variety']}, "
+                f"soil_cond={soil_condition}, irrigation={features['irrigation_type']}, "
+                f"N={soil_n:.1f}, fertility_idx={soil_fertility_index:.2f}")
     
     # Create DataFrame with single row
     df = pd.DataFrame([features])
@@ -495,7 +531,7 @@ def get_ml_prediction(data: Dict) -> Dict:
             },
             "factors": impact_factors,
             "model_version": "XGBoost_v1.0",
-            "prediction_method": "ML",
+            "prediction_method": "ml_model",
         }
         
         return response

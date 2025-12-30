@@ -104,6 +104,9 @@ class FarmerPredictionResponse(BaseModel):
     summary_english: str = Field(..., description="Summary message in English")
     summary_sinhala: str = Field(..., description="Summary message in Sinhala")
     
+    # Yield comparison data
+    yield_comparison: Optional[dict] = Field(None, description="Comparison with district optimal yield")
+    
     # Status
     status: str = Field(default="completed", description="Prediction status")
 
