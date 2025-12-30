@@ -114,8 +114,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
       immediateAction: "ක්ෂණික ක්‍රියාමාර්ග",
       followUpTreatment: "අනුගමන සුව කිරීම",
       preventionTips: "නැවත ආසාදන වළක්වා ගැනීම",
-      organicOptions: "කාබනික විකල්ප",
-      chemicalOptions: "රසායනික විකල්ප",
+      organicOptions: "කාබනික විසදුම්",
+      chemicalOptions: "රසායනික විසදුම්",
       recommendedForSeverity: "ආසාදිත තත්ත්වය සඳහා විසදුම්",
       stepByStepGuide: "පියවරෙන් පියවර මාර්ගෝපදේශය",
       day: "දින",
@@ -132,6 +132,9 @@ export default function SeverityDetailsScreen({ route }: Props) {
       fungalDiseases: "දිලීර රෝග",
       bacterialDiseases: "බැක්ටීරියා රෝග",
       viralDiseases: "වයිරස් රෝග",
+      severityLowPrefix: "අඩු ආසාදන සඳහා",
+      severityMediumPrefix: "මධ්‍යම ආසාදන සඳහා",
+      severityHighPrefix: "ඉහළ ආසාදන සඳහා",
     },
     en: {
       back: "Back",
@@ -171,8 +174,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
       immediateAction: "Immediate Action",
       followUpTreatment: "Follow-up Treatment",
       preventionTips: "Prevent Reinfection",
-      organicOptions: "Organic Options",
-      chemicalOptions: "Chemical Options",
+      organicOptions: "Organic Solutions",
+      chemicalOptions: "Chemical Solutions",
       recommendedForSeverity: "Solutions for Severity Level",
       stepByStepGuide: "Step-by-Step Guide",
       day: "Day",
@@ -189,6 +192,9 @@ export default function SeverityDetailsScreen({ route }: Props) {
       fungalDiseases: "Fungal diseases",
       bacterialDiseases: "Bacterial diseases",
       viralDiseases: "Viral diseases",
+      severityLowPrefix: "For Low Infection",
+      severityMediumPrefix: "For Moderate Infection",
+      severityHighPrefix: "For High Infection",
     },
   };
 
@@ -225,19 +231,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
         ? content.si.mediumRisk
         : content.si.highRisk
       : severity_label;
-
-  const severityPrefixLabel =
-    language === "si"
-      ? severityUI.level === "low"
-        ? "අඩු ආසාදන සඳහා"
-        : severityUI.level === "medium"
-        ? "මධ්‍යම ආසාදන සඳහා"
-        : "ඉහළ ආසාදන සඳහා"
-      : severityUI.level === "low"
-      ? "For Low Infection"
-      : severityUI.level === "medium"
-      ? "For Moderate Infection"
-      : "For High Infection";
 
   const statusText =
     severityUI.level === "low"
@@ -763,7 +756,12 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Pill size={24} color="#DC2626" />
               <View style={styles.treatmentHeaderContent}>
                 <Text style={styles.treatmentTitle}>
-                  {severityPrefixLabel} {content[language].chemicalOptions}
+                  {severityUI.level === "low"
+                    ? content[language].severityLowPrefix
+                    : severityUI.level === "medium"
+                    ? content[language].severityMediumPrefix
+                    : content[language].severityHighPrefix}{" "}
+                  {content[language].chemicalOptions}
                 </Text>
               </View>
             </View>
@@ -926,8 +924,14 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Leaf size={24} color="#059669" />
               <View style={styles.treatmentHeaderContent}>
                 <Text style={styles.treatmentTitle}>
+                  {severityUI.level === "low"
+                    ? content[language].severityLowPrefix
+                    : severityUI.level === "medium"
+                    ? content[language].severityMediumPrefix
+                    : content[language].severityHighPrefix}{" "}
                   {content[language].organicOptions}
                 </Text>
+
                 <Text style={styles.treatmentSubtitle}>
                   {language === "si"
                     ? "ආරක්ෂිත හා පරිසර හිතකර"
