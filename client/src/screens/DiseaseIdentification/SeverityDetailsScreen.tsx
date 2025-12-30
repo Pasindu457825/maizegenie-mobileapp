@@ -97,7 +97,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       lowRisk: "අවදානම අඩු",
       mediumRisk: "මධ්‍යම අවදානම",
       highRisk: "අවදානම ඉහළ",
-      critical: "අවදානම්කාරී",
 
       // Treatment section translations
       treatmentGuide: "ශ්‍රී ලංකාවේ භාවිත කළ හැකි සුව කිරීමේ ක්‍රම",
@@ -155,7 +154,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       lowRisk: "Low Risk",
       mediumRisk: "Medium Risk",
       highRisk: "High Risk",
-      critical: "Critical",
 
       // Treatment section translations
       treatmentGuide: "Treatments Available in Sri Lanka",
@@ -219,6 +217,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
   const severityUI = getSeverityUI(severity_label);
 
+  const displaySeverityLabel =
+    language === "si"
+      ? severityUI.level === "low"
+        ? content.si.lowRisk
+        : severityUI.level === "medium"
+        ? content.si.mediumRisk
+        : content.si.highRisk
+      : severity_label;
+
   const statusText =
     severityUI.level === "low"
       ? content[language].mild
@@ -279,8 +286,42 @@ export default function SeverityDetailsScreen({ route }: Props) {
     return splitByType(generalTreatments);
   };
 
-  const { chemical: chemicalTreatments, organic: organicTreatments } =
-    getTreatmentsForDisease();
+  const filterBySeverity = (list: SriLankanTreatment[]) => {
+    return list.filter((t) => {
+      const id = t.id.toLowerCase();
+
+      // LOW → allow low + generic
+      if (severityUI.level === "low") {
+        return (
+          id.includes("_low") ||
+          (!id.includes("_medium") && !id.includes("_high"))
+        );
+      }
+
+      // MEDIUM → allow medium + generic
+      if (severityUI.level === "medium") {
+        return (
+          id.includes("_medium") ||
+          (!id.includes("_low") && !id.includes("_high"))
+        );
+      }
+
+      // HIGH → allow high only
+      if (severityUI.level === "high") {
+        return id.includes("_high");
+      }
+
+      return true;
+    });
+  };
+
+  const { chemical, organic } = getTreatmentsForDisease();
+
+  const chemicalTreatments = filterBySeverity(chemical);
+  const organicTreatments =
+    severityUI.level === "high"
+      ? organic.slice(0, 1) // show only 1 supportive organic
+      : filterBySeverity(organic);
 
   // Get disease type for organic treatment effectiveness
   const getDiseaseType = () => {
@@ -528,7 +569,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                     letterSpacing: 0.3,
                   }}
                 >
-                  {severity_label}
+                  {displaySeverityLabel}
                 </Text>
               </View>
             </View>
@@ -712,7 +753,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   {content[language].chemicalOptions}
                 </Text>
                 <Text style={styles.treatmentSubtitle}>
-                  {content[language].recommendedForSeverity}: {severity_label}
+                  {displaySeverityLabel}{" "}
+                  {content[language].recommendedForSeverity}
                 </Text>
               </View>
             </View>
