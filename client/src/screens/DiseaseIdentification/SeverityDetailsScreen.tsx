@@ -89,7 +89,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       infectionLevel: "ආසාදන මට්ටම",
       nextSteps: "ඊළඟ පියවර",
       viewDiseaseInfo: "රෝග විස්තර",
-      status: "තත්ත්වය",
       recommendations: "නිර්දේශ",
       takeAction: "ක්‍රියාමාර්ග ගන්න",
       monitoring: "සමීක්ෂණය",
@@ -148,7 +147,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
       infectionLevel: "Infection Level",
       nextSteps: "Next Steps",
       viewDiseaseInfo: "View Disease Information",
-      status: "Status",
       recommendations: "Recommendations",
       takeAction: "Take Action",
       monitoring: "Monitoring",
@@ -647,29 +645,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
               }}
             >
               {statusText}
-            </Text>
-          </View>
-
-          {/* Status Summary */}
-          <View
-            style={{
-              marginTop: 16,
-              padding: 16,
-              backgroundColor: "#F8FAFC",
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-            }}
-          >
-            <Text
-              style={{
-                fontSize: 14,
-                fontWeight: "600",
-                color: severityUI.color,
-                marginBottom: 8,
-              }}
-            >
-              {content[language].status}
             </Text>
           </View>
         </View>
