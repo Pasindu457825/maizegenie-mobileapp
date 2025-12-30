@@ -97,10 +97,8 @@ const DiseaseIdentificationScreen = () => {
       permissionDenied: "ප්‍රවේශ අවසරය අවශ්‍යයි",
       serverError: "සේවාදායකයට සම්බන්ධ විය නොහැක",
       viewDetails: "වැඩි විස්තර බලන්න",
-      scanLeaf: "කොළය ස්කෑන් කරන්න",
       uploadPhoto: "ඡායාරූපය උඩුගත කරන්න",
       modernAgriculture: "නවීන කෘෂිකර්මය",
-      aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
       healthyCrop: "සෞඛ්‍ය සම්පන්න බෝග",
       back: "ආපසු",
       newDetection: "නව හඳුනාගැනීම",
@@ -109,7 +107,7 @@ const DiseaseIdentificationScreen = () => {
       high: "ඉහළ",
       medium: "මධ්‍යම",
       low: "අඩු",
-      severity: "දැඩි තත්ත්වය",
+      severity: "රෝගය ආසාදිත ප්‍රමාණය",
       detectionStatus: "හඳුනාගැනීමේ තත්ත්වය",
       healthy: "සෞඛ්‍ය සම්පන්න කොළයකි",
       location: "ස්ථානය",
@@ -145,10 +143,8 @@ const DiseaseIdentificationScreen = () => {
       permissionDenied: "Permission required",
       serverError: "Cannot connect to server",
       viewDetails: "View More Details",
-      scanLeaf: "Scan Leaf",
       uploadPhoto: "Upload Photo",
       modernAgriculture: "Modern Agriculture",
-      aiPowered: "AI Powered Analysis",
       healthyCrop: "Healthy Crop",
       back: "Back",
       newDetection: "New Detection",
@@ -157,7 +153,7 @@ const DiseaseIdentificationScreen = () => {
       high: "High",
       medium: "Medium",
       low: "Low",
-      severity: "Severity",
+      severity: "Degree of Infection",
       detectionStatus: "Detection Status",
       healthy: "Healthy",
       location: "Location",
@@ -551,12 +547,7 @@ const DiseaseIdentificationScreen = () => {
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
-          <View style={styles.headerSubtitleContainer}>
-            <Sparkles size={12} color="#D1FAE5" />
-            <Text style={styles.headerSubtitle}>
-              {content[language].aiPowered}
-            </Text>
-          </View>
+          
         </View>
       </LinearGradient>
 
@@ -579,12 +570,7 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
-              <View style={styles.aiBadge}>
-                <Sparkles size={14} color="#10B981" />
-                <Text style={styles.aiBadgeText}>
-                  {content[language].aiPowered}
-                </Text>
-              </View>
+              
 
               <View style={styles.heroIconContainer}>
                 <Animated.View
@@ -636,12 +622,6 @@ const DiseaseIdentificationScreen = () => {
                   >
                     <X size={20} color="#FFFFFF" />
                   </TouchableOpacity>
-                  <View style={styles.imageLabel}>
-                    <Scan size={16} color="#FFFFFF" />
-                    <Text style={styles.imageLabelText}>
-                      {content[language].scanLeaf}
-                    </Text>
-                  </View>
                 </View>
               </View>
             </Animated.View>
