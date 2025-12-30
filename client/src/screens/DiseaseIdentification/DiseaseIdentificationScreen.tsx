@@ -1088,6 +1088,11 @@ const DiseaseIdentificationScreen = () => {
                             severity_score: result.severity_score,
                             severity_label: result.severity_label,
                             predictions: result.predictions,
+
+                            diseaseNameEn: diseaseName,
+                            diseaseNameSi: primaryPrediction
+                              ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : diseaseName,
                           })
                         }
                       >

@@ -67,7 +67,14 @@ interface Prediction {
 }
 
 export default function SeverityDetailsScreen({ route }: Props) {
-  const { image, severity_score, severity_label, predictions } = route.params;
+  const {
+    image,
+    severity_score,
+    severity_label,
+    predictions,
+    diseaseNameEn,
+    diseaseNameSi,
+  } = route.params;
   const navigation = useNavigation<NavProp>();
 
   // 🌐 GLOBAL LANGUAGE (sinhala/english)
@@ -92,11 +99,11 @@ export default function SeverityDetailsScreen({ route }: Props) {
       recommendations: "නිර්දේශ",
       takeAction: "ක්‍රියාමාර්ග ගන්න",
       monitoring: "සමීක්ෂණය",
-      severityLevel: "දැඩි මට්ටම",
+      severityLevel: "ආසාදිත මට්ටම",
       healthy: "සෞඛ්‍ය සම්පන්න",
-      lowRisk: "අවදානම අඩු",
-      mediumRisk: "මධ්‍යම අවදානම",
-      highRisk: "අවදානම ඉහළ",
+      lowRisk: "අවදානම අඩුයි",
+      mediumRisk: "අවදානම මධ්‍යමයි ",
+      highRisk: "අවදානම ඉහළයි",
 
       // Treatment section translations
       treatmentGuide: "ශ්‍රී ලංකාවේ භාවිත කළ හැකි සුව කිරීමේ ක්‍රම",
@@ -110,13 +117,13 @@ export default function SeverityDetailsScreen({ route }: Props) {
       safetyPrecautions: "ආරක්ෂිත ප්‍රවේශයන්",
       whereToBuy: "කොහෙන් ගන්නද",
       costEstimate: "ගණන් දර්ශනය (රුපියල්)",
-      spraySchedule: "සිදුරු කාලසටහන",
+      spraySchedule: "ස්ප්‍රේ කිරිමේ කාලසටහන",
       immediateAction: "ක්ෂණික ක්‍රියාමාර්ග",
       followUpTreatment: "අනුගමන සුව කිරීම",
       preventionTips: "නැවත ආසාදන වළක්වා ගැනීම",
-      organicOptions: "කාබනික විකල්ප",
-      chemicalOptions: "රසායනික විකල්ප",
-      recommendedForSeverity: "දැඩි තත්ත්වය සඳහා නිර්දේශිත",
+      organicOptions: "කාබනික විසදුම්",
+      chemicalOptions: "රසායනික විසදුම්",
+      recommendedForSeverity: "ආසාදිත තත්ත්වය සඳහා විසදුම්",
       stepByStepGuide: "පියවරෙන් පියවර මාර්ගෝපදේශය",
       day: "දින",
       days: "දින",
@@ -132,6 +139,9 @@ export default function SeverityDetailsScreen({ route }: Props) {
       fungalDiseases: "දිලීර රෝග",
       bacterialDiseases: "බැක්ටීරියා රෝග",
       viralDiseases: "වයිරස් රෝග",
+      severityLowPrefix: "අඩු ආසාදන සඳහා",
+      severityMediumPrefix: "මධ්‍යම ආසාදන සඳහා",
+      severityHighPrefix: "ඉහළ ආසාදන සඳහා",
     },
     en: {
       back: "Back",
@@ -171,9 +181,9 @@ export default function SeverityDetailsScreen({ route }: Props) {
       immediateAction: "Immediate Action",
       followUpTreatment: "Follow-up Treatment",
       preventionTips: "Prevent Reinfection",
-      organicOptions: "Organic Options",
-      chemicalOptions: "Chemical Options",
-      recommendedForSeverity: "Recommended for Severity Level",
+      organicOptions: "Organic Solutions",
+      chemicalOptions: "Chemical Solutions",
+      recommendedForSeverity: "Solutions for Severity Level",
       stepByStepGuide: "Step-by-Step Guide",
       day: "Day",
       days: "days",
@@ -189,6 +199,9 @@ export default function SeverityDetailsScreen({ route }: Props) {
       fungalDiseases: "Fungal diseases",
       bacterialDiseases: "Bacterial diseases",
       viralDiseases: "Viral diseases",
+      severityLowPrefix: "For Low Infection",
+      severityMediumPrefix: "For Moderate Infection",
+      severityHighPrefix: "For High Infection",
     },
   };
 
@@ -338,84 +351,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
   const diseaseType = getDiseaseType();
 
-  // Get spray schedule based on severity
-  const getSpraySchedule = () => {
-    if (severity_score < 0.33) {
-      return {
-        title: language === "si" ? "සුළු ආසාදන සඳහා" : "For Mild Infection",
-        schedule: [
-          {
-            day: language === "si" ? "දින 1" : "Day 1",
-            action: language === "si" ? "පළමු සිදුරු කිරීම" : "First spray",
-          },
-          {
-            day: language === "si" ? "දින 10" : "Day 10",
-            action:
-              language === "si"
-                ? "දෙවන සිදුරු කිරීම (අවශ්‍ය නම්)"
-                : "Second spray (if needed)",
-          },
-          {
-            day: language === "si" ? "දින 20" : "Day 20",
-            action: language === "si" ? "සමීක්ෂණය" : "Monitoring",
-          },
-        ],
-      };
-    } else if (severity_score < 0.66) {
-      return {
-        title:
-          language === "si" ? "මධ්‍යම ආසාදන සඳහා" : "For Moderate Infection",
-        schedule: [
-          {
-            day: language === "si" ? "දින 1" : "Day 1",
-            action: language === "si" ? "පළමු සිදුරු කිරීම" : "First spray",
-          },
-          {
-            day: language === "si" ? "දින 7" : "Day 7",
-            action: language === "si" ? "දෙවන සිදුරු කිරීම" : "Second spray",
-          },
-          {
-            day: language === "si" ? "දින 14" : "Day 14",
-            action: language === "si" ? "තෙවන සිදුරු කිරීම" : "Third spray",
-          },
-          {
-            day: language === "si" ? "දින 21" : "Day 21",
-            action: language === "si" ? "සමීක්ෂණය" : "Monitoring",
-          },
-        ],
-      };
-    } else {
-      return {
-        title: language === "si" ? "දැඩි ආසාදන සඳහා" : "For Severe Infection",
-        schedule: [
-          {
-            day: language === "si" ? "දින 1" : "Day 1",
-            action:
-              language === "si" ? "පළමු සිදුරු කිරීම" : "First spray (urgent)",
-          },
-          {
-            day: language === "si" ? "දින 5" : "Day 5",
-            action: language === "si" ? "දෙවන සිදුරු කිරීම" : "Second spray",
-          },
-          {
-            day: language === "si" ? "දින 10" : "Day 10",
-            action: language === "si" ? "තෙවන සිදුරු කිරීම" : "Third spray",
-          },
-          {
-            day: language === "si" ? "දින 15" : "Day 15",
-            action: language === "si" ? "සිව්වන සිදුරු කිරීම" : "Fourth spray",
-          },
-          {
-            day: language === "si" ? "දින 25" : "Day 25",
-            action: language === "si" ? "සමීක්ෂණය" : "Monitoring",
-          },
-        ],
-      };
-    }
-  };
-
-  const spraySchedule = getSpraySchedule();
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
@@ -471,8 +406,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
             <Bug size={24} color="#059669" />
             <View style={styles.diseaseHeaderContent}>
               <Text style={styles.diseaseTitle}>
-                {diseaseName} {content[language].forDisease}
+                {language === "si"
+                  ? `${diseaseNameSi || diseaseName} රෝගය ${
+                      content.si.forDisease
+                    }`
+                  : `${content.en.forDisease} ${
+                      diseaseNameEn || diseaseName
+                    } disease`}
               </Text>
+
               <Text style={styles.diseaseSubtitle}>
                 {content[language].effectiveAgainst}: {diseaseType}
               </Text>
@@ -690,59 +632,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
           </View>
         </View>
 
-        {/* Spray Schedule Card */}
-        <View style={styles.scheduleCard}>
-          <View style={styles.scheduleHeader}>
-            <Calendar size={24} color="#059669" />
-            <Text style={styles.scheduleTitle}>
-              {content[language].spraySchedule}
-            </Text>
-            <Text style={styles.scheduleSubtitle}>{spraySchedule.title}</Text>
-          </View>
-
-          <View style={styles.scheduleTimeline}>
-            {spraySchedule.schedule.map((item, index) => (
-              <View key={index} style={styles.scheduleItem}>
-                <View style={styles.scheduleDayContainer}>
-                  <Text style={styles.scheduleDay}>{item.day}</Text>
-                </View>
-                <View style={styles.scheduleConnector}>
-                  <View style={styles.scheduleDot} />
-                  {index < spraySchedule.schedule.length - 1 && (
-                    <View style={styles.scheduleLine} />
-                  )}
-                </View>
-                <View style={styles.scheduleActionContainer}>
-                  <Text style={styles.scheduleAction}>{item.action}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.scheduleTips}>
-            <View style={styles.tipItem}>
-              <Clock size={16} color="#059669" />
-              <Text style={styles.tipText}>
-                {content[language].bestTime}:{" "}
-                {language === "si" ? "උදේ 6-9 හෝ හවස 4-6" : "6-9 AM or 4-6 PM"}
-              </Text>
-            </View>
-            <View style={styles.tipItem}>
-              <Wind size={16} color="#059669" />
-              <Text style={styles.tipText}>
-                {content[language].avoidRain}:{" "}
-                {language === "si" ? "වැස්සට පෙර 2 පැය" : "2 hours before rain"}
-              </Text>
-            </View>
-            <View style={styles.tipItem}>
-              <ShieldCheck size={16} color="#059669" />
-              <Text style={styles.tipText}>
-                {content[language].protectiveGear}
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* Chemical Treatments Card */}
         {chemicalTreatments.length > 0 && (
           <View style={styles.treatmentCard}>
@@ -750,11 +639,12 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Pill size={24} color="#DC2626" />
               <View style={styles.treatmentHeaderContent}>
                 <Text style={styles.treatmentTitle}>
+                  {severityUI.level === "low"
+                    ? content[language].severityLowPrefix
+                    : severityUI.level === "medium"
+                    ? content[language].severityMediumPrefix
+                    : content[language].severityHighPrefix}{" "}
                   {content[language].chemicalOptions}
-                </Text>
-                <Text style={styles.treatmentSubtitle}>
-                  {displaySeverityLabel}{" "}
-                  {content[language].recommendedForSeverity}
                 </Text>
               </View>
             </View>
@@ -806,7 +696,6 @@ export default function SeverityDetailsScreen({ route }: Props) {
                     </View>
                   </View>
 
-                  {/* Schedule */}
                   {/* Schedule - FIXED FOR MOBILE */}
                   <View style={styles.scheduleInfo}>
                     <View style={styles.scheduleRow}>
@@ -887,7 +776,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                       {treatment.availability[language].map((place, i) => (
                         <Text
                           key={i}
-                          style={[styles.availabilityText, styles.organicText]}
+                          style={[styles.availabilityText, styles.chemicalText]}
                         >
                           • {place}
                         </Text>
@@ -896,10 +785,12 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
                     {/* COST */}
                     <View style={styles.costContainer}>
-                      <Text style={[styles.costLabel, styles.organicCostLabel]}>
+                      <Text
+                        style={[styles.costLabel, styles.chemicalCostLabel]}
+                      >
                         {content[language].costEstimate}
                       </Text>
-                      <Text style={[styles.costValue, styles.organicCost]}>
+                      <Text style={[styles.costValue, styles.chemicalCost]}>
                         {treatment.costEstimate}
                       </Text>
                     </View>
@@ -917,8 +808,14 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Leaf size={24} color="#059669" />
               <View style={styles.treatmentHeaderContent}>
                 <Text style={styles.treatmentTitle}>
+                  {severityUI.level === "low"
+                    ? content[language].severityLowPrefix
+                    : severityUI.level === "medium"
+                    ? content[language].severityMediumPrefix
+                    : content[language].severityHighPrefix}{" "}
                   {content[language].organicOptions}
                 </Text>
+
                 <Text style={styles.treatmentSubtitle}>
                   {language === "si"
                     ? "ආරක්ෂිත හා පරිසර හිතකර"
@@ -1056,7 +953,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   </View>
 
                   {/* Availability & Cost */}
-                  <View style={styles.availabilityRow}>
+                  <View style={styles.availabilityWrapper}>
+                    {/* WHERE TO BUY */}
                     <View style={styles.availabilityColumn}>
                       <Text style={styles.sectionLabel}>
                         {content[language].whereToBuy}:
@@ -1070,37 +968,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         </Text>
                       ))}
                     </View>
-                    {/* Availability & Cost - FIXED FOR MOBILE */}
-                    <View style={styles.availabilityRow}>
-                      <View style={styles.availabilityColumn}>
-                        <Text style={styles.sectionLabel}>
-                          {content[language].whereToBuy}:
-                        </Text>
-                        {treatment.availability[language].map((place, i) => (
-                          <Text
-                            key={i}
-                            style={[
-                              styles.availabilityText,
-                              styles.organicText,
-                            ]}
-                          >
-                            • {place}
-                          </Text>
-                        ))}
-                      </View>
 
-                      <View style={styles.costContainer}>
-                        <View style={styles.costContent}>
-                          <Text
-                            style={[styles.costLabel, styles.organicCostLabel]}
-                          >
-                            {content[language].costEstimate}:
-                          </Text>
-                          <Text style={[styles.costValue, styles.organicCost]}>
-                            {treatment.costEstimate}
-                          </Text>
-                        </View>
-                      </View>
+                    {/* COST */}
+                    <View style={styles.costContainer}>
+                      <Text style={[styles.costLabel, styles.organicCostLabel]}>
+                        {content[language].costEstimate}
+                      </Text>
+                      <Text style={[styles.costValue, styles.organicCost]}>
+                        {treatment.costEstimate}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -1125,7 +1001,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
               </View>
               <Text style={styles.recommendationText}>
                 {language === "si"
-                  ? "ඉහත කාලසටහනට අනුව සිදුරු කිරීම ආරම්භ කරන්න"
+                  ? "ඉහත කාලසටහනට අනුව ස්ප්‍රේ කිරිමේ කිරීම ආරම්භ කරන්න"
                   : "Start spraying according to the above schedule"}
               </Text>
             </View>
