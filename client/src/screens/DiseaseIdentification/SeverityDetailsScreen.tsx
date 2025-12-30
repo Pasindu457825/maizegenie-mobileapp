@@ -405,10 +405,15 @@ export default function SeverityDetailsScreen({ route }: Props) {
           <View style={styles.diseaseHeader}>
             <Bug size={24} color="#059669" />
             <View style={styles.diseaseHeaderContent}>
-             <Text style={styles.diseaseTitle}>
-  {(language === "si" ? diseaseNameSi : diseaseNameEn) || diseaseName}{" "}
-  {content[language].forDisease}
-</Text>
+              <Text style={styles.diseaseTitle}>
+                {language === "si"
+                  ? `${diseaseNameSi || diseaseName} රෝගය ${
+                      content.si.forDisease
+                    }`
+                  : `${content.en.forDisease} ${
+                      diseaseNameEn || diseaseName
+                    } disease`}
+              </Text>
 
               <Text style={styles.diseaseSubtitle}>
                 {content[language].effectiveAgainst}: {diseaseType}
