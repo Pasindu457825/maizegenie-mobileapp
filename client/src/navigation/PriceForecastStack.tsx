@@ -7,6 +7,8 @@ import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScre
 import WeatherForecastScreen from "../screens/PriceForecast/WeatherForecastScreen";
 import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
 import OfficerPriceForecastScreen from "@screens/PriceForecast/OfficerPriceForecastScreen";
+import ProAdvisorPage from "../screens/PriceForecast/ProAdvisorPage";
+
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
@@ -22,6 +24,9 @@ export type PriceForecastStackParamList = {
     temperature?: number | null;
     district?: string | null;
     plantingDate?: string;
+  };
+    ProAdvisorPage: {
+    formData: any;
   };
 };
 
@@ -66,6 +71,13 @@ const PriceForecastStack = () => {
         name="PriceAdvisorScreen"
         component={PriceAdvisorScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProAdvisorPage"
+        component={ProAdvisorPage}
+        options={{
+          headerShown: false,
+        }}
       />
     </Stack.Navigator>
   );
