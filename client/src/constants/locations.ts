@@ -9,6 +9,25 @@ export interface LocationData {
   soilTypes: string[];
 }
 
+// Soil type mapping: Full name -> Database abbreviation
+export const SOIL_TYPE_MAPPING: Record<string, string> = {
+  "Reddish Brown Earth": "RBE",
+  "Red-Yellow Podzolic": "RYP",
+  "Low Humic Gley": "LHG",
+  "Immature Brown Loam": "IBL",
+  "Alluvial Soil": "Alluvial",
+  "Lateritic Soil": "Alluvial", // Map to closest match
+};
+
+// Reverse mapping for display: Database abbreviation -> Full name
+export const SOIL_TYPE_DISPLAY: Record<string, string> = {
+  "RBE": "Reddish Brown Earth",
+  "RYP": "Red-Yellow Podzolic",
+  "LHG": "Low Humic Gley",
+  "IBL": "Immature Brown Loam",
+  "Alluvial": "Alluvial Soil",
+};
+
 export const DISTRICTS = [
   "Ampara",
   "Anuradhapura",
