@@ -18,6 +18,8 @@ import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 import DataConfirmationModal from "../../components/DataConfirmationModal";
 import ProUpgradePopup from "../../components/ProUpgradePopup";
+import FarmerSoilTestModal from "../../components/FarmerSoilTestModal";
+import SoilTestImportanceModal from "../../components/SoilTestImportanceModal";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +36,8 @@ const YieldPredictionLoadingScreen = () => {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const [showProPopup, setShowProPopup] = useState(false);
+  const [showSoilTestModal, setShowSoilTestModal] = useState(false);
+  const [showImportanceModal, setShowImportanceModal] = useState(false);
   const { user } = useApp();
 
   // Role-based authentication using Supabase user data
@@ -140,11 +144,26 @@ const YieldPredictionLoadingScreen = () => {
     }
 
     if (role === "farmer") {
-      navigation.navigate("YieldPredictionFormScreen", { role, language });
+      // Show two-step confirmation popup for farmers
+      showFarmerSoilTestConfirmation();
     } else {
       // Show data confirmation checklist for officers
       showOfficerDataConfirmation();
     }
+  };
+
+  const showFarmerSoilTestConfirmation = () => {
+    setShowSoilTestModal(true);
+  };
+
+  const showSoilTestImportanceMessage = () => {
+    setShowSoilTestModal(false);
+    setShowImportanceModal(true);
+  };
+
+  const handleSoilTestConfirm = () => {
+    setShowSoilTestModal(false);
+    navigation.navigate("YieldPredictionFormScreen", { role: "farmer", language });
   };
 
   const handleComingSoon = (feature: string) => {
@@ -384,6 +403,26 @@ const YieldPredictionLoadingScreen = () => {
           navigation.navigate("Payment" as any, { plan: "pro", amount: 2499 });
         }}
       />
+
+      {/* Farmer Soil Test Modal */}
+      <FarmerSoilTestModal
+        visible={showSoilTestModal}
+        onClose={() => setShowSoilTestModal(false)}
+        onConfirm={handleSoilTestConfirm}
+        onNoData={showSoilTestImportanceMessage}
+        language={language}
+      />
+
+      {/* Soil Test Importance Modal */}
+      <SoilTestImportanceModal
+        visible={showImportanceModal}
+        onClose={() => setShowImportanceModal(false)}
+        onRequestSoilTest={() => {
+          setShowImportanceModal(false);
+          setShowProPopup(true);
+        }}
+        language={language}
+      />
     </View>
   );
 };
@@ -411,10 +450,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "700",
     color: "#ffffff",
-    lineHeight: 22,
+    lineHeight: 26,
     textAlign: "center",
   },
   headerSubtitle: {
