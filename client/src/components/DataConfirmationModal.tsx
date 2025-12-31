@@ -41,8 +41,8 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
           items: ["වර්ෂාපතනය (30 දින සහ කන්නය)", "උෂ්ණත්වය (සාමාන්‍ය සහ උපරිම)", "ආර්ද්‍රතාවය සහ හිරු එළිය"]
         },
         {
-          title: "බෝග තොරතුරු",
-          items: ["බීජ ප්‍රභේදය", "වගා කළ දිනය සහ කන්නය", "ක්ෂේත්‍ර ප්‍රමාණය"]
+          title: "වගා තොරතුරු",
+          items: ["බීජ ප්‍රභේදය", "වගා කළ දිනය සහ කන්නය", "ක්ෂේත්‍ර ප්‍රමාණය", "පොහොර දිනයන්"]
         },
         {
           title: "පොහොර සහ වාරිමාර්ග",
@@ -66,12 +66,12 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
           items: ["Rainfall (30-day and seasonal)", "Temperature (average and maximum)", "Humidity and sunshine hours"]
         },
         {
-          title: "Crop Information",
-          items: ["Seed variety", "Planting date and season", "Field size"]
+          title: "Cultivation Information",
+          items: ["Seed variety", "Planting date and season", "Field size", "Fertilizer application dates"]
         },
         {
-          title: "Fertilizer & Irrigation",
-          items: ["Fertilizer application dates", "Irrigation type"]
+          title: "Irrigation",
+          items: ["Irrigation type"]
         }
       ],
       question: "Ready to proceed?",
