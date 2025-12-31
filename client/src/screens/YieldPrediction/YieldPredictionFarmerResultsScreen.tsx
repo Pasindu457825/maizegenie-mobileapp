@@ -23,6 +23,7 @@ import {
   Wind,
   Home,
 } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
@@ -149,15 +150,20 @@ const YieldPredictionResultsScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={["#10b981", "#059669"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <ArrowLeft color="#047857" size={24} />
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollContainer}
@@ -420,240 +426,232 @@ const YieldPredictionResultsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F0FDF4",
-  },
-  header: {
-    backgroundColor: "#FFFFFF",
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerCenter: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#065F46",
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-  langButton: {
-    backgroundColor: "#D1FAE5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  langText: {
-    color: "#047857",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  yieldCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 2,
-    borderColor: "#D1FAE5",
-  },
-  yieldIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  yieldLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
-  },
-  yieldValue: {
-    fontSize: 48,
-    fontWeight: "700",
-    color: "#065F46",
-    marginBottom: 4,
-  },
-  yieldUnit: {
-    fontSize: 16,
-    color: "#10B981",
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  yieldSubValue: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  rangeContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    alignItems: "center",
-  },
-  rangeLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
-  rangeValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#065F46",
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#065F46",
-  },
-  confidenceCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  confidenceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  confidenceLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#065F46",
-  },
-  confidenceScore: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#10B981",
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  factorCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  factorHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  factorIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  factorName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#065F46",
-    flex: 1,
-  },
-  factorDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  factorImpactContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  factorImpactBar: {
-    height: 6,
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  factorImpactText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  recommendationCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  recommendationHeader: {
+container: {
+flex: 1,
+backgroundColor: "#F0FDF4",
+},
+header: {
+paddingTop: 50,
+paddingBottom: 20,
+paddingHorizontal: 20,
+borderBottomLeftRadius: 24,
+borderBottomRightRadius: 24,
+},
+backButton: {
+marginRight: 12,
+},
+headerCenter: {
+flex: 1,
+},
+headerTitle: {
+fontSize: 20,
+fontWeight: "700",
+color: "#ffffff",
+marginBottom: 2,
+},
+headerSubtitle: {
+fontSize: 13,
+color: "#D1FAE5",
+},
+langButton: {
+backgroundColor: "#D1FAE5",
+paddingHorizontal: 12,
+paddingVertical: 6,
+borderRadius: 12,
+},
+langText: {
+color: "#047857",
+fontSize: 14,
+fontWeight: "600",
+},
+scrollContainer: {
+flex: 1,
+},
+scrollContent: {
+paddingHorizontal: 16,
+paddingTop: 20,
+},
+yieldCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 20,
+padding: 24,
+alignItems: "center",
+marginBottom: 20,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 4 },
+shadowOpacity: 0.1,
+shadowRadius: 12,
+elevation: 6,
+borderWidth: 2,
+borderColor: "#D1FAE5",
+},
+yieldIconContainer: {
+width: 64,
+height: 64,
+borderRadius: 32,
+backgroundColor: "#D1FAE5",
+alignItems: "center",
+justifyContent: "center",
+marginBottom: 16,
+},
+yieldLabel: {
+fontSize: 14,
+color: "#6B7280",
+marginBottom: 8,
+},
+yieldValue: {
+fontSize: 48,
+fontWeight: "700",
+color: "#065F46",
+marginBottom: 4,
+},
+yieldUnit: {
+fontSize: 16,
+color: "#10B981",
+fontWeight: "600",
+marginBottom: 8,
+},
+yieldSubValue: {
+fontSize: 14,
+color: "#6B7280",
+},
+rangeContainer: {
+marginTop: 16,
+paddingTop: 16,
+borderTopWidth: 1,
+borderTopColor: "#E5E7EB",
+alignItems: "center",
+},
+rangeLabel: {
+fontSize: 12,
+color: "#6B7280",
+marginBottom: 4,
+},
+rangeValue: {
+fontSize: 14,
+fontWeight: "600",
+color: "#065F46",
+},
+section: {
+marginBottom: 20,
+},
+sectionHeader: {
+flexDirection: "row",
+alignItems: "center",
+marginBottom: 12,
+},
+sectionIconContainer: {
+width: 36,
+height: 36,
+borderRadius: 18,
+backgroundColor: "#D1FAE5",
+alignItems: "center",
+justifyContent: "center",
+marginRight: 12,
+},
+sectionTitle: {
+fontSize: 18,
+fontWeight: "700",
+color: "#065F46",
+},
+confidenceCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 12,
+padding: 16,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.05,
+shadowRadius: 4,
+elevation: 2,
+},
+confidenceHeader: {
+flexDirection: "row",
+justifyContent: "space-between",
+alignItems: "center",
+marginBottom: 12,
+},
+confidenceLabel: {
+fontSize: 16,
+fontWeight: "600",
+color: "#065F46",
+},
+confidenceScore: {
+fontSize: 24,
+fontWeight: "700",
+color: "#10B981",
+},
+progressBarContainer: {
+height: 8,
+backgroundColor: "#E5E7EB",
+borderRadius: 4,
+overflow: "hidden",
+},
+progressBar: {
+height: "100%",
+borderRadius: 4,
+},
+factorCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 12,
+padding: 16,
+marginBottom: 12,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.05,
+shadowRadius: 4,
+elevation: 2,
+},
+factorHeader: {
+flexDirection: "row",
+alignItems: "center",
+marginBottom: 8,
+},
+factorIconContainer: {
+width: 32,
+height: 32,
+borderRadius: 16,
+backgroundColor: "#D1FAE5",
+alignItems: "center",
+justifyContent: "center",
+marginRight: 12,
+},
+factorName: {
+fontSize: 15,
+fontWeight: "600",
+color: "#065F46",
+flex: 1,
+},
+factorDescription: {
+fontSize: 13,
+color: "#6B7280",
+marginBottom: 12,
+lineHeight: 18,
+},
+factorImpactContainer: {
+flexDirection: "row",
+alignItems: "center",
+},
+factorImpactBar: {
+height: 6,
+borderRadius: 3,
+marginRight: 8,
+},
+factorImpactText: {
+fontSize: 14,
+fontWeight: "600",
+},
+recommendationCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 12,
+padding: 16,
+marginBottom: 12,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.05,
+shadowRadius: 4,
+elevation: 2,
+},
+recommendationHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 8,
