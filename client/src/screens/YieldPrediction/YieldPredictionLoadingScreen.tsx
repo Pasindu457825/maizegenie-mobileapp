@@ -75,7 +75,7 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendation: "පොහොර නිර්දේශ",
       fertilizerRecommendationDesc: "ගොවීන්ට පොහොර උපදේශ ලබා දෙන්න",
       farmerRequests: "ගොවි ඉල්ලීම්",
-      farmerRequestsDesc: "ඉදිරි දිනවල",
+      farmerRequestsDesc: "ගොවීන්ගේ උපදේශ ඉල්ලීම් බලන්න",
       comingSoon: "ඉදිරි දිනවල",
       soilTestTitle: "පස් පරීක්ෂණ ඉල්ලීම",
       soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න - ආසන්නතම කෘෂිකර්ම නිලධාරියා සම්බන්ධ කරගන්න",
@@ -95,7 +95,7 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendation: "Fertilizer Recommendation",
       fertilizerRecommendationDesc: "Provide fertilizer advice to farmers",
       farmerRequests: "Farmer Requests",
-      farmerRequestsDesc: "Coming soon",
+      farmerRequestsDesc: "View farmer advice requests with yield predictions",
       comingSoon: "Coming soon",
       soilTestTitle: "Request Soil Testing",
       soilTestDesc: "Request a soil test for your land - Contact nearest agri officer",
@@ -373,6 +373,35 @@ const YieldPredictionLoadingScreen = () => {
                     </Text>
                     <Text style={styles.roleDesc}>
                       {content[language].fertilizerRecommendationDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Card 3: Farmer Requests */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => handleComingSoon(content[language].farmerRequests)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#FEF3C7", "#FDE68A"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
+                    <Users color="#D97706" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].farmerRequests}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].farmerRequestsDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>

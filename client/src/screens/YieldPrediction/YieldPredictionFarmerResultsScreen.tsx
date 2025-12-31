@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -22,6 +23,7 @@ import {
   Sun,
   Wind,
   Home,
+  MessageSquare,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -61,6 +63,8 @@ const YieldPredictionResultsScreen = () => {
       recommendations: "නිර්දේශ",
       summary: "සාරාංශය",
       newPrediction: "නව පුරෝකථනයක්",
+      requestAdvice: "උපදේශ ඉල්ලන්න",
+      requestAdviceDesc: "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ තෝරාගැනීම සඳහා උපදේශ ලබා ගන්න",
       back: "ආපසු",
       high: "ඉහළ",
       medium: "මධ්‍යම",
@@ -87,6 +91,8 @@ const YieldPredictionResultsScreen = () => {
       recommendations: "Recommendations",
       summary: "Summary",
       newPrediction: "New Prediction",
+      requestAdvice: "Request Advice",
+      requestAdviceDesc: "Get expert advice on yield enhancement and seed variety selection",
       back: "Back",
       high: "High",
       medium: "Medium",
@@ -126,6 +132,33 @@ const YieldPredictionResultsScreen = () => {
 
   const handleNewPrediction = () => {
     navigation.navigate("YieldPredictionLoadingScreen");
+  };
+
+  const handleRequestAdvice = () => {
+    Alert.alert(
+      language === "si" ? "උපදේශ ඉල්ලීම" : "Request Advice",
+      language === "si" 
+        ? "ඔබේ අස්වැන්න වැඩිදියුණු කිරීම සහ සුදුසු බීජ වර්ගය තෝරාගැනීම සඳහා කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදේශ ඉල්ලීමට අවශ්‍යද?"
+        : "Would you like to request advice from an agricultural officer on yield enhancement and suitable seed variety selection?",
+      [
+        {
+          text: language === "si" ? "අවලංගු කරන්න" : "Cancel",
+          style: "cancel"
+        },
+        {
+          text: language === "si" ? "ඉල්ලීම යවන්න" : "Send Request",
+          onPress: () => {
+            // TODO: Implement API call to submit advice request
+            Alert.alert(
+              language === "si" ? "සාර්ථකයි!" : "Success!",
+              language === "si" 
+                ? "ඔබේ උපදේශ ඉල්ලීම සාර්ථකව යවන ලදී. නිලධාරියෙක් ඉක්මනින් ඔබව සම්බන්ධ කරගනු ඇත."
+                : "Your advice request has been sent successfully. An officer will contact you soon."
+            );
+          }
+        }
+      ]
+    );
   };
 
   // Extract data with fallbacks
@@ -406,6 +439,22 @@ const YieldPredictionResultsScreen = () => {
               </View>
             </View>
           )}
+
+          {/* Request Advice Button */}
+          <TouchableOpacity
+            style={styles.requestAdviceButton}
+            onPress={handleRequestAdvice}
+          >
+            <MessageSquare color="#FFFFFF" size={20} />
+            <View style={styles.requestAdviceContent}>
+              <Text style={styles.requestAdviceTitle}>
+                {content[language].requestAdvice}
+              </Text>
+              <Text style={styles.requestAdviceDesc}>
+                {content[language].requestAdviceDesc}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
           {/* New Prediction Button */}
           <TouchableOpacity
@@ -781,6 +830,35 @@ recommendationHeader: {
   comparisonValueBold: {
     fontSize: 18,
     fontWeight: "700",
+  },
+  requestAdviceButton: {
+    backgroundColor: "#F59E0B",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  requestAdviceContent: {
+    flex: 1,
+  },
+  requestAdviceTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  requestAdviceDesc: {
+    fontSize: 12,
+    color: "#FEF3C7",
   },
 });
 
