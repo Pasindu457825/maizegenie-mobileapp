@@ -44,12 +44,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
+import PricingModal1 from "../../components/PricingModal1";
 
 type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
   "PriceAdvisorScreen"
 >;
-
 
 type CircularProgressProps = {
   percent: number;
@@ -138,6 +138,11 @@ type RootStackParamList = {
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
   Notifications: undefined;
+
+  // ✅ ADD THIS
+  ProAdvisorPage: {
+    formData: any;
+  };
 };
 
 interface RouteParams {
@@ -254,6 +259,7 @@ const PriceAdvisorScreen: React.FC = () => {
   );
   const [advisorGuideLoading, setAdvisorGuideLoading] = useState(false);
   const [showAdvisorGuide, setShowAdvisorGuide] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
 
   const {
     locationName,
@@ -2237,11 +2243,7 @@ const PriceAdvisorScreen: React.FC = () => {
                 {fullAdvisorText && (
                   <TouchableOpacity
                     style={styles.proAdvisorButton}
-                    onPress={() =>
-                      navigation.navigate("ProAdvisorPage", {
-                        formData: form,
-                      })
-                    }
+                    onPress={() => setShowPricingModal(true)}
                   >
                     <View style={styles.proAdvisorContent}>
                       <Zap size={20} color="#FFFFFF" />
@@ -2253,6 +2255,21 @@ const PriceAdvisorScreen: React.FC = () => {
                     </View>
                   </TouchableOpacity>
                 )}
+
+                {/* ✅ ADD THIS HERE — Pricing Popup */}
+                <PricingModal1
+                  visible={showPricingModal}
+                  onClose={() => setShowPricingModal(false)}
+                  onSelectFree={() => {
+                    setShowPricingModal(false);
+                  }}
+                  onSelectPro={() => {
+                    setShowPricingModal(false);
+                    rootNavigation.navigate("ProAdvisorPage", {
+                      formData: form,
+                    });
+                  }}
+                />
               </View>
             </View>
           )}
