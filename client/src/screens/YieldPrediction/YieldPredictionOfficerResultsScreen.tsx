@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BarChart, LineChart, ProgressChart } from "react-native-chart-kit";
+import ConfidenceBreakdownModal from "../../components/OfficerYPConfidenceBreakdownModal";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -56,6 +57,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   
   const [downloadingReport, setDownloadingReport] = useState(false);
+  const [showConfidenceBreakdown, setShowConfidenceBreakdown] = useState(false);
   
   // Get API URL based on platform
   const getApiUrl = () => {
@@ -122,7 +124,16 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [impactFilter, setImpactFilter] = useState<'all' | 'positive' | 'negative'>('all');
   
-  // Download report function for React Native
+  // Cross-platform alert function
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  // Download report function with platform-specific logic
   const handleDownloadReport = async () => {
     setDownloadingReport(true);
     
@@ -131,7 +142,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
       const requestData = (route.params as any)?.requestData;
       
       if (!requestData) {
-        Alert.alert(
+        showAlert(
           language === "si" ? "දෝෂයකි" : "Error",
           language === "si" 
             ? "වාර්තාව බාගත කිරීමට අවශ්‍ය දත්ත නොමැත"
@@ -145,117 +156,120 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
       const district = requestData?.soil_profile?.district || 'Unknown';
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
       const filename = `MaizeGenie_YieldReport_${district}_${timestamp}.pdf`;
-      const fileUri = FileSystem.documentDirectory + filename;
       
       const apiUrl = getApiUrl();
       
-      // Use XMLHttpRequest for better React Native compatibility
-      const downloadPDF = () => {
-        return new Promise<void>((resolve, reject) => {
-          const xhr = new XMLHttpRequest();
-          xhr.open('POST', `${apiUrl}/api/v1/yield-prediction/officer/report`);
-          xhr.setRequestHeader('Content-Type', 'application/json');
-          xhr.responseType = 'arraybuffer';
-          
-          xhr.onload = async () => {
-            if (xhr.status === 200) {
-              try {
-                // Convert array buffer to base64
-                const arrayBuffer = xhr.response;
-                const bytes = new Uint8Array(arrayBuffer);
-                let binary = '';
-                const chunkSize = 0x8000; // Process in chunks to avoid stack overflow
-                for (let i = 0; i < bytes.length; i += chunkSize) {
-                  const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-                  binary += String.fromCharCode.apply(null, Array.from(chunk));
-                }
-                
-                // Use base64 encoding that works in React Native
-                const base64 = binary.split('').map(char => {
-                  return char.charCodeAt(0).toString(16).padStart(2, '0');
-                }).join('');
-                
-                // Actually, let's use a simpler approach - write the buffer directly
-                // Convert to base64 using a library-free method
-                const base64String = arrayBufferToBase64(arrayBuffer);
-                
-                await FileSystem.writeAsStringAsync(fileUri, base64String, {
-                  encoding: FileSystem.EncodingType.Base64,
-                });
-                
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            } else {
-              reject(new Error(`Report generation failed: ${xhr.status}`));
-            }
-          };
-          
-          xhr.onerror = () => reject(new Error('Network request failed'));
-          xhr.send(JSON.stringify(requestData));
-        });
-      };
-      
-      // Helper function to convert ArrayBuffer to base64
-      const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        // Use Buffer if available, otherwise manual conversion
-        if (typeof Buffer !== 'undefined') {
-          return Buffer.from(binary, 'binary').toString('base64');
-        }
-        // Fallback for environments without Buffer
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        let result = '';
-        let i = 0;
-        while (i < binary.length) {
-          const a = binary.charCodeAt(i++);
-          const b = i < binary.length ? binary.charCodeAt(i++) : 0;
-          const c = i < binary.length ? binary.charCodeAt(i++) : 0;
-          
-          const bitmap = (a << 16) | (b << 8) | c;
-          result += chars[(bitmap >> 18) & 63];
-          result += chars[(bitmap >> 12) & 63];
-          result += i - 2 < binary.length ? chars[(bitmap >> 6) & 63] : '=';
-          result += i - 1 < binary.length ? chars[bitmap & 63] : '=';
-        }
-        return result;
-      };
-      
-      await downloadPDF();
-      
-      // Step 4: Share the file
-      const isAvailable = await Sharing.isAvailableAsync();
-      
-      if (isAvailable) {
-        await Sharing.shareAsync(fileUri, {
-          mimeType: 'application/pdf',
-          dialogTitle: language === "si" ? "වාර්තාව බෙදාගන්න" : "Share Report",
-          UTI: 'com.adobe.pdf',
+      if (Platform.OS === 'web') {
+        // Web-specific download using blob
+        const response = await fetch(`${apiUrl}/api/v1/yield-prediction/officer/report`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
         });
         
-        Alert.alert(
+        if (!response.ok) {
+          throw new Error(`Report generation failed: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        showAlert(
           language === "si" ? "සාර්ථකයි" : "Success",
           language === "si" 
-            ? "වාර්තාව සාර්ථකව ජනනය කරන ලදී"
-            : "Report generated successfully"
+            ? "වාර්තාව සාර්ථකව බාගත කරන ලදී"
+            : "Report downloaded successfully"
         );
       } else {
-        Alert.alert(
-          language === "si" ? "සාර්ථකයි" : "Success",
-          language === "si" 
-            ? `වාර්තාව සුරකින ලදී: ${fileUri}`
-            : `Report saved to: ${fileUri}`
-        );
+        // Mobile (iOS/Android) download using FileSystem and Sharing
+        const fileUri = FileSystem.documentDirectory + filename;
+        
+        // Use XMLHttpRequest for better React Native compatibility
+        const downloadPDF = () => {
+          return new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `${apiUrl}/api/v1/yield-prediction/officer/report`);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.responseType = 'arraybuffer';
+            
+            xhr.onload = async () => {
+              if (xhr.status === 200) {
+                try {
+                  // Convert array buffer to base64
+                  const arrayBuffer = xhr.response;
+                  const base64String = arrayBufferToBase64(arrayBuffer);
+                  
+                  await FileSystem.writeAsStringAsync(fileUri, base64String, {
+                    encoding: FileSystem.EncodingType.Base64,
+                  });
+                  
+                  resolve();
+                } catch (error) {
+                  reject(error);
+                }
+              } else {
+                reject(new Error(`Report generation failed: ${xhr.status}`));
+              }
+            };
+            
+            xhr.onerror = () => reject(new Error('Network request failed'));
+            xhr.send(JSON.stringify(requestData));
+          });
+        };
+        
+        // Helper function to convert ArrayBuffer to base64
+        const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+          const bytes = new Uint8Array(buffer);
+          let binary = '';
+          for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          // Use btoa for base64 encoding
+          return btoa(binary);
+        };
+        
+        await downloadPDF();
+        
+        // Share the file
+        const isAvailable = await Sharing.isAvailableAsync();
+        
+        if (isAvailable) {
+          await Sharing.shareAsync(fileUri, {
+            mimeType: 'application/pdf',
+            dialogTitle: language === "si" ? "වාර්තාව බෙදාගන්න" : "Share Report",
+            UTI: 'com.adobe.pdf',
+          });
+          
+          showAlert(
+            language === "si" ? "සාර්ථකයි" : "Success",
+            language === "si" 
+              ? "වාර්තාව සාර්ථකව ජනනය කරන ලදී"
+              : "Report generated successfully"
+          );
+        } else {
+          showAlert(
+            language === "si" ? "සාර්ථකයි" : "Success",
+            language === "si" 
+              ? `වාර්තාව සුරකින ලදී: ${fileUri}`
+              : `Report saved to: ${fileUri}`
+          );
+        }
       }
       
     } catch (error) {
       console.error('Report download error:', error);
-      Alert.alert(
+      showAlert(
         language === "si" ? "දෝෂයකි" : "Error",
         language === "si" 
           ? "වාර්තාව බාගත කිරීමේදී දෝෂයක් ඇතිවිය"
@@ -452,18 +466,18 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                 {(confidenceScore * 100).toFixed(0)}%
               </Text>
               <TouchableOpacity 
-                style={styles.infoIcon}
-                onPress={() => {
-                  Alert.alert(
-                    language === "si" ? "විශ්වාසය ගණනය කිරීම" : "Confidence Calculation",
-                    language === "si" 
-                      ? `විශ්වාසය ප්‍රතිශතය මෙම කරුණු මත පදනම් වේ:\n\n• ආදාන දත්ත සම්පූර්ණත්වය (${(confidenceScore * 40).toFixed(0)}%)\n• මාදිලියේ ස්ථායීතාව (${(confidenceScore * 35).toFixed(0)}%)\n• ඓතිහාසික නිරවද්‍යතාව (${(confidenceScore * 25).toFixed(0)}%)\n\nඉහළ විශ්වාසය = වඩා විශ්වසනීය පුරෝකථනය`
-                      : `Confidence percentage is based on:\n\n• Input data completeness (${(confidenceScore * 40).toFixed(0)}%)\n• Model stability (${(confidenceScore * 35).toFixed(0)}%)\n• Historical accuracy (${(confidenceScore * 25).toFixed(0)}%)\n\nHigher confidence = More reliable prediction`,
-                    [{ text: "OK" }]
-                  );
-                }}
+                style={styles.ejectButton}
+                onPress={() => setShowConfidenceBreakdown(true)}
+                activeOpacity={0.7}
               >
-                <Info color="#6B7280" size={16} />
+                <LinearGradient
+                  colors={["#10b981", "#059669"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.ejectButtonGradient}
+                >
+                  <Activity color="#ffffff" size={14} strokeWidth={2.5} />
+                </LinearGradient>
               </TouchableOpacity>
             </View>
             
@@ -1075,6 +1089,15 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* Confidence Breakdown Modal */}
+      <ConfidenceBreakdownModal
+        visible={showConfidenceBreakdown}
+        onClose={() => setShowConfidenceBreakdown(false)}
+        language={language}
+        confidenceScore={confidenceScore}
+        predictionMethod={predictionMethod}
+      />
     </View>
   );
 };
@@ -1223,8 +1246,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#10B981",
   },
-  infoIcon: {
-    marginLeft: 4,
+  ejectButton: {
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  ejectButtonGradient: {
+    width: 28,
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
   },
   methodBadgeContainer: {
     alignItems: "center",
