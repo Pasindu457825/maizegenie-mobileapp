@@ -26,29 +26,43 @@ def get_or_create_room(req: RoomRequest):
 
     # 1️⃣ Check if room already exists
     existing = (
-        supabase.table("chat_rooms")
+        supabase
+        .table("chat_rooms")
         .select("*")
         .eq("farmer_id", farmer_id)
         .execute()
     )
 
     if existing.data:
-        return existing.data[0]  # room already exists
+        return existing.data[0]
 
-    # 2️⃣ Assign officer (basic version)
-    officer_id = "officer_01"
+    # 2️⃣ Assign officer by district (UUID)
+    officer = (
+        supabase
+        .table("profiles")
+        .select("id")
+        .eq("role", "officer")
+        .eq("district", district)
+        .limit(1)
+        .execute()
+    )
+
+    if not officer.data:
+        return {"error": "No officer available for this district"}
+
+    officer_id = officer.data[0]["id"]
 
     # 3️⃣ Create new room
     new_room = {
         "id": str(uuid.uuid4()),
-        "farmer_id": farmer_id,
-        "officer_id": officer_id,
+        "farmer_id": farmer_id,     # UUID
+        "officer_id": officer_id,   # UUID ✅
         "district": district,
     }
 
     supabase.table("chat_rooms").insert(new_room).execute()
-
     return new_room
+
 
 
 # ---------------------------

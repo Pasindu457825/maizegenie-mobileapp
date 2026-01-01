@@ -19,8 +19,8 @@ import { useCallback } from "react";
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.85;
-const CARD_SPACING = 16;
+const CARD_WIDTH = width * 0.88;
+const CARD_SPACING = 20;
 
 // =======================
 // Types
@@ -96,6 +96,7 @@ export default function TopOfficialNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [pulseAnim] = useState(new Animated.Value(1));
   const [scrollX] = useState(new Animated.Value(0));
+  const [shimmerAnim] = useState(new Animated.Value(0));
   const navigation = useNavigation<any>();
 
   const { language } = useLanguage();
@@ -124,7 +125,7 @@ export default function TopOfficialNews() {
   );
 
   // =======================
-  // Pulse animation for NEW badge
+  // Animations
   // =======================
   useEffect(() => {
     const pulse = Animated.loop(
@@ -142,25 +143,88 @@ export default function TopOfficialNews() {
       ])
     );
     pulse.start();
-    return () => pulse.stop();
+
+    const shimmer = Animated.loop(
+      Animated.timing(shimmerAnim, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      })
+    );
+    shimmer.start();
+
+    return () => {
+      pulse.stop();
+      shimmer.stop();
+    };
   }, []);
 
   // =======================
   // Category configurations
   // =======================
   const categoryConfig = (cat: string) => {
-    const configs = {
-      price: { color: "#059669", gradient: ["#059669", "#047857"], icon: "💰" },
-      weather: { color: "#0d9488", gradient: ["#0d9488", "#0f766e"], icon: "🌤️" },
-      policy: { color: "#16a34a", gradient: ["#16a34a", "#15803d"], icon: "📋" },
-      alert: { color: "#ea580c", gradient: ["#ea580c", "#c2410c"], icon: "⚠️" },
-      pest: { color: "#b45309", gradient: ["#b45309", "#92400e"], icon: "🐛" },
-      disease: { color: "#991b1b", gradient: ["#991b1b", "#7f1d1d"], icon: "🦠" },
-      fertilizer: { color: "#15803d", gradient: ["#15803d", "#166534"], icon: "🌱" },
-      cultivation: { color: "#0f766e", gradient: ["#0f766e", "#115e59"], icon: "🌾" },
-      program: { color: "#1d4ed8", gradient: ["#1d4ed8", "#1e40af"], icon: "📅" },
+    const configs: Record<string, any> = {
+      price: { 
+        color: "#059669", 
+        gradient: ["#34d399", "#059669", "#047857"], 
+        icon: "💰",
+        light: "#d1fae5"
+      },
+      weather: { 
+        color: "#0891b2", 
+        gradient: ["#67e8f9", "#0891b2", "#0e7490"], 
+        icon: "🌤️",
+        light: "#cffafe"
+      },
+      policy: { 
+        color: "#16a34a", 
+        gradient: ["#4ade80", "#16a34a", "#15803d"], 
+        icon: "📋",
+        light: "#dcfce7"
+      },
+      alert: { 
+        color: "#ea580c", 
+        gradient: ["#fb923c", "#ea580c", "#c2410c"], 
+        icon: "⚠️",
+        light: "#fed7aa"
+      },
+      pest: { 
+        color: "#b45309", 
+        gradient: ["#fbbf24", "#b45309", "#92400e"], 
+        icon: "🐛",
+        light: "#fef3c7"
+      },
+      disease: { 
+        color: "#dc2626", 
+        gradient: ["#f87171", "#dc2626", "#991b1b"], 
+        icon: "🦠",
+        light: "#fee2e2"
+      },
+      fertilizer: { 
+        color: "#15803d", 
+        gradient: ["#86efac", "#15803d", "#166534"], 
+        icon: "🌱",
+        light: "#bbf7d0"
+      },
+      cultivation: { 
+        color: "#0d9488", 
+        gradient: ["#5eead4", "#0d9488", "#0f766e"], 
+        icon: "🌾",
+        light: "#ccfbf1"
+      },
+      program: { 
+        color: "#2563eb", 
+        gradient: ["#60a5fa", "#2563eb", "#1d4ed8"], 
+        icon: "📅",
+        light: "#dbeafe"
+      },
     };
-    return  { color: "#10b981", gradient: ["#10b981", "#059669"], icon: "📢" };
+    return configs[cat] || { 
+      color: "#10b981", 
+      gradient: ["#6ee7b7", "#10b981", "#059669"], 
+      icon: "📢",
+      light: "#d1fae5"
+    };
   };
 
   // =======================
@@ -170,30 +234,47 @@ export default function TopOfficialNews() {
 
   return (
     <View style={styles.wrapper}>
-      {/* Modern Glass Header */}
+      {/* Ultra Modern Glass Header */}
       <View style={styles.headerContainer}>
         <View style={styles.glassHeader}>
           <View style={styles.headerLeft}>
             <View style={styles.iconCircle}>
-              <Text style={styles.headerIcon}>🌾</Text>
+              <LinearGradient
+                colors={["#34d399", "#10b981"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.iconGradient}
+              >
+                <Text style={styles.headerIcon}>🌾</Text>
+              </LinearGradient>
             </View>
-            <Text style={styles.title}>{t.title}</Text>
+            <View>
+              <Text style={styles.title}>{t.title}</Text>
+              <View style={styles.titleUnderline} />
+            </View>
           </View>
 
           <TouchableOpacity
             onPress={() => navigation.navigate("OfficialNews")}
             style={styles.moreButton}
-            activeOpacity={0.7}
+            activeOpacity={0.8}
           >
-            <Text style={styles.more}>{t.more}</Text>
-            <View style={styles.arrowCircle}>
-              <Text style={styles.arrow}>→</Text>
-            </View>
+            <LinearGradient
+              colors={["#34d399", "#10b981", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.moreGradient}
+            >
+              <Text style={styles.more}>{t.more}</Text>
+              <View style={styles.arrowCircle}>
+                <Text style={styles.arrow}>→</Text>
+              </View>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Card Carousel with Parallax */}
+      {/* Premium Card Carousel */}
       <Animated.ScrollView
         horizontal
         pagingEnabled={false}
@@ -218,13 +299,19 @@ export default function TopOfficialNews() {
 
           const scale = scrollX.interpolate({
             inputRange,
-            outputRange: [0.9, 1, 0.9],
+            outputRange: [0.92, 1, 0.92],
             extrapolate: 'clamp',
           });
 
           const opacity = scrollX.interpolate({
             inputRange,
-            outputRange: [0.6, 1, 0.6],
+            outputRange: [0.5, 1, 0.5],
+            extrapolate: 'clamp',
+          });
+
+          const rotateY = scrollX.interpolate({
+            inputRange,
+            outputRange: ['-15deg', '0deg', '15deg'],
             extrapolate: 'clamp',
           });
 
@@ -234,7 +321,7 @@ export default function TopOfficialNews() {
               style={[
                 styles.cardWrapper,
                 {
-                  transform: [{ scale }],
+                  transform: [{ scale }, { perspective: 1000 }, { rotateY }],
                   opacity,
                 },
               ]}
@@ -244,7 +331,10 @@ export default function TopOfficialNews() {
                 activeOpacity={0.95}
                 onPress={() => navigation.navigate("NewsDetail", { id: item.id })}
               >
-                {/* NEW Badge with Glow */}
+                {/* Animated Background Glow */}
+                <View style={[styles.cardGlow, { backgroundColor: config.light }]} />
+
+                {/* NEW Badge with Enhanced Animation */}
                 {index === 0 && (
                   <Animated.View
                     style={[
@@ -252,12 +342,21 @@ export default function TopOfficialNews() {
                       { transform: [{ scale: pulseAnim }] },
                     ]}
                   >
-                    <View style={styles.newBadgeGlow} />
-                    <Text style={styles.newBadgeText}>✨ {t.new}</Text>
+                    <LinearGradient
+                      colors={["#fbbf24", "#f59e0b", "#d97706"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.newBadgeGradient}
+                    >
+                      <View style={styles.sparkleContainer}>
+                        <Text style={styles.sparkle}>✨</Text>
+                      </View>
+                      <Text style={styles.newBadgeText}>{t.new}</Text>
+                    </LinearGradient>
                   </Animated.View>
                 )}
 
-                {/* Image with Gradient Overlay */}
+                {/* Premium Image Container */}
                 <View style={styles.imageContainer}>
                   {item.image_url ? (
                     <>
@@ -266,53 +365,81 @@ export default function TopOfficialNews() {
                         style={styles.image}
                         resizeMode="cover"
                       />
-                      <View style={styles.imageGradient}>
-                        <View style={styles.gradientOverlay} />
-                      </View>
+                      <LinearGradient
+                        colors={['transparent', 'rgba(0,0,0,0.7)']}
+                        style={styles.imageGradient}
+                      />
                     </>
                   ) : (
-                    <View style={[styles.placeholderImage, { backgroundColor: config.color }]}>
+                    <LinearGradient
+                      colors={config.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.placeholderImage}
+                    >
                       <Text style={styles.placeholderIcon}>{config.icon}</Text>
-                    </View>
+                      <View style={styles.placeholderPattern} />
+                    </LinearGradient>
                   )}
 
-                  {/* Floating Category Badge */}
-                  <View style={[styles.floatingBadge, { backgroundColor: config.color }]}>
-                    <Text style={styles.badgeIcon}>{config.icon}</Text>
-                    <Text style={styles.badgeText}>{t.category[item.category]}</Text>
+                  {/* Floating Premium Badge */}
+                  <View style={styles.floatingBadge}>
+                    <LinearGradient
+                      colors={config.gradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.badgeGradient}
+                    >
+                      <Text style={styles.badgeIcon}>{config.icon}</Text>
+                      <Text style={styles.badgeText}>{t.category[item.category]}</Text>
+                    </LinearGradient>
                   </View>
                 </View>
 
-                {/* Content Section */}
+                {/* Enhanced Content Section */}
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle} numberOfLines={2}>
-                    {item.title}
-                  </Text>
+                  <View style={styles.contentTop}>
+                    <Text style={styles.cardTitle} numberOfLines={2}>
+                      {item.title}
+                    </Text>
 
-                  {item.district && (
-                    <View style={styles.districtContainer}>
-                      <View style={styles.locationDot} />
-                      <Text style={styles.districtText} numberOfLines={1}>
-                        {item.district}
+                    {item.district && (
+                      <View style={styles.districtContainer}>
+                        <View style={[styles.locationDot, { backgroundColor: config.color }]} />
+                        <Text style={styles.districtText} numberOfLines={1}>
+                          {item.district}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Modern Read More Button */}
+                  <View style={styles.readMoreContainer}>
+                    <View style={styles.readMoreLeft}>
+                      <View style={[styles.readMoreDot, { backgroundColor: config.color }]} />
+                      <Text style={[styles.readMoreText, { color: config.color }]}>
+                        තව කියවන්න
                       </Text>
                     </View>
-                  )}
-
-                  {/* Read More Indicator */}
-                  <View style={styles.readMoreContainer}>
-                    <View style={styles.readMoreLine} />
-                    <Text style={styles.readMoreText}>තව කියවන්න</Text>
-                    <View style={styles.readMoreArrowContainer}>
-                      <Text style={styles.readMoreArrow}>→</Text>
+                    <View style={[styles.readMoreButton, { backgroundColor: config.light }]}>
+                      <Text style={[styles.readMoreArrow, { color: config.color }]}>→</Text>
                     </View>
                   </View>
                 </View>
 
-                {/* Bottom Accent Line */}
-                <View style={[styles.accentLine, { backgroundColor: config.color }]} />
+                {/* Animated Bottom Accent */}
+                <LinearGradient
+                  colors={config.gradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.accentLine}
+                />
+
+                {/* Corner Decoration */}
+                <View style={[styles.cornerDecoration, { borderTopColor: config.color }]} />
               </TouchableOpacity>
 
-              {/* Admin Actions (Officer Only) */}
+              {/* Officer Actions */}
               {isOfficer && (
                 <View style={styles.adminActions}>
                   <TouchableOpacity
@@ -323,7 +450,12 @@ export default function TopOfficialNews() {
                       })
                     }
                   >
-                    <Text style={styles.adminIcon}>✏️</Text>
+                    <LinearGradient
+                      colors={["#ffffff", "#f3f4f6"]}
+                      style={styles.adminGradient}
+                    >
+                      <Text style={styles.adminIcon}>✏️</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
               )}
@@ -332,7 +464,7 @@ export default function TopOfficialNews() {
         })}
       </Animated.ScrollView>
 
-      {/* Scroll Indicators */}
+      {/* Premium Scroll Indicators */}
       <View style={styles.indicatorContainer}>
         {news.map((_, index) => {
           const inputRange = [
@@ -343,7 +475,7 @@ export default function TopOfficialNews() {
 
           const dotWidth = scrollX.interpolate({
             inputRange,
-            outputRange: [8, 24, 8],
+            outputRange: [8, 32, 8],
             extrapolate: 'clamp',
           });
 
@@ -363,7 +495,14 @@ export default function TopOfficialNews() {
                   opacity: dotOpacity,
                 },
               ]}
-            />
+            >
+              <LinearGradient
+                colors={["#34d399", "#10b981"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.indicatorGradient}
+              />
+            </Animated.View>
           );
         })}
       </View>
@@ -372,7 +511,7 @@ export default function TopOfficialNews() {
 }
 
 // =======================
-// Modern Styles
+// Premium Styles
 // =======================
 const styles = StyleSheet.create({
   wrapper: {
@@ -380,81 +519,100 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   glassHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    backgroundColor: "rgba(255, 255, 255, 0.98)",
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(16, 185, 129, 0.1)",
-    elevation: 8,
-    shadowColor: "#16a34a",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    borderColor: "rgba(16, 185, 129, 0.15)",
+    elevation: 12,
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
   },
   headerLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#dcfce7",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: "hidden",
+    elevation: 6,
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  iconGradient: {
+    width: "100%",
+    height: "100%",
     justifyContent: "center",
     alignItems: "center",
   },
   headerIcon: {
-    fontSize: 20,
+    fontSize: 24,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "800",
-    color: "#14532d",
-    letterSpacing: 0.3,
+    fontSize: 21,
+    fontWeight: "900",
+    color: "#064e3b",
+    letterSpacing: 0.5,
+  },
+  titleUnderline: {
+    height: 3,
+    width: 40,
+    backgroundColor: "#10b981",
+    borderRadius: 2,
+    marginTop: 4,
   },
   moreButton: {
+    borderRadius: 28,
+    overflow: "hidden",
+    elevation: 8,
+    shadowColor: "#10b981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+  },
+  moreGradient: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#16a34a",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
-    gap: 8,
-    elevation: 4,
-    shadowColor: "#16a34a",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    gap: 10,
   },
   more: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: 15,
+    fontWeight: "800",
     color: "#ffffff",
+    letterSpacing: 0.5,
   },
   arrowCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.25)",
     justifyContent: "center",
     alignItems: "center",
   },
   arrow: {
-    fontSize: 14,
+    fontSize: 16,
     color: "#ffffff",
-    fontWeight: "700",
+    fontWeight: "900",
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   cardWrapper: {
     width: CARD_WIDTH,
@@ -462,197 +620,247 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    height: 380,
+    height: 400,
     backgroundColor: "#ffffff",
-    borderRadius: 24,
-    elevation: 12,
+    borderRadius: 28,
+    elevation: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
     overflow: "hidden",
+    position: "relative",
+  },
+  cardGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.15,
+    zIndex: 0,
   },
   newBadge: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "#fbbf24",
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    top: 20,
+    right: 20,
+    borderRadius: 24,
+    overflow: "hidden",
     zIndex: 20,
-    elevation: 8,
+    elevation: 12,
     shadowColor: "#f59e0b",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
   },
-  newBadgeGlow: {
-    position: "absolute",
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    backgroundColor: "#fbbf24",
-    borderRadius: 22,
-    opacity: 0.3,
+  newBadgeGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 6,
+  },
+  sparkleContainer: {
+    marginRight: 2,
+  },
+  sparkle: {
+    fontSize: 14,
   },
   newBadgeText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "900",
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   imageContainer: {
     width: "100%",
-    height: 200,
-    backgroundColor: "#f3f4f6",
+    height: 220,
+    backgroundColor: "#f9fafb",
     position: "relative",
+    zIndex: 1,
   },
   image: {
     width: "100%",
     height: "100%",
-  },
-  placeholderImage: {
-    width: "100%",
-    height: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    opacity: 0.9,
-  },
-  placeholderIcon: {
-    fontSize: 64,
-    opacity: 0.7,
   },
   imageGradient: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    height: 100,
+    height: 120,
   },
-  gradientOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+  placeholderImage: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  placeholderIcon: {
+    fontSize: 72,
+    opacity: 0.9,
+    zIndex: 2,
+  },
+  placeholderPattern: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    opacity: 0.1,
   },
   floatingBadge: {
     position: "absolute",
-    bottom: 16,
-    left: 16,
+    bottom: 20,
+    left: 20,
+    borderRadius: 20,
+    overflow: "hidden",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+  },
+  badgeGradient: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   badgeIcon: {
-    fontSize: 14,
+    fontSize: 16,
   },
   badgeText: {
     color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: "900",
+    letterSpacing: 0.8,
   },
   cardContent: {
     flex: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: "space-between",
+    zIndex: 2,
+  },
+  contentTop: {
+    gap: 12,
   },
   cardTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#1f2937",
-    lineHeight: 26,
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#111827",
+    lineHeight: 28,
+    letterSpacing: 0.3,
   },
   districtContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
+    gap: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: "#f9fafb",
+    borderRadius: 12,
+    alignSelf: "flex-start",
   },
   locationDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#16a34a",
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   districtText: {
     fontSize: 13,
-    fontWeight: "600",
-    color: "#6b7280",
+    fontWeight: "700",
+    color: "#4b5563",
+    letterSpacing: 0.3,
   },
   readMoreContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "space-between",
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
   },
-  readMoreLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#e5e7eb",
+  readMoreLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  readMoreDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   readMoreText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#16a34a",
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
-  readMoreArrowContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#dcfce7",
+  readMoreButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
   },
   readMoreArrow: {
-    fontSize: 14,
-    color: "#16a34a",
-    fontWeight: "700",
+    fontSize: 18,
+    fontWeight: "900",
   },
   accentLine: {
-    height: 4,
+    height: 5,
     width: "100%",
+    zIndex: 3,
+  },
+  cornerDecoration: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    width: 0,
+    height: 0,
+    borderTopWidth: 40,
+    borderLeftWidth: 40,
+    borderLeftColor: "transparent",
+    opacity: 0.15,
+    zIndex: 1,
   },
   adminActions: {
     position: "absolute",
-    top: 16,
-    left: 16,
+    top: 20,
+    left: 20,
     zIndex: 30,
   },
   adminButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 24,
+    overflow: "hidden",
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  adminGradient: {
+    width: 48,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
-    elevation: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
   },
   adminIcon: {
-    fontSize: 18,
+    fontSize: 20,
   },
   indicatorContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 6,
-    marginTop: 20,
+    gap: 8,
+    marginTop: 24,
   },
   indicator: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#16a34a",
+    height: 10,
+    borderRadius: 5,
+    overflow: "hidden",
+  },
+  indicatorGradient: {
+    flex: 1,
   },
 });
