@@ -9,7 +9,9 @@ import {
   Dimensions,
   Animated,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+import { createAdviceRequest } from "../../services/adviceRequestApi";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
@@ -44,6 +46,7 @@ const YieldPredictionResultsScreen = () => {
   const { language: lang } = useLanguage();
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -135,30 +138,97 @@ const YieldPredictionResultsScreen = () => {
   };
 
   const handleRequestAdvice = () => {
+    // Show dialog to select advice type
     Alert.alert(
       language === "si" ? "උපදේශ ඉල්ලීම" : "Request Advice",
       language === "si" 
-        ? "ඔබේ අස්වැන්න වැඩිදියුණු කිරීම සහ සුදුසු බීජ වර්ගය තෝරාගැනීම සඳහා කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදේශ ඉල්ලීමට අවශ්‍යද?"
-        : "Would you like to request advice from an agricultural officer on yield enhancement and suitable seed variety selection?",
+        ? "ඔබට අවශ්‍ය උපදේශ වර්ගය තෝරන්න:"
+        : "Do you need advice related to:",
       [
         {
           text: language === "si" ? "අවලංගු කරන්න" : "Cancel",
           style: "cancel"
         },
         {
-          text: language === "si" ? "ඉල්ලීම යවන්න" : "Send Request",
-          onPress: () => {
-            // TODO: Implement API call to submit advice request
-            Alert.alert(
-              language === "si" ? "සාර්ථකයි!" : "Success!",
-              language === "si" 
-                ? "ඔබේ උපදේශ ඉල්ලීම සාර්ථකව යවන ලදී. නිලධාරියෙක් ඉක්මනින් ඔබව සම්බන්ධ කරගනු ඇත."
-                : "Your advice request has been sent successfully. An officer will contact you soon."
-            );
-          }
+          text: language === "si" ? "වැඩි අස්වැන්නක් ලබාගැනීම සඳහා" : "Need Help with Yield Enhancement",
+          onPress: () => submitAdviceRequest('yield_enhancement')
+        },
+        {
+          text: language === "si" ? "හොදම බීජ වර්ගය තෝරාගැනීමට සඳහා" : "Need Help with Seed Variety Selection",
+          onPress: () => submitAdviceRequest('seed_variety')
+        },
+        {
+          text: language === "si" ? "දෙකම" : "Both",
+          onPress: () => submitAdviceRequest('both')
         }
       ]
     );
+  };
+
+  const submitAdviceRequest = async (requestType: 'yield_enhancement' | 'seed_variety' | 'both') => {
+    setIsSubmittingAdvice(true);
+    try {
+      // Extract all prediction data
+      const predictionId = data?.prediction_id || data?.farmer_input_id || '';
+      const yieldKgHa = data?.prediction?.predicted_yield_kg_per_ha || 0;
+      
+      // Get farmer input data from route params
+      const farmerInput = route.params?.farmerInput || {};
+      const district = farmerInput.district || '';
+      const location = farmerInput.location || '';
+      const variety = farmerInput.variety || '';
+      const landSizeHa = farmerInput.field_size_ha || 0;
+      const irrigationType = farmerInput.irrigation_type || '';
+      const rainfallCondition = farmerInput.rainfall_condition || '';
+      const plantingDate = farmerInput.planting_date || '';
+      
+      // Generate message based on request type
+      let farmerMessage = '';
+      if (requestType === 'yield_enhancement') {
+        farmerMessage = language === "si" 
+          ? "අස්වැන්න වැඩිදියුණු කිරීම සඳහා උපදේශ අවශ්‍යයි"
+          : "Need advice on yield enhancement";
+      } else if (requestType === 'seed_variety') {
+        farmerMessage = language === "si" 
+          ? "බීජ වර්ගය තෝරාගැනීම සඳහා උපදේශ අවශ්‍යයි"
+          : "Need advice on seed variety selection";
+      } else {
+        farmerMessage = language === "si" 
+          ? "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ තෝරාගැනීම සඳහා උපදේශ අවශ්‍යයි"
+          : "Need advice on yield enhancement and seed variety selection";
+      }
+      
+      await createAdviceRequest({
+        yield_prediction_id: predictionId,
+        request_type: requestType,
+        farmer_message: farmerMessage,
+        predicted_yield_kg_ha: yieldKgHa,
+        district: district,
+        location: location,
+        variety: variety,
+        land_size_ha: landSizeHa,
+        irrigation_type: irrigationType,
+        rainfall_condition: rainfallCondition,
+        planting_date: plantingDate,
+      });
+      
+      Alert.alert(
+        language === "si" ? "සාර්ථකයි!" : "Success!",
+        language === "si" 
+          ? "ඔබේ උපදේශ ඉල්ලීම සාර්ථකව යවන ලදී. නිලධාරියෙක් ඉක්මනින් ඔබව සම්බන්ධ කරගනු ඇත."
+          : "Your advice request has been sent successfully. An officer will contact you soon."
+      );
+    } catch (error: any) {
+      console.error('Failed to submit advice request:', error);
+      Alert.alert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        error.message || (language === "si" 
+          ? "උපදේශ ඉල්ලීම යැවීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න."
+          : "Failed to send advice request. Please try again.")
+      );
+    } finally {
+      setIsSubmittingAdvice(false);
+    }
   };
 
   // Extract data with fallbacks
@@ -193,9 +263,11 @@ const YieldPredictionResultsScreen = () => {
           <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
-          <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
+          <Text style={styles.headerTitle}>
+            {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
+          </Text>
         </View>
+        <View style={{ width: 24 }} />
       </LinearGradient>
 
       <ScrollView
@@ -442,13 +514,20 @@ const YieldPredictionResultsScreen = () => {
 
           {/* Request Advice Button */}
           <TouchableOpacity
-            style={styles.requestAdviceButton}
+            style={[styles.requestAdviceButton, isSubmittingAdvice && styles.requestAdviceButtonDisabled]}
             onPress={handleRequestAdvice}
+            disabled={isSubmittingAdvice}
           >
-            <MessageSquare color="#FFFFFF" size={20} />
+            {isSubmittingAdvice ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <MessageSquare color="#FFFFFF" size={20} />
+            )}
             <View style={styles.requestAdviceContent}>
               <Text style={styles.requestAdviceTitle}>
-                {content[language].requestAdvice}
+                {isSubmittingAdvice 
+                  ? (language === "si" ? "යවමින්..." : "Sending...")
+                  : content[language].requestAdvice}
               </Text>
               <Text style={styles.requestAdviceDesc}>
                 {content[language].requestAdviceDesc}
@@ -491,16 +570,14 @@ marginRight: 12,
 },
 headerCenter: {
 flex: 1,
+alignItems: "center",
+justifyContent: "center",
 },
 headerTitle: {
 fontSize: 20,
 fontWeight: "700",
 color: "#ffffff",
-marginBottom: 2,
-},
-headerSubtitle: {
-fontSize: 13,
-color: "#D1FAE5",
+textAlign: "center",
 },
 langButton: {
 backgroundColor: "#D1FAE5",
@@ -859,6 +936,9 @@ recommendationHeader: {
   requestAdviceDesc: {
     fontSize: 12,
     color: "#FEF3C7",
+  },
+  requestAdviceButtonDisabled: {
+    opacity: 0.7,
   },
 });
 
