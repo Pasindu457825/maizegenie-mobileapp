@@ -23,6 +23,7 @@ import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNe
 
 import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
+import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -65,6 +66,8 @@ export type RootStackParamList = {
   OfficerRooms: {
     officerId: string;
   };
+
+  ProAdvisorAdminAdd: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -88,6 +91,7 @@ export default function RootNavigator() {
 
       {/* MAIN TABS */}
       <Stack.Screen name={ROUTES.ROOT.MAIN} component={BottomNavigator} />
+
 
       {/* CHAT SYSTEM */}
       <Stack.Screen name="Chat" component={ChatScreen} />
@@ -117,6 +121,12 @@ export default function RootNavigator() {
         name="AdminEditOfficialNews"
         component={AdminEditOfficialNewsScreen}
       />
+
+      <Stack.Screen
+        name="ProAdvisorAdminAdd"
+        component={ProAdvisorAdminAddScreen}
+      />
+
 
       {/* PAYMENT */}
       <Stack.Screen name="Payment" component={PaymentScreen} />

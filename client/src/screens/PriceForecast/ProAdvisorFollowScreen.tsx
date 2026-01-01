@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,27 +8,16 @@ import {
   LayoutAnimation,
   Platform,
   UIManager,
+  ActivityIndicator,
+  Image,
 } from "react-native";
-import {
-  ArrowLeft,
-  AlertTriangle,
-  ShieldCheck,
-  Sprout,
-  Droplets,
-  Leaf,
-  Bug,
-  Package,
-  Tractor,
-  Info,
-  ChevronDown,
-} from "lucide-react-native";
-import { useNavigation, RouteProp, useRoute } from "@react-navigation/native";
-import { StackNavigationProp } from "@react-navigation/stack";
+import axios from "axios";
+import { ArrowLeft, Plus, ChevronDown } from "lucide-react-native";
+import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
-import { PRO_ADVISOR_CATEGORIES, AdvisorCategory } from "../../data/proAdvisor";
-import { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
+import { API_BASE } from "../../services/api";
 
-/* ---------------- ANDROID ANIMATION ENABLE ---------------- */
+/* ---------- Android animation enable ---------- */
 if (
   Platform.OS === "android" &&
   UIManager.setLayoutAnimationEnabledExperimental
@@ -36,55 +25,58 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-/* ---------------- TYPES ---------------- */
-
-type FollowRouteProp = RouteProp<
-  PriceForecastStackParamList,
-  "ProAdvisorFollowScreen"
->;
-
-type FollowNavProp = StackNavigationProp<
-  PriceForecastStackParamList,
-  "ProAdvisorFollowScreen"
->;
-
-type Language = "si" | "en";
-
-/* ---------------- ICON MAP ---------------- */
-
-const ICON_MAP: Record<string, any> = {
-  disease_pest_damage: AlertTriangle,
-  disease_risk: ShieldCheck,
-  soil_preparation: Sprout,
-  seed_planting: Sprout,
-  fertilizer_management: Leaf,
-  water_management: Droplets,
-  weed_management: Bug,
-  harvesting: Package,
-  machinery_usage: Tractor,
-  agro_economic_impact: Info,
+/* ---------- Types ---------- */
+type AdvisorBlock = {
+  subtitle: string;
+  content: string;
+  image_url?: string;
 };
 
-/* ---------------- SCREEN ---------------- */
+type ProAdvisorItem = {
+  id: string;
+  title: string;
+  blocks: AdvisorBlock[];
+  language: "si" | "en";
+};
 
-const ProAdvisorFollowScreen: React.FC = () => {
-  const route = useRoute<FollowRouteProp>();
-  const navigation = useNavigation<FollowNavProp>();
-  const { formData } = route.params;
-
+/* ---------- Screen ---------- */
+export default function ProAdvisorListScreen() {
+  const navigation = useNavigation() as any;
   const { language: globalLang } = useLanguage();
-  const language: Language = globalLang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" = globalLang === "sinhala" ? "si" : "en";
 
+  const [data, setData] = useState<ProAdvisorItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  /* ---------- Fetch ---------- */
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(
+        `${API_BASE}/pro-advisor?language=${language}`
+      );
+      setData(res.data || []);
+    } catch (e) {
+      console.log("❌ Fetch error", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [language]);
 
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId((prev) => (prev === id ? null : id));
+    setExpandedId(prev => (prev === id ? null : id));
   };
 
+  /* ---------- UI ---------- */
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <ArrowLeft size={24} color="#065F46" />
@@ -92,108 +84,78 @@ const ProAdvisorFollowScreen: React.FC = () => {
 
         <Text style={styles.headerTitle}>
           {language === "si"
-            ? "බඩ ඉරිඟු වගා මාර්ගෝපදේශය"
-            : "Corn Cultivation Guide"}
+            ? "Pro Advisor උපදෙස්"
+            : "Pro Advisor Guidance"}
         </Text>
 
-        <View style={{ width: 24 }} />
+        <TouchableOpacity
+          onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
+        >
+          <Plus size={24} color="#065F46" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {PRO_ADVISOR_CATEGORIES.map((category: AdvisorCategory) => {
-          const Icon = ICON_MAP[category.id] ?? AlertTriangle;
-          const isOpen = expandedId === category.id;
-          const localizedSections = category.sections[language];
+      {/* CONTENT */}
+      {loading ? (
+        <View style={styles.loader}>
+          <ActivityIndicator size="large" color="#10B981" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.content}>
+          {data.map(item => {
+            const isOpen = expandedId === item.id;
 
-          return (
-            <View key={category.id} style={styles.categoryBlock}>
-              {/* Category Header */}
-              <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => toggleExpand(category.id)}
-                style={styles.card}
-              >
-                <View style={styles.iconWrap}>
-                  <Icon size={22} color="#FFFFFF" />
-                </View>
+            return (
+              <View key={item.id} style={styles.cardWrapper}>
+                {/* TITLE CARD */}
+                <TouchableOpacity
+                  style={styles.card}
+                  activeOpacity={0.85}
+                  onPress={() => toggleExpand(item.id)}
+                >
+                  <Text style={styles.cardTitle}>{item.title}</Text>
 
-                <Text style={styles.cardTitle}>{category.title[language]}</Text>
+                  <ChevronDown
+                    size={20}
+                    color="#065F46"
+                    style={{
+                      transform: [{ rotate: isOpen ? "180deg" : "0deg" }],
+                    }}
+                  />
+                </TouchableOpacity>
 
-                <ChevronDown
-                  size={20}
-                  color="#065F46"
-                  style={{
-                    transform: [{ rotate: isOpen ? "180deg" : "0deg" }],
-                  }}
-                />
-              </TouchableOpacity>
-
-              {/* Expanded Content */}
-              {/* Expanded Content */}
-              {isOpen &&
-                localizedSections.map((section, idx) => (
-                  <View key={idx} style={styles.subCard}>
-                    <Text style={styles.subTitle}>{section.title}</Text>
-
-                    {/* Simple points */}
-                    {section.points?.map((point, i) => (
-                      <Text key={i} style={styles.bullet}>
-                        • {point}
+                {/* EXPANDED */}
+                {isOpen &&
+                  item.blocks.map((block, idx) => (
+                    <View key={idx} style={styles.blockCard}>
+                      <Text style={styles.subTitle}>
+                        {block.subtitle}
                       </Text>
-                    ))}
 
-                    {/* Nested subsections (FULL Sinhala content) */}
-                    {section.subsections?.map((sub, sIdx) => (
-                      <View key={sIdx} style={{ marginTop: 10 }}>
-                        <Text
-                          style={{
-                            fontSize: 13.5,
-                            fontWeight: "700",
-                            color: "#065F46",
-                            marginBottom: 4,
-                          }}
-                        >
-                          {sub.title}
-                        </Text>
+                      <Text style={styles.contentText}>
+                        {block.content}
+                      </Text>
 
-                        {sub.blocks.map((block, bIdx) => (
-                          <View key={bIdx} style={{ marginBottom: 8 }}>
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                fontWeight: "600",
-                                color: "#047857",
-                                marginBottom: 2,
-                              }}
-                            >
-                              {block.heading}
-                            </Text>
+                      {block.image_url && (
+                        <Image
+                          source={{ uri: block.image_url }}
+                          style={styles.image}
+                        />
+                      )}
+                    </View>
+                  ))}
+              </View>
+            );
+          })}
 
-                            {block.points.map((p, pIdx) => (
-                              <Text key={pIdx} style={styles.bullet}>
-                                • {p}
-                              </Text>
-                            ))}
-                          </View>
-                        ))}
-                      </View>
-                    ))}
-                  </View>
-                ))}
-            </View>
-          );
-        })}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+          <View style={{ height: 40 }} />
+        </ScrollView>
+      )}
     </View>
   );
-};
+}
 
-export default ProAdvisorFollowScreen;
-
-/* ---------------- STYLES ---------------- */
-
+/* ---------- STYLES ---------- */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -217,18 +179,23 @@ const styles = StyleSheet.create({
     color: "#065F46",
   },
 
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
   content: {
     padding: 16,
   },
 
-  categoryBlock: {
+  cardWrapper: {
     marginBottom: 16,
   },
 
   card: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
     backgroundColor: "#FFFFFF",
     padding: 16,
     borderRadius: 16,
@@ -236,23 +203,14 @@ const styles = StyleSheet.create({
     borderColor: "#D1FAE5",
   },
 
-  iconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#10B981",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
   cardTitle: {
     flex: 1,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#065F46",
   },
 
-  subCard: {
+  blockCard: {
     backgroundColor: "#FFFFFF",
     padding: 14,
     borderRadius: 14,
@@ -264,13 +222,20 @@ const styles = StyleSheet.create({
   subTitle: {
     fontSize: 14,
     fontWeight: "700",
-    marginBottom: 6,
     color: "#047857",
+    marginBottom: 4,
   },
 
-  bullet: {
+  contentText: {
     fontSize: 13.5,
     color: "#374151",
     lineHeight: 22,
+  },
+
+  image: {
+    width: "100%",
+    height: 180,
+    borderRadius: 14,
+    marginTop: 10,
   },
 });
