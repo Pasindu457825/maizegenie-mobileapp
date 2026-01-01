@@ -384,7 +384,7 @@ const YieldPredictionLoadingScreen = () => {
               {/* Card 3: Farmer Requests */}
               <TouchableOpacity
                 style={styles.roleCard}
-                onPress={() => handleComingSoon(content[language].farmerRequests)}
+                onPress={() => navigation.navigate("FarmerAdviceRequestsScreen")}
                 activeOpacity={0.7}
               >
                 <LinearGradient

@@ -8,6 +8,7 @@ import {
     TextInput,
     Alert,
     Image,
+    Platform,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -378,13 +379,22 @@ const YieldPredictionFormScreen = () => {
         },
     };
 
+    // Cross-platform alert function
+    const showAlert = (title: string, message: string) => {
+        if (Platform.OS === 'web') {
+            window.alert(`${title}\n\n${message}`);
+        } else {
+            Alert.alert(title, message);
+        }
+    };
+
     // Handle Auto Fill button
     const handleAutoFill = () => {
         console.log(`🔍 Auto Fill clicked - District: "${district}", Season: "${season}"`);
         
         // Check if district and season are selected
         if (!district) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si" ? "කරුණාකර දිස්ත්‍රික්කය තෝරන්න" : "Please select a district"
             );
@@ -392,7 +402,7 @@ const YieldPredictionFormScreen = () => {
         }
 
         if (!season) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si" ? "කරුණාකර වගා කළ දිනය තෝරන්න (වාරය ස්වයංක්‍රීයව හඳුනාගනු ඇත)" : "Please select planting date (season will be auto-detected)"
             );
@@ -418,12 +428,12 @@ const YieldPredictionFormScreen = () => {
         
         if (success) {
             setIsLiveData(true);
-            Alert.alert(
+            showAlert(
                 language === "si" ? "සාර්ථකයි" : "Success",
                 language === "si" ? "කාලගුණ දත්ත ස්වයංක්‍රීයව පුරවා ඇත" : "Weather data auto-filled successfully"
             );
         } else {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si" ? "මෙම දිස්ත්‍රික්කය සඳහා කාලගුණ දත්ත නොමැත" : "No weather data available for this district"
             );
@@ -470,7 +480,7 @@ const YieldPredictionFormScreen = () => {
             !soilPh || !soilNitrogen || !soilPhosphorus || !soilPotassium || !soilFertilityIndex ||
             !nStatusClass || !pStatusClass || !kStatusClass ||
             !maxTemperature || !sunshineHours || !firstFertDate) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "අවශ්‍ය දත්ත" : "Required Fields",
                 language === "si" 
                     ? "කරුණාකර සියලු අවශ්‍ය ක්ෂේත්‍ර පුරවන්න (NPK තත්ත්වය, උෂ්ණත්වය, පොහොර දිනයන් ඇතුළුව)" 
@@ -482,7 +492,7 @@ const YieldPredictionFormScreen = () => {
         // Numeric field validations
         const landSizeNum = parseFloat(landSize);
         if (isNaN(landSizeNum) || landSizeNum <= 0 || landSizeNum > 1000) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "ඉඩම් ප්‍රමාණය 0.1 සහ 1000 අතර විය යුතුය" : "Land size must be between 0.1 and 1000 acres"
             );
@@ -494,7 +504,7 @@ const YieldPredictionFormScreen = () => {
         if (rainfall30d && rainfall30d.trim() !== "") {
             const rainfall30dNum = parseFloat(rainfall30d);
             if (isNaN(rainfall30dNum) || rainfall30dNum < 0 || rainfall30dNum > 5000) {
-                Alert.alert(
+                showAlert(
                     language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                     language === "si" ? "වර්ෂාපතනය 30d 0mm සහ 5000mm අතර විය යුතුය" : "Rainfall 30d must be between 0mm and 5000mm"
                 );
@@ -505,7 +515,7 @@ const YieldPredictionFormScreen = () => {
         if (rainfallSeasonal && rainfallSeasonal.trim() !== "") {
             const rainfallSeasonalNum = parseFloat(rainfallSeasonal);
             if (isNaN(rainfallSeasonalNum) || rainfallSeasonalNum < 0 || rainfallSeasonalNum > 10000) {
-                Alert.alert(
+                showAlert(
                     language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                     language === "si" ? "වාර වර්ෂාපතනය 0mm සහ 10000mm අතර විය යුතුය" : "Seasonal rainfall must be between 0mm and 10000mm"
                 );
@@ -517,7 +527,7 @@ const YieldPredictionFormScreen = () => {
         if (seasonalTemperature && seasonalTemperature.trim() !== "") {
             const seasonalTempNum = parseFloat(seasonalTemperature);
             if (isNaN(seasonalTempNum) || seasonalTempNum < 0 || seasonalTempNum > 60) {
-                Alert.alert(
+                showAlert(
                     language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                     language === "si" ? "වාර උෂ්ණත්වය 0°C සහ 60°C අතර විය යුතුය" : "Seasonal temperature must be between 0°C and 60°C"
                 );
@@ -529,7 +539,7 @@ const YieldPredictionFormScreen = () => {
         if (seasonalHumidity && seasonalHumidity.trim() !== "") {
             const seasonalHumidityNum = parseFloat(seasonalHumidity);
             if (isNaN(seasonalHumidityNum) || seasonalHumidityNum < 0 || seasonalHumidityNum > 100) {
-                Alert.alert(
+                showAlert(
                     language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                     language === "si" ? "වාර ආර්ද්‍රතාවය 0% සහ 100% අතර විය යුතුය" : "Seasonal humidity must be between 0% and 100%"
                 );
@@ -540,7 +550,7 @@ const YieldPredictionFormScreen = () => {
         // Soil test data validation (mandatory fields)
         const phNum = parseFloat(soilPh);
         if (isNaN(phNum) || phNum < 0 || phNum > 14) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "පස් pH 0 සහ 14 අතර විය යුතුය" : "Soil pH must be between 0 and 14"
             );
@@ -549,7 +559,7 @@ const YieldPredictionFormScreen = () => {
         
         const nNum = parseFloat(soilNitrogen);
         if (isNaN(nNum) || nNum < 0 || nNum > 500) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "නයිට්‍රජන් 0 සහ 500 ppm අතර විය යුතුය" : "Nitrogen must be between 0 and 500 ppm"
             );
@@ -558,7 +568,7 @@ const YieldPredictionFormScreen = () => {
         
         const pNum = parseFloat(soilPhosphorus);
         if (isNaN(pNum) || pNum < 0 || pNum > 100) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "පොස්පරස් 0 සහ 100 ppm අතර විය යුතුය" : "Phosphorus must be between 0 and 100 ppm"
             );
@@ -567,7 +577,7 @@ const YieldPredictionFormScreen = () => {
         
         const kNum = parseFloat(soilPotassium);
         if (isNaN(kNum) || kNum < 0 || kNum > 500) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "පොටෑසියම් 0 සහ 500 ppm අතර විය යුතුය" : "Potassium must be between 0 and 500 ppm"
             );
@@ -576,7 +586,7 @@ const YieldPredictionFormScreen = () => {
         
         const fertIndexNum = parseFloat(soilFertilityIndex);
         if (isNaN(fertIndexNum) || fertIndexNum < 0 || fertIndexNum > 1) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "පස් සාරවත් දර්ශකය 0 සහ 1 අතර විය යුතුය" : "Soil fertility index must be between 0 and 1"
             );
@@ -586,7 +596,7 @@ const YieldPredictionFormScreen = () => {
         // Max Temperature validation
         const maxTempNum = parseFloat(maxTemperature);
         if (isNaN(maxTempNum) || maxTempNum < 0 || maxTempNum > 50) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "උපරිම උෂ්ණත්වය 0 සහ 50°C අතර විය යුතුය" : "Maximum temperature must be between 0 and 50°C"
             );
@@ -596,7 +606,7 @@ const YieldPredictionFormScreen = () => {
         // Sunshine Hours validation
         const sunshineNum = parseFloat(sunshineHours);
         if (isNaN(sunshineNum) || sunshineNum < 0 || sunshineNum > 24) {
-            Alert.alert(
+            showAlert(
                 language === "si" ? "වලංගු නොවේ" : "Invalid Input",
                 language === "si" ? "හිරු එළිය 0 සහ 24 පැය අතර විය යුතුය" : "Sunshine hours must be between 0 and 24"
             );
@@ -660,16 +670,25 @@ const YieldPredictionFormScreen = () => {
 
             console.log("📥 Received prediction response:", response);
 
-            // Navigate to results with real data
+            // Navigate to results with real data and farmer input
             navigation.navigate("YieldPredictionResultsScreen", {
                 data: response,
                 language,
+                farmerInput: {
+                    district: district,
+                    location: location || '',
+                    variety: variety,
+                    field_size_ha: landSizeUnit === "Hectares" ? parseFloat(landSize) : parseFloat(landSize) / 2.47105,
+                    irrigation_type: irrigationType,
+                    rainfall_condition: rainfallCondition,
+                    planting_date: plantingDate?.toISOString().split('T')[0] || '',
+                },
             });
 
         } catch (error: any) {
             console.error("❌ Prediction failed:", error);
 
-            Alert.alert(
+            showAlert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si"
                     ? "පුරෝකථනය අසාර්ථකයි. කරුණාකර නැවත උත්සාහ කරන්න"
