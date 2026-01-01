@@ -6,6 +6,7 @@ import {
     Modal,
     StyleSheet,
     Platform,
+    TextInput,
 } from "react-native";
 import { Calendar } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -47,15 +48,34 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
                 {label} {required && <Text style={styles.required}>*</Text>}
             </Text>
 
-            <TouchableOpacity
-                style={styles.selector}
-                onPress={() => setShow(true)}
-            >
-                <Text style={[styles.selectorText, !value && styles.placeholderText]}>
-                    {value ? formatDate(value) : placeholder}
-                </Text>
-                <Calendar color="#6B7280" size={20} />
-            </TouchableOpacity>
+            {Platform.OS === "web" ? (
+                <TextInput
+                    style={styles.webDateInput}
+                    value={value ? formatDate(value) : ""}
+                    onChange={(e: any) => {
+                        const dateStr = e.target.value || e.nativeEvent.text;
+                        if (dateStr) {
+                            const date = new Date(dateStr);
+                            if (!isNaN(date.getTime())) {
+                                onSelect(date);
+                            }
+                        }
+                    }}
+                    placeholder={placeholder}
+                    // @ts-ignore - web-specific prop
+                    type="date"
+                />
+            ) : (
+                <TouchableOpacity
+                    style={styles.selector}
+                    onPress={() => setShow(true)}
+                >
+                    <Text style={[styles.selectorText, !value && styles.placeholderText]}>
+                        {value ? formatDate(value) : placeholder}
+                    </Text>
+                    <Calendar color="#6B7280" size={20} />
+                </TouchableOpacity>
+            )}
 
             {Platform.OS === "android" && show && (
                 <DateTimePicker
@@ -168,6 +188,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "600",
         color: "#10B981",
+    },
+    webDateInput: {
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        fontSize: 15,
+        color: "#065F46",
+        ...Platform.select({
+            web: {
+                outlineStyle: "none" as any,
+            },
+        }),
     },
 });
 

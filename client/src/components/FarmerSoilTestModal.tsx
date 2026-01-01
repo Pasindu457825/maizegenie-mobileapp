@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: Platform.OS === 'web' ? '90%' : width - 40,
     maxWidth: 500,
-    maxHeight: "85%",
+    maxHeight: '80%',
     borderRadius: 20,
     overflow: "hidden",
     shadowColor: "#000",
@@ -240,13 +240,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 16,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 12,
     shadowColor: "#10b981",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   iconGradient: {
     width: "100%",
     height: "100%",
-    borderRadius: 40,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   scrollContainer: {
-    maxHeight: 320,
+    maxHeight: Platform.OS === 'ios' ? 260 : 280,
   },
   requiredDataTitle: {
     fontSize: 16,
@@ -284,10 +284,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   dataItem: {
-    marginBottom: 14,
+    marginBottom: 12,
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
-    padding: 12,
+    padding: 10,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
@@ -332,8 +332,8 @@ const styles = StyleSheet.create({
   questionContainer: {
     backgroundColor: "#ECFDF5",
     borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#A7F3D0",
   },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 16,
+    marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
