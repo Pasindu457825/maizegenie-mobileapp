@@ -36,8 +36,21 @@ import {
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RouteProp } from "@react-navigation/native";
+import { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 
 type Language = "si" | "en";
+
+type ProAdvisorPageNavProp = StackNavigationProp<
+  PriceForecastStackParamList,
+  "ProAdvisorPage"
+>;
+
+type ProAdvisorPageRouteProp = RouteProp<
+  PriceForecastStackParamList,
+  "ProAdvisorPage"
+>;
 
 interface FormData {
   district: string;
@@ -95,76 +108,71 @@ const VARIETY_DURATION_WEEKS: Record<string, number> = {
   Unknown: 14,
 };
 
-const FIRST_TIME_GUIDE: Record<Language, { seed: string; water: string; fertilizer: string; finance: string }> = {
+const FIRST_TIME_GUIDE: Record<
+  Language,
+  { seed: string; water: string; fertilizer: string; finance: string }
+> = {
   en: {
-    seed:
-      [
-        "• Choose high‑quality hybrid seeds or locally recommended varieties (e.g., A6604, PAC 7803, Lankamil 1)",
-        "• Conduct a soil test and maintain soil pH between 6.0–6.8 before planting",
-        "• Treat seeds with fungicides and insecticides to protect against diseases and pests",
-        "• Plant seeds 1.5–2.5 inches (3–5 cm) deep, spaced 20–25 cm apart in rows, with rows 60–75 cm apart",
-        "• Firm soil over the seeds and water immediately to ensure good seed‑to‑soil contact",
-      ].join("\n"),
-    water:
-      [
-        "• Keep the soil moist but not waterlogged; corn needs steady moisture",
-        "• Provide about 1–1.5 inches of water per week and increase to 2 inches during dry periods",
-        "• Delay heavy irrigation until two weeks before the tasselling stage to optimise yield",
-        "• Use drip or furrow irrigation to conserve water and ensure even distribution",
-        "• Use a rain gauge to monitor rainfall and adjust irrigation accordingly",
-      ].join("\n"),
-    fertilizer:
-      [
-        "• Base your fertiliser plan on a soil test; corn requires nitrogen, phosphorus and potassium",
-        "• Incorporate organic matter during land preparation to improve soil fertility",
-        "• Apply a side‑dress of nitrogen fertiliser when plants are about 12 inches tall and repeat at tasselling",
-        "• Maintain soil pH between 6.0–6.8 for optimal nutrient uptake",
-        "• If leaves turn yellow, use quick‑acting sources such as fish emulsion to correct nutrient deficiencies",
-      ].join("\n"),
-    finance:
-      [
-        "• Estimate your input costs: seeds, fertilisers and soil amendments, crop protection chemicals, irrigation, labour, machinery fuel, repairs and maintenance",
-        "• Include ownership costs such as equipment depreciation, farm overhead and land rental",
-        "• Budget for supplies, storage, marketing, insurance and consulting fees",
-        "• Set aside funds for harvest operations such as drying and transportation",
-        "• Maintain a contingency fund for unexpected expenses and cash‑flow gaps",
-        "• If funds are limited, explore government subsidies, cooperative purchasing or micro‑finance programs",
-      ].join("\n"),
+    seed: [
+      "• Choose high‑quality hybrid seeds or locally recommended varieties (e.g., A6604, PAC 7803, Lankamil 1)",
+      "• Conduct a soil test and maintain soil pH between 6.0–6.8 before planting",
+      "• Treat seeds with fungicides and insecticides to protect against diseases and pests",
+      "• Plant seeds 1.5–2.5 inches (3–5 cm) deep, spaced 20–25 cm apart in rows, with rows 60–75 cm apart",
+      "• Firm soil over the seeds and water immediately to ensure good seed‑to‑soil contact",
+    ].join("\n"),
+    water: [
+      "• Keep the soil moist but not waterlogged; corn needs steady moisture",
+      "• Provide about 1–1.5 inches of water per week and increase to 2 inches during dry periods",
+      "• Delay heavy irrigation until two weeks before the tasselling stage to optimise yield",
+      "• Use drip or furrow irrigation to conserve water and ensure even distribution",
+      "• Use a rain gauge to monitor rainfall and adjust irrigation accordingly",
+    ].join("\n"),
+    fertilizer: [
+      "• Base your fertiliser plan on a soil test; corn requires nitrogen, phosphorus and potassium",
+      "• Incorporate organic matter during land preparation to improve soil fertility",
+      "• Apply a side‑dress of nitrogen fertiliser when plants are about 12 inches tall and repeat at tasselling",
+      "• Maintain soil pH between 6.0–6.8 for optimal nutrient uptake",
+      "• If leaves turn yellow, use quick‑acting sources such as fish emulsion to correct nutrient deficiencies",
+    ].join("\n"),
+    finance: [
+      "• Estimate your input costs: seeds, fertilisers and soil amendments, crop protection chemicals, irrigation, labour, machinery fuel, repairs and maintenance",
+      "• Include ownership costs such as equipment depreciation, farm overhead and land rental",
+      "• Budget for supplies, storage, marketing, insurance and consulting fees",
+      "• Set aside funds for harvest operations such as drying and transportation",
+      "• Maintain a contingency fund for unexpected expenses and cash‑flow gaps",
+      "• If funds are limited, explore government subsidies, cooperative purchasing or micro‑finance programs",
+    ].join("\n"),
   },
   si: {
-    seed:
-      [
-        "• උසස් ගුණාත්මක හයිබ්‍රිඩ් බීජ හෝ ප්‍රදේශයට ගැලපෙන බීජ වර්ග (උදා: A6604, PAC 7803, Lankamil 1) තෝරන්න",
-        "• වගා කිරීමට පෙර පොළව පරීක්ෂා කර pH 6.0–6.8 අතර පවත්වාගන්න",
-        "• බීජ ජීව ක්‍ෂය නාශක හා කෘමි නාශකවලින් සකස් කර රෝග හා කෘමීන් වලින් ආරක්ෂා කරන්න",
-        "• බීජ 3–5 සෙ.මී. ගැඹුරින් සිට 20–25 සෙ.මී. දුරින් පේළිවල අරඹන්න; පේළි අතර 60–75 සෙ.මී. ඉඩ දෙන්න",
-        "• බීජ මතින් මඩ පීරිසි කර වගාවට පසු වහාම ජලය සපයන්න",
-      ].join("\n"),
-    water:
-      [
-        "• පස තෙතමින් පැවැත්වන්න, නමුත් ජලය යථා සුදුසු ලෙස පවත්වාගන්න; බඩ ඉරිඟු බෝගයට ස්ථිර ජලය අවශ්‍යයි",
-        "• සතියකට ජලය අඟල් 1–1.5 පමණ ලබාදෙන්න; වියළි කාලවලදී එය අඟල් 2 දක්වා වැඩි කරන්න",
-        "• උත්පාද්‍ය කාළයේ (tasselling) දෙස බලා යළි උත්සහ කල හැකි දැඩි වාරිමාර්ගය ඇරඹීම සති දෙකක් පැරණි ලෙස පමණක් සිදුකරන්න",
-        "• ජලය ඉතිරි කිරීමට drip හෝ furrow වාරිමාර්ග පද්ධති භාවිතා කරන්න",
-        "• වැස්ස පරීක්ෂා කිරීමට වර්ෂාමාන මානකය භාවිතා කර වාරිමාර්ගය අනුව වෙනස් කරන්න",
-      ].join("\n"),
-    fertilizer:
-      [
-        "• පස විශ්ලේෂණයකට අනුව පොහොර සැලැස්මක් සකස් කරන්න; බඩ ඉරිඟු බෝගයට නයිට්‍රජන්, පොස්‌පරස් හා පොටෑසියම් අවශ්‍යවේ",
-        "• ඉඩම් සකස් කිරීමේදී සෞඛ්‍යවත් පසකට සංග්‍රහ ද්‍රව්‍ය (ජීව සංස්කරණ) එක් කරන්න",
-        "• පැල 12 අඟල් උසට ළඟාවන විට නයිට්‍රජන් පොහොර පිටින් යොදන්න සහ tasselling අවස්ථාවේ නැවත යොදන්න",
-        "• පස pH 6.0–6.8 අතර පවත්වාගෙන පෝෂක උරුමය වැඩි කරන්න",
-        "• කොළ වර්ණ තැඹිලි පැහැති වන විට fish emulsion වැනි වේගයෙන් ක්‍රියාකරන නයිට්‍රජන් මූලාශ්‍ර භාවිතා කරන්න",
-      ].join("\n"),
-    finance:
-      [
-        "• බීජ, පොහොර හා පස සංශෝධක, කෘමි පාලන රසායන, වාරිමාර්ග, ශ්‍රම, යන්ත්‍ර ඉන්ධන, අලුත්වැඩියා වැනි ආදාන පිරිවැය ඇස්තමේන්තු කරන්න",
-        "• උපකරණ අයකිරීම්, ගොවිපොළ නඩත්තු හා ඉඩම් කුලිය වැනි හිමිකම් පිරිවැය සලකා බැලීමට අයවැයට ඇතුළත් කරන්න",
-        "• ගබඩා, අලෙවිකරණ, රක්ෂණ හා උපදේශන ගාස්තු සඳහා මුදල් වෙන් කරන්න",
-        "• අස්වැන්න සකස් කිරීමේ ක්‍රියාවන් සඳහා (සීනි වියලීම, ප්‍රවාහනය) මුදල් අත්වැලක් තබාගන්න",
-        "• නොසිතූ වියදම් හා රුපියල් දෝෂ සඳහා contingency funds සකස් කරගන්න",
-        "• ඔබේ අයවැය සීමිත නම් රජයේ සහන, සහකාර මිලදීගැනීම් හෝ මයික්‍රෝ ණය වැඩසටහන් සොයා බලන්න",
-      ].join("\n"),
+    seed: [
+      "• උසස් ගුණාත්මක හයිබ්‍රිඩ් බීජ හෝ ප්‍රදේශයට ගැලපෙන බීජ වර්ග (උදා: A6604, PAC 7803, Lankamil 1) තෝරන්න",
+      "• වගා කිරීමට පෙර පොළව පරීක්ෂා කර pH 6.0–6.8 අතර පවත්වාගන්න",
+      "• බීජ ජීව ක්‍ෂය නාශක හා කෘමි නාශකවලින් සකස් කර රෝග හා කෘමීන් වලින් ආරක්ෂා කරන්න",
+      "• බීජ 3–5 සෙ.මී. ගැඹුරින් සිට 20–25 සෙ.මී. දුරින් පේළිවල අරඹන්න; පේළි අතර 60–75 සෙ.මී. ඉඩ දෙන්න",
+      "• බීජ මතින් මඩ පීරිසි කර වගාවට පසු වහාම ජලය සපයන්න",
+    ].join("\n"),
+    water: [
+      "• පස තෙතමින් පැවැත්වන්න, නමුත් ජලය යථා සුදුසු ලෙස පවත්වාගන්න; බඩ ඉරිඟු බෝගයට ස්ථිර ජලය අවශ්‍යයි",
+      "• සතියකට ජලය අඟල් 1–1.5 පමණ ලබාදෙන්න; වියළි කාලවලදී එය අඟල් 2 දක්වා වැඩි කරන්න",
+      "• උත්පාද්‍ය කාළයේ (tasselling) දෙස බලා යළි උත්සහ කල හැකි දැඩි වාරිමාර්ගය ඇරඹීම සති දෙකක් පැරණි ලෙස පමණක් සිදුකරන්න",
+      "• ජලය ඉතිරි කිරීමට drip හෝ furrow වාරිමාර්ග පද්ධති භාවිතා කරන්න",
+      "• වැස්ස පරීක්ෂා කිරීමට වර්ෂාමාන මානකය භාවිතා කර වාරිමාර්ගය අනුව වෙනස් කරන්න",
+    ].join("\n"),
+    fertilizer: [
+      "• පස විශ්ලේෂණයකට අනුව පොහොර සැලැස්මක් සකස් කරන්න; බඩ ඉරිඟු බෝගයට නයිට්‍රජන්, පොස්‌පරස් හා පොටෑසියම් අවශ්‍යවේ",
+      "• ඉඩම් සකස් කිරීමේදී සෞඛ්‍යවත් පසකට සංග්‍රහ ද්‍රව්‍ය (ජීව සංස්කරණ) එක් කරන්න",
+      "• පැල 12 අඟල් උසට ළඟාවන විට නයිට්‍රජන් පොහොර පිටින් යොදන්න සහ tasselling අවස්ථාවේ නැවත යොදන්න",
+      "• පස pH 6.0–6.8 අතර පවත්වාගෙන පෝෂක උරුමය වැඩි කරන්න",
+      "• කොළ වර්ණ තැඹිලි පැහැති වන විට fish emulsion වැනි වේගයෙන් ක්‍රියාකරන නයිට්‍රජන් මූලාශ්‍ර භාවිතා කරන්න",
+    ].join("\n"),
+    finance: [
+      "• බීජ, පොහොර හා පස සංශෝධක, කෘමි පාලන රසායන, වාරිමාර්ග, ශ්‍රම, යන්ත්‍ර ඉන්ධන, අලුත්වැඩියා වැනි ආදාන පිරිවැය ඇස්තමේන්තු කරන්න",
+      "• උපකරණ අයකිරීම්, ගොවිපොළ නඩත්තු හා ඉඩම් කුලිය වැනි හිමිකම් පිරිවැය සලකා බැලීමට අයවැයට ඇතුළත් කරන්න",
+      "• ගබඩා, අලෙවිකරණ, රක්ෂණ හා උපදේශන ගාස්තු සඳහා මුදල් වෙන් කරන්න",
+      "• අස්වැන්න සකස් කිරීමේ ක්‍රියාවන් සඳහා (සීනි වියලීම, ප්‍රවාහනය) මුදල් අත්වැලක් තබාගන්න",
+      "• නොසිතූ වියදම් හා රුපියල් දෝෂ සඳහා contingency funds සකස් කරගන්න",
+      "• ඔබේ අයවැය සීමිත නම් රජයේ සහන, සහකාර මිලදීගැනීම් හෝ මයික්‍රෝ ණය වැඩසටහන් සොයා බලන්න",
+    ].join("\n"),
   },
 };
 
@@ -181,9 +189,9 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 const ProAdvisorPage: React.FC = () => {
-  const navigation = useNavigation();
-  const route = useRoute();
-  const { formData } = route.params as { formData: FormData };
+  const navigation = useNavigation<ProAdvisorPageNavProp>();
+  const route = useRoute<ProAdvisorPageRouteProp>();
+  const { formData } = route.params;
   const { language: globalLang } = useLanguage();
   const language: Language = globalLang === "sinhala" ? "si" : "en";
   const { unreadCount } = useNotifications();
@@ -346,7 +354,10 @@ const ProAdvisorPage: React.FC = () => {
           advice.waterGuidance = [advice.waterGuidance, extra.water]
             .filter(Boolean)
             .join("\n\n");
-          advice.fertilizerGuidance = [advice.fertilizerGuidance, extra.fertilizer]
+          advice.fertilizerGuidance = [
+            advice.fertilizerGuidance,
+            extra.fertilizer,
+          ]
             .filter(Boolean)
             .join("\n\n");
           advice.financeGuidance = [advice.financeGuidance, extra.finance]
@@ -624,7 +635,14 @@ const ProAdvisorPage: React.FC = () => {
             >
               {icon}
             </View>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#1F2937", flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "700",
+                color: "#1F2937",
+                flex: 1,
+              }}
+            >
               {title}
             </Text>
           </View>
@@ -659,7 +677,13 @@ const ProAdvisorPage: React.FC = () => {
                       alignItems: "flex-start",
                     }}
                   >
-                    <Text style={{ fontSize: 14, color: accentColor, marginRight: 8 }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: accentColor,
+                        marginRight: 8,
+                      }}
+                    >
                       •
                     </Text>
                     <Text
@@ -737,7 +761,14 @@ const ProAdvisorPage: React.FC = () => {
             backgroundColor: isExpanded ? "#ECFDF5" : "#FFFFFF",
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12, flex: 1 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              flex: 1,
+            }}
+          >
             <View
               style={{
                 width: 40,
@@ -750,7 +781,14 @@ const ProAdvisorPage: React.FC = () => {
             >
               {icon}
             </View>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#065F46", flex: 1 }}>
+            <Text
+              style={{
+                fontSize: 16,
+                fontWeight: "700",
+                color: "#065F46",
+                flex: 1,
+              }}
+            >
               {title}
             </Text>
           </View>
@@ -796,24 +834,57 @@ const ProAdvisorPage: React.FC = () => {
 
     return (
       <View style={styles.readinessCard}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 12,
+          }}
+        >
           <Target size={24} color="#10B981" />
           <Text style={{ fontSize: 16, fontWeight: "700", color: "#065F46" }}>
             {t.readinessCheck}
           </Text>
         </View>
-        
-        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 8 }}>
-          <View style={{ flex: 1, height: 8, backgroundColor: "#E5E7EB", borderRadius: 4, overflow: "hidden" }}>
+
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            marginBottom: 8,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              height: 8,
+              backgroundColor: "#E5E7EB",
+              borderRadius: 4,
+              overflow: "hidden",
+            }}
+          >
             <View
               style={{
                 width: `${percentage}%`,
                 height: "100%",
-                backgroundColor: percentage >= 80 ? "#10B981" : percentage >= 50 ? "#F59E0B" : "#EF4444",
+                backgroundColor:
+                  percentage >= 80
+                    ? "#10B981"
+                    : percentage >= 50
+                    ? "#F59E0B"
+                    : "#EF4444",
               }}
             />
           </View>
-          <Text style={{ marginLeft: 10, fontSize: 14, fontWeight: "700", color: "#374151" }}>
+          <Text
+            style={{
+              marginLeft: 10,
+              fontSize: 14,
+              fontWeight: "700",
+              color: "#374151",
+            }}
+          >
             {readyItems}/{totalItems}
           </Text>
         </View>
@@ -826,7 +897,10 @@ const ProAdvisorPage: React.FC = () => {
             fertilizer: language === "si" ? "පොහොර" : "Fertilizer",
             capital: language === "si" ? "මුදල්" : "Capital",
           }).map(([key, label]) => (
-            <View key={key} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View
+              key={key}
+              style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+            >
               {formData.readiness[key as keyof typeof formData.readiness] ? (
                 <CheckCircle size={18} color="#10B981" />
               ) : (
@@ -843,15 +917,23 @@ const ProAdvisorPage: React.FC = () => {
   // Timeline Component
   const CultivationTimeline = () => {
     const seed = (formData.seedVariety || "Unknown").trim() || "Unknown";
-    const durationWeeks = VARIETY_DURATION_WEEKS[seed] ?? VARIETY_DURATION_WEEKS["Unknown"];
-    
+    const durationWeeks =
+      VARIETY_DURATION_WEEKS[seed] ?? VARIETY_DURATION_WEEKS["Unknown"];
+
     const plantingDate = new Date(formData.plantingDateExact);
     const harvestDate = new Date(plantingDate);
     harvestDate.setDate(harvestDate.getDate() + durationWeeks * 7);
 
     return (
       <View style={styles.timelineCard}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 10,
+            marginBottom: 16,
+          }}
+        >
           <Clock size={24} color="#10B981" />
           <Text style={{ fontSize: 16, fontWeight: "700", color: "#065F46" }}>
             {t.timelineTitle}
@@ -872,7 +954,9 @@ const ProAdvisorPage: React.FC = () => {
           </View>
 
           <View style={styles.timelineItem}>
-            <View style={[styles.timelineDot, { backgroundColor: "#F59E0B" }]} />
+            <View
+              style={[styles.timelineDot, { backgroundColor: "#F59E0B" }]}
+            />
             <View style={{ flex: 1 }}>
               <Text style={styles.timelineLabel}>
                 {language === "si" ? "වගා කාලය" : "Growing Period"}
@@ -884,10 +968,14 @@ const ProAdvisorPage: React.FC = () => {
           </View>
 
           <View style={styles.timelineItem}>
-            <View style={[styles.timelineDot, { backgroundColor: "#059669" }]} />
+            <View
+              style={[styles.timelineDot, { backgroundColor: "#059669" }]}
+            />
             <View style={{ flex: 1 }}>
               <Text style={styles.timelineLabel}>
-                {language === "si" ? "අස්වැන්න නෙළීමේ දිනය" : "Expected Harvest"}
+                {language === "si"
+                  ? "අස්වැන්න නෙළීමේ දිනය"
+                  : "Expected Harvest"}
               </Text>
               <Text style={styles.timelineDate}>
                 {harvestDate.toLocaleDateString()}
@@ -897,13 +985,18 @@ const ProAdvisorPage: React.FC = () => {
 
           {proAdvice && proAdvice.delayWeeks > 0 && (
             <View style={styles.timelineItem}>
-              <View style={[styles.timelineDot, { backgroundColor: "#8B5CF6" }]} />
+              <View
+                style={[styles.timelineDot, { backgroundColor: "#8B5CF6" }]}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={styles.timelineLabel}>
-                  {language === "si" ? "අලෙවිකරණය සඳහා හොඳම කාලය" : "Best Selling Time"}
+                  {language === "si"
+                    ? "අලෙවිකරණය සඳහා හොඳම කාලය"
+                    : "Best Selling Time"}
                 </Text>
                 <Text style={styles.timelineDate}>
-                  +{proAdvice.delayWeeks} {t.week} {language === "si" ? "පසුව" : "later"}
+                  +{proAdvice.delayWeeks} {t.week}{" "}
+                  {language === "si" ? "පසුව" : "later"}
                 </Text>
               </View>
             </View>
@@ -945,7 +1038,9 @@ const ProAdvisorPage: React.FC = () => {
       {loading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#10B981" />
-          <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 14 }}>{t.loading}</Text>
+          <Text style={{ marginTop: 12, color: "#6B7280", fontSize: 14 }}>
+            {t.loading}
+          </Text>
         </View>
       ) : error ? (
         <View style={styles.errorContainer}>
@@ -973,13 +1068,22 @@ const ProAdvisorPage: React.FC = () => {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.summaryTitle}>
-                    {language === "si" ? "ඔබගේ Pro වගා සැලසුම" : "Your Pro Cultivation Plan"}
+                    {language === "si"
+                      ? "ඔබගේ Pro වගා සැලසුම"
+                      : "Your Pro Cultivation Plan"}
                   </Text>
                   <Text style={styles.summarySubtitle}>
                     {formData.district} • {formData.seedVariety}
                   </Text>
                   {formData.experienceLevel === "new" && (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 6,
+                        marginTop: 6,
+                      }}
+                    >
                       <BookOpen size={16} color="#047857" />
                       <Text
                         style={{
@@ -999,13 +1103,16 @@ const ProAdvisorPage: React.FC = () => {
                 <View style={styles.detailRow}>
                   <MapPin size={20} color="#10B981" />
                   <Text style={styles.detailText}>
-                    {formData.area || "0"} {language === "si" ? "හෙක්ටයාර්" : "hectares"}
+                    {formData.area || "0"}{" "}
+                    {language === "si" ? "හෙක්ටයාර්" : "hectares"}
                   </Text>
                 </View>
 
                 <View style={styles.detailRow}>
                   <Calendar size={20} color="#10B981" />
-                  <Text style={styles.detailText}>{formData.plantingDateExact}</Text>
+                  <Text style={styles.detailText}>
+                    {formData.plantingDateExact}
+                  </Text>
                 </View>
 
                 <View style={styles.detailRow}>
@@ -1029,7 +1136,9 @@ const ProAdvisorPage: React.FC = () => {
                   <View style={styles.detailRow}>
                     <Droplets size={20} color="#10B981" />
                     <Text style={styles.detailText}>
-                      {language === "si" ? "වාරිමාර්ග පහසුකම් ඇත" : "Irrigation Available"}
+                      {language === "si"
+                        ? "වාරිමාර්ග පහසුකම් ඇත"
+                        : "Irrigation Available"}
                     </Text>
                   </View>
                 )}
@@ -1047,7 +1156,9 @@ const ProAdvisorPage: React.FC = () => {
               sectionId="harvest"
               title={t.harvest}
               icon={<Package size={22} color="#10B981" />}
-              content={`${proAdvice.harvestTiming}\n\n${proAdvice.storageAdvice}\n\n${
+              content={`${proAdvice.harvestTiming}\n\n${
+                proAdvice.storageAdvice
+              }\n\n${
                 proAdvice.delayWeeks > 0
                   ? language === "si"
                     ? `💰 වෙළඳපොළ උපාය: සති ${proAdvice.delayWeeks}ක් ගබඩා කර ඉහළ මිල ගණන් ලබාගන්න`
@@ -1118,6 +1229,22 @@ const ProAdvisorPage: React.FC = () => {
               content={proAdvice.actionItems}
               accentColor="#8B5CF6"
             />
+
+            {/* CTA Button - Follow Recommendations */}
+            <TouchableOpacity
+              style={styles.ctaButton}
+              onPress={() =>
+                navigation.navigate("ProAdvisorFollowScreen", {
+                  formData,
+                })
+              }
+            >
+              <Text style={styles.ctaButtonText}>
+                {language === "si"
+                  ? "මෙම උපදෙස් අනුගමනය කරන්න"
+                  : "Follow These Recommendations"}
+              </Text>
+            </TouchableOpacity>
 
             {/* Back Button */}
             <TouchableOpacity
@@ -1344,5 +1471,25 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontSize: 15,
     fontWeight: "700",
+  },
+  ctaButton: {
+    marginTop: 24,
+    marginBottom: 16,
+    backgroundColor: "#10B981",
+    paddingVertical: 18,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+  ctaButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
 });

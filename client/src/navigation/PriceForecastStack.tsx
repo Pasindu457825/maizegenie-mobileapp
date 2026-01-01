@@ -8,7 +8,7 @@ import WeatherForecastScreen from "../screens/PriceForecast/WeatherForecastScree
 import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
 import OfficerPriceForecastScreen from "@screens/PriceForecast/OfficerPriceForecastScreen";
 import ProAdvisorPage from "../screens/PriceForecast/ProAdvisorPage";
-
+import ProAdvisorFollowScreen from "../screens/PriceForecast/ProAdvisorFollowScreen";
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
@@ -27,6 +27,9 @@ export type PriceForecastStackParamList = {
   };
     ProAdvisorPage: {
     formData: any;
+  };
+   ProAdvisorFollowScreen: {
+    formData: any;   
   };
 };
 
@@ -78,6 +81,10 @@ const PriceForecastStack = () => {
         options={{
           headerShown: false,
         }}
+      />
+            <Stack.Screen
+        name="ProAdvisorFollowScreen"
+        component={ProAdvisorFollowScreen}
       />
     </Stack.Navigator>
   );
