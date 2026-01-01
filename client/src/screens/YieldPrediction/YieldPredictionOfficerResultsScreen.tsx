@@ -37,7 +37,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BarChart, LineChart, ProgressChart } from "react-native-chart-kit";
-import ConfidenceBreakdownModal from "./OfficerYPConfidenceBreakdownModal";
+import ConfidenceBreakdownModal from "../../components/OfficerYPConfidenceBreakdownModal";
 
 const screenWidth = Dimensions.get("window").width;
 
