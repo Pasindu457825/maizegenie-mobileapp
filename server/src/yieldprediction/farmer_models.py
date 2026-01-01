@@ -78,7 +78,7 @@ class PredictionData(BaseModel):
     
     # Model info
     prediction_method: Literal['ml_model', 'rule_based', 'hybrid'] = Field(..., description="Method used")
-    model_version: str = Field(default="v1.0", description="Model version")
+    ml_model_version: str = Field(default="v1.0", description="Model version")
 
 class FarmerPredictionResponse(BaseModel):
     """
@@ -103,6 +103,9 @@ class FarmerPredictionResponse(BaseModel):
     # Summary messages
     summary_english: str = Field(..., description="Summary message in English")
     summary_sinhala: str = Field(..., description="Summary message in Sinhala")
+    
+    # Yield comparison data
+    yield_comparison: Optional[dict] = Field(None, description="Comparison with district optimal yield")
     
     # Status
     status: str = Field(default="completed", description="Prediction status")

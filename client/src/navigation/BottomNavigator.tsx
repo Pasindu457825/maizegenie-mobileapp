@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
@@ -8,7 +9,6 @@ import PriceForecastStack from "./PriceForecastStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
 import YieldPredictionStack from "./YieldPredictionStack";
-import AdminStack from "./AdminStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
@@ -24,6 +24,8 @@ export type TabsParamList = {
 const Tab = createBottomTabNavigator<TabsParamList>();
 
 export default function BottomNavigator() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -34,8 +36,8 @@ export default function BottomNavigator() {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: "#e2e8f0",
-          height: 60,
-          paddingBottom: 8,
+          height: 45 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -112,22 +114,6 @@ export default function BottomNavigator() {
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* 🛠 Admin Panel */}
-      <Tab.Screen
-        name={ROUTES.TABS.ADMINPANEL}
-        component={AdminStack} // <-- replace single screen with whole stack
-        options={{
-          tabBarLabel: "Admin",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons
-              name="shield-checkmark-outline"
-              size={size}
-              color={color}
-            />
           ),
         }}
       />

@@ -15,7 +15,7 @@ export const generalTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Spray thoroughly on all plant parts",
-      si: "සියලුම ශාක කොටස් මත හොඳින් සිදුරු කරන්න",
+      si: "සියලුම ශාක කොටස් මත හොඳින් ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "As per product label instructions",
@@ -55,7 +55,7 @@ export const generalTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Mix with water and spray",
-      si: "ජලය සමඟ මිශ්‍ර කර සිදුරු කරන්න",
+      si: "ජලය සමඟ මිශ්‍ර කර ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "3-5 ml per liter",

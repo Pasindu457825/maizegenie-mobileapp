@@ -69,6 +69,13 @@ const YieldPredictionResultsScreen = () => {
       expectedRange: "අපේක්ෂිත පරාසය",
       positive: "ධනාත්මක",
       negative: "ඍණාත්මක",
+      yieldComparison: "අස්වැන්න සැසඳීම",
+      yourPrediction: "ඔබේ පුරෝකථනය",
+      districtOptimal: "දිස්ත්‍රික් ප්‍රශස්ත",
+      difference: "වෙනස",
+      predictionMethod: "පුරෝකථන ක්‍රමය",
+      mlModel: "ML මාදිලිය",
+      ruleBased: "නීති පදනම්",
     },
     en: {
       title: "Yield Prediction",
@@ -88,6 +95,13 @@ const YieldPredictionResultsScreen = () => {
       expectedRange: "Expected Range",
       positive: "Positive",
       negative: "Negative",
+      yieldComparison: "Yield Comparison",
+      yourPrediction: "Your Prediction",
+      districtOptimal: "District Optimal",
+      difference: "Difference",
+      predictionMethod: "Prediction Method",
+      mlModel: "ML Model",
+      ruleBased: "Rule-Based",
     },
   };
 
@@ -126,6 +140,11 @@ const YieldPredictionResultsScreen = () => {
   const summaryText = language === "si" 
     ? (data?.summary_sinhala || data?.summary_english || "")
     : (data?.summary_english || data?.summary_sinhala || "");
+  
+  // Extract comparison data
+  const yieldComparison = data?.yield_comparison || null;
+  const predictionMethod = prediction.prediction_method || "rule_based";
+  const isPredictionML = predictionMethod === "ml_model" || predictionMethod === "ML";
 
   return (
     <View style={styles.container}>
@@ -174,6 +193,14 @@ const YieldPredictionResultsScreen = () => {
             </View>
           </View>
 
+          {/* Prediction Method Badge */}
+          <View style={styles.methodBadge}>
+            <View style={[styles.methodDot, { backgroundColor: isPredictionML ? "#10B981" : "#F59E0B" }]} />
+            <Text style={styles.methodText}>
+              {content[language].predictionMethod}: {isPredictionML ? content[language].mlModel : content[language].ruleBased}
+            </Text>
+          </View>
+
           {/* Confidence Card */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -207,6 +234,44 @@ const YieldPredictionResultsScreen = () => {
               </View>
             </View>
           </View>
+
+          {/* Yield Comparison Table */}
+          {yieldComparison && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <TrendingUp color="#10B981" size={20} />
+                </View>
+                <Text style={styles.sectionTitle}>
+                  {content[language].yieldComparison}
+                </Text>
+              </View>
+
+              <View style={styles.comparisonTable}>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].yourPrediction}</Text>
+                  <Text style={styles.comparisonValue}>
+                    {(yieldComparison.predicted_yield_kg_ha / 1000).toFixed(2)} {content[language].tonsPerHa}
+                  </Text>
+                </View>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].districtOptimal}</Text>
+                  <Text style={styles.comparisonValue}>
+                    {(yieldComparison.district_optimal_kg_ha / 1000).toFixed(2)} {content[language].tonsPerHa}
+                  </Text>
+                </View>
+                <View style={[styles.comparisonRow, styles.comparisonRowHighlight]}>
+                  <Text style={styles.comparisonLabelBold}>{content[language].difference}</Text>
+                  <Text style={[
+                    styles.comparisonValueBold,
+                    { color: yieldComparison.percentage_difference >= 0 ? "#10B981" : "#EF4444" }
+                  ]}>
+                    {yieldComparison.percentage_difference >= 0 ? "+" : ""}{yieldComparison.percentage_difference.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
 
           {/* Impact Factors */}
           {impactFactors.length > 0 && (
@@ -647,6 +712,77 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  methodBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  methodDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  methodText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  comparisonTable: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  comparisonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  comparisonRowHighlight: {
+    backgroundColor: "#F0FDF4",
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    marginBottom: -16,
+    paddingBottom: 16,
+    borderBottomWidth: 0,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  comparisonLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  comparisonLabelBold: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#065F46",
+  },
+  comparisonValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  comparisonValueBold: {
+    fontSize: 18,
+    fontWeight: "700",
   },
 });
 

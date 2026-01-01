@@ -34,13 +34,14 @@ import {
   DollarSign,
   Calendar,
   X,
+  Archive,
 } from "lucide-react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
-import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type CircularProgressProps = {
   percent: number;
@@ -124,11 +125,6 @@ const { width } = Dimensions.get("window");
 
 type Language = "si" | "en";
 
-type NavProp = StackNavigationProp<
-  PriceForecastStackParamList,
-  "PriceAdvisorScreen"
->;
-
 type RootStackParamList = {
   PriceForecastFormScreen: undefined;
   WeatherForecastScreen: undefined;
@@ -146,7 +142,7 @@ interface RouteParams {
 
 interface AdvisorFormData {
   district: string;
-  plantingDate: string; // මෙතැන month string එක දානවා (e.g., "දෙසැම්බර්")
+  plantingDateExact: string;
   seedVariety: string;
   area: string;
 
@@ -178,26 +174,50 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 type QuestionKey =
-  | "start_now"
-  | "before_start"
-  | "district_time"
-  | "biggest_risk"
-  | "need_professional";
+  | "best_time"
+  | "suitable_soil"
+  | "major_pests"
+  | "fertilizers"
+  | "management_practice";
 
 const VARIETY_DURATION_WEEKS: Record<string, number> = {
-  "Jet 999": 13,
-  "GT 709": 14,
-  "808": 16,
-  "Pacific 999": 15,
+  "GT 709": 16,
+  "GT 200": 15,
+  "Pacific 808": 17,
+  "Jet 999": 16,
+  Commando: 15,
+  "Local Variety": 14,
   Unknown: 14,
 };
 
-const SEED_VARIETIES = ["Jet 999", "GT 709", "808", "Pacific 999", "Unknown"];
+const DISTRICT_TO_API_LOCATION: Record<string, string> = {
+  අනුරාධපුර: "Anuradapura",
+  මොණරාගල: "Monaragala",
+  තිස්සමහාරාමය: "Tissamaharama",
+  // If user already selected English, keep as-is:
+  Anuradhapura: "Anuradhapura",
+  Monaragala: "Monaragala",
+  Tissamaharama: "Tissamaharama",
+};
+
+const toApiLocation = (district: string) => {
+  const d = (district || "").trim();
+  return DISTRICT_TO_API_LOCATION[d] || d; // fallback
+};
+
+const SEED_VARIETIES = [
+  "GT 709",
+  "GT 200",
+  "Pacific 808",
+  "Jet 999",
+  "Commando",
+  "Local Variety",
+  "Unknown",
+];
 
 const PriceAdvisorScreen: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
-  const [showMonthPicker, setShowMonthPicker] = useState(false);
   const navigation = useNavigation<NavigationProp<any>>();
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
@@ -208,14 +228,24 @@ const PriceAdvisorScreen: React.FC = () => {
   const language: Language = globalLang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.95));
-
   const [showForm, setShowForm] = useState(true);
   const [formSlideAnim] = useState(new Animated.Value(0));
   const [formOpacityAnim] = useState(new Animated.Value(1));
-
   // Calendar & Variety Picker Modals
   const [showVarietyPicker, setShowVarietyPicker] = useState(false);
-  
+  const [priceWindowResult, setPriceWindowResult] = useState<any | null>(null);
+  const [priceWindowLoading, setPriceWindowLoading] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [harvestAdvisoryResult, setHarvestAdvisoryResult] = useState<
+    any | null
+  >(null);
+  const [harvestAdvisoryLoading, setHarvestAdvisoryLoading] = useState(false);
+  const [advisorGuideResult, setAdvisorGuideResult] = useState<any | null>(
+    null
+  );
+  const [advisorGuideLoading, setAdvisorGuideLoading] = useState(false);
+  const [showAdvisorGuide, setShowAdvisorGuide] = useState(false);
 
   const {
     locationName,
@@ -233,13 +263,12 @@ const PriceAdvisorScreen: React.FC = () => {
       quickQuestionsTitle: "ඉක්මන් ප්‍රශ්න 5",
       fullFormTitle: "සම්පූර්ණ වගා උපදෙස් (උසස් මාදිලිය)",
       resultTitle: "ඔබ සඳහා වගා උපදෙස්",
-      q1: "මං දැන් වගාව ආරම්භ කළොත් හොඳද?",
-      q2: "මට වගාව ආරම්භ කිරීමට පෙර දැනගත යුතු දේ මොනවාද?",
-      q3: "මගේ දිස්ත්‍රික්කය සඳහා මේ කාලය සුදුසුද?",
-      q4: "වගාව ආරම්භ කිරීමේදී වැඩිම අවදානම මොනවාද?",
-      q5: "වෘත්තීය උපදෙස් ලබාගන්න ඕනද?",
+      q1: "බඩ ඉරිඟු වගා කිරීමට හොඳම කාලය කුමක්ද?",
+      q2: "බඩ ඉරිඟු වගාවට සුදුසු පස වර්ගය මොනවාද?",
+      q3: "බඩ ඉරිඟු වගාවේ සාමාන්‍යයෙන් හමුවන ප්‍රධාන පළිබෝධ මොනවාද?",
+      q4: "බඩ ඉරිඟු වගාවට භාවිතා කරන මූලික පොහොර වර්ග මොනවාද?",
+      q5: "හොඳ බඩ ඉරිඟු අස්වැන්නක් ලබාගැනීමට වැදගත් කළමනාකරණ ක්‍රියාව කුමක්ද?",
       formDistrict: "දිස්ත්‍රික්කය",
-      formPlantingDate: "බීජ පැල කිරීමේ දිනය",
       formVariety: "බීජ වර්ගය",
       formArea: "වැවිලි භූමි ප්‍රමාණය (ha / acre)",
       formCost: "මුළු වියදම (රු.)",
@@ -247,19 +276,6 @@ const PriceAdvisorScreen: React.FC = () => {
       btnRunFullAdvisor: "සම්පූර්ණ වගා උපදෙස් ලබාගන්න",
       noQuestionSelected: "කරුණාකර ප්‍රශ්නයක් තෝරන්න හෝ පෝරමය පුරවන්න.",
       weatherLoading: "කාලගුණ දත්ත ලබාගැනෙමින්...",
-      plantExcellent: "මේ සතිය වගා කිරීමට ඉතා හොඳ වේ.",
-      plantModerate: "වගා කළ හැක, නමුත් අවදානම් මට්ටම මධ්‍යමයි.",
-      plantRisky: "වගා කිරීම සඳහා අනෙකුත් සතියක් හොඳයි.",
-      weatherGood: "කාලගුණය වගා කිරීමට සුදුසු පරාසය තුළ තිබේ.",
-      weatherBad:
-        "උෂ්ණත්වය හෝ වැසි තත්ත්වය හේතුවෙන් වගා කිරීම සඳහා සුදුසු නොවේ.",
-      profitGood: "ආදායම වියදමට සාපේක්ෂව ඉතා හොඳි. වගා කිරීම ලාභදායීය.",
-      profitMedium: "ලාභ ඇත, නමුත් අඩුයි. ගබඩා, ණය වාරික වැනි සාධක සලකා බලන්න.",
-      profitBad:
-        "වගා කිරීමෙන් ලාභයට වඩා වියදම් වැඩි වීමට ඉඩ ඇත. වගා කිරීමෙන් වැලකෙන්න.",
-      bestHarvestHint:
-        "අස්වැන්නෙන් සති 1–3 ක් ඇතුළත වෙළඳපල තත්ත්වය පරීක්ෂා කර විකිණීමට සැලසුම් කරන්න.",
-      fullResultSummary: "සම්පූර්ණ විශ්ලේෂණය පදනම් වූ නිර්දේශය පහතින් දැක්වේ.",
       rs: "රු.",
       kg: "කි.ග්‍රෑ",
       notAvailable: "දත්ත නොමැත",
@@ -280,36 +296,18 @@ const PriceAdvisorScreen: React.FC = () => {
       quickQuestionsTitle: "Quick Questions (5)",
       fullFormTitle: "Full Cultivation Advisor (Advanced)",
       resultTitle: "Advisor Result for You",
-      q1: "Is it okay to start farming now?",
-      q2: "What should I know before starting cultivation?",
-      q3: "Is this a suitable time for my district?",
-      q4: "What are the biggest risks when starting?",
-      q5: "Do I need professional advice?",
+      q1: "What is the best time to cultivate maize?",
+      q2: "What type of soil is suitable for maize cultivation?",
+      q3: "What are the common major pests found in maize cultivation?",
+      q4: "What are the main fertilizers used for maize cultivation?",
+      q5: "What is an important management practice to obtain a good maize yield?",
       formDistrict: "District",
-      formPlantingDate: "Planting Date",
       formVariety: "Seed Variety",
       formArea: "Farm Area (ha / acre)",
-      formCost: "Total Cost (Rs.)",
       formYield: "Expected Yield (kg / unit area)",
       btnRunFullAdvisor: "Run Full Advisor",
       noQuestionSelected: "Select a question or fill the form to see advice.",
       weatherLoading: "Fetching weather data...",
-      plantExcellent: "This week looks excellent for planting.",
-      plantModerate: "You can plant, but risk is moderate.",
-      plantRisky: "Better to choose another week for planting.",
-      weatherGood: "Weather is within a good range for maize planting.",
-      weatherBad:
-        "Temperature or rain conditions are not ideal for planting now.",
-      profitGood:
-        "Expected revenue is clearly higher than cost. Planting is profitable.",
-      profitMedium:
-        "There is some profit, but not very high. Consider storage, cash flow, etc.",
-      profitBad:
-        "Costs may exceed revenue. It may be better to avoid planting now.",
-      bestHarvestHint:
-        "Plan to sell within 1–3 weeks after harvest depending on market signals.",
-      fullResultSummary:
-        "Below is the recommendation based on your detailed inputs.",
       rs: "Rs.",
       kg: "kg",
       notAvailable: "N/A",
@@ -328,7 +326,7 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const [form, setForm] = useState<AdvisorFormData>({
     district: "",
-    plantingDate: "",
+    plantingDateExact: "",
     seedVariety: "",
     area: "",
 
@@ -355,6 +353,23 @@ const PriceAdvisorScreen: React.FC = () => {
     "good" | "warn" | "info" | null
   >(null);
 
+  // ✅ Extract best option from backend response (supports multiple shapes)
+  const getHarvestBest = (res: any) => {
+    if (!res) return null;
+
+    // If backend returns best_option directly
+    if (res.best_option) return res.best_option;
+
+    // If backend returns options_checked array
+    if (Array.isArray(res.options_checked) && res.options_checked.length > 0) {
+      return res.options_checked.reduce((best: any, cur: any) =>
+        (cur.score ?? 0) > (best.score ?? 0) ? cur : best
+      );
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -370,43 +385,304 @@ const PriceAdvisorScreen: React.FC = () => {
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
+  const getMonthLabelFromISO = (iso: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "";
 
-  const MONTHS_SI =
-    language === "si"
-      ? [
-          "ජනවාරි",
-          "පෙබරවාරි",
-          "මාර්තු",
-          "අප්‍රේල්",
-          "මැයි",
-          "ජූනි",
-          "ජූලි",
-          "අගෝස්තු",
-          "සැප්තැම්බර්",
-          "ඔක්තෝබර්",
-          "නොවැම්බර්",
-          "දෙසැම්බර්",
-        ]
-      : [
-          "January",
-          "February",
-          "March",
-          "April",
-          "May",
-          "June",
-          "July",
-          "August",
-          "September",
-          "October",
-          "November",
-          "December",
-        ];
+    // month index 0-11
+    const idx = d.getMonth();
+
+    const monthsSi = [
+      "ජනවාරි",
+      "පෙබරවාරි",
+      "මාර්තු",
+      "අප්‍රේල්",
+      "මැයි",
+      "ජූනි",
+      "ජූලි",
+      "අගෝස්තු",
+      "සැප්තැම්බර්",
+      "ඔක්තෝබර්",
+      "නොවැම්බර්",
+      "දෙසැම්බර්",
+    ];
+
+    const monthsEn = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+
+    return language === "si" ? monthsSi[idx] : monthsEn[idx];
+  };
+
+  // ===============================
+  // STEP 1: COMPUTED VALUES (MOVE HERE)
+  // ===============================
+
+  const harvestBest = getHarvestBest(harvestAdvisoryResult);
+
+  const computedDelayWeeks =
+    harvestBest?.delay_weeks ??
+    harvestAdvisoryResult?.delay_weeks ??
+    (harvestAdvisoryResult?.base_harvest_week &&
+    harvestAdvisoryResult?.best_harvest_week
+      ? Math.max(
+          harvestAdvisoryResult?.best_harvest_week -
+            harvestAdvisoryResult?.base_harvest_week,
+          0
+        )
+      : 0);
+
+  const computedBaseWeek =
+    harvestAdvisoryResult?.base_harvest_week ?? harvestBest?.harvest_week;
+
+  const computedBestWeek =
+    harvestAdvisoryResult?.best_harvest_week ?? harvestBest?.harvest_week;
+
+  // ✅ Week ordinal for Sinhala / English
+  const weekOrdinal = (n: number, lang: "si" | "en") => {
+    if (lang === "si") return `${n} වන`;
+    // English ordinals
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
+  };
+
+  // ✅ Get week-of-month from a Date (1..5)
+  const getWeekOfMonth = (date: Date) => {
+    const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+    const dayOfMonth = date.getDate();
+    const firstDayWeekday = firstDay.getDay(); // 0=Sun..6=Sat
+    return Math.ceil((dayOfMonth + firstDayWeekday) / 7);
+  };
+
+  // ✅ Convert ISO date (YYYY-MM-DD) -> {year, monthLabel, weekOfMonth}
+  const parseISOToMonthWeek = (iso: string, lang: "si" | "en") => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return null;
+
+    const year = d.getFullYear();
+    const monthLabel = getMonthLabelFromISO(iso);
+    const wom = getWeekOfMonth(d);
+
+    return { year, monthLabel, weekOfMonth: wom };
+  };
+
+  const isoWeekToMonthWeekLabel = (
+    isoWeek: number,
+    year: number,
+    lang: "si" | "en"
+  ) => {
+    const simple = new Date(year, 0, 1 + (isoWeek - 1) * 7);
+
+    // shift to Monday
+    const day = simple.getDay();
+    const diffToMon = (day === 0 ? -6 : 1) - day;
+    simple.setDate(simple.getDate() + diffToMon);
+
+    const monthIdx = simple.getMonth();
+    const wom = getWeekOfMonth(simple);
+
+    const iso = `${simple.getFullYear()}-${String(monthIdx + 1).padStart(
+      2,
+      "0"
+    )}-${String(simple.getDate()).padStart(2, "0")}`;
+    const monthLabel = getMonthLabelFromISO(iso);
+
+    return {
+      year: simple.getFullYear(),
+      monthLabel,
+      weekOfMonth: wom,
+      approxDateISO: iso,
+    };
+  };
+
+  // ✅ Label -> farmer-friendly word
+  const signalToFarmerWord = (label: string, lang: "si" | "en") => {
+    const L = (label || "").toUpperCase();
+    if (lang === "si") {
+      if (L === "STRONG") return "මිල ඉහළ යාමේ හැකියාව වැඩිය";
+      if (L === "WEAK") return "මිල අඩුවීමේ අවදානම වැඩිය";
+      return "මිල සාමාන්‍ය මට්ටමේ";
+    } else {
+      if (L === "STRONG") return "Higher chance of higher prices";
+      if (L === "WEAK") return "Higher risk of lower prices";
+      return "Prices are usually moderate";
+    }
+  };
+
+  const buildFarmerFriendlyPlanText = (args: {
+    lang: "si" | "en";
+    plantingDateISO: string; // form.plantingDateExact
+    bestPlantingWeek?: number; // priceWindowResult.best_option.planting_week
+    bestHarvestWeek?: number; // priceWindowResult.best_option.harvest_week OR harvestAdvisoryResult.best_harvest_week
+    harvestSignalLabel?: string; // STRONG / MODERATE / WEAK / HOLD
+    confidence?: string; // "High"
+    delayWeeks?: number; // ✅ NEW
+    baseHarvestWeek?: number; // ✅ optional, if backend provides
+    plantingWeekOfYear?: number;
+  }) => {
+    const {
+      lang,
+      plantingDateISO,
+      bestPlantingWeek,
+      bestHarvestWeek,
+      harvestSignalLabel,
+      confidence,
+      plantingWeekOfYear,
+    } = args;
+
+    const p = parseISOToMonthWeek(plantingDateISO, lang);
+    if (!p) return null;
+
+    // 1️⃣ Planting advice (month + week-of-month)
+    const plantingLine =
+      lang === "si"
+        ? `${p.year} ${p.monthLabel} මාසයේ ${weekOrdinal(
+            p.weekOfMonth,
+            "si"
+          )} සතියේ ඔබ වගාව ආරම්භ කිරීම සුදුසුය.`
+        : `It is suitable to start cultivation in the ${weekOrdinal(
+            p.weekOfMonth,
+            "en"
+          )} week of ${p.monthLabel} ${p.year}.`;
+
+    // 2️⃣ Harvest + selling advice (IMPORTANT FIX)
+    let harvestLine = "";
+
+    if (bestHarvestWeek && bestHarvestWeek >= 1 && bestHarvestWeek <= 52) {
+      const dly = Math.max(args.delayWeeks ?? 0, 0);
+
+      // If backend sent baseHarvestWeek, use it. Otherwise derive using delayWeeks.
+      const baseHarvestWeek =
+        args.baseHarvestWeek ?? Math.max(bestHarvestWeek - dly, 1);
+
+      // planting week-of-year (fallback: derive from date if backend didn't send)
+      const plantingWeek = plantingWeekOfYear ?? undefined;
+
+      // if harvest week number is smaller than planting week number, it's likely next year
+      const baseYear =
+        plantingWeek != null && baseHarvestWeek < plantingWeek
+          ? p.year + 1
+          : p.year;
+
+      const bestYear =
+        plantingWeek != null && bestHarvestWeek < plantingWeek
+          ? p.year + 1
+          : p.year;
+
+      const base = isoWeekToMonthWeekLabel(baseHarvestWeek, baseYear, lang);
+      const best = isoWeekToMonthWeekLabel(bestHarvestWeek, bestYear, lang);
+
+      harvestLine =
+        lang === "si"
+          ? dly === 0
+            ? `මූලික අස්වැන්න ${base.year} ${
+                base.monthLabel
+              } මාසයේ ${weekOrdinal(
+                base.weekOfMonth,
+                "si"
+              )} සතියේදී ලැබීමට ඉඩ ඇත. මෙම සතියේදී අස්වැන්න විකිණීම සුදුසුයි.`
+            : `මූලික අස්වැන්න ${base.year} ${
+                base.monthLabel
+              } මාසයේ ${weekOrdinal(
+                base.weekOfMonth,
+                "si"
+              )} සතියේදී ලැබීමට ඉඩ ඇත. නමුත් පසුගිය වසරවල දත්ත අනුව, සති ${dly}ක් පමණ ප්‍රමාද කරලා ${
+                best.year
+              } ${best.monthLabel} මාසයේ ${weekOrdinal(
+                best.weekOfMonth,
+                "si"
+              )} සතියේ (සතිය ${bestHarvestWeek}) අස්වැන්න විකිණීම වඩා ලාභදායී බව පෙනේ.`
+          : dly === 0
+          ? `Harvest is expected around the ${weekOrdinal(
+              base.weekOfMonth,
+              "en"
+            )} week of ${base.monthLabel} ${
+              base.year
+            }. Selling during this period is suitable.`
+          : `Harvest is expected around the ${weekOrdinal(
+              base.weekOfMonth,
+              "en"
+            )} week of ${base.monthLabel} ${
+              base.year
+            }. However, historical data suggests delaying harvest by about ${dly} weeks and selling around week ${bestHarvestWeek} for better returns.`;
+    }
+
+    // 3️⃣ Market signal explanation
+    const marketLineWord = signalToFarmerWord(
+      harvestSignalLabel || "MODERATE",
+      lang
+    );
+
+    const marketLine =
+      lang === "si"
+        ? `මෙම නිර්දේශය ${marketLineWord} බව පසුගිය වෙළඳපොළ ප්‍රවණතා පෙන්වයි.`
+        : `Market trends indicate that ${marketLineWord}.`;
+
+    // 4️⃣ Confidence (optional)
+
+    const confLine = confidence
+      ? lang === "si"
+        ? `විශ්වාසය: ${confidence}`
+        : `Confidence: ${confidence}`
+      : "";
+
+    // 5️⃣ Final output
+    const lines = [plantingLine, harvestLine, marketLine, confLine].filter(
+      Boolean
+    );
+
+    return lines.join("\n");
+  };
+
+  // Farmer-friendly Price Text
+  const farmerPriceText =
+    priceWindowResult?.best_option && form.plantingDateExact
+      ? buildFarmerFriendlyPlanText({
+          lang: language,
+          plantingDateISO: form.plantingDateExact,
+          bestHarvestWeek: computedBestWeek,
+          baseHarvestWeek: computedBaseWeek,
+          delayWeeks: computedDelayWeeks,
+          harvestSignalLabel: harvestAdvisoryResult?.signal,
+          confidence: harvestBest?.confidence,
+          plantingWeekOfYear: harvestAdvisoryResult?.planting_week,
+        })
+      : null;
+
+  // Farmer-friendly Harvest Text
+  const farmerHarvestText =
+    harvestAdvisoryResult && form.plantingDateExact
+      ? buildFarmerFriendlyPlanText({
+          lang: language,
+          plantingDateISO: form.plantingDateExact,
+          bestHarvestWeek: computedBestWeek,
+          baseHarvestWeek: computedBaseWeek,
+          delayWeeks: computedDelayWeeks,
+          plantingWeekOfYear: harvestAdvisoryResult?.planting_week,
+          harvestSignalLabel: harvestAdvisoryResult.signal,
+          confidence:
+            harvestBest?.confidence ?? harvestAdvisoryResult?.confidence,
+        })
+      : null;
 
   const DISTRICTS =
     language === "si"
       ? ["අනුරාධපුර", "මොණරාගල", "තිස්සමහාරාමය"]
       : ["Anuradhapura", "Monaragala", "Tissamaharama"];
-
 
   const handleVarietySelect = (variety: string) => {
     setForm((f) => ({ ...f, seedVariety: variety }));
@@ -461,12 +737,19 @@ const PriceAdvisorScreen: React.FC = () => {
     return { done, total, percent };
   };
 
+  const toISODate = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  };
+
   const buildExplainableDecision = () => {
     const plantingClass = classifyPlantingWindow();
     const { done, total, percent } = getReadinessScore();
 
     const district = (form.district || "").trim();
-    const month = (form.plantingDate || "").trim();
+    const month = getMonthLabelFromISO(form.plantingDateExact);
     const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
     const areaNum = parseFloat(form.area || "0") || 0;
 
@@ -633,7 +916,6 @@ const PriceAdvisorScreen: React.FC = () => {
         : "Initial capital / budget plan"
     );
 
-    // ---------- Actionable next steps ----------
     const actions: string[] = [];
 
     if (!form.readiness.water && !form.hasIrrigation)
@@ -715,61 +997,147 @@ const PriceAdvisorScreen: React.FC = () => {
     const plantingClass = classifyPlantingWindow();
     let answer = "";
 
-    if (key === "start_now") {
-      answer =
-        plantingClass === "risky"
-          ? language === "si"
-            ? "දැනට වගාව ආරම්භ කිරීම අවදානම්. කාලගුණය ස්ථාවර වනතුරු රැඳී සිටින්න."
-            : "Starting cultivation now is risky. Wait until weather conditions stabilize."
-          : plantingClass === "moderate"
-          ? language === "si"
-            ? "වගාව ආරම්භ කළ හැක, නමුත් මධ්‍යම අවදානමක් ඇත."
-            : "You can start cultivation, but the risk level is moderate."
-          : language === "si"
-          ? "දැනට වගාව ආරම්භ කිරීමට හොඳ කාලයක් ලෙස පෙනේ."
-          : "This appears to be a good time to start cultivation.";
-    }
-
-    if (key === "before_start") {
+    // Q1: Best time to cultivate maize
+    if (key === "best_time") {
       answer =
         language === "si"
-          ? "වගාව ආරම්භ කිරීමට පෙර බීජ වර්ගය, ජල සැලසුම, භූමි සකස් කිරීම සහ මුල් වියදම් සැලසුම් කරගැනීම වැදගත්ය."
-          : "Before starting cultivation, it is important to plan seed variety, water management, land preparation, and initial costs.";
+          ? "බඩ ඉරිඟු වගා කිරීමට මහ කන්නය (ඔක්තෝබර් සිට දෙසැම්බර්) සහ යාල කන්නය (මාර්තු සිට අප්‍රේල්) වඩාත් සුදුසුය. මහ කන්නයේදී ස්වභාවික වැසි ලැබෙන නිසා බීජ පැළවීම සහ ශාක වර්ධනය හොඳින් සිදුවේ. යාල කන්නයේදී වගාව කරන විට වාරි ජලය නිසි ලෙස ලබාදීම අත්‍යවශ්‍ය වේ."
+          : "The Maha season (October to December) and Yala season (March to April) are the best periods to cultivate maize. During the Maha season, natural rainfall supports good germination and plant growth. In the Yala season, proper irrigation is essential for successful cultivation.";
     }
 
-    if (key === "district_time") {
-      answer = form.district
-        ? language === "si"
-          ? `${form.district} දිස්ත්‍රික්කය සඳහා මේ කාලය ${
-              plantingClass === "risky" ? "අවදානම්" : "සාමාන්‍යයෙන් සුදුසු"
-            } ලෙස පෙනේ.`
-          : `For the ${form.district} district, this period appears ${
-              plantingClass === "risky" ? "risky" : "generally suitable"
-            }.`
-        : language === "si"
-        ? "මුලින්ම ඔබගේ දිස්ත්‍රික්කය ඇතුළත් කරන්න."
-        : "Please select your district first.";
-    }
-
-    if (key === "biggest_risk") {
+    // Q2: Suitable soil for maize
+    if (key === "suitable_soil") {
       answer =
         language === "si"
-          ? "ප්‍රධාන අවදානම් වන්නේ කාලගුණය, ජල සැලසුම සහ බීජ වර්ගය නිසි ලෙස තෝරා නොගැනීමයි."
-          : "The main risks include weather conditions, water planning, and improper seed selection.";
+          ? "බඩ ඉරිඟු වගාවට හොඳ ජල නිකාසය ඇති, සාරවත් පසක් අවශ්‍ය වේ. Loam හෝ Sandy Loam පස මුල් වර්ධනයට සහ ශාක ශක්තිමත්ව වැඩීමට ඉතා සුදුසුය. ජලය රැඳෙන පස වල වගාව කිරීමෙන් මුල් කුණුවී අස්වැන්න අඩුවිය හැක."
+          : "Maize requires fertile soil with good drainage. Loam or sandy loam soils support strong root development and healthy plant growth. Avoid waterlogged soils, as they can damage roots and reduce yield.";
     }
 
-    if (key === "need_professional") {
+    // Q3: Major pests in maize cultivation
+    if (key === "major_pests") {
       answer =
-        plantingClass === "risky"
-          ? language === "si"
-            ? "ඔව්. මෙම තත්ත්වය සඳහා වෘත්තීය උපදෙස් ලබාගැනීම නිර්දේශ කරයි."
-            : "Yes. Professional advice is recommended for this situation."
-          : language === "si"
-          ? "අත්‍යවශ්‍ය නොවේ, නමුත් අවශ්‍ය නම් වෘත්තීය උපදෙස් ලබාගත හැක."
-          : "It is not essential, but professional advice can be obtained if needed.";
+        language === "si"
+          ? "බඩ ඉරිඟු වගාවේ ප්‍රධාන පළිබෝධයක් වන්නේ Fall Armyworm (සේනා කීඩෑවා) ය. මෙම කීඩෑවා කොළ සහ කඳ කා ශාකයට දැඩි හානි සිදු කරයි. වගාව නිතර නිරීක්ෂණය කර ආරම්භයේම පාලනය කළහොත් අස්වැන්න ආරක්ෂා කරගත හැක."
+          : "The major pest affecting maize is the Fall Armyworm. It damages leaves and stems and spreads rapidly if not controlled. Regular field monitoring and early control help protect the crop and reduce losses.";
+    }
+
+    // Q4: Fertilizers used for maize
+    if (key === "fertilizers") {
+      answer =
+        language === "si"
+          ? "බඩ ඉරිඟු වගාවට ප්‍රධානව Urea, TSP සහ MOP පොහොර භාවිතා කරයි. බීජ වපුරන විට TSP සහ MOP යෙදීම ශාක මුල් ශක්තිමත්ව වර්ධනයට උපකාරී වේ. පසුව යුරියා නිසි වේලාවට යෙදීමෙන් ශාක ශක්තිමත් වී හොඳ අස්වැන්නක් ලැබේ."
+          : "Maize cultivation mainly uses Urea, TSP, and MOP fertilizers. TSP and MOP are applied at planting to support early root growth. Urea applied at later stages helps plants grow strong and produce better yields.";
+    }
+
+    // Q5: Important management practice
+    if (key === "management_practice") {
+      answer =
+        language === "si"
+          ? "හොඳ බඩ ඉරිඟු අස්වැන්නක් සඳහා නිසි කාලයට වගාව ආරම්භ කිරීම ඉතා වැදගත්ය. ශාක වර්ධනයට අවශ්‍ය පෝෂක ලබාදීමට පොහොර නිවැරදි ප්‍රමාණයෙන් හා නිසි වේලාවට යෙදිය යුතුය. එමෙන්ම සේනා දළඹුවා වැනි පළිබෝධ කාලින්ම නිරීක්ෂණය කර පාලනය කළහොත් අස්වැන්න ගුණාත්මකව රැකගත හැක."
+          : "Starting maize cultivation at the correct time is essential for a good yield. Fertilizers must be applied in the right amounts and at proper growth stages. Early monitoring and control of pests such as Fall Armyworm help ensure a healthy and high-quality harvest.";
     }
 
     setQuickAnswer(answer);
+  };
+
+  const getCurrentWeekNum = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const diffDays = Math.floor((now.getTime() - start.getTime()) / 86400000);
+    const week = Math.floor(diffDays / 7) + 1;
+    return Math.min(52, Math.max(1, week));
+  };
+
+  const fetchBestPlantingWindow = async ({
+    location,
+    startWeek,
+    seedVariety,
+  }: {
+    location: string;
+    startWeek: number;
+    seedVariety: string;
+  }) => {
+    const params = new URLSearchParams({
+      location,
+      start_week: String(startWeek),
+      seed_variety: seedVariety,
+      lookahead_weeks: "6",
+    });
+
+    const url = `${API_URL}/price-window/best-planting?${params.toString()}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || "Failed to fetch price-window result");
+    }
+
+    return res.json();
+  };
+
+  const fetchHarvestAdvisoryByDate = async ({
+    location,
+    plantingDate,
+    seedVariety,
+  }: {
+    location: string;
+    plantingDate: string; // "YYYY-MM-DD"
+    seedVariety: string;
+  }) => {
+    const params = new URLSearchParams({
+      location,
+      planting_date: plantingDate,
+      seed_variety: seedVariety,
+    });
+
+    const url = `${API_URL}/price-window/by-date?${params.toString()}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || "Failed to fetch harvest advisory");
+    }
+
+    return res.json();
+  };
+
+  const fetchAdvisorGuide = async (payload: {
+    location: string;
+    plantingDate: string;
+    seedVariety: string;
+    experience: string;
+    landSize: string;
+    irrigationAvailable: boolean;
+    preparedness: {
+      seedReady: boolean;
+      waterReady: boolean;
+      fertilizerReady: boolean;
+      storageReady: boolean;
+      financeReady: boolean;
+    };
+  }) => {
+    const url = `${API_URL}/price-window/advisor-guide`;
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        location: payload.location,
+        plantingDate: payload.plantingDate,
+        seedVariety: payload.seedVariety,
+        experience: payload.experience,
+        landSize: payload.landSize,
+        irrigationAvailable: payload.irrigationAvailable,
+        preparedness: payload.preparedness,
+      }),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(txt || "Failed to fetch advisor guide");
+    }
+
+    return res.json();
   };
 
   type ToggleRowProps = {
@@ -921,13 +1289,100 @@ const PriceAdvisorScreen: React.FC = () => {
     );
   };
 
-  const runFullAdvisor = () => {
-    // ✅ New explainable decision text
+  const runFullAdvisor = async () => {
+    // ✅ existing logic (keep)
     const { text, tag } = buildExplainableDecision();
-
     setFullAdvisorTag(tag);
     setFullAdvisorText(text);
 
+    const apiLocation = toApiLocation(form.district);
+    const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
+    const durationWeeks =
+      VARIETY_DURATION_WEEKS[seed] ?? VARIETY_DURATION_WEEKS["Unknown"];
+
+    // 1️⃣ Price Window (existing – KEEP)
+    try {
+      setPriceWindowLoading(true);
+
+      const startWeek = getCurrentWeekNum();
+
+      const priceRes = await fetchBestPlantingWindow({
+        location: apiLocation,
+        startWeek,
+        seedVariety: seed,
+      });
+
+      setPriceWindowResult(priceRes);
+    } catch (e) {
+      console.log("Price window unavailable:", e);
+      setPriceWindowResult(null);
+    } finally {
+      setPriceWindowLoading(false);
+    }
+
+    // 2️⃣ NEW — Date-based harvest advisory (ADD)
+
+    try {
+      setHarvestAdvisoryLoading(true);
+
+      if (form.plantingDateExact) {
+        const adv = await fetchHarvestAdvisoryByDate({
+          location: apiLocation,
+          plantingDate: form.plantingDateExact,
+          seedVariety: seed,
+        });
+
+        setHarvestAdvisoryResult(adv);
+      } else {
+        // farmer date select කරලා නැත්නම්
+        setHarvestAdvisoryResult(null);
+      }
+    } catch (e) {
+      console.log("Harvest advisory unavailable:", e);
+      setHarvestAdvisoryResult(null);
+    } finally {
+      setHarvestAdvisoryLoading(false);
+    }
+
+    // 3️⃣ NEW — Advisor Guide (ADD)
+    try {
+      setAdvisorGuideLoading(true);
+
+      if (form.plantingDateExact) {
+        const apiLocation = toApiLocation(form.district);
+        const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
+
+        const guide = await fetchAdvisorGuide({
+          location: apiLocation,
+          plantingDate: form.plantingDateExact,
+          seedVariety: seed,
+          experience: form.experienceLevel, // "new" | "some" | "experienced"
+          landSize: form.area || "0",
+          irrigationAvailable: form.hasIrrigation,
+          preparedness: {
+            seedReady: form.readiness.seeds,
+            waterReady: form.readiness.water,
+            fertilizerReady: form.readiness.fertilizer,
+            storageReady: form.readiness.land, // (ඔයාට storageReady වෙනම field එකක් නැති නිසා mapping)
+            financeReady: form.readiness.capital,
+          },
+        });
+
+        setAdvisorGuideResult(guide);
+        setShowAdvisorGuide(true); // open by default
+      } else {
+        setAdvisorGuideResult(null);
+      }
+    } catch (e) {
+      console.log("Advisor guide unavailable:", e);
+      setAdvisorGuideResult(null);
+    } finally {
+      setAdvisorGuideLoading(false);
+    }
+
+    // --------------------------------------------------
+    // 3️⃣ existing animation logic (KEEP)
+    // --------------------------------------------------
     Animated.parallel([
       Animated.timing(formSlideAnim, {
         toValue: -20,
@@ -966,7 +1421,6 @@ const PriceAdvisorScreen: React.FC = () => {
   const handleGoBack = () => navigation.goBack();
 
   // Render Variety Picker
-
   const renderVarietyPicker = () => {
     return (
       <Modal
@@ -1059,39 +1513,6 @@ const PriceAdvisorScreen: React.FC = () => {
     </Modal>
   );
 
-  const renderMonthPicker = () => (
-    <Modal visible={showMonthPicker} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.varietyModal}>
-          <View style={styles.varietyHeader}>
-            <Text style={styles.varietyTitle}>මාසය තෝරන්න</Text>
-            <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
-              <X color="#6B7280" size={24} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.varietyList}>
-            {MONTHS_SI.map((m) => (
-              <TouchableOpacity
-                key={m}
-                style={[
-                  styles.varietyItem,
-                  form.plantingDate === m && styles.varietyItemSelected,
-                ]}
-                onPress={() => {
-                  setForm((f) => ({ ...f, plantingDate: m }));
-                  setShowMonthPicker(false);
-                }}
-              >
-                <Text style={styles.varietyItemText}>{m}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-
   const saveMyPlan = async () => {
     try {
       const { done, total, percent } = getReadinessScore();
@@ -1169,6 +1590,8 @@ const PriceAdvisorScreen: React.FC = () => {
       setShowForm(true);
       setFullAdvisorText(null);
       setFullAdvisorTag(null);
+      setAdvisorGuideResult(null);
+      setShowAdvisorGuide(false);
 
       alert(
         language === "si"
@@ -1182,6 +1605,163 @@ const PriceAdvisorScreen: React.FC = () => {
           : "❌ Failed to restore the saved plan."
       );
     }
+  };
+
+  type StorageAdvice = {
+    required: boolean;
+    duration_weeks: number;
+    reason: string;
+    message_si: string;
+  };
+
+  const StorageAdviceCard = ({
+    storageAdvice,
+    language,
+  }: {
+    storageAdvice?: StorageAdvice;
+    language: "si" | "en";
+  }) => {
+    if (!storageAdvice || !storageAdvice.required) return null;
+
+    const title =
+      language === "si" ? "ගබඩා කිරීම සුදුසුයි" : "Storage is recommended";
+    const weeksLine =
+      language === "si"
+        ? `සති ${storageAdvice.duration_weeks}ක් පමණ ගබඩා කර තබාගත යුතුයි`
+        : `You may need to store for about ${storageAdvice.duration_weeks} weeks`;
+
+    const note =
+      language === "si"
+        ? "වියලි ස්ථානයක් තෝරන්න • වායු ගමනාගමනය හොඳ විය යුතුයි"
+        : "Choose a dry place • Ensure good ventilation";
+
+    return (
+      <View style={styles.storageCard}>
+        <View style={styles.storageHeader}>
+          <View style={styles.storageIconWrap}>
+            <Archive size={18} color="#92400E" />
+          </View>
+          <Text style={styles.storageTitle}>{title}</Text>
+        </View>
+
+        <Text style={styles.storageWeeks}>{weeksLine}</Text>
+
+        <Text style={styles.storageMsg}>{storageAdvice.message_si}</Text>
+
+        <View style={styles.storageNoteBox}>
+          <Text style={styles.storageNoteText}>⚠️ {note}</Text>
+        </View>
+      </View>
+    );
+  };
+
+  const HarvestTimelineBar = ({
+    language,
+    delayWeeks,
+    baseWeek,
+    bestWeek,
+  }: {
+    language: "si" | "en";
+    delayWeeks?: number;
+    baseWeek?: number;
+    bestWeek?: number;
+  }) => {
+    if (!baseWeek || !bestWeek) return null;
+
+    const dly = delayWeeks ?? Math.max(bestWeek - baseWeek, 0);
+
+    // ✅ Convert ISO week -> { year, monthLabel, weekOfMonth }
+    // using your existing helper: isoWeekToMonthWeekLabel()
+    const base = isoWeekToMonthWeekLabel(
+      baseWeek,
+      new Date().getFullYear(),
+      language
+    );
+    const best = isoWeekToMonthWeekLabel(
+      bestWeek,
+      new Date().getFullYear(),
+      language
+    );
+
+    // ✅ Option 3 copy (Sinhala/English)
+    const leftLine1 =
+      language === "si"
+        ? `${base.year} ${base.monthLabel} ${weekOrdinal(
+            base.weekOfMonth,
+            "si"
+          )} සතියේ `
+        : `If you sell in the ${weekOrdinal(base.weekOfMonth, "en")} week of ${
+            base.monthLabel
+          } ${base.year}`;
+
+    const leftLine2 =
+      language === "si"
+        ? "මිල සාමාන්‍යයි"
+        : "the market price will be moderate";
+
+    // optional: keep week number for system clarity
+    //const leftSub =
+    // language === "si"
+    //   ? `(Week ${baseWeek})`
+    //  : `(Week ${baseWeek})`;
+
+    const midTitle =
+      language === "si"
+        ? `සති ${dly}ක් කල් දැමුවහොත්`
+        : `delay cultivation by ${dly} weeks`;
+
+    const rightLine1 =
+      language === "si"
+        ? `${best.year} ${best.monthLabel} ${weekOrdinal(
+            best.weekOfMonth,
+            "si"
+          )} සතියේ`
+        : `In the ${weekOrdinal(best.weekOfMonth, "en")} week of ${
+            best.monthLabel
+          } ${best.year}`;
+
+    const rightLine2 =
+      language === "si"
+        ? "හොඳම විකුණුම් මිල"
+        : "you can get the best selling price";
+
+    //   const rightSub =
+    //    language === "si" ? `(Week ${bestWeek})` : `(Week ${bestWeek})`;
+
+    return (
+      <View style={styles.timelineCard}>
+        <View style={styles.timelineRow}>
+          {/* Left */}
+          <View style={styles.timelineStep}>
+            <Text style={styles.timelineIcon}>🌱</Text>
+
+            <Text style={styles.timelineTitle}>{leftLine1}</Text>
+            <Text style={styles.timelineDesc}>{leftLine2}</Text>
+
+            {/*    <Text style={styles.timelineWeek}>{leftSub}</Text> */}
+          </View>
+
+          {/* Middle */}
+          <View style={styles.timelineMiddle}>
+            <View style={styles.timelineLine} />
+            <View style={styles.timelinePill}>
+              <Text style={styles.timelinePillText}>⏳ {midTitle}</Text>
+            </View>
+            <View style={styles.timelineArrow} />
+          </View>
+
+          {/* Right */}
+          <View style={[styles.timelineStep, styles.timelineStepBest]}>
+            <Text style={styles.timelineIcon}>🌽</Text>
+
+            <Text style={styles.timelineTitle}>{rightLine1}</Text>
+            <Text style={styles.timelineDesc}>{rightLine2}</Text>
+
+            {/*    <Text style={styles.timelineWeek}>{rightSub}</Text> */}
+          </View>
+        </View>
+      </View>
+    );
   };
 
   return (
@@ -1265,9 +1845,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "start_now" && styles.quickCardActive,
+                  selectedQuestion === "best_time" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("start_now")}
+                onPress={() => handleQuestionPress("best_time")}
               >
                 <View style={styles.quickIconContainer}>
                   <Leaf color="#10B981" size={22} />
@@ -1278,9 +1858,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "before_start" && styles.quickCardActive,
+                  selectedQuestion === "suitable_soil" &&
+                    styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("before_start")}
+                onPress={() => handleQuestionPress("suitable_soil")}
               >
                 <View style={styles.quickIconContainer}>
                   <AlertTriangle color="#F59E0B" size={22} />
@@ -1291,10 +1872,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "district_time" &&
-                    styles.quickCardActive,
+                  selectedQuestion === "major_pests" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("district_time")}
+                onPress={() => handleQuestionPress("major_pests")}
               >
                 <View style={styles.quickIconContainer}>
                   <CloudSun color="#0EA5E9" size={22} />
@@ -1305,9 +1885,9 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "biggest_risk" && styles.quickCardActive,
+                  selectedQuestion === "fertilizers" && styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("biggest_risk")}
+                onPress={() => handleQuestionPress("fertilizers")}
               >
                 <View style={styles.quickIconContainer}>
                   <DollarSign color="#22C55E" size={22} />
@@ -1318,10 +1898,10 @@ const PriceAdvisorScreen: React.FC = () => {
               <TouchableOpacity
                 style={[
                   styles.quickCard,
-                  selectedQuestion === "need_professional" &&
+                  selectedQuestion === "management_practice" &&
                     styles.quickCardActive,
                 ]}
-                onPress={() => handleQuestionPress("need_professional")}
+                onPress={() => handleQuestionPress("management_practice")}
               >
                 <View style={styles.quickIconContainer}>
                   <TrendingUp color="#16A34A" size={22} />
@@ -1329,101 +1909,319 @@ const PriceAdvisorScreen: React.FC = () => {
                 <Text style={styles.quickTitle}>{t.q5}</Text>
               </TouchableOpacity>
             </View>
+            {/* 🔽 QUICK ANSWER DISPLAY (ADD THIS) */}
+            {selectedQuestion && quickAnswer && (
+              <View style={styles.quickAnswerBox}>
+                <Text style={styles.quickAnswerText}>{quickAnswer}</Text>
+              </View>
+            )}
           </View>
 
           {/* Advisor Result */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t.resultTitle}</Text>
-
-            {quickAnswer ? (
-              <View style={[styles.resultCard, { borderLeftColor: "#10B981" }]}>
-                <View style={styles.resultHeader}>
-                  <CheckCircle color="#10B981" size={24} />
-                  <Text style={styles.resultHeaderText}>
-                    {t.advisorTagGood}
-                  </Text>
+          {(fullAdvisorText ||
+            priceWindowResult ||
+            harvestAdvisoryResult ||
+            priceWindowLoading ||
+            harvestAdvisoryLoading) && (
+            <View style={styles.section}>
+              <View style={styles.unifiedAdvisorCard}>
+                {/* Header with Icon */}
+                <View style={styles.advisorHeader}>
+                  <View style={styles.advisorIconContainer}>
+                    <Leaf color="#FFFFFF" size={28} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.advisorMainTitle}>
+                      {language === "si"
+                        ? "වගා උපදේශක ප්‍රතිඵලය"
+                        : "Cultivation Advisory Result"}
+                    </Text>
+                    <Text style={styles.advisorSubtitle}>
+                      {language === "si"
+                        ? "සම්පූර්ණ විශ්ලේෂණය සහ නිර්දේශ"
+                        : "Complete Analysis & Recommendations"}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.resultText}>{quickAnswer}</Text>
-              </View>
-            ) : (
-              <View style={[styles.resultCard, { borderLeftColor: "#E5E7EB" }]}>
-                <Text style={styles.resultText}>{t.noQuestionSelected}</Text>
-              </View>
-            )}
 
-            {fullAdvisorText && (
-              <View
-                style={[
-                  styles.resultCard,
-                  {
-                    borderLeftColor:
-                      fullAdvisorTag === "good"
-                        ? "#10B981"
-                        : fullAdvisorTag === "warn"
-                        ? "#EF4444"
-                        : "#F59E0B",
-                  },
-                ]}
-              >
-                {/* Readiness Circular Progress */}
-                {(() => {
-                  const { percent } = getReadinessScore();
-                  return <CircularProgress percent={percent} />;
-                })()}
+                <View style={styles.combinedSummary}>
+                  {/* Top badges */}
+                  <View style={styles.badgeRow}>
+                    {priceWindowResult?.best_option?.label && (
+                      <View
+                        style={[
+                          styles.badge,
+                          priceWindowResult.best_option.label === "STRONG"
+                            ? styles.badgeStrong
+                            : priceWindowResult.best_option.label === "MODERATE"
+                            ? styles.badgeModerate
+                            : styles.badgeWeak,
+                        ]}
+                      >
+                        <Text style={styles.badgeText}>
+                          {priceWindowResult.best_option.label}
+                        </Text>
+                      </View>
+                    )}
 
-                <View style={styles.resultHeader}>
-                  {fullAdvisorTag === "good" && (
-                    <CheckCircle color="#10B981" size={24} />
-                  )}
-                  {fullAdvisorTag === "warn" && (
-                    <AlertTriangle color="#EF4444" size={24} />
-                  )}
-                  {fullAdvisorTag === "info" && (
-                    <TrendingUp color="#F59E0B" size={24} />
-                  )}
-                  <Text style={styles.resultHeaderText}>
-                    {fullAdvisorTag === "good"
-                      ? t.advisorTagGood
-                      : fullAdvisorTag === "warn"
-                      ? t.advisorTagWarn
-                      : t.advisorTagInfo}
+                    {priceWindowResult?.best_option?.confidence && (
+                      <View style={[styles.badge, styles.badgeConfidence]}>
+                        <Text style={styles.badgeText}>
+                          Confidence: {priceWindowResult.best_option.confidence}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Main recommendation */}
+                  <Text style={styles.mainActionText}>
+                    {computedDelayWeeks == null
+                      ? language === "si"
+                        ? "අස්වැන්න පිළිබඳ නිර්දේශ ලබාගැනෙමින්..."
+                        : "Loading harvest recommendation..."
+                      : computedDelayWeeks === 0
+                      ? language === "si"
+                        ? "දැන් Harvest කිරීම සුදුසුයි"
+                        : "Harvest now"
+                      : language === "si"
+                      ? `අස්වැන්න සති ${computedDelayWeeks}ක් පමා කරන්න`
+                      : `Delay harvest by ${computedDelayWeeks} weeks`}
                   </Text>
+
+                  {/* ✅ Graphical timeline (NEW) */}
+                  <HarvestTimelineBar
+                    language={language}
+                    delayWeeks={computedDelayWeeks}
+                    baseWeek={computedBaseWeek}
+                    bestWeek={computedBestWeek}
+                  />
+
+                  {/* Reason / explanation */}
+                  {(farmerHarvestText || farmerPriceText) && (
+                    <Text style={styles.reasonText}>
+                      {farmerHarvestText ?? farmerPriceText}
+                    </Text>
+                  )}
+
+                  {/* ✅ Storage advice card (NEW) */}
+                  <StorageAdviceCard
+                    storageAdvice={harvestAdvisoryResult?.storage_advice}
+                    language={language}
+                  />
                 </View>
-                <Text style={styles.resultText}>{t.fullResultSummary}</Text>
-                <Text style={[styles.resultText, { marginTop: 6 }]}>
-                  {fullAdvisorText}
-                </Text>
-                {/* ✏️ Edit Inputs */}
-                <TouchableOpacity
-                  style={styles.secondaryButton}
-                  onPress={handleEditInputs}
-                >
-                  <Text style={styles.secondaryButtonText}>{t.editInputs}</Text>
-                </TouchableOpacity>
 
-                {/* 💾 Save My Plan */}
-                <TouchableOpacity
-                  style={[
-                    styles.secondaryButton,
-                    {
-                      marginTop: 10,
-                      backgroundColor: "#F0FDF4",
-                      borderColor: "#047857",
-                    },
-                  ]}
-                  onPress={saveMyPlan}
-                >
-                  <Text
-                    style={[styles.secondaryButtonText, { color: "#047857" }]}
-                  >
-                    {language === "si"
-                      ? "💾 මගේ වගා සැලසුම සුරකින්න"
-                      : "💾 Save my cultivation plan"}
-                  </Text>
-                </TouchableOpacity>
+                {/* Readiness Progress at Top */}
+                {fullAdvisorText && (
+                  <>
+                    {(() => {
+                      const { percent } = getReadinessScore();
+                      return <CircularProgress percent={percent} />;
+                    })()}
+
+                    {/* Decision Badge */}
+                    <View
+                      style={[
+                        styles.decisionBadge,
+                        {
+                          backgroundColor:
+                            fullAdvisorTag === "good"
+                              ? "#ECFDF5"
+                              : fullAdvisorTag === "warn"
+                              ? "#FEF2F2"
+                              : "#FEF3C7",
+                        },
+                      ]}
+                    >
+                      {fullAdvisorTag === "good" && (
+                        <CheckCircle color="#10B981" size={20} />
+                      )}
+                      {fullAdvisorTag === "warn" && (
+                        <AlertTriangle color="#EF4444" size={20} />
+                      )}
+                      {fullAdvisorTag === "info" && (
+                        <TrendingUp color="#F59E0B" size={20} />
+                      )}
+
+                      <Text
+                        style={[
+                          styles.decisionText,
+                          {
+                            color:
+                              fullAdvisorTag === "good"
+                                ? "#065F46"
+                                : fullAdvisorTag === "warn"
+                                ? "#991B1B"
+                                : "#92400E",
+                          },
+                        ]}
+                      >
+                        {fullAdvisorTag === "good"
+                          ? t.advisorTagGood
+                          : fullAdvisorTag === "warn"
+                          ? t.advisorTagWarn
+                          : t.advisorTagInfo}
+                      </Text>
+                    </View>
+
+                    {/* Main Advisory Text */}
+                    <View style={styles.advisorySection}>
+                      <Text style={styles.advisoryText}>{fullAdvisorText}</Text>
+                    </View>
+
+                                                                {/* ✅ Advisor Guide (NEW) */}
+                {(advisorGuideLoading || advisorGuideResult?.advisor_guide) && (
+                  <View style={{ marginTop: 14 }}>
+                    <TouchableOpacity
+                      onPress={() => setShowAdvisorGuide((s) => !s)}
+                      style={{
+                        padding: 14,
+                        borderRadius: 14,
+                        backgroundColor: "#F0FDF4",
+                        borderWidth: 1.5,
+                        borderColor: "#A7F3D0",
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "800",
+                          color: "#065F46",
+                        }}
+                      >
+                        {language === "si"
+                          ? "📘 උපදේශක මාර්ගෝපදේශය"
+                          : "📘 Advisor Guide"}
+                      </Text>
+
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: "700",
+                          color: "#047857",
+                        }}
+                      >
+                        {showAdvisorGuide
+                          ? language === "si"
+                            ? "Hide"
+                            : "Hide"
+                          : language === "si"
+                          ? "Show"
+                          : "Show"}
+                      </Text>
+                    </TouchableOpacity>
+
+                    {showAdvisorGuide && (
+                      <View
+                        style={{
+                          marginTop: 10,
+                          padding: 14,
+                          borderRadius: 14,
+                          backgroundColor: "#FFFFFF",
+                          borderWidth: 1,
+                          borderColor: "#D1FAE5",
+                        }}
+                      >
+                        {advisorGuideLoading ? (
+                          <Text style={{ color: "#6B7280" }}>
+                            {language === "si"
+                              ? "ලබාගැනෙමින්..."
+                              : "Loading..."}
+                          </Text>
+                        ) : (
+                          <>
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                              }}
+                            >
+                              🌱 {advisorGuideResult?.advisor_guide?.seed}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              💧 {advisorGuideResult?.advisor_guide?.water}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              🧪 {advisorGuideResult?.advisor_guide?.fertilizer}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              🏠 {advisorGuideResult?.advisor_guide?.storage}
+                            </Text>
+
+                            <Text
+                              style={{
+                                fontSize: 13,
+                                color: "#065F46",
+                                lineHeight: 19,
+                                marginTop: 8,
+                              }}
+                            >
+                              💰 {advisorGuideResult?.advisor_guide?.finance}
+                            </Text>
+                          </>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                )}
+
+
+                    {/* Divider */}
+                    <View style={styles.sectionDivider} />
+                  </>
+                )}
+
+                {/* Action Buttons */}
+                {fullAdvisorText && (
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={handleEditInputs}
+                    >
+                      <Text style={styles.editButtonText}>{t.editInputs}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.saveButton}
+                      onPress={saveMyPlan}
+                    >
+                      <Text style={styles.saveButtonText}>
+                        {language === "si" ? "💾 සුරකින්න" : "💾 Save Plan"}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
+            </View>
+          )}
+
           {/* 👨‍🌾 Agri Officer Support — Always Visible */}
           <View style={styles.section}>
             <View style={styles.assistCard}>
@@ -1496,27 +2294,78 @@ const PriceAdvisorScreen: React.FC = () => {
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Month */}
+                  {/* Exact Planting Date */}
                   <Text style={styles.inputLabel}>
                     {language === "si"
-                      ? "වගාව ආරම්භ කිරීමට අදහස් කරන මාසය"
-                      : "Planned month to start cultivation"}
+                      ? "නිශ්චිතව වගා කරන දිනය"
+                      : "Exact planting date"}
                   </Text>
-                  <TouchableOpacity
-                    style={styles.pickerInput}
-                    onPress={() => setShowMonthPicker(true)}
-                  >
-                    <Calendar color="#10B981" size={20} />
-                    <Text
-                      style={[
-                        styles.pickerText,
-                        !form.plantingDate && styles.pickerPlaceholder,
-                      ]}
-                    >
-                      {form.plantingDate ||
-                        (language === "si" ? "මාසය තෝරන්න" : "Select month")}
-                    </Text>
-                  </TouchableOpacity>
+
+                  {Platform.OS === "web" ? (
+                    // 🌐 WEB DATE PICKER
+                    <input
+                      type="date"
+                      value={form.plantingDateExact}
+                      onChange={(e) =>
+                        setForm((f) => ({
+                          ...f,
+                          plantingDateExact: e.target.value,
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "12px",
+                        borderRadius: 12,
+                        border: "1px solid #D1FAE5",
+                        fontSize: 14,
+                        outline: "none",
+                      }}
+                    />
+                  ) : (
+                    // 📱 MOBILE DATE PICKER
+                    <>
+                      <TouchableOpacity
+                        style={styles.pickerInput}
+                        onPress={() => {
+                          setTempDate(
+                            form.plantingDateExact
+                              ? new Date(form.plantingDateExact)
+                              : new Date()
+                          );
+                          setShowDatePicker(true);
+                        }}
+                      >
+                        <Calendar color="#10B981" size={20} />
+                        <Text
+                          style={[
+                            styles.pickerText,
+                            !form.plantingDateExact && styles.pickerPlaceholder,
+                          ]}
+                        >
+                          {form.plantingDateExact ||
+                            (language === "si" ? "දිනය තෝරන්න" : "Select date")}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={tempDate}
+                          mode="date"
+                          display="default"
+                          onChange={(event, selectedDate) => {
+                            setShowDatePicker(false);
+                            if (selectedDate) {
+                              const iso = toISODate(selectedDate);
+                              setForm((f) => ({
+                                ...f,
+                                plantingDateExact: iso,
+                              }));
+                            }
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
 
                   {/* Seed Variety */}
                   <Text style={styles.inputLabel}>{t.formVariety}</Text>
@@ -1727,7 +2576,6 @@ const PriceAdvisorScreen: React.FC = () => {
 
       {renderVarietyPicker()}
       {renderDistrictPicker()}
-      {renderMonthPicker()}
     </View>
   );
 };
@@ -1881,7 +2729,6 @@ const styles = StyleSheet.create({
     width: (width - 20 * 2 - 12) / 2,
     minHeight: 70,
   },
-
   quickCardActive: {
     borderColor: "#10B981",
     backgroundColor: "#ECFDF5",
@@ -1900,7 +2747,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: "#D1FAE5",
   },
-
   quickTitle: {
     fontSize: 12,
     color: "#065F46",
@@ -1908,37 +2754,6 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: "wrap",
     lineHeight: 16,
-  },
-
-  resultCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 18,
-    borderLeftWidth: 5,
-    borderColor: "#E5E7EB",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  resultHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 10,
-  },
-  resultHeaderText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#065F46",
-    letterSpacing: 0.2,
-  },
-  resultText: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 21,
   },
   formCard: {
     backgroundColor: "#FFFFFF",
@@ -2022,79 +2837,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
   },
-  // Modal Styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-  },
-  calendarModal: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    width: "100%",
-    maxWidth: 400,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  calendarHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#065F46",
-  },
-  calendarDayNames: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 10,
-  },
-  dayName: {
-    width: 40,
-    textAlign: "center",
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  calendarGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  calendarDay: {
-    width: "14.28%",
-    aspectRatio: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 8,
-  },
-  calendarDayEmpty: {
-    backgroundColor: "transparent",
-  },
-  calendarDayText: {
-    fontSize: 14,
-    color: "#065F46",
-    fontWeight: "500",
-  },
-  modalCloseButton: {
-    marginTop: 16,
-    backgroundColor: "#F3F4F6",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  modalCloseText: {
-    color: "#6B7280",
-    fontSize: 14,
-    fontWeight: "600",
   },
   varietyModal: {
     backgroundColor: "#FFFFFF",
@@ -2180,7 +2928,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   badgeText: {
     color: "#FFFFFF",
     fontSize: 10,
@@ -2229,7 +2976,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#A7F3D0",
   },
-
   assistIcon: {
     width: 42,
     height: 42,
@@ -2238,20 +2984,17 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   assistTitle: {
     fontSize: 15,
     fontWeight: "700",
     color: "#065F46",
   },
-
   assistDesc: {
     fontSize: 13,
     color: "#374151",
     marginTop: 2,
     lineHeight: 18,
   },
-
   assistButton: {
     marginTop: 14,
     backgroundColor: "#047857",
@@ -2264,10 +3007,343 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-
   assistButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
+  },
+  unifiedAdvisorCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  advisorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#E5E7EB",
+  },
+  advisorIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#10B981",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  advisorMainTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#065F46",
+    letterSpacing: 0.3,
+  },
+  advisorSubtitle: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  decisionBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    marginVertical: 12,
+    alignSelf: "center",
+  },
+  decisionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  advisorySection: {
+    marginTop: 16,
+  },
+  advisoryText: {
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 16,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  sectionTitleText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+  confidenceText: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 20,
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+  editButtonText: {
+    color: "#374151",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: "#ECFDF5",
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#10B981",
+  },
+  saveButtonText: {
+    color: "#047857",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  combinedSummary: {
+    marginTop: 8,
+  },
+  badgeRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  badgeStrong: { backgroundColor: "#DCFCE7" },
+  badgeModerate: { backgroundColor: "#FEF3C7" },
+  badgeWeak: { backgroundColor: "#FEE2E2" },
+  badgeConfidence: { backgroundColor: "#E0F2FE" },
+  mainActionText: {
+    fontSize: 18,
+    fontWeight: "700",
+    textAlign: "center",
+    color: "#064E3B",
+    marginBottom: 14,
+  },
+  reasonText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  storageCard: {
+    marginTop: 14,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1.5,
+    borderColor: "#FCD34D",
+  },
+  storageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 8,
+  },
+  storageIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "#FEF3C7",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FCD34D",
+  },
+  storageTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#92400E",
+    flex: 1,
+  },
+  storageWeeks: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#78350F",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  storageMsg: {
+    fontSize: 13,
+    color: "#451A03",
+    lineHeight: 19,
+    textAlign: "center",
+  },
+  storageNoteBox: {
+    marginTop: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: "#FEF3C7",
+  },
+  storageNoteText: {
+    fontSize: 12,
+    color: "#92400E",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  timelineCard: {
+    marginTop: 12,
+    marginBottom: 12,
+    paddingVertical: 12, // 🔧 top/bottom balance
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1.5,
+    borderColor: "#A7F3D0",
+  },
+
+  timelineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center", // ✅ center everything
+    gap: 8, // ✅ controlled spacing
+  },
+
+  timelineStep: {
+    flex: 1, // ✅ responsive width
+    minHeight: 104,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    paddingHorizontal: 6, // 🔧 side empty space reduce
+  },
+
+  timelineStepBest: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 8, // 🔧 slightly more than left
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  timelineIcon: {
+    fontSize: 20,
+    marginBottom: 2, // 🔧 from 4 → 2
+  },
+
+  timelineTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#065F46",
+    textAlign: "center",
+    lineHeight: 16, // 🔧 text spacing consistency
+  },
+
+  timelineDesc: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#065F46",
+    textAlign: "center",
+    lineHeight: 16,
+    marginTop: 2, // 🔧 controlled gap between lines
+  },
+
+  timelineWeek: {
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7280", // 🔧 de-emphasize week label
+    textAlign: "center",
+  },
+
+  timelineMiddle: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    height: 52,
+    marginHorizontal: 6, // ⬅️ from 4 → 6 (breathing space)
+  },
+  timelineLine: {
+    position: "absolute",
+    height: 4,
+    left: 10,
+    right: 10,
+    borderRadius: 999,
+    backgroundColor: "#10B981",
+    opacity: 0.25,
+  },
+  timelinePill: {
+    paddingHorizontal: 14, // ⬅️ from 12 → 14
+    paddingVertical: 6,
+    minWidth: 100, // ⬅️ from 82 → 100 (MAIN FIX)
+    borderRadius: 999,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#10B981",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  timelinePillText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#047857",
+    lineHeight: 14,
+    textAlign: "center",
+  },
+
+  timelineArrow: {
+    position: "absolute",
+    right: -6, // ⬅️ from 2 → -6 (push arrow outward)
+    width: 0,
+    height: 0,
+    borderTopWidth: 6,
+    borderBottomWidth: 6,
+    borderLeftWidth: 10,
+    borderTopColor: "transparent",
+    borderBottomColor: "transparent",
+    borderLeftColor: "#10B981",
+    opacity: 0.6,
+  },
+
+  quickAnswerBox: {
+    padding: 14,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+    marginTop: 20,
+  },
+
+  quickAnswerText: {
+    fontSize: 14,
+    color: "#065F46",
+    lineHeight: 20,
   },
 });

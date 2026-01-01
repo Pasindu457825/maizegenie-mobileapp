@@ -12,10 +12,12 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { Leaf, Users, Package, ArrowLeft, Sparkles } from "lucide-react-native";
+import { Leaf, Users, Package, ArrowLeft, Sparkles, TestTube } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import DataConfirmationModal from "../../components/DataConfirmationModal";
+import ProUpgradePopup from "../../components/ProUpgradePopup";
 
 const { width } = Dimensions.get("window");
 
@@ -29,7 +31,9 @@ const YieldPredictionLoadingScreen = () => {
   const { language: lang } = useLanguage();
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
+  const [showProPopup, setShowProPopup] = useState(false);
   const { user } = useApp();
 
   // Role-based authentication using Supabase user data
@@ -58,6 +62,10 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
+      farmerForecastTitle: "දළ පුරෝකථනය",
+      farmerForecastDesc: "ඉක්මන් සහ සරල අස්වැන්න පුරෝකථනය",
+      officerForecastTitle: "වෘත්තීය/උසස් විශ්ලේෂණය",
+      officerForecastDesc: "සවිස්තරාත්මක සහ ගැඹුරු අස්වැන්න විශ්ලේෂණය",
       fertilizerTitle: "පොහොර උපදේශ",
       fertilizerDesc: "පුද්ගලාරෝපිත පොහොර නිර්දේශ ලබා ගන්න",
       fertilizerRecommendation: "පොහොර නිර්දේශ",
@@ -65,6 +73,8 @@ const YieldPredictionLoadingScreen = () => {
       farmerRequests: "ගොවි ඉල්ලීම්",
       farmerRequestsDesc: "ඉදිරි දිනවල",
       comingSoon: "ඉදිරි දිනවල",
+      soilTestTitle: "පස් පරීක්ෂණ ඉල්ලීම",
+      soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න - ආසන්නතම කෘෂිකර්ම නිලධාරියා සම්බන්ධ කරගන්න",
     },
     en: {
       title: "Yield Prediction and Fertilizer Advisory",
@@ -72,6 +82,10 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
+      farmerForecastTitle: "Gross Forecast",
+      farmerForecastDesc: "Quick and simple yield prediction",
+      officerForecastTitle: "Professional/Advanced Analysis",
+      officerForecastDesc: "Detailed and deep yield analysis",
       fertilizerTitle: "Fertilizer Advices",
       fertilizerDesc: "Get personalized fertilizer recommendations",
       fertilizerRecommendation: "Fertilizer Recommendation",
@@ -79,7 +93,18 @@ const YieldPredictionLoadingScreen = () => {
       farmerRequests: "Farmer Requests",
       farmerRequestsDesc: "Coming soon",
       comingSoon: "Coming soon",
+      soilTestTitle: "Request Soil Testing",
+      soilTestDesc: "Request a soil test for your land - Contact nearest agri officer",
     },
+  };
+
+  const showOfficerDataConfirmation = () => {
+    setShowConfirmationModal(true);
+  };
+
+  const handleConfirmProceed = () => {
+    setShowConfirmationModal(false);
+    navigation.navigate("YieldPredictionOfficerFormScreen", { language });
   };
 
   const handleRoleSelect = (role: "farmer" | "officer") => {
@@ -117,7 +142,8 @@ const YieldPredictionLoadingScreen = () => {
     if (role === "farmer") {
       navigation.navigate("YieldPredictionFormScreen", { role, language });
     } else {
-      navigation.navigate("YieldPredictionOfficerFormScreen", { language });
+      // Show data confirmation checklist for officers
+      showOfficerDataConfirmation();
     }
   };
 
@@ -202,10 +228,10 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                   <View style={styles.roleContent}>
                     <Text style={styles.roleTitle}>
-                      {content[language].startTitle}
+                      {content[language].farmerForecastTitle}
                     </Text>
                     <Text style={styles.roleDesc}>
-                      {content[language].startDesc}
+                      {content[language].farmerForecastDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>
@@ -242,6 +268,39 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
+
+              {/* Card 3: Soil Test Request (Pro Feature) */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => setShowProPopup(true)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#FEF3C7", "#FDE68A"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
+                    <TestTube color="#f59e0b" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <View style={styles.proFeatureBadge}>
+                      <Sparkles size={12} color="#f59e0b" />
+                      <Text style={styles.proFeatureText}>Pro</Text>
+                    </View>
+                    <Text style={styles.roleTitle}>
+                      {content[language].soilTestTitle}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].soilTestDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
             </>
           ) : (
             <>
@@ -262,10 +321,10 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                   <View style={styles.roleContent}>
                     <Text style={styles.roleTitle}>
-                      {content[language].startTitle}
+                      {content[language].officerForecastTitle}
                     </Text>
                     <Text style={styles.roleDesc}>
-                      {content[language].startDesc}
+                      {content[language].officerForecastDesc}
                     </Text>
                   </View>
                   <View style={styles.roleArrow}>
@@ -307,6 +366,24 @@ const YieldPredictionLoadingScreen = () => {
         </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Data Confirmation Modal */}
+      <DataConfirmationModal
+        visible={showConfirmationModal}
+        onClose={() => setShowConfirmationModal(false)}
+        onConfirm={handleConfirmProceed}
+        language={language}
+      />
+
+      {/* Pro Upgrade Popup */}
+      <ProUpgradePopup
+        visible={showProPopup}
+        onClose={() => setShowProPopup(false)}
+        onUpgrade={() => {
+          setShowProPopup(false);
+          navigation.navigate("Payment" as any, { plan: "pro", amount: 2499 });
+        }}
+      />
     </View>
   );
 };
@@ -483,6 +560,23 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#1F2937",
     fontWeight: "700",
+  },
+  proFeatureBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginBottom: 6,
+  },
+  proFeatureText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#f59e0b",
+    letterSpacing: 0.5,
   },
 });
 

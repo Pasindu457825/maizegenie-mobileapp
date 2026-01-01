@@ -4,7 +4,17 @@
 
 from datetime import datetime, timedelta
 from typing import Dict, List
-from .ml_model import predict_yield_ml, USE_ML
+import logging
+
+# Import new ML prediction service
+try:
+    from .ml_prediction_service import get_ml_prediction, MODEL_LOADED
+    ML_AVAILABLE = MODEL_LOADED
+except ImportError as e:
+    logging.warning(f"ML prediction service not available: {e}")
+    ML_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 
 # ============================================================
@@ -185,44 +195,53 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
 # ============================================================
 def predict_yield_service(data: Dict) -> Dict:
     """
-    Main prediction service.
+    Main prediction service with ML-first approach.
     Returns format that matches frontend expectations EXACTLY.
+    
+    Strategy:
+    1. Try ML model first (XGBoost) - most accurate
+    2. Fallback to rule-based if ML fails
+    3. Return comprehensive prediction with impact factors
     
     Frontend expects:
     {
-        "yield_prediction_t_ha": float,
+        "predicted_yield": float (kg/ha),
+        "predicted_yield_t_ha": float,
         "confidence": "High" | "Medium" | "Low",
+        "confidence_score": float,
         "harvest_window": { "start": str, "end": str, "target": str },
         "calendar_event": { "title": str, "date": str },
-        "factors": [ { "name": str, "impact": str, "value": float } ]
+        "factors": [ { "name": str, "impact": str, "value": float } ],
+        "model_version": str,
+        "prediction_method": "ML" | "Rule-Based"
     }
     """
     
-    # Try ML model first
+    # Try ML prediction first (XGBoost model)
+    if ML_AVAILABLE:
+        try:
+            logger.info("🤖 Using ML prediction (XGBoost) for farmer")
+            response = get_ml_prediction(data)
+            logger.info(f"✅ ML prediction successful: {response['predicted_yield']:.2f} kg/ha")
+            return response
+        except Exception as e:
+            logger.warning(f"⚠️ ML prediction failed, falling back to rule-based: {e}")
+    else:
+        logger.info("⚠️ ML model not available, using rule-based prediction")
+    
+    # Fallback to rule-based prediction
+    logger.info("📊 Using rule-based prediction for farmer")
     multipliers = {}
-    try:
-        if USE_ML:
-            yield_kg_ha = predict_yield_ml(data)
-            confidence_score = 0.9
-            # Estimate multipliers from data for ML predictions
-            multipliers = {
-                "variety": 1.2,
-                "soil": 1.0,
-                "irrigation": 1.0,
-                "rainfall": 1.0,
-                "season": 1.0,
-            }
-        else:
-            raise RuntimeError("ML not available")
-    except Exception as e:
-        # Fallback to rule-based
-        print(f"[YieldService] Using rule-based prediction: {e}")
-        yield_kg_ha, multipliers = rule_based_yield(data)
-        confidence_score = 0.7
+    yield_kg_ha, multipliers = rule_based_yield(data)
+    confidence_score = 0.7
     
     # Determine confidence level
     if data.get("gps_lat") and data.get("gps_lng"):
         confidence_score += 0.05  # Bonus for GPS data
+    
+    # Adjust confidence based on data quality
+    if data.get("soil_condition") == "Good" and data.get("irrigation_type") == "Irrigated":
+        confidence_score += 0.05
     
     if confidence_score >= 0.85:
         confidence = "High"
@@ -243,7 +262,9 @@ def predict_yield_service(data: Dict) -> Dict:
     # Build response in EXACT format frontend expects
     response = {
         "predicted_yield": round(yield_kg_ha, 2),  # kg/ha for frontend
+        "predicted_yield_t_ha": round(yield_kg_ha / 1000, 2),  # t/ha
         "confidence": confidence,
+        "confidence_score": round(confidence_score, 3),
         "harvest_window": {
             "start": start.strftime("%Y-%m-%d"),
             "end": end.strftime("%Y-%m-%d"),
@@ -254,6 +275,10 @@ def predict_yield_service(data: Dict) -> Dict:
             "date": target.strftime("%Y-%m-%d"),
         },
         "factors": factors,
+        "model_version": "Rule-Based_v1.0",
+        "prediction_method": "Rule-Based",
     }
+    
+    logger.info(f"✅ Rule-based prediction: {yield_kg_ha:.2f} kg/ha")
     
     return response
