@@ -5,6 +5,7 @@ import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScre
 import AdminAddOfficialNewsScreen from "../screens/AdminPanel/AdminAddOfficialNewsScreen";
 import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNewsScreen";
 import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
+import ProAdvisorAdminEditScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminEditScreen";
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,10 @@ export default function AdminStack() {
             <Stack.Screen
         name="ProAdvisorAdminAdd"
         component={ProAdvisorAdminAddScreen}
+      />
+            <Stack.Screen
+        name="ProAdvisorAdminEdit"
+        component={ProAdvisorAdminEditScreen}
       />
     </Stack.Navigator>
   );

@@ -18,6 +18,7 @@ import {
   Droplets,
   Wind,
   Thermometer,
+  Lightbulb,
 } from "lucide-react-native";
 import {
   Sun,
@@ -73,6 +74,7 @@ type RootStackParamList = {
   PriceAdvisorScreen: { formData: any } | undefined;
   Notifications: undefined;
   AdminPanelScreen: undefined;
+  ProAdvisorFollowScreen: { formData: any };
 };
 
 type Language = "si" | "en";
@@ -638,7 +640,9 @@ const PriceForecastLoadingScreen = () => {
                 </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle}>
-                    {language === "si" ? "🌱 වගා උපදෙස්" : "🌱 Cultivation Advisor"}
+                    {language === "si"
+                      ? "🌱 වගා උපදෙස්"
+                      : "🌱 Cultivation Advisor"}
                   </Text>
                   <Text style={styles.cardDescription}>
                     {language === "si"
@@ -674,6 +678,42 @@ const PriceForecastLoadingScreen = () => {
                         : "Officer-only price data entry"}
                     </Text>
                   </View>
+                  <View style={styles.cardArrow}>
+                    <Text style={styles.arrowText}>→</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+              {isOfficer && (
+                <TouchableOpacity
+                  style={[styles.featureCard, styles.proAdvisorCard]}
+                  onPress={() =>
+                    rootNavigation.navigate("ProAdvisorFollowScreen", {
+                      formData: {
+                        source: "officer",
+                      },
+                    })
+                  }
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.cardIconContainer}>
+                    <View style={styles.cardIconCircle}>
+                      <Lightbulb color="#047857" size={28} />
+                    </View>
+                  </View>
+
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>
+                      {language === "si"
+                        ? "Pro Advisor උපදෙස් එකතු කරන්න"
+                        : "Add Pro Advisor Guidance"}
+                    </Text>
+                    <Text style={styles.cardDescription}>
+                      {language === "si"
+                        ? "Pro Advisor උපදෙස් කළමනාකරණය කිරීම"
+                        : "Manage Pro Advisor guidance"}
+                    </Text>
+                  </View>
+
                   <View style={styles.cardArrow}>
                     <Text style={styles.arrowText}>→</Text>
                   </View>
@@ -1067,6 +1107,9 @@ const styles = StyleSheet.create({
     color: "#047857",
     fontSize: 10,
     fontWeight: "bold",
+  },
+  proAdvisorCard: {
+    borderColor: "#A7F3D0",
   },
 });
 export default PriceForecastLoadingScreen;

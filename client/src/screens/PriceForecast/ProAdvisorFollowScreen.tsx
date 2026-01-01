@@ -10,9 +10,16 @@ import {
   UIManager,
   ActivityIndicator,
   Image,
+  Alert,
 } from "react-native";
 import axios from "axios";
-import { ArrowLeft, Plus, ChevronDown } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Plus,
+  ChevronDown,
+  Pencil,
+  Trash2,
+} from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
@@ -49,11 +56,8 @@ export default function ProAdvisorListScreen() {
   const [data, setData] = useState<ProAdvisorItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
   const { user } = useApp();
 
-  // Role-based authentication using Supabase user data
-  const isFarmer = user?.role === "farmer";
   const isOfficer = user?.role === "officer";
 
   /* ---------- Fetch ---------- */
@@ -79,6 +83,7 @@ export default function ProAdvisorListScreen() {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setExpandedId((prev) => (prev === id ? null : id));
   };
+
 
   /* ---------- UI ---------- */
   return (
@@ -134,12 +139,28 @@ export default function ProAdvisorListScreen() {
                   />
                 </TouchableOpacity>
 
-                {/* EXPANDED */}
+                {/* OFFICER ACTIONS */}
+                {isOfficer && isOpen && (
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() =>
+                        navigation.navigate("ProAdvisorAdminEdit", {
+                          advisorId: item.id,
+                        })
+                      }
+                    >
+                      <Pencil size={16} color="#065F46" />
+                      <Text style={styles.actionText}>Edit</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* EXPANDED CONTENT */}
                 {isOpen &&
                   item.blocks.map((block, idx) => (
                     <View key={idx} style={styles.blockCard}>
                       <Text style={styles.subTitle}>{block.subtitle}</Text>
-
                       <Text style={styles.contentText}>{block.content}</Text>
 
                       {block.image_url && (
@@ -214,6 +235,49 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     color: "#065F46",
+  },
+
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 10,
+    marginTop: 8,
+  },
+
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#6EE7B7",
+  },
+
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
+  },
+
+  actionText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#065F46",
+  },
+
+  deleteText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#B91C1C",
   },
 
   blockCard: {

@@ -24,6 +24,8 @@ import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNe
 import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
 import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
+import ProAdvisorAdminEditScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminEditScreen";
+import ProAdvisorFollowScreen from"../screens/PriceForecast/ProAdvisorFollowScreen";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -68,6 +70,12 @@ export type RootStackParamList = {
   };
 
   ProAdvisorAdminAdd: undefined;
+  ProAdvisorAdminEdit: {
+    advisorId: string;
+  };
+  ProAdvisorFollowScreen: {
+    formData: any;   
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -125,6 +133,15 @@ export default function RootNavigator() {
       <Stack.Screen
         name="ProAdvisorAdminAdd"
         component={ProAdvisorAdminAddScreen}
+      />
+
+      <Stack.Screen
+        name="ProAdvisorAdminEdit"
+        component={ProAdvisorAdminEditScreen}
+      />
+      <Stack.Screen
+        name="ProAdvisorFollowScreen"
+        component={ProAdvisorFollowScreen}
       />
 
 

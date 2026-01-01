@@ -136,15 +136,27 @@ def delete_pro_advisor(advisor_id: str):
     if not existing.data:
         raise HTTPException(status_code=404, detail="Pro advisor content not found")
 
-    supabase.table("pro_advisor_content").update(
-        {
-            "is_active": False,
-            "updated_at": now_iso()
-        }
-    ).eq("id", advisor_id).execute()
+    res = (
+        supabase
+        .table("pro_advisor_content")
+        .update(
+            {
+                "is_active": False,
+                "updated_at": now_iso()
+            }
+        )
+        .eq("id", advisor_id)
+        .execute()
+    )
+
+    # 🔴 IMPORTANT CHECK
+    if res.data is None:
+        raise HTTPException(
+            status_code=403,
+            detail="Delete failed (RLS / permission issue)"
+        )
 
     return {"success": True, "message": "Deleted"}
-
 
 # ===============================
 # GET ALL (ACTIVE)
