@@ -20,10 +20,26 @@ import FertilizerAdvisorOfficerLandingScreen from "../screens/FertilizerAdvisor/
 import OfficerAdvisoryInputScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryInputScreen";
 import OfficerAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryResultsScreen";
 
+// Advice Requests Screen
+import FarmerAdviceRequestsScreen from "../screens/YieldPrediction/FarmerAdviceRequestsScreen";
+import AdviceRequestDetailsScreen from "../screens/YieldPrediction/AdviceRequestDetailsScreen";
+
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
-  YieldPredictionResultsScreen: { data: any; language: 'si' | 'en' };
+  YieldPredictionResultsScreen: { 
+    data: any; 
+    language: 'si' | 'en';
+    farmerInput?: {
+      district?: string;
+      location?: string;
+      variety?: string;
+      field_size_ha?: number;
+      irrigation_type?: string;
+      rainfall_condition?: string;
+      planting_date?: string;
+    };
+  };
   YieldPredictionOfficerFormScreen: { language: 'si' | 'en' };
   YieldPredictionOfficerResultsScreen: { data: any; language: 'si' | 'en'; requestData?: any };
   FertilizerAdvisorLanding: undefined;
@@ -32,6 +48,8 @@ export type YieldPredictionStackParamList = {
   RuleBasedAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
   OfficerAdvisoryInputScreen: undefined;
   OfficerAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
+  FarmerAdviceRequestsScreen: undefined;
+  AdviceRequestDetailsScreen: { requestId: string };
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -85,6 +103,14 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="OfficerAdvisoryResultsScreen"
         component={OfficerAdvisoryResultsScreen}
+      />
+      <Stack.Screen
+        name="FarmerAdviceRequestsScreen"
+        component={FarmerAdviceRequestsScreen}
+      />
+      <Stack.Screen
+        name="AdviceRequestDetailsScreen"
+        component={AdviceRequestDetailsScreen}
       />
     </Stack.Navigator>
   );
