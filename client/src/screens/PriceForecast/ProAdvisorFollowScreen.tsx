@@ -16,6 +16,7 @@ import { ArrowLeft, Plus, ChevronDown } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
+import { useApp } from "../../context/AppContext";
 
 /* ---------- Android animation enable ---------- */
 if (
@@ -49,6 +50,12 @@ export default function ProAdvisorListScreen() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const { user } = useApp();
+
+  // Role-based authentication using Supabase user data
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
+
   /* ---------- Fetch ---------- */
   const fetchData = async () => {
     try {
@@ -70,7 +77,7 @@ export default function ProAdvisorListScreen() {
 
   const toggleExpand = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setExpandedId(prev => (prev === id ? null : id));
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
   /* ---------- UI ---------- */
@@ -83,16 +90,19 @@ export default function ProAdvisorListScreen() {
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>
-          {language === "si"
-            ? "Pro Advisor උපදෙස්"
-            : "Pro Advisor Guidance"}
+          {language === "si" ? "Pro Advisor උපදෙස්" : "Pro Advisor Guidance"}
         </Text>
 
-        <TouchableOpacity
-          onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
-        >
-          <Plus size={24} color="#065F46" />
-        </TouchableOpacity>
+        {isOfficer ? (
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
+            activeOpacity={0.85}
+          >
+            <Plus size={24} color="#065F46" />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
       </View>
 
       {/* CONTENT */}
@@ -102,7 +112,7 @@ export default function ProAdvisorListScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
-          {data.map(item => {
+          {data.map((item) => {
             const isOpen = expandedId === item.id;
 
             return (
@@ -128,13 +138,9 @@ export default function ProAdvisorListScreen() {
                 {isOpen &&
                   item.blocks.map((block, idx) => (
                     <View key={idx} style={styles.blockCard}>
-                      <Text style={styles.subTitle}>
-                        {block.subtitle}
-                      </Text>
+                      <Text style={styles.subTitle}>{block.subtitle}</Text>
 
-                      <Text style={styles.contentText}>
-                        {block.content}
-                      </Text>
+                      <Text style={styles.contentText}>{block.content}</Text>
 
                       {block.image_url && (
                         <Image
