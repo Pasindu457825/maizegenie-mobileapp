@@ -18,9 +18,10 @@ import {
   Leaf,
   BarChart3,
   MessageSquare,
-  Settings,
+  Bell,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
+import { useNotifications } from "../context/NotificationContext";
 import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 
 const { width } = Dimensions.get("window");
@@ -115,6 +116,7 @@ export default function HomeScreen() {
   const { user } = useApp();
   const navigation = useNavigation<any>();
   const { language: lang } = useLanguage();
+  const { unreadCount } = useNotifications();
   const language: LanguageType = lang === "sinhala" ? "si" : "en";
   const t = translations[language];
 
@@ -200,11 +202,20 @@ export default function HomeScreen() {
             <Text style={styles.appTitle}>🌾 MaizeGenie</Text>
             <Text style={styles.headerSubtitle}>{t.farmingCompanion}</Text>
           </View>
+
+          {/* ✅ Notification Button */}
           <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => navigation.navigate("Profile")}
+            style={styles.notifButton}
+            onPress={() => navigation.navigate("Notifications")}
           >
-            <Settings size={24} color="#10b981" />
+            <Bell size={24} color="#FFFFFF" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -384,8 +395,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    paddingTop: 52, // ⬇ reduced
-    paddingBottom: 28, // ⬇ reduced
+    paddingTop: 52,
+    paddingBottom: 28,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -400,7 +411,7 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#ffffff", // ✅ white
+    color: "#ffffff",
     marginBottom: 4,
   },
 
@@ -409,15 +420,39 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontWeight: "600",
   },
-  settingsButton: {
+
+  // ✅ NEW — Notification Button
+  notifButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    position: "relative",
+  },
+
+  // ✅ NEW — Notification Badge
+  notifBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 999,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#dcfce7",
+    borderColor: "#FFFFFF",
+  },
+
+  notifBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "900",
   },
   locationInfo: {
     flexDirection: "row",
@@ -668,7 +703,6 @@ const styles = StyleSheet.create({
     height: 20,
   },
   pagePadding: {
-  paddingHorizontal: 16,
-},
-
+    paddingHorizontal: 16,
+  },
 });
