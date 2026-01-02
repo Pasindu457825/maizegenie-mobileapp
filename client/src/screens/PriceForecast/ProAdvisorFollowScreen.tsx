@@ -15,7 +15,18 @@ import {
   Dimensions,
 } from "react-native";
 import axios from "axios";
-import { ArrowLeft, Plus, ChevronDown, Pencil, Search, X, BookOpen, Sparkles, TrendingUp, Bell } from "lucide-react-native";
+import {
+  ArrowLeft,
+  Plus,
+  ChevronDown,
+  Pencil,
+  Search,
+  X,
+  BookOpen,
+  Sparkles,
+  TrendingUp,
+  Bell,
+} from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
@@ -25,7 +36,10 @@ import { useNotifications } from "../../context/NotificationContext";
 const { width } = Dimensions.get("window");
 
 /* ---------- Android animation enable ---------- */
-if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+if (
+  Platform.OS === "android" &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
@@ -44,7 +58,13 @@ type ProAdvisorItem = {
 };
 
 /* ---------- Animated Card Component ---------- */
-const AnimatedCard = ({ children, index }: { children: React.ReactNode; index: number }) => {
+const AnimatedCard = ({
+  children,
+  index,
+}: {
+  children: React.ReactNode;
+  index: number;
+}) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -94,7 +114,9 @@ export default function ProAdvisorListScreen() {
 
   /* ---------- UI states ---------- */
   const [query, setQuery] = useState("");
-  const [activeChip, setActiveChip] = useState<"all" | "recent" | "popular">("all");
+  const [activeChip, setActiveChip] = useState<"all" | "recent" | "popular">(
+    "all"
+  );
   const [viewMode, setViewMode] = useState<"list" | "compact">("list");
 
   /* ---------- Animations ---------- */
@@ -114,7 +136,9 @@ export default function ProAdvisorListScreen() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_BASE}/pro-advisor?language=${language}`);
+      const res = await axios.get(
+        `${API_BASE}/pro-advisor?language=${language}`
+      );
       setData(res.data || []);
     } catch (e) {
       console.log("❌ Fetch error", e);
@@ -142,7 +166,9 @@ export default function ProAdvisorListScreen() {
     if (activeChip === "recent") {
       list = [...list];
     } else if (activeChip === "popular") {
-      list = [...list].sort((a, b) => (b.blocks?.length || 0) - (a.blocks?.length || 0));
+      list = [...list].sort(
+        (a, b) => (b.blocks?.length || 0) - (a.blocks?.length || 0)
+      );
     }
 
     if (!q) return list;
@@ -161,15 +187,24 @@ export default function ProAdvisorListScreen() {
 
   /* ---------- Stats ---------- */
   const totalGuidance = data.length;
-  const totalSections = data.reduce((sum, item) => sum + (item.blocks?.length || 0), 0);
+  const totalSections = data.reduce(
+    (sum, item) => sum + (item.blocks?.length || 0),
+    0
+  );
 
   const chips = [
     { key: "all" as const, si: "සියල්ල", en: "All", icon: BookOpen },
     { key: "recent" as const, si: "අලුත්", en: "Recent", icon: Sparkles },
-    { key: "popular" as const, si: "ප්‍රසිද්ධ", en: "Popular", icon: TrendingUp },
+    {
+      key: "popular" as const,
+      si: "ප්‍රසිද්ධ",
+      en: "Popular",
+      icon: TrendingUp,
+    },
   ];
 
-  const pageTitle = language === "si" ? "Pro Advisor උපදෙස්" : "Pro Advisor Guidance";
+  const pageTitle =
+    language === "si" ? "Pro Advisor උපදෙස්" : "Pro Advisor Guidance";
   const pageSub =
     language === "si"
       ? "විශේෂඥ උපදෙස් කියවලා ක්‍රියාවට නංවන්න"
@@ -203,7 +238,10 @@ export default function ProAdvisorListScreen() {
         ]}
       >
         <View style={styles.headerTopRow}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.iconBtn}
+          >
             <ArrowLeft size={22} color="#064E3B" />
           </TouchableOpacity>
 
@@ -269,7 +307,9 @@ export default function ProAdvisorListScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder={language === "si" ? "Search උපදෙස්..." : "Search guidance..."}
+            placeholder={
+              language === "si" ? "Search උපදෙස්..." : "Search guidance..."
+            }
             placeholderTextColor="#6B7280"
             style={styles.searchInput}
             returnKeyType="search"
@@ -287,14 +327,21 @@ export default function ProAdvisorListScreen() {
             }}
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery("")} style={styles.clearBtn}>
+            <TouchableOpacity
+              onPress={() => setQuery("")}
+              style={styles.clearBtn}
+            >
               <X size={18} color="#065F46" />
             </TouchableOpacity>
           )}
         </Animated.View>
 
         {/* Chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipsRow}
+        >
           {chips.map((c) => {
             const active = c.key === activeChip;
             const Icon = c.icon;
@@ -303,13 +350,17 @@ export default function ProAdvisorListScreen() {
                 key={c.key}
                 activeOpacity={0.9}
                 onPress={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  LayoutAnimation.configureNext(
+                    LayoutAnimation.Presets.easeInEaseOut
+                  );
                   setActiveChip(c.key);
                 }}
                 style={[styles.chip, active && styles.chipActive]}
               >
                 <Icon size={14} color={active ? "#FFFFFF" : "#065F46"} />
-                <Text style={[styles.chipText, active && styles.chipTextActive]}>
+                <Text
+                  style={[styles.chipText, active && styles.chipTextActive]}
+                >
                   {language === "si" ? c.si : c.en}
                 </Text>
               </TouchableOpacity>
@@ -327,7 +378,10 @@ export default function ProAdvisorListScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Info Banner */}
           <View style={styles.banner}>
             <View style={styles.bannerGlow} />
@@ -409,13 +463,21 @@ export default function ProAdvisorListScreen() {
                         </View>
                       </View>
 
-                      <View style={[styles.chevCircle, isOpen && styles.chevCircleOpen]}>
+                      <View
+                        style={[
+                          styles.chevCircle,
+                          isOpen && styles.chevCircleOpen,
+                        ]}
+                      >
                         <Animated.View
                           style={{
                             transform: [{ rotate: isOpen ? "180deg" : "0deg" }],
                           }}
                         >
-                          <ChevronDown size={18} color={isOpen ? "#FFFFFF" : "#065F46"} />
+                          <ChevronDown
+                            size={18}
+                            color={isOpen ? "#FFFFFF" : "#065F46"}
+                          />
                         </Animated.View>
                       </View>
                     </TouchableOpacity>
@@ -426,7 +488,9 @@ export default function ProAdvisorListScreen() {
                         <TouchableOpacity
                           style={styles.editBtn}
                           onPress={() =>
-                            navigation.navigate("ProAdvisorAdminEdit", { advisorId: item.id })
+                            navigation.navigate("ProAdvisorAdminEdit", {
+                              advisorId: item.id,
+                            })
                           }
                           activeOpacity={0.9}
                         >
@@ -444,17 +508,26 @@ export default function ProAdvisorListScreen() {
                             <View style={styles.blockBadge}>
                               <View style={styles.blockBadgeDot} />
                               <Text style={styles.blockBadgeText}>
-                                {language === "si" ? `කොටස ${idx + 1}` : `Part ${idx + 1}`}
+                                {language === "si"
+                                  ? `කොටස ${idx + 1}`
+                                  : `Part ${idx + 1}`}
                               </Text>
                             </View>
-                            <Text style={styles.subTitle}>{block.subtitle}</Text>
+                            <Text style={styles.subTitle}>
+                              {block.subtitle}
+                            </Text>
                           </View>
 
-                          <Text style={styles.contentText}>{block.content}</Text>
+                          <Text style={styles.contentText}>
+                            {block.content}
+                          </Text>
 
                           {block.image_url && (
                             <View style={styles.imageWrap}>
-                              <Image source={{ uri: block.image_url }} style={styles.image} />
+                              <Image
+                                source={{ uri: block.image_url }}
+                                style={styles.image}
+                              />
                               <View style={styles.imageOverlay} />
                             </View>
                           )}
