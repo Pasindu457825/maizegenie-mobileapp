@@ -74,6 +74,7 @@ const FarmerAdviceRequestsScreen = () => {
       noRequestsDesc: "තවම ගොවි ඉල්ලීම් නොමැත",
       loadMore: "තවත් පූරණය කරන්න",
       provideAdvice: "උපදේශ ලබා දෙන්න",
+      continue: "ඉදිරියට",
       viewDetails: "විස්තර බලන්න",
       yieldPrediction: "අස්වැන්න පුරෝකථනය",
       kgPerHa: "කි.ග්‍රෑ/හෙක්ටයාර",
@@ -98,6 +99,7 @@ const FarmerAdviceRequestsScreen = () => {
       noRequestsDesc: "No farmer advice requests yet",
       loadMore: "Load More",
       provideAdvice: "Provide Advice",
+      continue: "Continue",
       viewDetails: "View Details",
       yieldPrediction: "Yield Prediction",
       kgPerHa: "kg/ha",
@@ -158,18 +160,13 @@ const FarmerAdviceRequestsScreen = () => {
     setPage(1);
   };
 
-  // Handle provide advice - changes status to in_progress
+  // Handle provide advice - navigate to ProvideAdviceScreen
   const handleProvideAdvice = async (requestId: string) => {
     try {
       // Change status to in_progress when officer starts providing advice
       await assignAdviceRequest(requestId);
-      Alert.alert(
-        language === "si" ? "සාර්ථකයි" : "Success",
-        language === "si" 
-          ? "ඉල්ලීම ක්‍රියාත්මක තත්ත්වයට වෙනස් විය. දැන් උපදේශ ලබා දෙන්න." 
-          : "Request status changed to in progress. You can now provide advice."
-      );
-      fetchData(true);
+      // Navigate to the advice screen
+      navigation.navigate("ProvideAdviceScreen", { requestId });
     } catch (error: any) {
       Alert.alert(
         language === "si" ? "දෝෂයකි" : "Error",
@@ -390,6 +387,16 @@ const FarmerAdviceRequestsScreen = () => {
               onPress={() => handleProvideAdvice(request.id)}
             >
               <Text style={styles.provideAdviceButtonText}>{t.provideAdvice}</Text>
+            </TouchableOpacity>
+          )}
+          {request.status === "in_progress" && (
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={() => {
+                navigation.navigate("ProvideAdviceScreen", { requestId: request.id });
+              }}
+            >
+              <Text style={styles.continueButtonText}>{t.continue}</Text>
             </TouchableOpacity>
           )}
           <TouchableOpacity
@@ -717,6 +724,18 @@ const styles = StyleSheet.create({
     color: "#374151",
     fontSize: 14,
     fontWeight: "500",
+  },
+  continueButton: {
+    flex: 1,
+    backgroundColor: "#3B82F6",
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  continueButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   loadMoreButton: {
     backgroundColor: "#FFFFFF",
