@@ -224,8 +224,16 @@ const ViewAdviceRequestDetailsScreen = () => {
           )}
         </View>
 
-        {/* Officer Response */}
+        {/* Divider - Officer's Response Section */}
         {request.officer_response && (
+          <>
+            <View style={styles.sectionDivider}>
+              <View style={styles.dividerLine} />
+              <Text style={styles.dividerText}>Officer's Response</Text>
+              <View style={styles.dividerLine} />
+            </View>
+
+            {/* Officer Response */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <User size={20} color="#16A34A" />
@@ -236,6 +244,7 @@ const ViewAdviceRequestDetailsScreen = () => {
               <Text style={styles.timestamp}>Responded: {formatDate(request.responded_at)}</Text>
             )}
           </View>
+          </>
         )}
 
         {/* Fertilizer Plan */}
@@ -582,6 +591,25 @@ const styles = StyleSheet.create({
   nutrientText: {
     fontSize: 13,
     color: "#1E3A8A",
+  },
+  sectionDivider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 24,
+    paddingHorizontal: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#10B981",
+  },
+  dividerText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#10B981",
+    marginHorizontal: 12,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
 });
 
