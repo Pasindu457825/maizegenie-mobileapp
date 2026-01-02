@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,11 @@ import {
   Dimensions,
 } from "react-native";
 import { useApp } from "../context/AppContext";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   TrendingUp,
@@ -117,19 +121,26 @@ export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { language: lang } = useLanguage();
   const { unreadCount } = useNotifications();
-  const language: LanguageType = lang === "sinhala" ? "si" : "en";
-  const t = translations[language];
 
-  // Role-based authentication using Supabase user data
-  const isFarmer = user?.role === "farmer";
-  const isOfficer = user?.role === "officer";
+  // ✅ Ensure language is properly tracked
+  const language: LanguageType = useMemo(() => {
+    return lang === "sinhala" ? "si" : "en";
+  }, [lang]);
+
+  // ✅ Get translations based on language
+  const t = useMemo(() => translations[language], [language]);
 
   // ✨ Animations
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
   const scaleAnim = new Animated.Value(0.8);
 
+  // ✅ Re-trigger animations when language changes
   useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(50);
+    scaleAnim.setValue(0.8);
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -148,45 +159,49 @@ export default function HomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [language]);
 
-  const features = [
-    {
-      icon: TrendingUp,
-      title: t.priceForecasting,
-      description: t.priceDescription,
-      color: "#3b82f6",
-      route: "PriceForecast",
-    },
-    {
-      icon: Bug,
-      title: t.pestIdentifier,
-      description: t.pestDescription,
-      color: "#ef4444",
-      route: "DiseaseIdentify",
-    },
-    {
-      icon: Leaf,
-      title: t.diseaseIdentifier,
-      description: t.diseaseDescription,
-      color: "#22c55e",
-      route: "DiseaseIdentifier",
-    },
-    {
-      icon: AlertCircle,
-      title: t.fertilizerAdvisor,
-      description: t.fertilizerDescription,
-      color: "#f59e0b",
-      route: "FertilizerAdvisor",
-    },
-    {
-      icon: BarChart3,
-      title: t.yieldPrediction,
-      description: t.yieldDescription,
-      color: "#8b5cf6",
-      route: "YieldPrediction",
-    },
-  ];
+  // ✅ Build features array with language dependency
+  const features = useMemo(
+    () => [
+      {
+        icon: TrendingUp,
+        title: t.priceForecasting,
+        description: t.priceDescription,
+        color: "#3b82f6",
+        route: "PriceForecast",
+      },
+      {
+        icon: Bug,
+        title: t.pestIdentifier,
+        description: t.pestDescription,
+        color: "#ef4444",
+        route: "DiseaseIdentify",
+      },
+      {
+        icon: Leaf,
+        title: t.diseaseIdentifier,
+        description: t.diseaseDescription,
+        color: "#22c55e",
+        route: "DiseaseIdentifier",
+      },
+      {
+        icon: AlertCircle,
+        title: t.fertilizerAdvisor,
+        description: t.fertilizerDescription,
+        color: "#f59e0b",
+        route: "FertilizerAdvisor",
+      },
+      {
+        icon: BarChart3,
+        title: t.yieldPrediction,
+        description: t.yieldDescription,
+        color: "#8b5cf6",
+        route: "YieldPrediction",
+      },
+    ],
+    [t]
+  );
 
   return (
     <View style={styles.container}>
@@ -421,7 +436,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ✅ NEW — Notification Button
   notifButton: {
     width: 48,
     height: 48,
@@ -434,7 +448,6 @@ const styles = StyleSheet.create({
     position: "relative",
   },
 
-  // ✅ NEW — Notification Badge
   notifBadge: {
     position: "absolute",
     top: -4,
