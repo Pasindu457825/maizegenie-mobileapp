@@ -186,18 +186,11 @@ export default function HomeScreen() {
         route: "DiseaseIdentifier",
       },
       {
-        icon: AlertCircle,
-        title: t.fertilizerAdvisor,
-        description: t.fertilizerDescription,
-        color: "#f59e0b",
-        route: "FertilizerAdvisor",
-      },
-      {
         icon: BarChart3,
         title: t.yieldPrediction,
         description: t.yieldDescription,
         color: "#8b5cf6",
-        route: "YieldPrediction",
+        route: "PredictYield",
       },
     ],
     [t]
