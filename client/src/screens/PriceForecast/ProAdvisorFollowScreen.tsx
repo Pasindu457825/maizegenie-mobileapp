@@ -15,11 +15,12 @@ import {
   Dimensions,
 } from "react-native";
 import axios from "axios";
-import { ArrowLeft, Plus, ChevronDown, Pencil, Search, X, BookOpen, Sparkles, TrendingUp } from "lucide-react-native";
+import { ArrowLeft, Plus, ChevronDown, Pencil, Search, X, BookOpen, Sparkles, TrendingUp, Bell } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
 import { useApp } from "../../context/AppContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 const { width } = Dimensions.get("window");
 
@@ -87,6 +88,7 @@ export default function ProAdvisorListScreen() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useApp();
+  const { unreadCount } = useNotifications();
 
   const isOfficer = user?.role === "officer";
 
@@ -209,6 +211,22 @@ export default function ProAdvisorListScreen() {
             <Text style={styles.headerTitle}>{pageTitle}</Text>
             <Text style={styles.headerSubtitle}>{pageSub}</Text>
           </View>
+
+          {/* ✅ Notification Button */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Notifications")}
+            style={styles.notifBtn}
+            activeOpacity={0.85}
+          >
+            <Bell size={20} color="#10B981" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
           {isOfficer ? (
             <TouchableOpacity
@@ -500,6 +518,45 @@ const styles = StyleSheet.create({
   addBtn: {
     backgroundColor: "#047857",
     borderColor: "#047857",
+  },
+
+  // ✅ NEW — Notification Button
+  notifBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+
+  // ✅ NEW — Notification Badge
+  notifBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 999,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+
+  notifBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "900",
   },
 
   headerTitle: {
