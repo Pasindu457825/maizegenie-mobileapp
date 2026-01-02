@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,11 @@ import {
   Dimensions,
 } from "react-native";
 import { useApp } from "../context/AppContext";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import {
+  useNavigation,
+  useRoute,
+  useFocusEffect,
+} from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   TrendingUp,
@@ -18,9 +22,10 @@ import {
   Leaf,
   BarChart3,
   MessageSquare,
-  Settings,
+  Bell,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
+import { useNotifications } from "../context/NotificationContext";
 import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 
 const { width } = Dimensions.get("window");
@@ -115,19 +120,27 @@ export default function HomeScreen() {
   const { user } = useApp();
   const navigation = useNavigation<any>();
   const { language: lang } = useLanguage();
-  const language: LanguageType = lang === "sinhala" ? "si" : "en";
-  const t = translations[language];
+  const { unreadCount } = useNotifications();
 
-  // Role-based authentication using Supabase user data
-  const isFarmer = user?.role === "farmer";
-  const isOfficer = user?.role === "officer";
+  // ✅ Ensure language is properly tracked
+  const language: LanguageType = useMemo(() => {
+    return lang === "sinhala" ? "si" : "en";
+  }, [lang]);
+
+  // ✅ Get translations based on language
+  const t = useMemo(() => translations[language], [language]);
 
   // ✨ Animations
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
   const scaleAnim = new Animated.Value(0.8);
 
+  // ✅ Re-trigger animations when language changes
   useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(50);
+    scaleAnim.setValue(0.8);
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -146,38 +159,42 @@ export default function HomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [language]);
 
-  const features = [
-    {
-      icon: TrendingUp,
-      title: t.priceForecasting,
-      description: t.priceDescription,
-      color: "#3b82f6",
-      route: "PriceForecast",
-    },
-    {
-      icon: Bug,
-      title: t.pestIdentifier,
-      description: t.pestDescription,
-      color: "#ef4444",
-      route: "DiseaseIdentify",
-    },
-    {
-      icon: Leaf,
-      title: t.diseaseIdentifier,
-      description: t.diseaseDescription,
-      color: "#22c55e",
-      route: "DiseaseIdentifier",
-    },
-    {
-      icon: BarChart3,
-      title: t.yieldPrediction,
-      description: t.yieldDescription,
-      color: "#8b5cf6",
-      route: "PredictYield",
-    },
-  ];
+  // ✅ Build features array with language dependency
+  const features = useMemo(
+    () => [
+      {
+        icon: TrendingUp,
+        title: t.priceForecasting,
+        description: t.priceDescription,
+        color: "#3b82f6",
+        route: "PriceForecast",
+      },
+      {
+        icon: Bug,
+        title: t.pestIdentifier,
+        description: t.pestDescription,
+        color: "#ef4444",
+        route: "DiseaseIdentify",
+      },
+      {
+        icon: Leaf,
+        title: t.diseaseIdentifier,
+        description: t.diseaseDescription,
+        color: "#22c55e",
+        route: "DiseaseIdentifier",
+      },
+      {
+        icon: BarChart3,
+        title: t.yieldPrediction,
+        description: t.yieldDescription,
+        color: "#8b5cf6",
+        route: "PredictYield",
+      },
+    ],
+    [t]
+  );
 
   return (
     <View style={styles.container}>
@@ -193,11 +210,20 @@ export default function HomeScreen() {
             <Text style={styles.appTitle}>🌾 MaizeGenie</Text>
             <Text style={styles.headerSubtitle}>{t.farmingCompanion}</Text>
           </View>
+
+          {/* ✅ Notification Button */}
           <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => navigation.navigate("Profile")}
+            style={styles.notifButton}
+            onPress={() => navigation.navigate("Notifications")}
           >
-            <Settings size={24} color="#10b981" />
+            <Bell size={24} color="#FFFFFF" />
+            {unreadCount > 0 && (
+              <View style={styles.notifBadge}>
+                <Text style={styles.notifBadgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -377,8 +403,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   header: {
-    paddingTop: 52, // ⬇ reduced
-    paddingBottom: 28, // ⬇ reduced
+    paddingTop: 52,
+    paddingBottom: 28,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -393,7 +419,7 @@ const styles = StyleSheet.create({
   appTitle: {
     fontSize: 28,
     fontWeight: "800",
-    color: "#ffffff", // ✅ white
+    color: "#ffffff",
     marginBottom: 4,
   },
 
@@ -402,15 +428,37 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontWeight: "600",
   },
-  settingsButton: {
+
+  notifButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    position: "relative",
+  },
+
+  notifBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#EF4444",
+    borderRadius: 999,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 2,
-    borderColor: "#dcfce7",
+    borderColor: "#FFFFFF",
+  },
+
+  notifBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "900",
   },
   locationInfo: {
     flexDirection: "row",
@@ -661,7 +709,6 @@ const styles = StyleSheet.create({
     height: 20,
   },
   pagePadding: {
-  paddingHorizontal: 16,
-},
-
+    paddingHorizontal: 16,
+  },
 });
