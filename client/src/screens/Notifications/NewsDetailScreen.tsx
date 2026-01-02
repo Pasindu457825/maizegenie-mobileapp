@@ -17,6 +17,20 @@ import { API_BASE } from "../../services/api";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "../../navigation";
 import { Linking, Alert } from "react-native";
+import { Platform } from "react-native";
+
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    return "http://localhost:8000";
+  } else {
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
 
 const { width } = Dimensions.get("window");
 const HEADER_MAX_HEIGHT = 300;

@@ -7,6 +7,7 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -49,6 +50,11 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation/index";
 import { supabase } from "../../lib/supabase";
+import {
+  generateVoiceSummary,
+  type VoiceSummaryParams,
+} from "../../utils/voiceSummaryGenerator";
+import * as Speech from "expo-speech";
 
 type RootNavProp = StackNavigationProp<RootStackParamList>;
 type LocalNavProp = StackNavigationProp<
@@ -105,6 +111,8 @@ const PriceForecastScreen = () => {
   const rootNavigation = useNavigation<RootNavProp>();
   const localNavigation = useNavigation<LocalNavProp>();
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
+  const loadingOpacity = useRef(new Animated.Value(0)).current;
+  const loadingScale = useRef(new Animated.Value(0.8)).current;
   const { unreadCount, sendNotification } = useNotifications();
   const route = useRoute();
   // Global language from context
@@ -162,6 +170,10 @@ const PriceForecastScreen = () => {
   const [savedPrice, setSavedPrice] = useState<any>(null);
   const [savedLocation, setSavedLocation] = useState<any>(null);
   const [savedWeather, setSavedWeather] = useState<any>(null);
+
+  // 🔥 ADD THESE NEW STATE VARIABLES
+  const [voiceSummaryText, setVoiceSummaryText] = useState<string>("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const content = {
     si: {
@@ -452,6 +464,20 @@ const PriceForecastScreen = () => {
     try {
       setIsLoadingForecast(true);
 
+      // 🔥 START LOADING ANIMATION
+      Animated.parallel([
+        Animated.timing(loadingOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(loadingScale, {
+          toValue: 1,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+      ]).start();
+
       // current farm gate price (string -> number)
       const currentPriceNumeric = parseFloat(
         (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
@@ -603,6 +629,13 @@ const PriceForecastScreen = () => {
       // fallback – (optional) you can keep your old random logic here
     } finally {
       setIsLoadingForecast(false);
+
+      // 🔥 FADE OUT LOADING ANIMATION
+      Animated.timing(loadingOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     }
   };
 
@@ -726,6 +759,60 @@ const PriceForecastScreen = () => {
   const trendAnalysis = getTrendAnalysis();
   const bestWeekProfit = getBestWeekProfitDifference();
 
+  // 🔥 GENERATE VOICE SUMMARY when forecast is ready
+  useEffect(() => {
+    if (weeklyForecast.length > 0 && predictedPrice !== null) {
+      const summaryParams: VoiceSummaryParams = {
+        district: formData?.district || "Anuradhapura", // ✅ USE FORM DISTRICT
+        language,
+        currentPrice: predictedPrice,
+        weeklyForecast,
+        hasStorage: formData?.hasStorage ?? false,
+        recommendation,
+      };
+
+      const summary = generateVoiceSummary(summaryParams);
+      setVoiceSummaryText(summary);
+    }
+  }, [
+    weeklyForecast,
+    predictedPrice,
+    language,
+    recommendation,
+    formData?.district,
+  ]);
+
+  // 🔥 IMPROVED: HANDLE VOICE PLAYBACK with proper stop
+  const handlePlayVoice = async () => {
+    if (isSpeaking) {
+      // STOP SPEECH
+      try {
+        await Speech.stop();
+        setIsSpeaking(false);
+      } catch (error) {
+        console.error("Stop speech error:", error);
+        setIsSpeaking(false);
+      }
+    } else {
+      // START SPEECH
+      if (!voiceSummaryText) return;
+
+      try {
+        setIsSpeaking(true);
+        await Speech.speak(voiceSummaryText, {
+          language: language === "si" ? "si-LK" : "en-US",
+          pitch: 1,
+          rate: 0.85,
+          onDone: () => setIsSpeaking(false),
+          onError: () => setIsSpeaking(false),
+        });
+      } catch (error) {
+        console.error("Speech error:", error);
+        setIsSpeaking(false);
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -789,6 +876,38 @@ const PriceForecastScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
+          {/* 🔥 VOICE SUMMARY CARD - Only show when voice text is ready */}
+          {voiceSummaryText && (
+            <View style={styles.voiceSummaryCard}>
+              <View style={styles.voiceSummaryHeader}>
+                <Text style={styles.voiceSummaryTitle}>
+                  {language === "si" ? "🎧 ඔබට කිවීම" : "🎧 Listen"}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.voicePlayButton,
+                    isSpeaking && styles.voicePlayButtonActive,
+                  ]}
+                  onPress={handlePlayVoice}
+                >
+                  <Text style={styles.voicePlayButtonIcon}>
+                    {isSpeaking ? "⏹" : "▶"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {/* 🔥 REMOVED: Voice text display */}
+              <Text style={styles.voiceSummaryHint}>
+                {isSpeaking
+                  ? language === "si"
+                    ? "(⏹ නැවතීමට ඔබ)"
+                    : "(⏹ Tap to stop)"
+                  : language === "si"
+                  ? "(▶ ටින්න අසන්න)"
+                  : "(Tap ▶ to listen)"}
+              </Text>
+            </View>
+          )}
+
           {/* Main Price Card */}
           <View style={styles.priceCard}>
             <View style={styles.priceIconCircle}>
@@ -1253,6 +1372,32 @@ const PriceForecastScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* 🔥 NEW: LOADING OVERLAY */}
+      {isLoadingForecast && (
+        <Animated.View
+          style={[
+            styles.loadingOverlay,
+            {
+              opacity: loadingOpacity,
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.loadingContent,
+              {
+                transform: [{ scale: loadingScale }],
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.loadingText}>
+              {language === "si" ? "විශ්ලේෂණය කරමින්..." : "Analyzing..."}
+            </Text>
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -1488,7 +1633,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  // END NEW CHART STYLES
   recommendationCard: {
     backgroundColor: "#ECFDF5",
     borderRadius: 16,
@@ -1803,6 +1947,91 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
+  // 🔥 NEW VOICE SUMMARY STYLES
+  voiceSummaryCard: {
+    backgroundColor: "#E0F2FE",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#0284C7",
+    shadowColor: "#0284C7",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  voiceSummaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  voiceSummaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0C4A6E",
+  },
+  voicePlayButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#0284C7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  voicePlayButtonActive: {
+    backgroundColor: "#F59E0B",
+  },
+  voicePlayButtonIcon: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+  voiceSummaryText: {
+    fontSize: 15,
+    color: "#0C4A6E",
+    lineHeight: 24,
+    fontWeight: "500",
+    marginBottom: 10,
+  },
+  voiceSummaryHint: {
+    fontSize: 12,
+    color: "#0284C7",
+    fontStyle: "italic",
+    textAlign: "right",
+  },
+  // 🔥 NEW LOADING STYLES
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loadingContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 40,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+
+  // ...rest of existing styles...
 });
 
 export default PriceForecastScreen;
