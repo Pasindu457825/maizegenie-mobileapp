@@ -103,24 +103,40 @@ def prepare_features(data: Dict) -> pd.DataFrame:
     days_between_ferts = 25  # Average: 21-30 days between applications
     
     # Smart defaults for NPK based on soil condition
+    # Using training data statistics for more accurate defaults
     soil_condition = data.get("soil_condition", "Medium")
+    
+    # Training data statistics (mean values by soil condition):
+    # Good: N=85, P=20, K=195
+    # Medium: N=75, P=16, K=170  
+    # Poor: N=65, P=12, K=145
+    # These are more realistic than the previous hardcoded values
+    
     if soil_condition == "Good":
-        default_n, default_p, default_k = 85.0, 22.0, 210.0
+        default_n, default_p, default_k = 85.0, 20.0, 195.0
     elif soil_condition == "Poor":
-        default_n, default_p, default_k = 45.0, 8.0, 120.0
+        default_n, default_p, default_k = 65.0, 12.0, 145.0
     else:  # Medium
-        default_n, default_p, default_k = 70.0, 15.0, 160.0
+        default_n, default_p, default_k = 75.0, 16.0, 170.0
     
     # Get NPK values (use smart defaults if not provided)
     soil_n = float(data.get("soil_nitrogen_n", default_n))
     soil_p = float(data.get("soil_phosphorus_p", default_p))
     soil_k = float(data.get("soil_potassium_k", default_k))
     
-    # Normalize and calculate fertility index
-    n_norm = min(soil_n / 125.0, 1.0)  # Max from training data
-    p_norm = min(soil_p / 31.0, 1.0)
-    k_norm = min(soil_k / 305.0, 1.0)
-    soil_fertility_index = (n_norm + p_norm + k_norm) / 3.0
+    # Get soil fertility index from data if provided, otherwise calculate it
+    if "soil_fertility_index" in data and data["soil_fertility_index"] is not None:
+        soil_fertility_index = float(data["soil_fertility_index"])
+        logger.info(f"✅ Using provided soil_fertility_index: {soil_fertility_index:.4f}")
+        print(f"✅ Using provided soil_fertility_index: {soil_fertility_index:.4f}")
+    else:
+        # Calculate fertility index if not provided
+        n_norm = min(soil_n / 125.0, 1.0)  # Max from training data
+        p_norm = min(soil_p / 31.0, 1.0)
+        k_norm = min(soil_k / 305.0, 1.0)
+        soil_fertility_index = (n_norm + p_norm + k_norm) / 3.0
+        logger.info(f"🔄 Calculated soil_fertility_index: {soil_fertility_index:.4f}")
+        print(f"🔄 Calculated soil_fertility_index: {soil_fertility_index:.4f}")
     
     # Classify NPK status
     n_status_class = "High" if soil_n > 90 else "Medium" if soil_n > 50 else "Low"
@@ -137,6 +153,7 @@ def prepare_features(data: Dict) -> pd.DataFrame:
         "Monaragala": {"temp": 27.0, "humidity": 75, "rainfall_30d": 280, "seasonal": 800},
         "Badulla": {"temp": 26.5, "humidity": 78, "rainfall_30d": 350, "seasonal": 900},
         "Ampara": {"temp": 28.0, "humidity": 74, "rainfall_30d": 300, "seasonal": 820},
+        "Matale": {"temp": 27.5, "humidity": 76, "rainfall_30d": 290, "seasonal": 810},
     }
     weather_defaults = district_weather.get(district, district_weather["Anuradhapura"])
     
@@ -468,7 +485,7 @@ def calculate_harvest_window(planting_date: str, variety: str) -> Dict:
         "Pacific 808": (105, 115),
         "Commando": (115, 125),
         "GT 709": (100, 110),
-        "GT 200": (110, 120),
+        "GT200": (110, 120),
         "Local Variety": (110, 125),
     }
     

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
     View,
     Text,
@@ -26,6 +26,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import CustomDropdown from "../../components/CustomDropdown";
 import HybridDateInput from "../../components/HybridDateInput";
 import { useLanguage } from "../../context/LanguageContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Archive } from "lucide-react-native";
 
 type Language = "si" | "en";
 type NavProp = StackNavigationProp<
@@ -42,72 +44,67 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-// Constants
+// Constants - Updated to match agricultural zones
 const DISTRICTS = [
-    { label: "Anuradhapura", value: "Anuradhapura" },
-    { label: "Polonnaruwa", value: "Polonnaruwa" },
-    { label: "Kurunegala", value: "Kurunegala" },
     { label: "Ampara", value: "Ampara" },
-    { label: "Monaragala", value: "Monaragala" },
-    { label: "Hambantota", value: "Hambantota" },
+    { label: "Anuradhapura", value: "Anuradhapura" },
     { label: "Badulla", value: "Badulla" },
+    { label: "Matale", value: "Matale" },
+    { label: "Monaragala", value: "Monaragala" },
 ];
 
 const LOCATIONS: { [key: string]: string[] } = {
-    Anuradhapura: ["Eppawala", "Tambuttegama", "Nochchiyagama", "Kahatagasdigiliya", "Horowpothana"],
-    Polonnaruwa: ["Hingurakgoda", "Medirigiriya", "Dimbulagala"],
-    Kurunegala: ["Nikaweratiya", "Galgamuwa", "Maho"],
-    Ampara: ["Maha Oya", "Padiyathalawa", "Dehiattakandiya"],
-    Monaragala: ["Siyambalanduwa", "Wellawaya", "Buttala", "Thanamalwila"],
-    Hambantota: ["Weerawila", "Tissamaharama", "Ambalantota"],
-    Badulla: ["Mahiyanganaya", "Rideemaliyadda", "Passara"],
+    Ampara: ["Dehiattakandiya", "Maha Oya", "Padiyathalawa"],
+    Anuradhapura: ["Eppawala", "Horowpathana", "Kahatagasdigiliya", "Nochchiyagama", "Tambuttegama"],
+    Badulla: ["Mahiyanganaya", "Rideemaliyadda"],
+    Matale: ["Dambulla", "Pelwehera"],
+    Monaragala: ["Buttala", "Siyambalanduwa", "Thanamalwila", "Wellawaya"],
 };
 
 const SOIL_TYPES = [
-    { label: "Reddish Brown Earth", value: "Reddish Brown Earth" },
-    { label: "Red-Yellow Podzolic", value: "Red-Yellow Podzolic" },
-    { label: "Alluvial Soil", value: "Alluvial Soil" },
-    { label: "Sandy-Loam", value: "Sandy-Loam" },
-    { label: "Sandy-Clay-Loam", value: "Sandy-Clay-Loam" },
-    { label: "Loamy-Clay", value: "Loamy-Clay" },
+    { label: "Alluvial", value: "Alluvial" },
+    { label: "IBL (Immature Brown Loams)", value: "IBL" },
+    { label: "LHG (Low Humic Gleys)", value: "LHG" },
+    { label: "RBE (Reddish Brown Earth)", value: "RBE" },
+    { label: "RYP (Red Yellow Podzolic)", value: "RYP" },
 ];
 
-const SOIL_CONDITIONS = [
-    { label: "Good", value: "Good" },
-    { label: "Medium", value: "Medium" },
-    { label: "Poor", value: "Poor" },
+const getSoilConditions = (language: Language) => [
+    { label: language === "si" ? "හොඳ" : "Good", value: "Good" },
+    { label: language === "si" ? "මධ්‍යම" : "Medium", value: "Medium" },
+    { label: language === "si" ? "දුර්වල" : "Poor", value: "Poor" },
 ];
 
-const NPK_STATUS = [
-    { label: "High", value: "High" },
-    { label: "Medium", value: "Medium" },
-    { label: "Low", value: "Low" },
+const getNPKStatus = (language: Language) => [
+    { label: language === "si" ? "ඉහළ" : "High", value: "High" },
+    { label: language === "si" ? "මධ්‍යම" : "Medium", value: "Medium" },
+    { label: language === "si" ? "අඩු" : "Low", value: "Low" },
 ];
 
-const IRRIGATION_TYPES = [
-    { label: "Irrigated", value: "Irrigated" },
-    { label: "Mixed", value: "Mixed" },
-    { label: "Rainfed", value: "Rainfed" },
+const getIrrigationTypes = (language: Language) => [
+    { label: language === "si" ? "වාරිමාර්ග" : "Irrigated", value: "Irrigated" },
+    { label: language === "si" ? "මිශ්‍ර" : "Mixed", value: "Mixed" },
+    { label: language === "si" ? "වැසි මත යැපෙන" : "Rainfed", value: "Rainfed" },
 ];
 
-const RAINFALL_CONDITIONS = [
-    { label: "High", value: "High" },
-    { label: "Normal", value: "Normal" },
-    { label: "Low", value: "Low" },
+const getRainfallConditions = (language: Language) => [
+    { label: language === "si" ? "ඉහළ" : "High", value: "High" },
+    { label: language === "si" ? "සාමාන්‍ය" : "Normal", value: "Normal" },
+    { label: language === "si" ? "අඩු" : "Low", value: "Low" },
 ];
 
-const SEED_VARIETIES = [
+const getSeedVarieties = (language: Language) => [
     { label: "Jet 999", value: "Jet 999" },
     { label: "Pacific 808", value: "Pacific 808" },
     { label: "GT 709", value: "GT 709" },
     { label: "GT200", value: "GT200" },
     { label: "Commando", value: "Commando" },
-    { label: "Local Variety", value: "Local Variety" },
+    { label: language === "si" ? "දේශීය ප්‍රභේදය" : "Local Variety", value: "Local Variety" },
 ];
 
-const SEASONS = [
-    { label: "Maha", value: "Maha" },
-    { label: "Yala", value: "Yala" },
+const getSeasons = (language: Language) => [
+    { label: language === "si" ? "මහ" : "Maha", value: "Maha" },
+    { label: language === "si" ? "යල" : "Yala", value: "Yala" },
 ];
 
 const YieldPredictionOfficerFormScreenNew = () => {
@@ -157,6 +154,148 @@ const YieldPredictionOfficerFormScreenNew = () => {
     const [secondFertDate, setSecondFertDate] = useState("");
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const scrollViewRef = useRef<ScrollView>(null);
+
+    // Save form data to AsyncStorage
+    const saveFormData = async () => {
+        try {
+            const formData = {
+                timestamp: new Date().toISOString(),
+                // Step 1: Location & Soil Profile
+                district,
+                location,
+                soilType,
+                soilCondition,
+                soilPh,
+                soilNitrogen,
+                soilPhosphorus,
+                soilPotassium,
+                soilFertilityIndex,
+                nStatusClass,
+                pStatusClass,
+                kStatusClass,
+                // Step 2: Climate Data
+                irrigationType,
+                rainfallCondition,
+                rainfall30d,
+                seasonalRainfall,
+                avgTemperature,
+                maxTemperature,
+                avgHumidity,
+                sunshineHours,
+                // Step 3: Crop Information
+                seedVariety,
+                plantingDate,
+                season,
+                fieldSizeHa,
+                fieldSizeUnit,
+                // Step 4: Fertilizer Dates
+                firstFertDate,
+                secondFertDate,
+            };
+
+            const existing = await AsyncStorage.getItem("savedOfficerForms");
+            const forms = existing ? JSON.parse(existing) : [];
+
+            forms.unshift(formData); // Latest first
+
+            // Keep only last 10 saved forms
+            if (forms.length > 10) {
+                forms.splice(10);
+            }
+
+            await AsyncStorage.setItem("savedOfficerForms", JSON.stringify(forms));
+
+            Alert.alert(
+                language === "si" ? "සුරකින ලදී" : "Saved",
+                language === "si"
+                    ? "✅ ආකෘති දත්ත සාර්ථකව සුරකින ලදී!"
+                    : "✅ Form data saved successfully!"
+            );
+        } catch (error) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si"
+                    ? "❌ දත්ත සුරකින්න නොහැකි විය."
+                    : "❌ Failed to save form data."
+            );
+        }
+    };
+
+    // Load latest saved form data
+    const loadSavedFormData = async () => {
+        try {
+            const existing = await AsyncStorage.getItem("savedOfficerForms");
+            if (!existing) {
+                Alert.alert(
+                    language === "si" ? "දත්ත නැත" : "No Data",
+                    language === "si"
+                        ? "සුරකින ලද ආකෘති දත්ත නොමැත."
+                        : "No saved form data found."
+                );
+                return;
+            }
+
+            const forms = JSON.parse(existing);
+            if (!forms.length) {
+                Alert.alert(
+                    language === "si" ? "දත්ත නැත" : "No Data",
+                    language === "si"
+                        ? "සුරකින ලද ආකෘති දත්ත නොමැත."
+                        : "No saved form data found."
+                );
+                return;
+            }
+
+            const latestForm = forms[0]; // Latest saved
+
+            // Restore all form fields
+            setDistrict(latestForm.district || "");
+            setLocation(latestForm.location || "");
+            setSoilType(latestForm.soilType || "");
+            setSoilCondition(latestForm.soilCondition || "");
+            setSoilPh(latestForm.soilPh || "");
+            setSoilNitrogen(latestForm.soilNitrogen || "");
+            setSoilPhosphorus(latestForm.soilPhosphorus || "");
+            setSoilPotassium(latestForm.soilPotassium || "");
+            setSoilFertilityIndex(latestForm.soilFertilityIndex || "");
+            setNStatusClass(latestForm.nStatusClass || "");
+            setPStatusClass(latestForm.pStatusClass || "");
+            setKStatusClass(latestForm.kStatusClass || "");
+            setIrrigationType(latestForm.irrigationType || "");
+            setRainfallCondition(latestForm.rainfallCondition || "");
+            setRainfall30d(latestForm.rainfall30d || "");
+            setSeasonalRainfall(latestForm.seasonalRainfall || "");
+            setAvgTemperature(latestForm.avgTemperature || "");
+            setMaxTemperature(latestForm.maxTemperature || "");
+            setAvgHumidity(latestForm.avgHumidity || "");
+            setSunshineHours(latestForm.sunshineHours || "");
+            setSeedVariety(latestForm.seedVariety || "");
+            setPlantingDate(latestForm.plantingDate || "");
+            setSeason(latestForm.season || "");
+            setFieldSizeHa(latestForm.fieldSizeHa || "");
+            setFieldSizeUnit(latestForm.fieldSizeUnit || "Acres");
+            setFirstFertDate(latestForm.firstFertDate || "");
+            setSecondFertDate(latestForm.secondFertDate || "");
+
+            // Reset to first step
+            setCurrentStep(1);
+
+            Alert.alert(
+                language === "si" ? "පුරවන ලදී" : "Loaded",
+                language === "si"
+                    ? "✅ සුරකින ලද දත්ත නැවත පුරවන ලදී!"
+                    : "✅ Saved data has been restored!"
+            );
+        } catch (error) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si"
+                    ? "❌ දත්ත නැවත ලබාගත නොහැකි විය."
+                    : "❌ Failed to restore saved data."
+            );
+        }
+    };
 
     const content = {
         si: {
@@ -192,14 +331,12 @@ const YieldPredictionOfficerFormScreenNew = () => {
             humidity: "සාමාන්‍ය ආර්ද්‍රතාවය (%)",
             sunshine: "හිරු එළිය (පැය)",
             // Step 3
-            cropInfo: "බෝග තොරතුරු",
+            cultivationInfo: "වගා තොරතුරු",
             variety: "බීජ ප්‍රභේදය",
             plantingDate: "වගා කළ දිනය",
             season: "සෘතුව",
             fieldSize: "ඉඩම් ප්‍රමාණය",
             fieldSizeUnit: "ඒකකය",
-            // Step 4
-            fertilizerDates: "පොහොර දිනයන්",
             firstFert: "පළමු පොහොර දිනය",
             secondFert: "දෙවන පොහොර දිනය",
             select: "තෝරන්න",
@@ -239,14 +376,12 @@ const YieldPredictionOfficerFormScreenNew = () => {
             humidity: "Average Humidity (%)",
             sunshine: "Sunshine Hours",
             // Step 3
-            cropInfo: "Crop Information",
+            cultivationInfo: "Cultivation Information",
             variety: "Seed Variety",
             plantingDate: "Planting Date",
             season: "Season",
             fieldSize: "Field Size",
             fieldSizeUnit: "Unit",
-            // Step 4
-            fertilizerDates: "Fertilizer Dates",
             firstFert: "First Fertilizer Date",
             secondFert: "Second Fertilizer Date",
             select: "Select",
@@ -334,10 +469,18 @@ const YieldPredictionOfficerFormScreenNew = () => {
         if (currentStep === 2 && !validateStep2()) return;
         if (currentStep === 3 && !validateStep3()) return;
         setCurrentStep(currentStep + 1);
+        // Scroll to top when moving to next step
+        setTimeout(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }, 100);
     };
 
     const handlePrevious = () => {
         setCurrentStep(currentStep - 1);
+        // Scroll to top when moving to previous step
+        setTimeout(() => {
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+        }, 100);
     };
 
     const handleSubmit = async () => {
@@ -454,7 +597,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
 
     const renderStepIndicator = () => (
         <View style={styles.stepIndicator}>
-            {[1, 2, 3, 4].map((step) => (
+            {[1, 2, 3].map((step) => (
                 <View key={step} style={styles.stepItem}>
                     <View
                         style={[
@@ -475,7 +618,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
                             </Text>
                         )}
                     </View>
-                    {step < 4 && (
+                    {step < 3 && (
                         <View
                             style={[
                                 styles.stepLine,
@@ -490,11 +633,6 @@ const YieldPredictionOfficerFormScreenNew = () => {
 
     const renderStep1 = () => (
         <View style={styles.stepContainer}>
-            <View style={styles.sectionHeader}>
-                <MapPin color="#16A34A" size={24} />
-                <Text style={styles.sectionTitle}>{content[language].locationSoil}</Text>
-            </View>
-
             <CustomDropdown
                 label={`${content[language].district} *`}
                 value={district}
@@ -526,7 +664,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             <CustomDropdown
                 label={`${content[language].soilCondition} *`}
                 value={soilCondition}
-                options={SOIL_CONDITIONS}
+                options={getSoilConditions(language)}
                 onSelect={setSoilCondition}
                 placeholder={content[language].select}
             />
@@ -594,7 +732,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             <CustomDropdown
                 label={`${content[language].nStatus} *`}
                 value={nStatusClass}
-                options={NPK_STATUS}
+                options={getNPKStatus(language)}
                 onSelect={setNStatusClass}
                 placeholder={content[language].select}
             />
@@ -602,7 +740,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             <CustomDropdown
                 label={`${content[language].pStatus} *`}
                 value={pStatusClass}
-                options={NPK_STATUS}
+                options={getNPKStatus(language)}
                 onSelect={setPStatusClass}
                 placeholder={content[language].select}
             />
@@ -610,7 +748,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             <CustomDropdown
                 label={`${content[language].kStatus} *`}
                 value={kStatusClass}
-                options={NPK_STATUS}
+                options={getNPKStatus(language)}
                 onSelect={setKStatusClass}
                 placeholder={content[language].select}
             />
@@ -619,15 +757,10 @@ const YieldPredictionOfficerFormScreenNew = () => {
 
     const renderStep2 = () => (
         <View style={styles.stepContainer}>
-            <View style={styles.sectionHeader}>
-                <CloudSun color="#16A34A" size={24} />
-                <Text style={styles.sectionTitle}>{content[language].climateData}</Text>
-            </View>
-
             <CustomDropdown
                 label={`${content[language].irrigation} *`}
                 value={irrigationType}
-                options={IRRIGATION_TYPES}
+                options={getIrrigationTypes(language)}
                 onSelect={setIrrigationType}
                 placeholder={content[language].select}
             />
@@ -635,7 +768,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             <CustomDropdown
                 label={`${content[language].rainfallCondition} *`}
                 value={rainfallCondition}
-                options={RAINFALL_CONDITIONS}
+                options={getRainfallConditions(language)}
                 onSelect={setRainfallCondition}
                 placeholder={content[language].select}
             />
@@ -716,15 +849,10 @@ const YieldPredictionOfficerFormScreenNew = () => {
 
     const renderStep3 = () => (
         <View style={styles.stepContainer}>
-            <View style={styles.sectionHeader}>
-                <Leaf color="#16A34A" size={24} />
-                <Text style={styles.sectionTitle}>{content[language].cropInfo}</Text>
-            </View>
-
             <CustomDropdown
                 label={`${content[language].variety} *`}
                 value={seedVariety}
-                options={SEED_VARIETIES}
+                options={getSeedVarieties(language)}
                 onSelect={setSeedVariety}
                 placeholder={content[language].select}
             />
@@ -740,7 +868,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             <CustomDropdown
                 label={`${content[language].season} *`}
                 value={season}
-                options={SEASONS}
+                options={getSeasons(language)}
                 onSelect={setSeason}
                 placeholder={content[language].select}
             />
@@ -788,16 +916,8 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     </Text>
                 )}
             </View>
-        </View>
-    );
 
-    const renderStep4 = () => (
-        <View style={styles.stepContainer}>
-            <View style={styles.sectionHeader}>
-                <Calendar color="#16A34A" size={24} />
-                <Text style={styles.sectionTitle}>{content[language].fertilizerDates}</Text>
-            </View>
-
+            {/* Fertilizer Dates Section - Merged from Step 4 */}
             <HybridDateInput
                 label={content[language].firstFert}
                 value={firstFertDate}
@@ -860,15 +980,85 @@ const YieldPredictionOfficerFormScreenNew = () => {
 
             {/* Step Progress Text */}
             <Text style={styles.stepText}>
-                {content[language].step} {currentStep} {content[language].of} 4
+                {content[language].step} {currentStep} {content[language].of} 3
             </Text>
 
+            {/* Reload Saved Data Button - At the beginning */}
+            {currentStep === 1 && (
+                <View style={{ paddingHorizontal: 20, marginBottom: 10 }}>
+                    <TouchableOpacity
+                        style={{
+                            backgroundColor: "#ECFEFF",
+                            borderWidth: 1,
+                            borderColor: "#0EA5A4",
+                            borderRadius: 12,
+                            paddingVertical: 12,
+                            paddingHorizontal: 16,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                        onPress={loadSavedFormData}
+                    >
+                        <Text style={{ color: "#0F766E", fontWeight: "600", fontSize: 14 }}>
+                            {language === "si" ? "📂 සුරකින ලද දත්ත නැවත පුරවන්න" : "📂 Reload Saved Data"}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Sticky Step Title */}
+            <View style={styles.stickyStepTitle}>
+                {currentStep === 1 && (
+                    <View style={styles.sectionHeader}>
+                        <MapPin color="#16A34A" size={24} />
+                        <Text style={styles.sectionTitle}>{content[language].locationSoil}</Text>
+                    </View>
+                )}
+                {currentStep === 2 && (
+                    <View style={styles.sectionHeader}>
+                        <CloudSun color="#16A34A" size={24} />
+                        <Text style={styles.sectionTitle}>{content[language].climateData}</Text>
+                    </View>
+                )}
+                {currentStep === 3 && (
+                    <View style={styles.sectionHeader}>
+                        <Leaf color="#16A34A" size={24} />
+                        <Text style={styles.sectionTitle}>{content[language].cultivationInfo}</Text>
+                    </View>
+                )}
+            </View>
+
             {/* Form Content */}
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            <ScrollView ref={scrollViewRef} style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {currentStep === 1 && renderStep1()}
                 {currentStep === 2 && renderStep2()}
-                {currentStep === 3 && renderStep3()}
-                {currentStep === 4 && renderStep4()}
+                {currentStep === 3 && (
+                    <>
+                        {renderStep3()}
+                        {/* Save Data Button - At end of Step 3 content */}
+                        <TouchableOpacity
+                            style={{
+                                backgroundColor: "#FEF3C7",
+                                borderWidth: 1,
+                                borderColor: "#F59E0B",
+                                borderRadius: 12,
+                                paddingVertical: 12,
+                                paddingHorizontal: 16,
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginTop: 20,
+                                marginBottom: 10,
+                            }}
+                            onPress={saveFormData}
+                        >
+                            <Text style={{ color: "#D97706", fontWeight: "600", fontSize: 14 }}>
+                                {language === "si" ? "💾 දත්ත සුරකින්න" : "💾 Save Data"}
+                            </Text>
+                        </TouchableOpacity>
+                    </>
+                )}
 
                 <View style={{ height: 100 }} />
             </ScrollView>
@@ -882,9 +1072,9 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     </TouchableOpacity>
                 )}
 
-                {currentStep < 4 ? (
+                {currentStep < 3 ? (
                     <TouchableOpacity
-                        style={[styles.nextButton, currentStep === 1 && styles.nextButtonFull]}
+                        style={[styles.nextButton, currentStep === 1 && styles.nextButtonFull, currentStep === 2 && styles.nextButtonFull]}
                         onPress={handleNext}
                     >
                         <Text style={styles.nextButtonText}>{content[language].next}</Text>
@@ -892,7 +1082,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     </TouchableOpacity>
                 ) : (
                     <TouchableOpacity
-                        style={styles.submitButton}
+                        style={[styles.submitButton, { paddingHorizontal: 30 }]}
                         onPress={handleSubmit}
                         disabled={isSubmitting}
                     >
@@ -903,7 +1093,6 @@ const YieldPredictionOfficerFormScreenNew = () => {
                                     : "Submitting..."
                                 : content[language].submit}
                         </Text>
-                        <ArrowRight color="#FFFFFF" size={20} />
                     </TouchableOpacity>
                 )}
             </View>
@@ -994,6 +1183,14 @@ const styles = StyleSheet.create({
     scrollView: {
         flex: 1,
         paddingHorizontal: 20,
+    },
+    stickyStepTitle: {
+        backgroundColor: "#F0FDF4",
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        paddingBottom: 5,
+        borderBottomWidth: 1,
+        borderBottomColor: "#D1FAE5",
     },
     stepContainer: {
         marginTop: 10,

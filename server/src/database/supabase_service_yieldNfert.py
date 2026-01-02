@@ -38,16 +38,38 @@ async def save_farmer_input(data: Dict[str, Any]) -> str:
             "farmer_id": data.get("farmer_id"),
             "district": data.get("district"),
             "location": data.get("location"),
-            "gps_lat": data.get("gps_lat"),
-            "gps_lng": data.get("gps_lng"),
             "season": data.get("season"),
             "planting_date": data.get("planting_date"),
+            "planting_month": data.get("planting_month"),
             "land_size_value": data.get("land_size_value"),
             "land_size_unit": data.get("land_size_unit", "Acres"),
-            "soil_condition": data.get("soil_condition"),
-            "irrigation_type": data.get("irrigation_type"),
+            "field_size_ha": data.get("field_size_ha"),
             "variety": data.get("variety"),
+            # Fertilizer dates
+            "first_fert_date": data.get("first_fert_date"),
+            "second_fert_date": data.get("second_fert_date"),
+            # Soil information
+            "soil_type": data.get("soil_type"),
+            "soil_condition": data.get("soil_condition"),
+            "soil_ph": data.get("soil_ph"),
+            "soil_nitrogen_n": data.get("soil_nitrogen_n"),
+            "soil_phosphorus_p": data.get("soil_phosphorus_p"),
+            "soil_potassium_k": data.get("soil_potassium_k"),
+            "soil_fertility_index": data.get("soil_fertility_index"),
+            # NPK Status
+            "n_status_class": data.get("n_status_class"),
+            "p_status_class": data.get("p_status_class"),
+            "k_status_class": data.get("k_status_class"),
+            # Field conditions
+            "irrigation_type": data.get("irrigation_type"),
             "rainfall_condition": data.get("rainfall_condition"),
+            # Weather data (complete)
+            "rainfall_30d": data.get("rainfall_30d"),
+            "seasonal_rainfall": data.get("seasonal_rainfall"),
+            "avg_temperature": data.get("avg_temperature"),
+            "max_temperature": data.get("max_temperature"),
+            "avg_humidity": data.get("avg_humidity"),
+            "sunshine_hours": data.get("sunshine_hours"),
             "created_at": get_current_timestamp(),
         }
 
@@ -86,7 +108,7 @@ async def get_farmer_inputs(farmer_id: str, limit: int = 20) -> list:
 
 async def save_prediction(farmer_input_id: str, prediction_data: Dict[str, Any]) -> str:
     """
-    Save prediction results to database
+    Save yield prediction results to database
     Returns: prediction_id
     """
     try:
@@ -98,13 +120,13 @@ async def save_prediction(farmer_input_id: str, prediction_data: Dict[str, Any])
             "yield_upper_bound": prediction_data.get("yield_upper_bound"),
             "confidence_level": prediction_data.get("confidence_level"),
             "confidence_score": prediction_data.get("confidence_score"),
-            "model_version": prediction_data.get("model_version"),
+            "ml_model_version": prediction_data.get("ml_model_version"),
             "primary_limiting_factors": prediction_data.get("primary_limiting_factors"),
             "prediction_method": prediction_data.get("prediction_method"),
             "created_at": get_current_timestamp(),
         }
 
-        result = supabase.table("predictions").insert(prediction_record).execute()
+        result = supabase.table("yield_predictions").insert(prediction_record).execute()
         
         if result.data and len(result.data) > 0:
             return result.data[0]["id"]
@@ -117,10 +139,10 @@ async def save_prediction(farmer_input_id: str, prediction_data: Dict[str, Any])
 
 
 async def get_prediction(prediction_id: str) -> Optional[Dict]:
-    """Get a specific prediction by ID"""
+    """Get a specific yield prediction by ID"""
     try:
         result = (
-            supabase.table("predictions")
+            supabase.table("yield_predictions")
             .select("*, farmer_inputs(*)")
             .eq("id", prediction_id)
             .single()
@@ -133,10 +155,10 @@ async def get_prediction(prediction_id: str) -> Optional[Dict]:
 
 
 async def get_farmer_predictions(farmer_id: str, limit: int = 20) -> list:
-    """Get farmer's prediction history"""
+    """Get farmer's yield prediction history"""
     try:
         result = (
-            supabase.table("predictions")
+            supabase.table("yield_predictions")
             .select("*, farmer_inputs!inner(*)")
             .eq("farmer_inputs.farmer_id", farmer_id)
             .order("created_at", desc=True)
@@ -153,33 +175,54 @@ async def get_farmer_predictions(farmer_id: str, limit: int = 20) -> list:
 # OFFICER PREDICTIONS
 # ============================================================
 
-async def save_officer_prediction(data: Dict[str, Any]) -> str:
+async def save_officer_prediction(data: Dict[str, Any], prediction_type: str = "experimental") -> str:
     """
     Save officer prediction with fertilizer schedule
+    
+    Args:
+        data: Prediction data
+        prediction_type: "operational" (farmer-requested, persisted) or "experimental" (officer-initiated, not persisted)
+    
     Returns: prediction_id
+    
+    Note:
+        - "operational": Farmer-requested predictions are saved for advisory and research validation
+        - "experimental": Officer-initiated predictions are NOT saved (for analysis only)
     """
     try:
-        officer_prediction_data = {
-            "id": generate_uuid(),
-            "officer_id": data.get("officer_id"),
-            "soil_profile": data.get("soil_profile"),
-            "climate_data": data.get("climate_data"),
-            "crop_measurements": data.get("crop_measurements"),
-            "fertilizer_applied": data.get("fertilizer_applied"),
-            "predicted_yield": data.get("predicted_yield"),
-            "fertilizer_schedule": data.get("fertilizer_schedule"),
-            "impact_factors": data.get("impact_factors"),
-            "recommendations": data.get("recommendations"),
-            "officer_insights": data.get("officer_insights"),
-            "created_at": get_current_timestamp(),
-        }
-
-        result = supabase.table("officer_predictions").insert(officer_prediction_data).execute()
+        # Generate prediction ID regardless of type (for response tracking)
+        prediction_id = generate_uuid()
         
-        if result.data and len(result.data) > 0:
-            return result.data[0]["id"]
+        # Only persist operational (farmer-requested) predictions
+        if prediction_type == "operational":
+            officer_prediction_data = {
+                "id": prediction_id,
+                "officer_id": data.get("officer_id"),
+                "farmer_id": data.get("farmer_id"),  # Link to farmer if requested by farmer
+                "prediction_type": "operational",  # Mark as farmer-requested
+                "soil_profile": data.get("soil_profile"),
+                "climate_data": data.get("climate_data"),
+                "crop_measurements": data.get("crop_measurements"),
+                "fertilizer_applied": data.get("fertilizer_applied"),
+                "predicted_yield": data.get("predicted_yield"),
+                "fertilizer_schedule": data.get("fertilizer_schedule"),
+                "impact_factors": data.get("impact_factors"),
+                "recommendations": data.get("recommendations"),
+                "officer_insights": data.get("officer_insights"),
+                "created_at": get_current_timestamp(),
+            }
+
+            result = supabase.table("officer_predictions").insert(officer_prediction_data).execute()
+            
+            if result.data and len(result.data) > 0:
+                print(f"✅ Saved operational prediction to database: {prediction_id}")
+                return result.data[0]["id"]
+            else:
+                raise Exception("No data returned from insert")
         else:
-            raise Exception("No data returned from insert")
+            # Experimental predictions are NOT saved to database
+            print(f"ℹ️  Experimental prediction (not saved): {prediction_id}")
+            return prediction_id
             
     except Exception as e:
         print(f"Error saving officer prediction: {e}")

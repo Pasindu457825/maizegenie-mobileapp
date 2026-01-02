@@ -21,7 +21,7 @@ RecommendationPriority = Literal['high', 'medium', 'low']
 class SoilProfile(BaseModel):
     district: str = Field(..., description="District name")
     location: str = Field(..., description="Specific location within district")
-    soil_type: str = Field(..., description="Soil type (Clay, Loam, Sandy-Loam, etc.)")
+    soil_type: str = Field(..., description="Soil type (Alluvial, IBL, LHG, RBE, RYP)")
     soil_condition: str = Field(..., description="Soil condition: Good/Medium/Poor")
     
     # Soil Chemistry
@@ -66,6 +66,10 @@ class OfficerPredictionRequest(BaseModel):
     """
     officer_id: str = Field(..., description="Officer ID")
     farmer_id: Optional[str] = Field(None, description="Farmer ID (if applicable)")
+    prediction_type: Literal["operational", "experimental"] = Field(
+        default="experimental",
+        description="operational: farmer-requested (saved to DB), experimental: officer-initiated (not saved)"
+    )
     
     # Core data sections
     soil_profile: SoilProfile
