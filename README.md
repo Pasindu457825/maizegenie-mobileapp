@@ -44,7 +44,7 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 ## 📊 System Modules
 
 1. Pest Identification & AR Life Cycle  
-2. Disease Detection  
+2. Disease Detection & Solution Advisory 
 3. Yield Prediction & Fertilizer Advisory  
 4. Corn Price Forecasting & Cultivation Timing  
 
