@@ -8,6 +8,7 @@ type Result = {
   longitude: number | null;
 
   temperature: number | null;
+  humidity: number | null;
   weatherCondition: string | null;
   weatherIcon: string | null;
 
@@ -54,6 +55,7 @@ export default function useUniversalLocation(
   const [longitude, setLongitude] = useState<number | null>(null);
 
   const [temperature, setTemperature] = useState<number | null>(null);
+  const [humidity, setHumidity] = useState<number | null>(null);
   const [weatherCondition, setWeatherCondition] = useState<string | null>(null);
   const [weatherIcon, setWeatherIcon] = useState<string | null>(null);
 
@@ -87,6 +89,10 @@ export default function useUniversalLocation(
 
       setTemperature(
         typeof json.main?.temp === "number" ? json.main.temp : null
+      );
+
+      setHumidity(
+        typeof json.main?.humidity === "number" ? json.main.humidity : null
       );
 
       if (Array.isArray(json.weather) && json.weather.length > 0) {
@@ -204,6 +210,7 @@ export default function useUniversalLocation(
     latitude,
     longitude,
     temperature,
+    humidity,
     weatherCondition,
     weatherIcon,
     rainfallMm, // ✅ ADD

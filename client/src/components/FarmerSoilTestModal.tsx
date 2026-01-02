@@ -8,76 +8,89 @@ import {
   ScrollView,
   Dimensions,
   Platform,
-  SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { CheckCircle2, X } from "lucide-react-native";
+import { TestTube, X, AlertCircle, CheckCircle2 } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
-interface DataConfirmationModalProps {
+interface FarmerSoilTestModalProps {
   visible: boolean;
   onClose: () => void;
   onConfirm: () => void;
+  onNoData: () => void;
   language: "si" | "en";
 }
 
-const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
+const FarmerSoilTestModal: React.FC<FarmerSoilTestModalProps> = ({
   visible,
   onClose,
   onConfirm,
+  onNoData,
   language,
 }) => {
   const content = {
     si: {
-      title: "දත්ත තහවුරු කිරීම",
-      subtitle: "අස්වැන්න පුරෝකථනය සඳහා ඔබ පහත දත්ත එකතු කර තිබේද?",
-      checklist: [
+      title: "පස් පරීක්ෂණ දත්ත",
+      subtitle: "නිවැරදි අස්වැන්න පුරෝකථනයක් සඳහා පස් පරීක්ෂණ දත්ත අවශ්‍ය වේ",
+      requiredData: "අවශ්‍ය දත්ත:",
+      dataItems: [
         {
-          title: "ස්ථාන සහ පස් දත්ත",
-          items: ["pH මට්ටම", "NPK මට්ටම් (නයිට්‍රජන්, පොස්පරස්, පොටෑසියම්)", "පස් තත්ත්වය"]
+          title: "පස් pH මට්ටම",
+          description: "පස්වල ආම්ලිකතාව හෝ ක්ෂාරතාව මැනීම (0-14 පරාසය)"
         },
         {
-          title: "දේශගුණික දත්ත",
-          items: ["වර්ෂාපතනය (30 දින සහ කන්නය)", "උෂ්ණත්වය (සාමාන්‍ය සහ උපරිම)", "ආර්ද්‍රතාවය සහ හිරු එළිය"]
+          title: "නයිට්‍රජන් (N)",
+          description: "පස්වල නයිට්‍රජන් අන්තර්ගතය (ppm වලින්)"
         },
         {
-          title: "වගා තොරතුරු",
-          items: ["බීජ ප්‍රභේදය", "වගා කළ දිනය සහ කන්නය", "ක්ෂේත්‍ර ප්‍රමාණය", "පොහොර දිනයන්"]
+          title: "පොස්පරස් (P)",
+          description: "පස්වල පොස්පරස් අන්තර්ගතය (ppm වලින්)"
         },
         {
-          title: "පොහොර සහ වාරිමාර්ග",
-          items: ["පොහොර දිනයන්", "වාරිමාර්ග ක්‍රමය"]
+          title: "පොටෑසියම් (K)",
+          description: "පස්වල පොටෑසියම් අන්තර්ගතය (ppm වලින්)"
+        },
+        {
+          title: "සාරවත් දර්ශකය",
+          description: "සමස්ත පස් සාරවත්කම මට්ටම (0-1 පරාසය)"
         }
       ],
-      question: "දිගටම කරගෙන යාමට සූදානම්ද?",
-      cancel: "අවලංගු කරන්න",
-      proceed: "ඔව්"
+      question: "ඔබ මෙම දත්ත ලබා ගෙන තිබේද?",
+      noButton: "නැත",
+      yesButton: "ඔව්",
+      importance: "මෙම දත්ත නොමැතිව පුරෝකථනය අඩු නිවැරදි වනු ඇත"
     },
     en: {
-      title: "Data Confirmation",
-      subtitle: "Have you collected the following data for yield prediction?",
-      checklist: [
+      title: "Soil Test Data",
+      subtitle: "Soil test data is required for accurate yield prediction",
+      requiredData: "Required Data:",
+      dataItems: [
         {
-          title: "Location & Soil Data",
-          items: ["pH levels", "NPK levels (Nitrogen, Phosphorus, Potassium)", "Soil condition"]
+          title: "Soil pH Level",
+          description: "Measure of soil acidity or alkalinity (0-14 range)"
         },
         {
-          title: "Climate Data",
-          items: ["Rainfall (30-day and seasonal)", "Temperature (average and maximum)", "Humidity and sunshine hours"]
+          title: "Nitrogen (N)",
+          description: "Soil nitrogen content (in ppm)"
         },
         {
-          title: "Cultivation Information",
-          items: ["Seed variety", "Planting date and season", "Field size", "Fertilizer application dates"]
+          title: "Phosphorus (P)",
+          description: "Soil phosphorus content (in ppm)"
         },
         {
-          title: "Irrigation",
-          items: ["Irrigation type"]
+          title: "Potassium (K)",
+          description: "Soil potassium content (in ppm)"
+        },
+        {
+          title: "Fertility Index",
+          description: "Overall soil fertility level (0-1 range)"
         }
       ],
-      question: "Ready to proceed?",
-      cancel: "Cancel",
-      proceed: "Yes"
+      question: "Do you have this data?",
+      noButton: "No",
+      yesButton: "Yes",
+      importance: "Without this data, predictions will be less accurate"
     }
   };
 
@@ -109,54 +122,57 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
                   colors={["#10b981", "#059669"]}
                   style={styles.iconGradient}
                 >
-                  <CheckCircle2 color="#FFFFFF" size={32} />
+                  <TestTube color="#FFFFFF" size={32} />
                 </LinearGradient>
               </View>
               <Text style={styles.title}>{text.title}</Text>
               <Text style={styles.subtitle}>{text.subtitle}</Text>
             </View>
 
-            {/* Checklist */}
+            {/* Scrollable Content */}
             <ScrollView 
-              style={styles.checklistContainer}
-              contentContainerStyle={styles.scrollContentContainer}
+              style={styles.scrollContainer}
               showsVerticalScrollIndicator={false}
             >
-              {text.checklist.map((section, index) => (
-                <View key={index} style={styles.checklistSection}>
-                  <View style={styles.sectionHeader}>
+              {/* Required Data Section */}
+              <Text style={styles.requiredDataTitle}>{text.requiredData}</Text>
+              
+              {text.dataItems.map((item, index) => (
+                <View key={index} style={styles.dataItem}>
+                  <View style={styles.dataHeader}>
                     <View style={styles.checkIcon}>
-                      <CheckCircle2 color="#10b981" size={20} />
+                      <CheckCircle2 color="#10b981" size={18} />
                     </View>
-                    <Text style={styles.sectionTitle}>{section.title}</Text>
+                    <Text style={styles.dataTitle}>{item.title}</Text>
                   </View>
-                  {section.items.map((item, itemIndex) => (
-                    <View key={itemIndex} style={styles.checklistItem}>
-                      <View style={styles.bullet} />
-                      <Text style={styles.itemText}>{item}</Text>
-                    </View>
-                  ))}
+                  <Text style={styles.dataDescription}>{item.description}</Text>
                 </View>
               ))}
+
+              {/* Warning Box */}
+              <View style={styles.warningContainer}>
+                <AlertCircle color="#F59E0B" size={20} />
+                <Text style={styles.warningText}>{text.importance}</Text>
+              </View>
+
+              {/* Question */}
+              <View style={styles.questionContainer}>
+                <Text style={styles.questionText}>{text.question}</Text>
+              </View>
             </ScrollView>
 
-            {/* Question */}
-            <View style={styles.questionContainer}>
-              <Text style={styles.questionText}>{text.question}</Text>
-            </View>
-
-            {/* Action Buttons */}
+            {/* Action Buttons - Fixed at bottom */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={onClose}
+                style={styles.noButton}
+                onPress={onNoData}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cancelButtonText}>{text.cancel}</Text>
+                <Text style={styles.noButtonText}>{text.noButton}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.proceedButton}
+                style={styles.yesButton}
                 onPress={onConfirm}
                 activeOpacity={0.7}
               >
@@ -164,9 +180,9 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
                   colors={["#10b981", "#059669"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 0 }}
-                  style={styles.proceedGradient}
+                  style={styles.yesGradient}
                 >
-                  <Text style={styles.proceedButtonText}>{text.proceed}</Text>
+                  <Text style={styles.yesButtonText}>{text.yesButton}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -215,9 +231,6 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 20,
   },
-  scrollContentContainer: {
-    flexGrow: 1,
-  },
   closeButton: {
     position: "absolute",
     top: 16,
@@ -227,7 +240,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 16,
   },
   iconCircle: {
     width: 70,
@@ -261,72 +274,84 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     paddingHorizontal: 10,
   },
-  checklistContainer: {
-    maxHeight: Platform.OS === 'ios' ? 220 : 240,
-    marginBottom: 16,
+  scrollContainer: {
+    maxHeight: Platform.OS === 'ios' ? 260 : 280,
   },
-  checklistSection: {
-    marginBottom: 16,
+  requiredDataTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  dataItem: {
+    marginBottom: 12,
     backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 10,
+    padding: 10,
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  sectionHeader: {
+  dataHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   checkIcon: {
     marginRight: 8,
   },
-  sectionTitle: {
-    fontSize: 16,
+  dataTitle: {
+    fontSize: 15,
     fontWeight: "600",
     color: "#10b981",
     flex: 1,
   },
-  checklistItem: {
+  dataDescription: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 18,
+    marginLeft: 26,
+  },
+  warningContainer: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginLeft: 28,
-    marginBottom: 8,
-  },
-  bullet: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: "#9CA3AF",
-    marginTop: 7,
-    marginRight: 10,
-  },
-  itemText: {
-    fontSize: 14,
-    color: "#4B5563",
-    flex: 1,
-    lineHeight: 20,
-  },
-  questionContainer: {
+    alignItems: "center",
     backgroundColor: "#FEF3C7",
-    borderRadius: 12,
+    borderRadius: 10,
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: "#FDE68A",
+    gap: 10,
+  },
+  warningText: {
+    fontSize: 13,
+    color: "#92400E",
+    flex: 1,
+    lineHeight: 18,
+    fontWeight: "500",
+  },
+  questionContainer: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
   },
   questionText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#92400E",
+    color: "#065F46",
     textAlign: "center",
   },
   buttonContainer: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 4,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
   },
-  cancelButton: {
+  noButton: {
     flex: 1,
     paddingVertical: 13,
     borderRadius: 10,
@@ -336,12 +361,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cancelButtonText: {
+  noButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#6B7280",
   },
-  proceedButton: {
+  yesButton: {
     flex: 1,
     borderRadius: 10,
     overflow: "hidden",
@@ -351,17 +376,17 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 5,
   },
-  proceedGradient: {
+  yesGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 13,
   },
-  proceedButtonText: {
+  yesButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: "#FFFFFF",
   },
 });
 
-export default DataConfirmationModal;
+export default FarmerSoilTestModal;
