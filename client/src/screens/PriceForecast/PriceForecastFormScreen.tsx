@@ -18,7 +18,7 @@ import {
   CloudLightning,
   CloudFog,
 } from "lucide-react-native";
-
+import { useApp } from "../../context/AppContext";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
@@ -161,6 +161,11 @@ const PriceForecastFormScreen = () => {
   // Dropdown state
   const [showVarietyPopup, setShowVarietyPopup] = useState(false);
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
+  const { user } = useApp();
+
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
+  // user.role = "FARMER" | "OFFICER"
 
   // Content translations
   const content = {
@@ -679,7 +684,15 @@ const PriceForecastFormScreen = () => {
       };
 
       // Navigate to next page
-      navigation.navigate("PriceForecastScreen", { data: forecastData });
+      if (isOfficer) {
+        navigation.navigate("OfficerPriceForecastScreen", {
+          data: forecastData,
+        });
+      } else {
+        navigation.navigate("PriceForecastScreen", {
+          data: forecastData,
+        });
+      }
     } catch (error) {
       console.log("Submit Error:", error);
     }

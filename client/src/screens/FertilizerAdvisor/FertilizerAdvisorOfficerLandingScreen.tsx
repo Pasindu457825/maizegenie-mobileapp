@@ -190,33 +190,6 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Farmer Requests Card */}
-                    <TouchableOpacity
-                        style={styles.serviceCard}
-                        onPress={() => handleComingSoon(t.farmerRequests)}
-                        activeOpacity={0.7}
-                    >
-                        <LinearGradient
-                            colors={["#FEF3C7", "#FDE68A"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.serviceCardGradient}
-                        >
-                            <View style={[styles.serviceIconContainer, { backgroundColor: "#FDE68A" }]}>
-                                <Users color="#D97706" size={28} />
-                            </View>
-                            <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.farmerRequests}</Text>
-                                <Text style={styles.serviceDescription}>
-                                    {t.farmerRequestsDescription}
-                                </Text>
-                            </View>
-                            <View style={styles.serviceArrow}>
-                                <Text style={styles.serviceArrowText}>→</Text>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
                     {/* Chat With Farmers Card */}
                     <TouchableOpacity
                         style={styles.serviceCard}

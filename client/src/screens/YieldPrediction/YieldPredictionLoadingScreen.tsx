@@ -18,6 +18,8 @@ import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 import DataConfirmationModal from "../../components/DataConfirmationModal";
 import ProUpgradePopup from "../../components/ProUpgradePopup";
+import FarmerSoilTestModal from "../../components/FarmerSoilTestModal";
+import SoilTestImportanceModal from "../../components/SoilTestImportanceModal";
 
 const { width } = Dimensions.get("window");
 
@@ -34,6 +36,8 @@ const YieldPredictionLoadingScreen = () => {
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const [showProPopup, setShowProPopup] = useState(false);
+  const [showSoilTestModal, setShowSoilTestModal] = useState(false);
+  const [showImportanceModal, setShowImportanceModal] = useState(false);
   const { user } = useApp();
 
   // Role-based authentication using Supabase user data
@@ -71,7 +75,9 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendation: "පොහොර නිර්දේශ",
       fertilizerRecommendationDesc: "ගොවීන්ට පොහොර උපදේශ ලබා දෙන්න",
       farmerRequests: "ගොවි ඉල්ලීම්",
-      farmerRequestsDesc: "ඉදිරි දිනවල",
+      farmerRequestsDesc: "ගොවීන්ගේ උපදේශ ඉල්ලීම් බලන්න",
+      myAdviceRequests: "මගේ උපදේශ ඉල්ලීම්",
+      myAdviceRequestsDesc: "නිලධාරීන්ගෙන් ලැබුණු උපදේශ බලන්න",
       comingSoon: "ඉදිරි දිනවල",
       soilTestTitle: "පස් පරීක්ෂණ ඉල්ලීම",
       soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න - ආසන්නතම කෘෂිකර්ම නිලධාරියා සම්බන්ධ කරගන්න",
@@ -91,7 +97,9 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendation: "Fertilizer Recommendation",
       fertilizerRecommendationDesc: "Provide fertilizer advice to farmers",
       farmerRequests: "Farmer Requests",
-      farmerRequestsDesc: "Coming soon",
+      farmerRequestsDesc: "View farmer advice requests with yield predictions",
+      myAdviceRequests: "My Advice Requests",
+      myAdviceRequestsDesc: "View advice received from officers",
       comingSoon: "Coming soon",
       soilTestTitle: "Request Soil Testing",
       soilTestDesc: "Request a soil test for your land - Contact nearest agri officer",
@@ -140,11 +148,26 @@ const YieldPredictionLoadingScreen = () => {
     }
 
     if (role === "farmer") {
-      navigation.navigate("YieldPredictionFormScreen", { role, language });
+      // Show two-step confirmation popup for farmers
+      showFarmerSoilTestConfirmation();
     } else {
       // Show data confirmation checklist for officers
       showOfficerDataConfirmation();
     }
+  };
+
+  const showFarmerSoilTestConfirmation = () => {
+    setShowSoilTestModal(true);
+  };
+
+  const showSoilTestImportanceMessage = () => {
+    setShowSoilTestModal(false);
+    setShowImportanceModal(true);
+  };
+
+  const handleSoilTestConfirm = () => {
+    setShowSoilTestModal(false);
+    navigation.navigate("YieldPredictionFormScreen", { role: "farmer", language });
   };
 
   const handleComingSoon = (feature: string) => {
@@ -269,10 +292,10 @@ const YieldPredictionLoadingScreen = () => {
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Card 3: Soil Test Request (Pro Feature) */}
+              {/* Card 3: My Advice Requests */}
               <TouchableOpacity
                 style={styles.roleCard}
-                onPress={() => setShowProPopup(true)}
+                onPress={() => navigation.navigate("MyAdviceRequestsScreen")}
                 activeOpacity={0.7}
               >
                 <LinearGradient
@@ -282,11 +305,40 @@ const YieldPredictionLoadingScreen = () => {
                   style={styles.roleCardGradient}
                 >
                   <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
-                    <TestTube color="#f59e0b" size={32} />
+                    <Users color="#f59e0b" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].myAdviceRequests}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].myAdviceRequestsDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Card 4: Soil Test Request (Pro Feature) */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => setShowProPopup(true)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#F3E8FF", "#E9D5FF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#E9D5FF" }]}>
+                    <TestTube color="#9333ea" size={32} />
                   </View>
                   <View style={styles.roleContent}>
                     <View style={styles.proFeatureBadge}>
-                      <Sparkles size={12} color="#f59e0b" />
+                      <Sparkles size={12} color="#9333ea" />
                       <Text style={styles.proFeatureText}>Pro</Text>
                     </View>
                     <Text style={styles.roleTitle}>
@@ -361,6 +413,35 @@ const YieldPredictionLoadingScreen = () => {
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
+
+              {/* Card 3: Farmer Requests */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => navigation.navigate("FarmerAdviceRequestsScreen")}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#FEF3C7", "#FDE68A"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
+                    <Users color="#D97706" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].farmerRequests}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].farmerRequestsDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
             </>
           )}
         </View>
@@ -383,6 +464,26 @@ const YieldPredictionLoadingScreen = () => {
           setShowProPopup(false);
           navigation.navigate("Payment" as any, { plan: "pro", amount: 2499 });
         }}
+      />
+
+      {/* Farmer Soil Test Modal */}
+      <FarmerSoilTestModal
+        visible={showSoilTestModal}
+        onClose={() => setShowSoilTestModal(false)}
+        onConfirm={handleSoilTestConfirm}
+        onNoData={showSoilTestImportanceMessage}
+        language={language}
+      />
+
+      {/* Soil Test Importance Modal */}
+      <SoilTestImportanceModal
+        visible={showImportanceModal}
+        onClose={() => setShowImportanceModal(false)}
+        onRequestSoilTest={() => {
+          setShowImportanceModal(false);
+          setShowProPopup(true);
+        }}
+        language={language}
       />
     </View>
   );
@@ -411,10 +512,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: "700",
     color: "#ffffff",
-    lineHeight: 22,
+    lineHeight: 26,
     textAlign: "center",
   },
   headerSubtitle: {

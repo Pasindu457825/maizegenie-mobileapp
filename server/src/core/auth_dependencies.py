@@ -42,10 +42,21 @@ async def get_current_user(
         
         user = user_response.user
         
+        # Fetch role from profiles table
+        role = None
+        try:
+            profile_response = supabase.table("profiles").select("role").eq("id", user.id).single().execute()
+            if profile_response.data:
+                role = profile_response.data.get("role")
+        except Exception as profile_error:
+            print(f"Warning: Could not fetch profile role: {profile_error}")
+            # Fallback to user_metadata if profiles table query fails
+            role = user.user_metadata.get("role")
+        
         return {
             "id": user.id,
             "email": user.email,
-            "role": user.user_metadata.get("role"),
+            "role": role,
         }
         
     except Exception as e:

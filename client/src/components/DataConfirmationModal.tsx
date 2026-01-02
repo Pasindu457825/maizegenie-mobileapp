@@ -8,6 +8,7 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  SafeAreaView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { CheckCircle2, X } from "lucide-react-native";
@@ -41,8 +42,8 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
           items: ["වර්ෂාපතනය (30 දින සහ කන්නය)", "උෂ්ණත්වය (සාමාන්‍ය සහ උපරිම)", "ආර්ද්‍රතාවය සහ හිරු එළිය"]
         },
         {
-          title: "බෝග තොරතුරු",
-          items: ["බීජ ප්‍රභේදය", "වගා කළ දිනය සහ කන්නය", "ක්ෂේත්‍ර ප්‍රමාණය"]
+          title: "වගා තොරතුරු",
+          items: ["බීජ ප්‍රභේදය", "වගා කළ දිනය සහ කන්නය", "ක්ෂේත්‍ර ප්‍රමාණය", "පොහොර දිනයන්"]
         },
         {
           title: "පොහොර සහ වාරිමාර්ග",
@@ -66,12 +67,12 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
           items: ["Rainfall (30-day and seasonal)", "Temperature (average and maximum)", "Humidity and sunshine hours"]
         },
         {
-          title: "Crop Information",
-          items: ["Seed variety", "Planting date and season", "Field size"]
+          title: "Cultivation Information",
+          items: ["Seed variety", "Planting date and season", "Field size", "Fertilizer application dates"]
         },
         {
-          title: "Fertilizer & Irrigation",
-          items: ["Fertilizer application dates", "Irrigation type"]
+          title: "Irrigation",
+          items: ["Irrigation type"]
         }
       ],
       question: "Ready to proceed?",
@@ -118,6 +119,7 @@ const DataConfirmationModal: React.FC<DataConfirmationModalProps> = ({
             {/* Checklist */}
             <ScrollView 
               style={styles.checklistContainer}
+              contentContainerStyle={styles.scrollContentContainer}
               showsVerticalScrollIndicator={false}
             >
               {text.checklist.map((section, index) => (
@@ -195,7 +197,7 @@ const styles = StyleSheet.create({
   modalContainer: {
     width: Platform.OS === 'web' ? '90%' : width - 40,
     maxWidth: 500,
-    maxHeight: "85%",
+    maxHeight: '80%',
     borderRadius: 20,
     overflow: "hidden",
     shadowColor: "#000",
@@ -213,6 +215,9 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 20,
   },
+  scrollContentContainer: {
+    flexGrow: 1,
+  },
   closeButton: {
     position: "absolute",
     top: 16,
@@ -222,13 +227,13 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginBottom: 16,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 12,
     shadowColor: "#10b981",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -238,7 +243,7 @@ const styles = StyleSheet.create({
   iconGradient: {
     width: "100%",
     height: "100%",
-    borderRadius: 40,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -257,7 +262,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   checklistContainer: {
-    maxHeight: 280,
+    maxHeight: Platform.OS === 'ios' ? 220 : 240,
     marginBottom: 16,
   },
   checklistSection: {
@@ -305,8 +310,8 @@ const styles = StyleSheet.create({
   questionContainer: {
     backgroundColor: "#FEF3C7",
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    padding: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: "#FDE68A",
   },

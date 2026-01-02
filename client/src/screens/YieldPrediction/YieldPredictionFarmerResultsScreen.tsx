@@ -8,7 +8,12 @@ import {
   TouchableOpacity,
   Dimensions,
   Animated,
+  Alert,
+  ActivityIndicator,
+  Modal,
+  Platform,
 } from "react-native";
+import { createAdviceRequest } from "../../services/adviceRequestApi";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
@@ -22,7 +27,9 @@ import {
   Sun,
   Wind,
   Home,
+  MessageSquare,
 } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
 const { width } = Dimensions.get("window");
 
@@ -34,13 +41,24 @@ type NavProp = StackNavigationProp<
 const YieldPredictionResultsScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const { data } = route.params as {
+  const { data, farmerInput } = route.params as {
     data: any;
+    farmerInput?: {
+      district?: string;
+      location?: string;
+      variety?: string;
+      field_size_ha?: number;
+      irrigation_type?: string;
+      rainfall_condition?: string;
+      planting_date?: string;
+    };
   };
 
   const { language: lang } = useLanguage();
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
+  const [showAdviceModal, setShowAdviceModal] = useState(false);
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -60,6 +78,8 @@ const YieldPredictionResultsScreen = () => {
       recommendations: "නිර්දේශ",
       summary: "සාරාංශය",
       newPrediction: "නව පුරෝකථනයක්",
+      requestAdvice: "උපදේශ ඉල්ලන්න",
+      requestAdviceDesc: "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ තෝරාගැනීම සඳහා උපදේශ ලබා ගන්න",
       back: "ආපසු",
       high: "ඉහළ",
       medium: "මධ්‍යම",
@@ -86,6 +106,8 @@ const YieldPredictionResultsScreen = () => {
       recommendations: "Recommendations",
       summary: "Summary",
       newPrediction: "New Prediction",
+      requestAdvice: "Request Advice",
+      requestAdviceDesc: "Get expert advice on yield enhancement and seed variety selection",
       back: "Back",
       high: "High",
       medium: "Medium",
@@ -127,6 +149,89 @@ const YieldPredictionResultsScreen = () => {
     navigation.navigate("YieldPredictionLoadingScreen");
   };
 
+  const handleRequestAdvice = () => {
+    setShowAdviceModal(true);
+  };
+
+  const handleAdviceTypeSelect = (requestType: 'yield_enhancement' | 'seed_variety' | 'both') => {
+    setShowAdviceModal(false);
+    submitAdviceRequest(requestType);
+  };
+
+  // Cross-platform alert function
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
+  };
+
+  const submitAdviceRequest = async (requestType: 'yield_enhancement' | 'seed_variety' | 'both') => {
+    setIsSubmittingAdvice(true);
+    try {
+      // Extract all prediction data
+      const predictionId = data?.prediction_id || data?.farmer_input_id || '';
+      const yieldKgHa = data?.prediction?.predicted_yield_kg_per_ha || 0;
+      
+      // Get farmer input data from route params
+      const district = farmerInput?.district || '';
+      const location = farmerInput?.location || '';
+      const variety = farmerInput?.variety || '';
+      const landSizeHa = farmerInput?.field_size_ha || 0;
+      const irrigationType = farmerInput?.irrigation_type || '';
+      const rainfallCondition = farmerInput?.rainfall_condition || '';
+      const plantingDate = farmerInput?.planting_date || '';
+      
+      // Generate message based on request type
+      let farmerMessage = '';
+      if (requestType === 'yield_enhancement') {
+        farmerMessage = language === "si" 
+          ? "අස්වැන්න වැඩිදියුණු කිරීම සඳහා උපදේශ අවශ්‍යයි"
+          : "Need advice on yield enhancement";
+      } else if (requestType === 'seed_variety') {
+        farmerMessage = language === "si" 
+          ? "බීජ වර්ගය තෝරාගැනීම සඳහා උපදේශ අවශ්‍යයි"
+          : "Need advice on seed variety selection";
+      } else {
+        farmerMessage = language === "si" 
+          ? "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ තෝරාගැනීම සඳහා උපදේශ අවශ්‍යයි"
+          : "Need advice on yield enhancement and seed variety selection";
+      }
+      
+      await createAdviceRequest({
+        yield_prediction_id: predictionId,
+        request_type: requestType,
+        farmer_message: farmerMessage,
+        predicted_yield_kg_ha: yieldKgHa,
+        district: district,
+        location: location,
+        variety: variety,
+        land_size_ha: landSizeHa,
+        irrigation_type: irrigationType,
+        rainfall_condition: rainfallCondition,
+        planting_date: plantingDate,
+      });
+      
+      showAlert(
+        language === "si" ? "සාර්ථකයි!" : "Success!",
+        language === "si" 
+          ? "ඔබේ උපදේශ ඉල්ලීම සාර්ථකව යවන ලදී. නිලධාරියෙක් ඉක්මනින් ඔබව සම්බන්ධ කරගනු ඇත."
+          : "Your advice request has been sent successfully. An officer will contact you soon."
+      );
+    } catch (error: any) {
+      console.error('Failed to submit advice request:', error);
+      showAlert(
+        language === "si" ? "දෝෂයකි" : "Error",
+        error.message || (language === "si" 
+          ? "උපදේශ ඉල්ලීම යැවීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න."
+          : "Failed to send advice request. Please try again.")
+      );
+    } finally {
+      setIsSubmittingAdvice(false);
+    }
+  };
+
   // Extract data with fallbacks
   const prediction = data?.prediction || {};
   const yieldKgHa = prediction.predicted_yield_kg_per_ha || 0;
@@ -149,15 +254,22 @@ const YieldPredictionResultsScreen = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={["#10b981", "#059669"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <ArrowLeft color="#047857" size={24} />
+          <ArrowLeft color="#ffffff" size={24} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
-          <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
+          <Text style={styles.headerTitle}>
+            {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
+          </Text>
         </View>
-      </View>
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       <ScrollView
         style={styles.scrollContainer}
@@ -401,6 +513,29 @@ const YieldPredictionResultsScreen = () => {
             </View>
           )}
 
+          {/* Request Advice Button */}
+          <TouchableOpacity
+            style={[styles.requestAdviceButton, isSubmittingAdvice && styles.requestAdviceButtonDisabled]}
+            onPress={handleRequestAdvice}
+            disabled={isSubmittingAdvice}
+          >
+            {isSubmittingAdvice ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <MessageSquare color="#FFFFFF" size={20} />
+            )}
+            <View style={styles.requestAdviceContent}>
+              <Text style={styles.requestAdviceTitle}>
+                {isSubmittingAdvice 
+                  ? (language === "si" ? "යවමින්..." : "Sending...")
+                  : content[language].requestAdvice}
+              </Text>
+              <Text style={styles.requestAdviceDesc}>
+                {content[language].requestAdviceDesc}
+              </Text>
+            </View>
+          </TouchableOpacity>
+
           {/* New Prediction Button */}
           <TouchableOpacity
             style={styles.newPredictionButton}
@@ -415,245 +550,324 @@ const YieldPredictionResultsScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* Advice Request Modal */}
+      <Modal
+        visible={showAdviceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAdviceModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAdviceModal(false)}
+        >
+          <View style={styles.modalContainer} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {language === "si" ? "උපදේශ ඉල්ලීම" : "Request Advice"}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {language === "si" 
+                  ? "ඔබට අවශ්‍ය උපදේශ වර්ගය තෝරන්න:"
+                  : "Select the type of advice you need:"}
+              </Text>
+            </View>
+
+            <View style={styles.modalOptions}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleAdviceTypeSelect('yield_enhancement')}
+              >
+                <TrendingUp color="#10B981" size={24} />
+                <View style={styles.modalOptionText}>
+                  <Text style={styles.modalOptionTitle}>
+                    {language === "si" ? "අස්වැන්න වැඩිදියුණු කිරීම" : "Yield Enhancement"}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {language === "si" 
+                      ? "වැඩි අස්වැන්නක් ලබාගැනීම සඳහා උපදේශ"
+                      : "Get advice on improving your yield"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleAdviceTypeSelect('seed_variety')}
+              >
+                <Leaf color="#10B981" size={24} />
+                <View style={styles.modalOptionText}>
+                  <Text style={styles.modalOptionTitle}>
+                    {language === "si" ? "බීජ වර්ගය තෝරාගැනීම" : "Seed Variety Selection"}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {language === "si" 
+                      ? "හොඳම බීජ වර්ගය තෝරාගැනීමට උපදේශ"
+                      : "Get help choosing the best seed variety"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleAdviceTypeSelect('both')}
+              >
+                <MessageSquare color="#10B981" size={24} />
+                <View style={styles.modalOptionText}>
+                  <Text style={styles.modalOptionTitle}>
+                    {language === "si" ? "දෙකම" : "Both"}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {language === "si" 
+                      ? "අස්වැන්න සහ බීජ තෝරාගැනීම දෙකටම උපදේශ"
+                      : "Get advice on both yield and seed selection"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowAdviceModal(false)}
+            >
+              <Text style={styles.modalCancelText}>
+                {language === "si" ? "අවලංගු කරන්න" : "Cancel"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F0FDF4",
-  },
-  header: {
-    backgroundColor: "#FFFFFF",
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  backButton: {
-    marginRight: 12,
-  },
-  headerCenter: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#065F46",
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-  langButton: {
-    backgroundColor: "#D1FAE5",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  langText: {
-    color: "#047857",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  scrollContainer: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  yieldCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
-    borderWidth: 2,
-    borderColor: "#D1FAE5",
-  },
-  yieldIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-  },
-  yieldLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
-  },
-  yieldValue: {
-    fontSize: 48,
-    fontWeight: "700",
-    color: "#065F46",
-    marginBottom: 4,
-  },
-  yieldUnit: {
-    fontSize: 16,
-    color: "#10B981",
-    fontWeight: "600",
-    marginBottom: 8,
-  },
-  yieldSubValue: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  rangeContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    alignItems: "center",
-  },
-  rangeLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginBottom: 4,
-  },
-  rangeValue: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#065F46",
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#065F46",
-  },
-  confidenceCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  confidenceHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  confidenceLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#065F46",
-  },
-  confidenceScore: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#10B981",
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    borderRadius: 4,
-  },
-  factorCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  factorHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  factorIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#D1FAE5",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 12,
-  },
-  factorName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#065F46",
-    flex: 1,
-  },
-  factorDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  factorImpactContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  factorImpactBar: {
-    height: 6,
-    borderRadius: 3,
-    marginRight: 8,
-  },
-  factorImpactText: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  recommendationCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  recommendationHeader: {
+container: {
+flex: 1,
+backgroundColor: "#F0FDF4",
+},
+header: {
+paddingTop: 50,
+paddingBottom: 20,
+paddingHorizontal: 20,
+borderBottomLeftRadius: 24,
+borderBottomRightRadius: 24,
+},
+backButton: {
+marginRight: 12,
+},
+headerCenter: {
+flex: 1,
+alignItems: "center",
+justifyContent: "center",
+},
+headerTitle: {
+fontSize: 20,
+fontWeight: "700",
+color: "#ffffff",
+textAlign: "center",
+},
+langButton: {
+backgroundColor: "#D1FAE5",
+paddingHorizontal: 12,
+paddingVertical: 6,
+borderRadius: 12,
+},
+langText: {
+color: "#047857",
+fontSize: 14,
+fontWeight: "600",
+},
+scrollContainer: {
+flex: 1,
+},
+scrollContent: {
+paddingHorizontal: 16,
+paddingTop: 20,
+},
+yieldCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 20,
+padding: 24,
+alignItems: "center",
+marginBottom: 20,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 4 },
+shadowOpacity: 0.1,
+shadowRadius: 12,
+elevation: 6,
+borderWidth: 2,
+borderColor: "#D1FAE5",
+},
+yieldIconContainer: {
+width: 64,
+height: 64,
+borderRadius: 32,
+backgroundColor: "#D1FAE5",
+alignItems: "center",
+justifyContent: "center",
+marginBottom: 16,
+},
+yieldLabel: {
+fontSize: 14,
+color: "#6B7280",
+marginBottom: 8,
+},
+yieldValue: {
+fontSize: 48,
+fontWeight: "700",
+color: "#065F46",
+marginBottom: 4,
+},
+yieldUnit: {
+fontSize: 16,
+color: "#10B981",
+fontWeight: "600",
+marginBottom: 8,
+},
+yieldSubValue: {
+fontSize: 14,
+color: "#6B7280",
+},
+rangeContainer: {
+marginTop: 16,
+paddingTop: 16,
+borderTopWidth: 1,
+borderTopColor: "#E5E7EB",
+alignItems: "center",
+},
+rangeLabel: {
+fontSize: 12,
+color: "#6B7280",
+marginBottom: 4,
+},
+rangeValue: {
+fontSize: 14,
+fontWeight: "600",
+color: "#065F46",
+},
+section: {
+marginBottom: 20,
+},
+sectionHeader: {
+flexDirection: "row",
+alignItems: "center",
+marginBottom: 12,
+},
+sectionIconContainer: {
+width: 36,
+height: 36,
+borderRadius: 18,
+backgroundColor: "#D1FAE5",
+alignItems: "center",
+justifyContent: "center",
+marginRight: 12,
+},
+sectionTitle: {
+fontSize: 18,
+fontWeight: "700",
+color: "#065F46",
+},
+confidenceCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 12,
+padding: 16,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.05,
+shadowRadius: 4,
+elevation: 2,
+},
+confidenceHeader: {
+flexDirection: "row",
+justifyContent: "space-between",
+alignItems: "center",
+marginBottom: 12,
+},
+confidenceLabel: {
+fontSize: 16,
+fontWeight: "600",
+color: "#065F46",
+},
+confidenceScore: {
+fontSize: 24,
+fontWeight: "700",
+color: "#10B981",
+},
+progressBarContainer: {
+height: 8,
+backgroundColor: "#E5E7EB",
+borderRadius: 4,
+overflow: "hidden",
+},
+progressBar: {
+height: "100%",
+borderRadius: 4,
+},
+factorCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 12,
+padding: 16,
+marginBottom: 12,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.05,
+shadowRadius: 4,
+elevation: 2,
+},
+factorHeader: {
+flexDirection: "row",
+alignItems: "center",
+marginBottom: 8,
+},
+factorIconContainer: {
+width: 32,
+height: 32,
+borderRadius: 16,
+backgroundColor: "#D1FAE5",
+alignItems: "center",
+justifyContent: "center",
+marginRight: 12,
+},
+factorName: {
+fontSize: 15,
+fontWeight: "600",
+color: "#065F46",
+flex: 1,
+},
+factorDescription: {
+fontSize: 13,
+color: "#6B7280",
+marginBottom: 12,
+lineHeight: 18,
+},
+factorImpactContainer: {
+flexDirection: "row",
+alignItems: "center",
+},
+factorImpactBar: {
+height: 6,
+borderRadius: 3,
+marginRight: 8,
+},
+factorImpactText: {
+fontSize: 14,
+fontWeight: "600",
+},
+recommendationCard: {
+backgroundColor: "#FFFFFF",
+borderRadius: 12,
+padding: 16,
+marginBottom: 12,
+shadowColor: "#000",
+shadowOffset: { width: 0, height: 1 },
+shadowOpacity: 0.05,
+shadowRadius: 4,
+elevation: 2,
+},
+recommendationHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 8,
@@ -783,6 +997,110 @@ const styles = StyleSheet.create({
   comparisonValueBold: {
     fontSize: 18,
     fontWeight: "700",
+  },
+  requestAdviceButton: {
+    backgroundColor: "#F59E0B",
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  requestAdviceContent: {
+    flex: 1,
+  },
+  requestAdviceTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  requestAdviceDesc: {
+    fontSize: 12,
+    color: "#FEF3C7",
+  },
+  requestAdviceButtonDisabled: {
+    opacity: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  modalOptions: {
+    gap: 12,
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    gap: 12,
+  },
+  modalOptionText: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  modalOptionDesc: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  modalCancelButton: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#6B7280",
   },
 });
 
