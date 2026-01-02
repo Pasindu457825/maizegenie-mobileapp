@@ -11,7 +11,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { ArrowLeft, User, MapPin, Calendar, Droplets, TrendingUp, MessageSquare } from "lucide-react-native";
+import { ArrowLeft, User, MapPin, Calendar, Droplets, TrendingUp, MessageSquare, Sprout, CheckCircle2, Lightbulb } from "lucide-react-native";
 import { getAdviceRequest } from "../../services/adviceRequestApi";
 import type { AdviceRequest } from "../../services/adviceRequestApi";
 
@@ -238,6 +238,101 @@ const ViewAdviceRequestDetailsScreen = () => {
           </View>
         )}
 
+        {/* Fertilizer Plan */}
+        {request.fertilizer_plan && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <CheckCircle2 size={20} color="#16A34A" />
+              <Text style={styles.cardTitle}>Fertilizer Plan</Text>
+            </View>
+
+            {/* Basal Application */}
+            {request.fertilizer_plan.basal && (
+              <View style={styles.fertilizerSection}>
+                <Text style={styles.fertilizerStage}>Basal Application</Text>
+                <Text style={styles.fertilizerDate}>{request.fertilizer_plan.basal.date}</Text>
+                <View style={styles.fertilizerAmounts}>
+                  <Text style={styles.fertilizerAmount}>TSP: {request.fertilizer_plan.basal.tsp_kg} kg</Text>
+                  <Text style={styles.fertilizerAmount}>MOP: {request.fertilizer_plan.basal.mop_kg} kg</Text>
+                  <Text style={styles.fertilizerAmount}>Urea: {request.fertilizer_plan.basal.urea_kg} kg</Text>
+                </View>
+                <Text style={styles.fertilizerNote}>{request.fertilizer_plan.basal.timing}</Text>
+              </View>
+            )}
+
+            {/* First Top Dressing */}
+            {request.fertilizer_plan.top_dress_1 && (
+              <View style={styles.fertilizerSection}>
+                <Text style={styles.fertilizerStage}>First Top Dressing</Text>
+                <Text style={styles.fertilizerDate}>{request.fertilizer_plan.top_dress_1.date}</Text>
+                <View style={styles.fertilizerAmounts}>
+                  <Text style={styles.fertilizerAmount}>Urea: {request.fertilizer_plan.top_dress_1.urea_kg} kg</Text>
+                </View>
+                <Text style={styles.fertilizerNote}>{request.fertilizer_plan.top_dress_1.timing}</Text>
+              </View>
+            )}
+
+            {/* Second Top Dressing */}
+            {request.fertilizer_plan.top_dress_2 && (
+              <View style={styles.fertilizerSection}>
+                <Text style={styles.fertilizerStage}>Second Top Dressing</Text>
+                <Text style={styles.fertilizerDate}>{request.fertilizer_plan.top_dress_2.date}</Text>
+                <View style={styles.fertilizerAmounts}>
+                  <Text style={styles.fertilizerAmount}>Urea: {request.fertilizer_plan.top_dress_2.urea_kg} kg</Text>
+                </View>
+                <Text style={styles.fertilizerNote}>{request.fertilizer_plan.top_dress_2.timing}</Text>
+              </View>
+            )}
+
+            {/* Organic Recommendations */}
+            {request.fertilizer_plan.organic && (
+              <View style={styles.organicSection}>
+                <Text style={styles.organicTitle}>Organic Fertilizer (Optional)</Text>
+                {request.fertilizer_plan.organic.compost_tons && (
+                  <Text style={styles.organicAmount}>
+                    Compost: {request.fertilizer_plan.organic.compost_tons} tons
+                  </Text>
+                )}
+                <Text style={styles.organicNote}>{request.fertilizer_plan.organic.timing}</Text>
+              </View>
+            )}
+
+            {/* Total Nutrients */}
+            {request.fertilizer_plan.total_nutrients && (
+              <View style={styles.nutrientSummary}>
+                <Text style={styles.nutrientTitle}>Total Nutrients:</Text>
+                <Text style={styles.nutrientText}>
+                  N: {request.fertilizer_plan.total_nutrients.nitrogen_kg} kg | 
+                  P: {request.fertilizer_plan.total_nutrients.phosphorus_kg} kg | 
+                  K: {request.fertilizer_plan.total_nutrients.potassium_kg} kg
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Cultivation Advice */}
+        {request.cultivation_advice && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Lightbulb size={20} color="#F59E0B" />
+              <Text style={styles.cardTitle}>Cultivation Advice</Text>
+            </View>
+            <Text style={styles.messageText}>{request.cultivation_advice}</Text>
+          </View>
+        )}
+
+        {/* Expected Yield Improvement */}
+        {request.expected_yield_improvement && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <TrendingUp size={20} color="#16A34A" />
+              <Text style={styles.cardTitle}>Expected Yield Improvement</Text>
+            </View>
+            <Text style={styles.messageText}>{request.expected_yield_improvement}</Text>
+          </View>
+        )}
+
         {/* Officer Notes */}
         {request.officer_notes && (
           <View style={styles.card}>
@@ -410,6 +505,83 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginTop: 8,
     fontStyle: "italic",
+  },
+  fertilizerSection: {
+    backgroundColor: "#F0FDF4",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: "#16A34A",
+  },
+  fertilizerStage: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#15803D",
+    marginBottom: 4,
+  },
+  fertilizerDate: {
+    fontSize: 13,
+    color: "#16A34A",
+    marginBottom: 8,
+  },
+  fertilizerAmounts: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 8,
+  },
+  fertilizerAmount: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  fertilizerNote: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontStyle: "italic",
+  },
+  organicSection: {
+    backgroundColor: "#FEF3C7",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  organicTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#92400E",
+    marginBottom: 4,
+  },
+  organicAmount: {
+    fontSize: 14,
+    color: "#78350F",
+    marginBottom: 4,
+  },
+  organicNote: {
+    fontSize: 12,
+    color: "#92400E",
+    fontStyle: "italic",
+  },
+  nutrientSummary: {
+    backgroundColor: "#EFF6FF",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  nutrientTitle: {
+    fontSize: 13,
+    fontWeight: "bold",
+    color: "#1E40AF",
+    marginBottom: 4,
+  },
+  nutrientText: {
+    fontSize: 13,
+    color: "#1E3A8A",
   },
 });
 
