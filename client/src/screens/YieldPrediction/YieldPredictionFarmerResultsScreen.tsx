@@ -10,6 +10,8 @@ import {
   Animated,
   Alert,
   ActivityIndicator,
+  Modal,
+  Platform,
 } from "react-native";
 import { createAdviceRequest } from "../../services/adviceRequestApi";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -47,6 +49,7 @@ const YieldPredictionResultsScreen = () => {
   const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
+  const [showAdviceModal, setShowAdviceModal] = useState(false);
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -138,31 +141,21 @@ const YieldPredictionResultsScreen = () => {
   };
 
   const handleRequestAdvice = () => {
-    // Show dialog to select advice type
-    Alert.alert(
-      language === "si" ? "උපදේශ ඉල්ලීම" : "Request Advice",
-      language === "si" 
-        ? "ඔබට අවශ්‍ය උපදේශ වර්ගය තෝරන්න:"
-        : "Do you need advice related to:",
-      [
-        {
-          text: language === "si" ? "අවලංගු කරන්න" : "Cancel",
-          style: "cancel"
-        },
-        {
-          text: language === "si" ? "වැඩි අස්වැන්නක් ලබාගැනීම සඳහා" : "Need Help with Yield Enhancement",
-          onPress: () => submitAdviceRequest('yield_enhancement')
-        },
-        {
-          text: language === "si" ? "හොදම බීජ වර්ගය තෝරාගැනීමට සඳහා" : "Need Help with Seed Variety Selection",
-          onPress: () => submitAdviceRequest('seed_variety')
-        },
-        {
-          text: language === "si" ? "දෙකම" : "Both",
-          onPress: () => submitAdviceRequest('both')
-        }
-      ]
-    );
+    setShowAdviceModal(true);
+  };
+
+  const handleAdviceTypeSelect = (requestType: 'yield_enhancement' | 'seed_variety' | 'both') => {
+    setShowAdviceModal(false);
+    submitAdviceRequest(requestType);
+  };
+
+  // Cross-platform alert function
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(`${title}\n\n${message}`);
+    } else {
+      Alert.alert(title, message);
+    }
   };
 
   const submitAdviceRequest = async (requestType: 'yield_enhancement' | 'seed_variety' | 'both') => {
@@ -212,7 +205,7 @@ const YieldPredictionResultsScreen = () => {
         planting_date: plantingDate,
       });
       
-      Alert.alert(
+      showAlert(
         language === "si" ? "සාර්ථකයි!" : "Success!",
         language === "si" 
           ? "ඔබේ උපදේශ ඉල්ලීම සාර්ථකව යවන ලදී. නිලධාරියෙක් ඉක්මනින් ඔබව සම්බන්ධ කරගනු ඇත."
@@ -220,7 +213,7 @@ const YieldPredictionResultsScreen = () => {
       );
     } catch (error: any) {
       console.error('Failed to submit advice request:', error);
-      Alert.alert(
+      showAlert(
         language === "si" ? "දෝෂයකි" : "Error",
         error.message || (language === "si" 
           ? "උපදේශ ඉල්ලීම යැවීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න."
@@ -549,6 +542,95 @@ const YieldPredictionResultsScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* Advice Request Modal */}
+      <Modal
+        visible={showAdviceModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAdviceModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAdviceModal(false)}
+        >
+          <View style={styles.modalContainer} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {language === "si" ? "උපදේශ ඉල්ලීම" : "Request Advice"}
+              </Text>
+              <Text style={styles.modalSubtitle}>
+                {language === "si" 
+                  ? "ඔබට අවශ්‍ය උපදේශ වර්ගය තෝරන්න:"
+                  : "Select the type of advice you need:"}
+              </Text>
+            </View>
+
+            <View style={styles.modalOptions}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleAdviceTypeSelect('yield_enhancement')}
+              >
+                <TrendingUp color="#10B981" size={24} />
+                <View style={styles.modalOptionText}>
+                  <Text style={styles.modalOptionTitle}>
+                    {language === "si" ? "අස්වැන්න වැඩිදියුණු කිරීම" : "Yield Enhancement"}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {language === "si" 
+                      ? "වැඩි අස්වැන්නක් ලබාගැනීම සඳහා උපදේශ"
+                      : "Get advice on improving your yield"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleAdviceTypeSelect('seed_variety')}
+              >
+                <Leaf color="#10B981" size={24} />
+                <View style={styles.modalOptionText}>
+                  <Text style={styles.modalOptionTitle}>
+                    {language === "si" ? "බීජ වර්ගය තෝරාගැනීම" : "Seed Variety Selection"}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {language === "si" 
+                      ? "හොඳම බීජ වර්ගය තෝරාගැනීමට උපදේශ"
+                      : "Get help choosing the best seed variety"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={() => handleAdviceTypeSelect('both')}
+              >
+                <MessageSquare color="#10B981" size={24} />
+                <View style={styles.modalOptionText}>
+                  <Text style={styles.modalOptionTitle}>
+                    {language === "si" ? "දෙකම" : "Both"}
+                  </Text>
+                  <Text style={styles.modalOptionDesc}>
+                    {language === "si" 
+                      ? "අස්වැන්න සහ බීජ තෝරාගැනීම දෙකටම උපදේශ"
+                      : "Get advice on both yield and seed selection"}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowAdviceModal(false)}
+            >
+              <Text style={styles.modalCancelText}>
+                {language === "si" ? "අවලංගු කරන්න" : "Cancel"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 };
@@ -939,6 +1021,78 @@ recommendationHeader: {
   },
   requestAdviceButtonDisabled: {
     opacity: 0.7,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  modalOptions: {
+    gap: 12,
+  },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+    gap: 12,
+  },
+  modalOptionText: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  modalOptionDesc: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  modalCancelButton: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "#F3F4F6",
+    alignItems: "center",
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#6B7280",
   },
 });
 

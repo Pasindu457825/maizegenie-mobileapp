@@ -23,6 +23,7 @@ import OfficerAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBased
 // Advice Requests Screen
 import FarmerAdviceRequestsScreen from "../screens/YieldPrediction/FarmerAdviceRequestsScreen";
 import ViewAdviceRequestDetailsScreen from "../screens/YieldPrediction/ViewAdviceRequestDetailsScreen";
+import ProvideAdviceScreen from "../screens/YieldPrediction/ProvideAdviceScreen";
 
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
@@ -50,6 +51,7 @@ export type YieldPredictionStackParamList = {
   OfficerAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
   FarmerAdviceRequestsScreen: undefined;
   ViewAdviceRequestDetailsScreen: { requestId: string };
+  ProvideAdviceScreen: { requestId: string };
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -111,6 +113,10 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="ViewAdviceRequestDetailsScreen"
         component={ViewAdviceRequestDetailsScreen}
+      />
+      <Stack.Screen
+        name="ProvideAdviceScreen"
+        component={ProvideAdviceScreen}
       />
     </Stack.Navigator>
   );

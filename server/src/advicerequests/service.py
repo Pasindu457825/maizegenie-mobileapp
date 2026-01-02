@@ -275,6 +275,15 @@ async def update_advice_request(
             
             if "officer_notes" in update_data:
                 payload["officer_notes"] = update_data["officer_notes"]
+            
+            if "fertilizer_plan" in update_data:
+                payload["fertilizer_plan"] = update_data["fertilizer_plan"]
+            
+            if "cultivation_advice" in update_data:
+                payload["cultivation_advice"] = update_data["cultivation_advice"]
+            
+            if "expected_yield_improvement" in update_data:
+                payload["expected_yield_improvement"] = update_data["expected_yield_improvement"]
         
         else:
             # Farmers can only cancel
