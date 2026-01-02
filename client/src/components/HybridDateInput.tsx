@@ -116,12 +116,24 @@ const HybridDateInput: React.FC<HybridDateInputProps> = ({
             const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
             if (dateRegex.test(value)) {
                 try {
-                    const parsedDate = new Date(value);
-                    if (!isNaN(parsedDate.getTime())) {
+                    // Parse date components to avoid timezone issues
+                    const parts = value.split('-');
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+                    const day = parseInt(parts[2], 10);
+                    
+                    const parsedDate = new Date(year, month, day);
+                    
+                    // Validate the parsed date
+                    if (!isNaN(parsedDate.getTime()) && 
+                        parsedDate.getFullYear() === year &&
+                        parsedDate.getMonth() === month &&
+                        parsedDate.getDate() === day) {
                         return parsedDate;
                     }
                 } catch (error) {
                     // Invalid date, return current date
+                    console.warn('Error parsing date:', error);
                 }
             }
         }

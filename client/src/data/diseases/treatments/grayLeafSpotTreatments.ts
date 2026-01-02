@@ -15,7 +15,7 @@ export const grayLeafSpotTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Preventive foliar spray covering both leaf surfaces",
-      si: "රෝගය පැතිරීමට පෙර කොළ දෙපසම ආවරණය වන පරිදි සිදුරු කරන්න",
+      si: "රෝගය පැතිරීමට පෙර කොළ දෙපසම ආවරණය වන පරිදි ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "20 g per 10 L of water",
@@ -33,8 +33,8 @@ export const grayLeafSpotTreatments: SriLankanTreatment[] = [
         "Observe re-entry period (7 days)",
       ],
       si: [
-        "සිදුරු කිරීමේදී අත් ආවරණ හා මුඛ ආවරණ භාවිත කරන්න",
-        "සුළං සහිත අවස්ථාවලදී සිදුරු කිරීමෙන් වළකින්න",
+        "ස්ප්‍රේ කිරිමේ කිරීමේදී අත් ආවරණ හා මුඛ ආවරණ භාවිත කරන්න",
+        "සුළං සහිත අවස්ථාවලදී ස්ප්‍රේ කිරිමේ කිරීමෙන් වළකින්න",
         "දින 7ක නැවත ඇතුල් වීමේ කාලය පිළිපදින්න",
       ],
     },
@@ -51,7 +51,7 @@ export const grayLeafSpotTreatments: SriLankanTreatment[] = [
     id: "garlic_extract_gray_leaf_spot",
     name: {
       en: "Garlic Extract Spray",
-      si: "සුදුළුනු සාරය සිදුරු කිරීම",
+      si: "සුදුළුනු සාරය ස්ප්‍රේ කිරිමේ කිරීම",
     },
     availableProducts: {
       en: ["Fresh garlic cloves"],
@@ -59,7 +59,7 @@ export const grayLeafSpotTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Prepare garlic extract and spray on affected leaves",
-      si: "සුදුළුනු සාරය සකසා ආසාදිත කොළ මත සිදුරු කරන්න",
+      si: "සුදුළුනු සාරය සකසා ආසාදිත කොළ මත ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "50 g crushed garlic per liter of water",

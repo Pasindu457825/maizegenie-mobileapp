@@ -104,9 +104,9 @@ const DiseaseIdentificationScreen = () => {
       newDetection: "නව හඳුනාගැනීම",
       speak: "කියවන්න",
       confidence: "විශ්වාසනීයත්වය",
-      high: "ඉහළ",
-      medium: "මධ්‍යම",
-      low: "අඩු",
+      high: "වැඩිය",
+      medium: "මධ්‍යමය",
+      low: "අඩුය",
       severity: "රෝගය ආසාදිත ප්‍රමාණය",
       detectionStatus: "හඳුනාගැනීමේ තත්ත්වය",
       healthy: "සෞඛ්‍ය සම්පන්න කොළයකි",
@@ -547,7 +547,6 @@ const DiseaseIdentificationScreen = () => {
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
-          
         </View>
       </LinearGradient>
 
@@ -570,8 +569,6 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
-              
-
               <View style={styles.heroIconContainer}>
                 <Animated.View
                   style={[
@@ -1062,7 +1059,17 @@ const DiseaseIdentificationScreen = () => {
                             <Shield color="#FFFFFF" size={16} />
                             <Text style={styles.severityText}>
                               {content[language].severity}:{" "}
-                              {result.severity_label}
+                              {language === "si"
+                                ? result.severity_label
+                                    .toLowerCase()
+                                    .includes("high")
+                                  ? content.si.high
+                                  : result.severity_label
+                                      .toLowerCase()
+                                      .includes("medium")
+                                  ? content.si.medium
+                                  : content.si.low
+                                : result.severity_label}
                             </Text>
                           </View>
                         </View>
@@ -1081,6 +1088,11 @@ const DiseaseIdentificationScreen = () => {
                             severity_score: result.severity_score,
                             severity_label: result.severity_label,
                             predictions: result.predictions,
+
+                            diseaseNameEn: diseaseName,
+                            diseaseNameSi: primaryPrediction
+                              ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : diseaseName,
                           })
                         }
                       >

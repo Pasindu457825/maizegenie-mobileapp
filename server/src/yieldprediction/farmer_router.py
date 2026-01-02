@@ -67,16 +67,32 @@ async def predict_yield_farmer(
         prediction_id = generate_uuid()
         timestamp = get_current_timestamp()
         
+        # Normalize season to "Maha" or "Yala" (remove "Season" suffix if present)
+        season_normalized = request.season.replace(" Season", "").replace("වාරය", "").strip()
+        if "මහ" in season_normalized:
+            season_normalized = "Maha"
+        elif "යල" in season_normalized:
+            season_normalized = "Yala"
+        
         # Step 1: Save farmer input to database
         try:
             # Override farmer_id with authenticated user ID
             input_data = request.model_dump()
             input_data['farmer_id'] = authenticated_farmer_id  # ✅ Use verified ID
+            input_data['season'] = season_normalized  # ✅ Save normalized season
+            
+            print(f"🔍 DEBUG: Attempting to save farmer input for farmer_id: {authenticated_farmer_id}")
+            print(f"🔍 DEBUG: Input data keys: {list(input_data.keys())}")
             
             farmer_input_id = await save_farmer_input(input_data)
             print(f"✅ Saved to farmer_inputs table: {farmer_input_id}")
         except Exception as db_error:
-            print(f"⚠️  Database save failed: {db_error}")
+            print(f"❌ DATABASE SAVE FAILED!")
+            print(f"❌ Error type: {type(db_error).__name__}")
+            print(f"❌ Error message: {str(db_error)}")
+            import traceback
+            print(f"❌ Full traceback:")
+            traceback.print_exc()
             # Continue with prediction even if DB save fails
             farmer_input_id = generate_uuid()
         
@@ -90,19 +106,48 @@ async def predict_yield_farmer(
         
         # Step 3: Run yield prediction
         try:
-            # Prepare data for prediction service
-            # Service expects: soil_condition, irrigation_type, rainfall_condition (string values)
+            # Prepare data for prediction service (IDENTICAL to officer structure)
             prediction_input = {
+                # Location
                 'district': request.district,
-                'season': request.season,
+                'location': request.location,
+                
+                # Crop details
                 'variety': request.variety,
                 'planting_date': request.planting_date,
-                'soil_condition': request.soil_condition,  # Pass string: Good/Medium/Poor
-                'irrigation_type': request.irrigation_type,  # Pass string: Irrigated/Mixed/Rainfed
-                'rainfall_condition': request.rainfall_condition,  # Pass string: High/Normal/Low
-                'land_size_acres': land_size_acres,  # ML model expects acres
-                'gps_lat': request.gps_lat,
-                'gps_lng': request.gps_lng
+                'planting_month': request.planting_month,
+                'season': season_normalized,
+                'field_size_ha': request.field_size_ha,
+                
+                # Fertilizer dates
+                'first_fert_date': request.first_fert_date,
+                'second_fert_date': request.second_fert_date,
+                
+                # Soil information
+                'soil_type': request.soil_type,
+                'soil_condition': request.soil_condition,
+                'soil_ph': request.soil_ph,
+                'soil_nitrogen_n': request.soil_nitrogen_n,
+                'soil_phosphorus_p': request.soil_phosphorus_p,
+                'soil_potassium_k': request.soil_potassium_k,
+                'soil_fertility_index': request.soil_fertility_index,
+                
+                # NPK Status Classification
+                'n_status_class': request.n_status_class,
+                'p_status_class': request.p_status_class,
+                'k_status_class': request.k_status_class,
+                
+                # Field conditions
+                'irrigation_type': request.irrigation_type,
+                'rainfall_condition': request.rainfall_condition,
+                
+                # Weather data (complete)
+                'rainfall_30d_mm': request.rainfall_30d,
+                'seasonal_rainfall_mm': request.seasonal_rainfall,
+                'avg_temperature_c': request.avg_temperature,
+                'max_temperature_c': request.max_temperature,
+                'avg_humidity_pct': request.avg_humidity,
+                'sunshine_hours': request.sunshine_hours,
             }
             
             print(f"🔄 Calling prediction service...")
@@ -213,7 +258,7 @@ async def predict_yield_farmer(
                     'prediction_method': prediction_data.prediction_method
                 }
             )
-            print(f"✅ Saved to predictions table")
+            print(f"✅ Saved to yield_predictions table")
         except Exception as db_error:
             print(f"⚠️  Prediction save failed: {db_error}")
             # Continue even if DB save fails
@@ -512,7 +557,7 @@ async def get_farmer_prediction_history(
         from core.supabase_client import supabase
         
         response = supabase.table("farmer_inputs") \
-            .select("*, predictions(*)") \
+            .select("*, yield_predictions(*)") \
             .eq("farmer_id", farmer_id) \
             .order("created_at", desc=True) \
             .limit(limit) \
@@ -530,8 +575,8 @@ async def get_farmer_prediction_history(
             # Generate shareable text for officer chat
             shareable_text = generate_shareable_text(pred)
             
-            # Extract prediction details from predictions table
-            prediction_data = pred.get("predictions", [])
+            # Extract prediction details from yield_predictions table
+            prediction_data = pred.get("yield_predictions", [])
             predicted_yield = None
             confidence_level = None
             
@@ -554,7 +599,7 @@ async def get_farmer_prediction_history(
                 "predicted_yield": predicted_yield,
                 "confidence_level": confidence_level,
                 "shareable_text": shareable_text,
-                "prediction_data": pred.get("predictions")
+                "prediction_data": pred.get("yield_predictions")
             })
         
         return {

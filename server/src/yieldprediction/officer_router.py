@@ -16,6 +16,7 @@ from .officer_models import (
 )
 from .officer_service import predict_officer_yield
 from .report_generator import generate_officer_report
+from src.database.supabase_service_yieldNfert import save_officer_prediction
 
 # Create router with v1 prefix to match frontend expectations
 router = APIRouter(prefix="/api/v1", tags=["Officer Yield Prediction"])
@@ -46,12 +47,55 @@ async def predict_yield_officer(
         # Convert request to dict format
         request_data = request.model_dump()
         
+        # Extract prediction type (operational vs experimental)
+        prediction_type = request.prediction_type
+        farmer_id = request.farmer_id
+        
+        print(f"\n{'='*60}")
+        print(f"🌾 OFFICER PREDICTION REQUEST")
+        print(f"{'='*60}")
+        print(f"👨‍🌾 Officer ID: {request.officer_id}")
+        print(f"🔖 Prediction Type: {prediction_type.upper()}")
+        if farmer_id:
+            print(f"👤 Farmer ID: {farmer_id}")
+        print(f"📍 District: {request.soil_profile.district}")
+        print(f"🌱 Variety: {request.crop_information.seed_variety}")
+        print(f"{'='*60}\n")
+        
         # Call unified prediction service with ML-first, rule-based fallback
         response = predict_officer_yield(request_data)
         
         print(f"✅ Officer prediction completed: {response['prediction_id']}")
         print(f"   Method: {response['prediction']['prediction_method']}")
         print(f"   Yield: {response['prediction']['predicted_yield']:.2f} kg/ha")
+        
+        # Save to database if operational (farmer-requested)
+        if prediction_type == "operational":
+            try:
+                # Prepare data for database storage
+                db_data = {
+                    "officer_id": request.officer_id,
+                    "farmer_id": farmer_id,
+                    "soil_profile": request.soil_profile.model_dump(),
+                    "climate_data": request.climate_data.model_dump(),
+                    "crop_measurements": request.crop_information.model_dump(),
+                    "fertilizer_applied": request.fertilizer_dates.model_dump(),
+                    "predicted_yield": response['prediction'],
+                    "fertilizer_schedule": response.get('fertilizer_schedule'),
+                    "impact_factors": response.get('impact_factors'),
+                    "recommendations": response.get('recommendations'),
+                    "officer_insights": response.get('officer_insights'),
+                }
+                
+                # Save operational prediction to database
+                await save_officer_prediction(db_data, prediction_type="operational")
+                print(f"💾 Operational prediction saved to database")
+                
+            except Exception as db_error:
+                print(f"⚠️  Database save failed (non-critical): {db_error}")
+                # Continue even if DB save fails - prediction is still valid
+        else:
+            print(f"ℹ️  Experimental prediction - not saved to database")
         
         return response
         

@@ -15,7 +15,7 @@ export const leafBlightTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Spray when elongated blight lesions first appear on leaves",
-      si: "දිගු ලප කොළ මත පෙනෙන විට කොළ දෙපසම ආවරණය වන පරිදි සිදුරු කරන්න",
+      si: "දිගු ලප කොළ මත පෙනෙන විට කොළ දෙපසම ආවරණය වන පරිදි ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "5 ml per 10 L of water",
@@ -59,7 +59,7 @@ export const leafBlightTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Preventive spray before disease spreads",
-      si: "රෝගය පැතිරීමට පෙර කොළ සම්පූර්ණයෙන් ආවරණය වන පරිදි සිදුරු කරන්න",
+      si: "රෝගය පැතිරීමට පෙර කොළ සම්පූර්ණයෙන් ආවරණය වන පරිදි ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "20–25 g per 10 L of water",
@@ -76,8 +76,8 @@ export const leafBlightTreatments: SriLankanTreatment[] = [
         "Wash equipment after spraying",
       ],
       si: [
-        "බලවත් සුළං ඇති විට සිදුරු කිරීමෙන් වළකින්න",
-        "සිදුරු කිරීමෙන් පසු උපකරණ හොඳින් සෝදන්න",
+        "බලවත් සුළං ඇති විට ස්ප්‍රේ කිරිමේ කිරීමෙන් වළකින්න",
+        "ස්ප්‍රේ කිරිමේ කිරීමෙන් පසු උපකරණ හොඳින් සෝදන්න",
       ],
     },
     availability: {
@@ -101,7 +101,7 @@ export const leafBlightTreatments: SriLankanTreatment[] = [
     },
     applicationMethod: {
       en: "Mix with water and spray on affected leaves",
-      si: "ජලය සමඟ මිශ්‍ර කර ආසාදිත කොළ මත සිදුරු කරන්න",
+      si: "ජලය සමඟ මිශ්‍ර කර ආසාදිත කොළ මත ස්ප්‍රේ කිරිමේ කරන්න",
     },
     dosage: {
       en: "3–5 ml per liter of water",
