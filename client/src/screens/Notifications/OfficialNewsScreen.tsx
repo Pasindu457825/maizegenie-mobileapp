@@ -17,8 +17,22 @@ import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "../../navigation";
 import { Image } from "react-native";
 import { useApp } from "../../context/AppContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { supabase } from "../../lib/supabase";
 import { SafeAreaView, Platform, StatusBar } from "react-native";
+
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    return "http://localhost:8000";
+  } else {
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
 
 // =======================
 // Types
@@ -57,6 +71,63 @@ type NavigationProp = NativeStackNavigationProp<
 
 type CategoryKey = OfficialNews["category"] | "all";
 
+// ✅ Add language type
+type LanguageType = "si" | "en";
+
+// ✅ Add translations
+const translations: Record<LanguageType, any> = {
+  si: {
+    title: "නිල පුවත්",
+    search: "Title / Summary / District / Source සෙවන්න...",
+    filter: "සෙවීම & පෙරහන්",
+    results: "ප්‍රතිඵල",
+    reset: "Reset",
+    noNews: "නිල පුවත් නොමැත",
+    noResults: "ඔබගේ සෙවීම/පෙරහන් අනුව පුවත් නොමැත",
+    loading: "පුවත් පූරණය වෙමින්...",
+    error: "පුවත් ලබාගැනීමට නොහැකි විය",
+    retry: "නැවත උත්සාහ කරන්න",
+    readMore: "තව කියවන්න",
+    edit: "Edit",
+    addNews: "Add News",
+    price: "මිල",
+    weather: "කාලගුණය",
+    policy: "ප්‍රතිපත්ති",
+    alert: "අනතුරු ඇඟවීම",
+    pest: "පළිබෝධ",
+    disease: "රෝග",
+    fertilizer: "පොහොර",
+    cultivation: "වගා උපදෙස්",
+    program: "වැඩසටහන්",
+    all: "සියල්ල",
+  },
+  en: {
+    title: "Official News",
+    search: "Title / Summary / District / Source search...",
+    filter: "Search & Filter",
+    results: "Results",
+    reset: "Reset",
+    noNews: "No official news",
+    noResults: "No news found for your search/filter",
+    loading: "Loading news...",
+    error: "Unable to fetch news",
+    retry: "Retry",
+    readMore: "Read More",
+    edit: "Edit",
+    addNews: "Add News",
+    price: "Price",
+    weather: "Weather",
+    policy: "Policy",
+    alert: "Alert",
+    pest: "Pest",
+    disease: "Disease",
+    fertilizer: "Fertilizer",
+    cultivation: "Cultivation",
+    program: "Program",
+    all: "All",
+  },
+};
+
 export default function OfficialNewsScreen() {
   const [news, setNews] = useState<OfficialNews[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +138,9 @@ export default function OfficialNewsScreen() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
 
   const { user } = useApp();
+  const { language: globalLang } = useLanguage();
+  const language: LanguageType = globalLang === "sinhala" ? "si" : "en";
+  const t = translations[language];
 
   // Role-based authentication using Supabase user data
   const isFarmer = user?.role === "farmer";
@@ -132,7 +206,11 @@ export default function OfficialNewsScreen() {
       setNews(data || []);
     } catch (err) {
       console.log("❌ FETCH NEWS ERROR:", err);
-      setError("පුවත් ලබාගැනීමට නොහැකි විය");
+      setError(
+        language === "si"
+          ? "පුවත් ලබාගැනීමට නොහැකි විය"
+          : "Unable to fetch news"
+      );
     } finally {
       setLoading(false);
     }
@@ -167,30 +245,20 @@ export default function OfficialNewsScreen() {
   };
 
   const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case "price":
-        return "මිල";
-      case "weather":
-        return "කාලගුණය";
-      case "policy":
-        return "ප්‍රතිපත්ති";
-      case "alert":
-        return "අනතුරු ඇඟවීම";
-      case "pest":
-        return "පළිබෝධ";
-      case "disease":
-        return "රෝග";
-      case "fertilizer":
-        return "පොහොර";
-      case "cultivation":
-        return "වගා උපදෙස්";
-      case "program":
-        return "වැඩසටහන්";
-      case "all":
-        return "සියල්ල";
-      default:
-        return category;
-    }
+    const categoryMap: Record<string, Record<LanguageType, string>> = {
+      price: { si: t.price, en: t.price },
+      weather: { si: t.weather, en: t.weather },
+      policy: { si: t.policy, en: t.policy },
+      alert: { si: t.alert, en: t.alert },
+      pest: { si: t.pest, en: t.pest },
+      disease: { si: t.disease, en: t.disease },
+      fertilizer: { si: t.fertilizer, en: t.fertilizer },
+      cultivation: { si: t.cultivation, en: t.cultivation },
+      program: { si: t.program, en: t.program },
+      all: { si: t.all, en: t.all },
+    };
+
+    return categoryMap[category]?.[language] || category;
   };
 
   // =======================
@@ -231,7 +299,7 @@ export default function OfficialNewsScreen() {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#22c55e" />
-        <Text style={styles.loadingText}>පුවත් පූරණය වෙමින්...</Text>
+        <Text style={styles.loadingText}>{t.loading}</Text>
       </View>
     );
   }
@@ -245,7 +313,7 @@ export default function OfficialNewsScreen() {
         <Ionicons name="alert-circle-outline" size={64} color="#dc2626" />
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={fetchNews}>
-          <Text style={styles.retryButtonText}>නැවත උත්සාහ කරන්න</Text>
+          <Text style={styles.retryButtonText}>{t.retry}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -281,7 +349,7 @@ export default function OfficialNewsScreen() {
           </TouchableOpacity>
 
           {/* CENTER */}
-          <Text style={styles.headerTitle}>නිල පුවත්</Text>
+          <Text style={styles.headerTitle}>{t.title}</Text>
 
           {/* RIGHT */}
           {isOfficer ? (
@@ -291,7 +359,7 @@ export default function OfficialNewsScreen() {
               activeOpacity={0.85}
             >
               <Ionicons name="add-circle-outline" size={20} color="#fff" />
-              <Text style={styles.addNewsText}>Add News</Text>
+              <Text style={styles.addNewsText}>{t.addNews}</Text>
             </TouchableOpacity>
           ) : (
             <View style={{ width: 40 }} />
@@ -299,9 +367,9 @@ export default function OfficialNewsScreen() {
         </View>
       </SafeAreaView>
 
-      {/* 🔎 SEARCH + FILTER BAR */}
+      {/* SEARCH + FILTER BAR */}
       <View style={styles.toolsWrap}>
-        <Text style={styles.toolsTitle}>සෙවීම & පෙරහන්</Text>
+        <Text style={styles.toolsTitle}>{t.filter}</Text>
 
         {/* Search */}
         <View style={styles.searchBox}>
@@ -309,7 +377,7 @@ export default function OfficialNewsScreen() {
           <TextInput
             value={searchText}
             onChangeText={setSearchText}
-            placeholder="Title / Summary / District / Source සෙවන්න..."
+            placeholder={t.search}
             placeholderTextColor="#9ca3af"
             style={styles.searchInput}
             returnKeyType="search"
@@ -367,7 +435,7 @@ export default function OfficialNewsScreen() {
         {/* Small info row */}
         <View style={styles.resultRow}>
           <Text style={styles.resultText}>
-            ප්‍රතිඵල:{" "}
+            {t.results}:{" "}
             <Text style={{ fontWeight: "800" }}>{filteredNews.length}</Text>
           </Text>
 
@@ -380,7 +448,7 @@ export default function OfficialNewsScreen() {
             activeOpacity={0.85}
           >
             <Ionicons name="refresh-outline" size={16} color="#16A34A" />
-            <Text style={styles.resetText}>Reset</Text>
+            <Text style={styles.resetText}>{t.reset}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -396,8 +464,8 @@ export default function OfficialNewsScreen() {
             <Ionicons name="newspaper-outline" size={64} color="#d1d5db" />
             <Text style={styles.emptyText}>
               {searchText || selectedCategory !== "all"
-                ? "ඔබගේ සෙවීම/පෙරහන් අනුව පුවත් නොමැත"
-                : "නිල පුවත් නොමැත"}
+                ? t.noResults
+                : t.noNews}
             </Text>
           </View>
         )}
@@ -421,14 +489,16 @@ export default function OfficialNewsScreen() {
               </View>
 
               <Text style={styles.dateText}>
-                {new Date(item.created_at).toLocaleDateString("si-LK")}
+                {new Date(item.created_at).toLocaleDateString(
+                  language === "si" ? "si-LK" : "en-US"
+                )}
               </Text>
             </View>
 
             {/* TITLE */}
             <Text style={styles.newsTitle}>{item.title}</Text>
 
-            {/* 🖼️ NEWS IMAGE */}
+            {/* IMAGE */}
             {item.image_url && (
               <View style={{ position: "relative" }}>
                 <Image
@@ -457,7 +527,9 @@ export default function OfficialNewsScreen() {
                     }}
                   >
                     <Text style={{ color: "#fff", fontSize: 12 }}>
-                      Farmersට Hidden
+                      {language === "si"
+                        ? "Farmersට Hidden"
+                        : "Hidden from Farmers"}
                     </Text>
                   </View>
                 )}
@@ -487,13 +559,13 @@ export default function OfficialNewsScreen() {
             </View>
 
             <View style={styles.actionRow}>
-              {/* READ MORE – BIG TAP AREA */}
+              {/* READ MORE */}
               <TouchableOpacity
                 style={styles.readMoreButton}
                 onPress={() => handleNewsPress(item)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.readMoreText}>තව කියවන්න</Text>
+                <Text style={styles.readMoreText}>{t.readMore}</Text>
                 <Ionicons name="chevron-forward" size={16} color="#16A34A" />
               </TouchableOpacity>
 
@@ -509,7 +581,7 @@ export default function OfficialNewsScreen() {
                   activeOpacity={0.8}
                 >
                   <Ionicons name="create-outline" size={18} color="#16A34A" />
-                  <Text style={styles.editText}>Edit</Text>
+                  <Text style={styles.editText}>{t.edit}</Text>
                 </TouchableOpacity>
               )}
             </View>

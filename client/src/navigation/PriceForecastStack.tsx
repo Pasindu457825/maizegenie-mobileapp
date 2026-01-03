@@ -6,11 +6,15 @@ import PriceForecastScreen from "../screens/PriceForecast/PriceForecastScreen";
 import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen";
 import WeatherForecastScreen from "../screens/PriceForecast/WeatherForecastScreen";
 import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
+import OfficerPriceForecastScreen from "@screens/PriceForecast/OfficerPriceForecastScreen";
+import ProAdvisorPage from "../screens/PriceForecast/ProAdvisorPage";
+import ProAdvisorFollowScreen from "../screens/PriceForecast/ProAdvisorFollowScreen";
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
   PriceForecastFormScreen: undefined;
   PriceForecastScreen: { data: any };
+  OfficerPriceForecastScreen: { data: any };
   AdminPanelScreen: undefined;
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: {
@@ -20,6 +24,12 @@ export type PriceForecastStackParamList = {
     temperature?: number | null;
     district?: string | null;
     plantingDate?: string;
+  };
+    ProAdvisorPage: {
+    formData: any;
+  };
+   ProAdvisorFollowScreen: {
+    formData: any;   
   };
 };
 
@@ -47,6 +57,10 @@ const PriceForecastStack = () => {
         component={PriceForecastScreen}
       />
       <Stack.Screen
+        name="OfficerPriceForecastScreen"
+        component={OfficerPriceForecastScreen}
+      />
+      <Stack.Screen
         name="AdminPanelScreen"
         component={AdminPanelScreen}
         options={{ headerShown: false }}
@@ -60,6 +74,17 @@ const PriceForecastStack = () => {
         name="PriceAdvisorScreen"
         component={PriceAdvisorScreen}
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ProAdvisorPage"
+        component={ProAdvisorPage}
+        options={{
+          headerShown: false,
+        }}
+      />
+            <Stack.Screen
+        name="ProAdvisorFollowScreen"
+        component={ProAdvisorFollowScreen}
       />
     </Stack.Navigator>
   );

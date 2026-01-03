@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   Alert,
+  Image,
 } from "react-native";
 import {
   Sun,
@@ -18,7 +19,7 @@ import {
   CloudLightning,
   CloudFog,
 } from "lucide-react-native";
-
+import { useApp } from "../../context/AppContext";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
@@ -59,20 +60,21 @@ import { Modal } from "react-native";
 // 🔥 ADD THIS HERE (top of file, after imports)
 
 const VARIETIES = [
-  "Ruhunu 1",
-  "Ruhunu 2",
-  "Sampath",
-  "Sudu Maize",
-  "BW Hybrid",
-  "Jet 999",
-  "GT 709",
-  "GT 722",
-  "CIC Hybrid 808",
-  "CIC Hybrid 989",
-  "CIC Premium Gold",
-  "Imported Hybrid",
-  "Local Hybrid",
-  "Unknown Variety",
+  {
+    name: "Commando",
+    image: require("../../../assets/varieties/commando.png"),
+  },
+  { name: "GT200", image: require("../../../assets/varieties/gt200.png") },
+  { name: "GT 709", image: require("../../../assets/varieties/gt709.png") },
+  { name: "Jet 999", image: require("../../../assets/varieties/jet999.png") },
+  {
+    name: "Pacific 808",
+    image: require("../../../assets/varieties/pacific808.png"),
+  },
+  {
+    name: "Local Variety",
+    image: require("../../../assets/varieties/Unknown.png"),
+  },
 ];
 
 const LOCATION_TRANSLATIONS = {
@@ -159,8 +161,12 @@ const PriceForecastFormScreen = () => {
   const [otherCosts, setOtherCosts] = useState("");
   const [hasStorage, setHasStorage] = useState(false);
   // Dropdown state
-  const [showVarietyPopup, setShowVarietyPopup] = useState(false);
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
+  const { user } = useApp();
+
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
+  // user.role = "FARMER" | "OFFICER"
 
   // Content translations
   const content = {
@@ -679,7 +685,15 @@ const PriceForecastFormScreen = () => {
       };
 
       // Navigate to next page
-      navigation.navigate("PriceForecastScreen", { data: forecastData });
+      if (isOfficer) {
+        navigation.navigate("OfficerPriceForecastScreen", {
+          data: forecastData,
+        });
+      } else {
+        navigation.navigate("PriceForecastScreen", {
+          data: forecastData,
+        });
+      }
     } catch (error) {
       console.log("Submit Error:", error);
     }
@@ -965,19 +979,32 @@ const PriceForecastFormScreen = () => {
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
 
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowVarietyPopup(true)}
-            >
-              <Text
-                style={{
-                  color: seedVariety ? "#1F2937" : "#9CA3AF",
-                  fontSize: 15,
-                }}
-              >
-                {seedVariety || (language === "si" ? "තෝරන්න" : "Select")}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.varietyGrid}>
+              {VARIETIES.map((item) => {
+                const selected = seedVariety === item.name;
+
+                return (
+                  <TouchableOpacity
+                    key={item.name}
+                    style={[
+                      styles.varietyCard,
+                      selected && styles.varietyCardSelected,
+                    ]}
+                    onPress={() => setSeedVariety(item.name)}
+                  >
+                    <Image source={item.image} style={styles.varietyImage} />
+                    <Text
+                      style={[
+                        styles.varietyText,
+                        selected && styles.varietyTextSelected,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           <View style={styles.formRow}>
@@ -1085,35 +1112,6 @@ const PriceForecastFormScreen = () => {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
-        {showVarietyPopup && (
-          <View style={styles.popupContainer}>
-            <View style={styles.popupBox}>
-              <ScrollView>
-                {VARIETIES.map((v) => (
-                  <TouchableOpacity
-                    key={v}
-                    style={styles.popupItem}
-                    onPress={() => {
-                      setSeedVariety(v);
-                      setShowVarietyPopup(false);
-                    }}
-                  >
-                    <Text style={styles.popupText}>{v}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <TouchableOpacity
-                style={styles.popupCancel}
-                onPress={() => setShowVarietyPopup(false)}
-              >
-                <Text style={styles.popupCancelText}>
-                  {language === "si" ? "අවලංගු" : "Cancel"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       </ScrollView>
     </View>
   );
@@ -1474,6 +1472,45 @@ const styles = StyleSheet.create({
   badgeText: {
     color: "#FFFFFF",
     fontSize: 10,
+    fontWeight: "bold",
+  },
+  varietyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+
+  varietyCard: {
+    width: "30%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 10,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+
+  varietyCardSelected: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+
+  varietyImage: {
+    width: 70,
+    height: 70,
+    resizeMode: "contain",
+    marginBottom: 8,
+  },
+
+  varietyText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  varietyTextSelected: {
+    color: "#047857",
     fontWeight: "bold",
   },
 });
