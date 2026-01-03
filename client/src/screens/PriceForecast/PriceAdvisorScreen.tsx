@@ -11,6 +11,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  Image,
 } from "react-native";
 import {
   useNavigation,
@@ -202,6 +203,39 @@ const VARIETY_DURATION_WEEKS: Record<string, number> = {
   "Local Variety": 14,
   Unknown: 14,
 };
+
+const VARIETIES = [
+  {
+    name: "Commando",
+    weeks: "18–20 weeks",
+    image: require("../../../assets/varieties/commando.png"),
+  },
+  {
+    name: "GT 200",
+    weeks: "16–18 weeks",
+    image: require("../../../assets/varieties/gt200.png"),
+  },
+  {
+    name: "GT 709",
+    weeks: "17–19 weeks",
+    image: require("../../../assets/varieties/gt709.png"),
+  },
+  {
+    name: "Jet 999",
+    weeks: "16–17 weeks",
+    image: require("../../../assets/varieties/jet999.png"),
+  },
+  {
+    name: "Pacific 808",
+    weeks: "18–20 weeks",
+    image: require("../../../assets/varieties/pacific808.png"),
+  },
+  {
+    name: "Local Variety",
+    weeks: "20–22 weeks",
+    image: require("../../../assets/varieties/Unknown.png"),
+  },
+];
 
 const DISTRICT_TO_API_LOCATION: Record<string, string> = {
   අනුරාධපුර: "Anuradapura",
@@ -2421,20 +2455,52 @@ const PriceAdvisorScreen: React.FC = () => {
 
                   {/* Seed Variety */}
                   <Text style={styles.inputLabel}>{t.formVariety}</Text>
-                  <TouchableOpacity
-                    style={styles.pickerInput}
-                    onPress={() => setShowVarietyPicker(true)}
-                  >
-                    <Leaf color="#10B981" size={20} />
-                    <Text
-                      style={[
-                        styles.pickerText,
-                        !form.seedVariety && styles.pickerPlaceholder,
-                      ]}
-                    >
-                      {form.seedVariety || t.selectVariety}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.varietyGrid}>
+                    {VARIETIES.map((item) => {
+                      const selected = form.seedVariety === item.name;
+
+                      return (
+                        <TouchableOpacity
+                          key={item.name}
+                          style={[
+                            styles.varietyCard,
+                            selected && styles.varietyCardSelected,
+                          ]}
+                          onPress={() =>
+                            setForm((f) => ({
+                              ...f,
+                              seedVariety: item.name,
+                            }))
+                          }
+                        >
+                          <Image
+                            source={item.image}
+                            style={styles.varietyImage}
+                          />
+
+                          <Text
+                            style={[
+                              styles.varietyText,
+                              selected && styles.varietyTextSelected,
+                            ]}
+                          >
+                            {item.name}
+                          </Text>
+
+                          {/* ✅ WEEK INFO UNDER VARIETY */}
+                          <Text style={styles.varietyWeek}>
+                            {language === "si"
+                              ? `අස්වැන්නට සති ${
+                                  VARIETY_DURATION_WEEKS[item.name]
+                                }`
+                              : `Harvest in ${
+                                  VARIETY_DURATION_WEEKS[item.name]
+                                } weeks`}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
                   {/* Land Area */}
                   <Text style={styles.inputLabel}>{t.formArea}</Text>
@@ -3466,5 +3532,51 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: 0.3,
+  },
+  varietyWeek: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  varietyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+
+  varietyCard: {
+    width: "30%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+
+  varietyCardSelected: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+
+  varietyImage: {
+    width: 70,
+    height: 70,
+    resizeMode: "contain",
+    marginBottom: 6,
+  },
+
+  varietyText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  varietyTextSelected: {
+    color: "#047857",
+    fontWeight: "700",
   },
 });
