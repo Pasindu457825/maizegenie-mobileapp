@@ -550,19 +550,19 @@ export default function ProAdvisorListScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0FDF4" },
 
-  headerWrap: {
-    paddingTop: 10,
-    paddingBottom: 14,
-    paddingHorizontal: 14,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    shadowColor: "#064E3B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
+headerWrap: {
+  paddingTop: 24, 
+  paddingBottom: 14,
+  paddingHorizontal: 14,
+  backgroundColor: "#FFFFFF",
+  borderBottomWidth: 1,
+  borderBottomColor: "#E5E7EB",
+  shadowColor: "#064E3B",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.05,
+  shadowRadius: 8,
+  elevation: 3,
+},
 
   headerTopRow: {
     flexDirection: "row",

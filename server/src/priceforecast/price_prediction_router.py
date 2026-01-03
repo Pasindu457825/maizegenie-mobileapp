@@ -89,7 +89,7 @@ def delta_confidence(delta_std: float) -> tuple[float, str]:
     if delta_std <= best:
         pct = 95.0
     elif delta_std >= worst:
-        pct = 55.0
+        pct = 87.0
     else:
         # linear map [best..worst] -> [95..55]
         t = (delta_std - best) / (worst - best)
