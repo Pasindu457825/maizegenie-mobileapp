@@ -9,9 +9,10 @@ import {
     Platform,
     Alert,
     ActivityIndicator,
+    Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, MessageSquare, Send, AlertCircle } from "lucide-react-native";
+import { ArrowLeft, MessageSquare, Send, AlertCircle, Calendar, CloudRain } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../../context/AppContext";
 import { useLanguage } from "../../../context/LanguageContext";
@@ -32,6 +33,15 @@ const content = {
         title: "පොහොර උපදේශ",
         subtitle: "නීති පදනම් සහායක",
         mainLabel: "ඔබගේ වගා තත්ත්වය ඔබේ වචන වලින් කියන්න",
+        plantingDateLabel: "වගා කළ දිනය",
+        plantingDatePlaceholder: "වගා කළ දිනය තෝරන්න",
+        rainfallLabel: "වර්ෂාපතන තත්ත්වය",
+        rainfallPlaceholder: "වර්ෂාපතන තත්ත්වය තෝරන්න",
+        rainfallLow: "අඩු වර්ෂාපතනය",
+        rainfallModerate: "මධ්‍යම වර්ෂාපතනය",
+        rainfallHigh: "ඉහළ වර්ෂාපතනය",
+        selectDate: "දිනය තෝරන්න",
+        cancel: "අවලංගු කරන්න",
         quickTags: "ඉක්මන් උපකාර (විකල්ප):",
         analyze: "විශ්ලේෂණය කරන්න",
         analyzing: "විශ්ලේෂණය වෙමින්...",
@@ -46,6 +56,15 @@ const content = {
         title: "Fertilizer Advisory",
         subtitle: "Rule-Based Assistant",
         mainLabel: "Describe your crop condition in your own words",
+        plantingDateLabel: "Planting Date",
+        plantingDatePlaceholder: "Select planting date",
+        rainfallLabel: "Rainfall Condition",
+        rainfallPlaceholder: "Select rainfall condition",
+        rainfallLow: "Low Rainfall",
+        rainfallModerate: "Moderate Rainfall",
+        rainfallHigh: "High Rainfall",
+        selectDate: "Select Date",
+        cancel: "Cancel",
         quickTags: "Quick helpers (optional):",
         analyze: "Analyze",
         analyzing: "Analyzing...",
@@ -64,6 +83,10 @@ export default function RuleBasedAdvisoryInputScreen() {
     const { language: lang } = useLanguage();
     const language: Language = lang === "sinhala" ? "si" : "en";
     const [inputText, setInputText] = useState("");
+    const [plantingDate, setPlantingDate] = useState<Date | null>(null);
+    const [rainfallCondition, setRainfallCondition] = useState<string>("");
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showRainfallPicker, setShowRainfallPicker] = useState(false);
     const [loading, setLoading] = useState(false);
     const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
@@ -156,6 +179,8 @@ export default function RuleBasedAdvisoryInputScreen() {
         try {
             const payload = {
                 farmer_input: inputText.trim(),
+                planting_date: plantingDate ? plantingDate.toISOString().split('T')[0] : null,
+                rainfall_condition: rainfallCondition || null,
                 language, // IMPORTANT: backend respects this
             };
 
@@ -232,6 +257,40 @@ export default function RuleBasedAdvisoryInputScreen() {
                     />
                 </View>
 
+                {/* Planting Date Field */}
+                <View style={styles.inputSection}>
+                    <View style={styles.labelWithIcon}>
+                        <Calendar color="#10b981" size={20} />
+                        <Text style={styles.mainLabel}>{t.plantingDateLabel}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.selectInput}
+                        onPress={() => setShowDatePicker(true)}
+                    >
+                        <Text style={[styles.selectInputText, !plantingDate && styles.placeholderText]}>
+                            {plantingDate ? plantingDate.toLocaleDateString() : t.plantingDatePlaceholder}
+                        </Text>
+                        <Calendar color="#10b981" size={20} />
+                    </TouchableOpacity>
+                </View>
+
+                {/* Rainfall Condition Field */}
+                <View style={styles.inputSection}>
+                    <View style={styles.labelWithIcon}>
+                        <CloudRain color="#10b981" size={20} />
+                        <Text style={styles.mainLabel}>{t.rainfallLabel}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.selectInput}
+                        onPress={() => setShowRainfallPicker(true)}
+                    >
+                        <Text style={[styles.selectInputText, !rainfallCondition && styles.placeholderText]}>
+                            {rainfallCondition || t.rainfallPlaceholder}
+                        </Text>
+                        <CloudRain color="#10b981" size={20} />
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.quickTagsSection}>
                     <Text style={styles.quickTagsTitle}>{t.quickTags}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -285,6 +344,96 @@ export default function RuleBasedAdvisoryInputScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Date Picker Modal */}
+            <Modal
+                visible={showDatePicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDatePicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>{t.selectDate}</Text>
+                        <View style={styles.datePickerContainer}>
+                            {[...Array(90)].map((_, index) => {
+                                const date = new Date();
+                                date.setDate(date.getDate() - index);
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={styles.dateOption}
+                                        onPress={() => {
+                                            setPlantingDate(date);
+                                            setShowDatePicker(false);
+                                        }}
+                                    >
+                                        <Text style={styles.dateOptionText}>
+                                            {date.toLocaleDateString()}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                        <TouchableOpacity
+                            style={styles.modalCancelButton}
+                            onPress={() => setShowDatePicker(false)}
+                        >
+                            <Text style={styles.modalCancelText}>{t.cancel}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Rainfall Picker Modal */}
+            <Modal
+                visible={showRainfallPicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowRainfallPicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>{t.rainfallLabel}</Text>
+                        <TouchableOpacity
+                            style={styles.rainfallOption}
+                            onPress={() => {
+                                setRainfallCondition(t.rainfallLow);
+                                setShowRainfallPicker(false);
+                            }}
+                        >
+                            <CloudRain size={20} color="#F59E0B" />
+                            <Text style={styles.rainfallOptionText}>{t.rainfallLow}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.rainfallOption}
+                            onPress={() => {
+                                setRainfallCondition(t.rainfallModerate);
+                                setShowRainfallPicker(false);
+                            }}
+                        >
+                            <CloudRain size={20} color="#3B82F6" />
+                            <Text style={styles.rainfallOptionText}>{t.rainfallModerate}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.rainfallOption}
+                            onPress={() => {
+                                setRainfallCondition(t.rainfallHigh);
+                                setShowRainfallPicker(false);
+                            }}
+                        >
+                            <CloudRain size={20} color="#10B981" />
+                            <Text style={styles.rainfallOptionText}>{t.rainfallHigh}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.modalCancelButton}
+                            onPress={() => setShowRainfallPicker(false)}
+                        >
+                            <Text style={styles.modalCancelText}>{t.cancel}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -366,6 +515,90 @@ const styles = StyleSheet.create({
     analyzeButtonDisabled: { opacity: 0.7 },
     analyzeButtonGradient: { flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 16, gap: 8 },
     analyzeButtonText: { fontSize: 16, fontWeight: "700", color: "#ffffff" },
+
+    selectInput: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        padding: 16,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        borderWidth: 2,
+        borderColor: "#10b981",
+    },
+    selectInputText: {
+        fontSize: 16,
+        color: "#1F2937",
+        flex: 1,
+    },
+    placeholderText: {
+        color: "#9CA3AF",
+    },
+
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    modalContent: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 20,
+        padding: 24,
+        width: "85%",
+        maxHeight: "70%",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#1F2937",
+        marginBottom: 16,
+        textAlign: "center",
+    },
+    datePickerContainer: {
+        maxHeight: 300,
+    },
+    dateOption: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E7EB",
+    },
+    dateOptionText: {
+        fontSize: 16,
+        color: "#1F2937",
+        textAlign: "center",
+    },
+    rainfallOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: "#F9FAFB",
+        marginBottom: 12,
+        gap: 12,
+    },
+    rainfallOptionText: {
+        fontSize: 16,
+        color: "#1F2937",
+        fontWeight: "600",
+    },
+    modalCancelButton: {
+        marginTop: 16,
+        padding: 14,
+        borderRadius: 12,
+        backgroundColor: "#EF4444",
+        alignItems: "center",
+    },
+    modalCancelText: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#FFFFFF",
+    },
 
     accessDeniedContainer: { flex: 1, justifyContent: "center", alignItems: "center", padding: 32 },
     accessDeniedTitle: { fontSize: 24, fontWeight: "700", color: "#1F2937", marginTop: 24, marginBottom: 12, textAlign: "center" },

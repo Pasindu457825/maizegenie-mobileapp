@@ -1,14 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Image,
-    Dimensions,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
     Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -16,8 +12,6 @@ import { ArrowLeft, Sparkles, MessageCircle, AlertCircle } from "lucide-react-na
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
-
-const { width } = Dimensions.get("window");
 
 type Language = "si" | "en";
 
@@ -45,8 +39,6 @@ export default function FertilizerAdvisorLandingScreen() {
     const { user } = useApp();
     const { language: lang } = useLanguage();
     const language: Language = lang === "sinhala" ? "si" : "en";
-    const [activeSlide, setActiveSlide] = useState(0);
-    const scrollViewRef = useRef<ScrollView>(null);
 
     // Check if user is a farmer
     useEffect(() => {
@@ -113,17 +105,6 @@ export default function FertilizerAdvisorLandingScreen() {
         );
     }
 
-    const slides = [
-        require("../../../assets/fert_advices/YaraMila1.jpg"),
-        require("../../../assets/fert_advices/YaraMila2.jpg"),
-    ];
-
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const slideSize = event.nativeEvent.layoutMeasurement.width;
-        const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
-        setActiveSlide(index);
-    };
-
     return (
         <View style={styles.container}>
             <LinearGradient
@@ -151,42 +132,6 @@ export default function FertilizerAdvisorLandingScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Image Slideshow */}
-                <View style={styles.slideshowContainer}>
-                    <ScrollView
-                        ref={scrollViewRef}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={handleScroll}
-                        scrollEventThrottle={16}
-                        style={styles.slideshow}
-                    >
-                        {slides.map((slide, index) => (
-                            <View key={index} style={styles.slide}>
-                                <Image
-                                    source={slide}
-                                    style={styles.slideImage}
-                                    resizeMode="cover"
-                                />
-                            </View>
-                        ))}
-                    </ScrollView>
-
-                    {/* Pagination Dots */}
-                    <View style={styles.pagination}>
-                        {slides.map((_, index) => (
-                            <View
-                                key={index}
-                                style={[
-                                    styles.paginationDot,
-                                    activeSlide === index && styles.paginationDotActive,
-                                ]}
-                            />
-                        ))}
-                    </View>
-                </View>
-
                 {/* Services Section */}
                 <View style={styles.servicesSection}>
                     {/* Rule-Based Advisory Card */}
@@ -298,39 +243,7 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingBottom: 20,
-    },
-    slideshowContainer: {
-        marginTop: 16,
-        marginBottom: 24,
-    },
-    slideshow: {
-        height: 240,
-    },
-    slide: {
-        width: width,
-        paddingHorizontal: 16,
-    },
-    slideImage: {
-        width: width - 32,
-        height: 240,
-        borderRadius: 16,
-    },
-    pagination: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: 16,
-    },
-    paginationDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: "#D1D5DB",
-        marginHorizontal: 4,
-    },
-    paginationDotActive: {
-        backgroundColor: "#10b981",
-        width: 24,
+        paddingTop: 16,
     },
     servicesSection: {
         paddingHorizontal: 16,
