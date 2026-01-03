@@ -41,8 +41,17 @@ type NavProp = StackNavigationProp<
 const YieldPredictionResultsScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
-  const { data } = route.params as {
+  const { data, farmerInput } = route.params as {
     data: any;
+    farmerInput?: {
+      district?: string;
+      location?: string;
+      variety?: string;
+      field_size_ha?: number;
+      irrigation_type?: string;
+      rainfall_condition?: string;
+      planting_date?: string;
+    };
   };
 
   const { language: lang } = useLanguage();
@@ -166,14 +175,13 @@ const YieldPredictionResultsScreen = () => {
       const yieldKgHa = data?.prediction?.predicted_yield_kg_per_ha || 0;
       
       // Get farmer input data from route params
-      const farmerInput = route.params?.farmerInput || {};
-      const district = farmerInput.district || '';
-      const location = farmerInput.location || '';
-      const variety = farmerInput.variety || '';
-      const landSizeHa = farmerInput.field_size_ha || 0;
-      const irrigationType = farmerInput.irrigation_type || '';
-      const rainfallCondition = farmerInput.rainfall_condition || '';
-      const plantingDate = farmerInput.planting_date || '';
+      const district = farmerInput?.district || '';
+      const location = farmerInput?.location || '';
+      const variety = farmerInput?.variety || '';
+      const landSizeHa = farmerInput?.field_size_ha || 0;
+      const irrigationType = farmerInput?.irrigation_type || '';
+      const rainfallCondition = farmerInput?.rainfall_condition || '';
+      const plantingDate = farmerInput?.planting_date || '';
       
       // Generate message based on request type
       let farmerMessage = '';

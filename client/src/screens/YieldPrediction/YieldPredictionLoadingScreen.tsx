@@ -76,6 +76,8 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendationDesc: "ගොවීන්ට පොහොර උපදේශ ලබා දෙන්න",
       farmerRequests: "ගොවි ඉල්ලීම්",
       farmerRequestsDesc: "ගොවීන්ගේ උපදේශ ඉල්ලීම් බලන්න",
+      myAdviceRequests: "මගේ උපදේශ ඉල්ලීම්",
+      myAdviceRequestsDesc: "නිලධාරීන්ගෙන් ලැබුණු උපදේශ බලන්න",
       comingSoon: "ඉදිරි දිනවල",
       soilTestTitle: "පස් පරීක්ෂණ ඉල්ලීම",
       soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න - ආසන්නතම කෘෂිකර්ම නිලධාරියා සම්බන්ධ කරගන්න",
@@ -96,6 +98,8 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendationDesc: "Provide fertilizer advice to farmers",
       farmerRequests: "Farmer Requests",
       farmerRequestsDesc: "View farmer advice requests with yield predictions",
+      myAdviceRequests: "My Advice Requests",
+      myAdviceRequestsDesc: "View advice received from officers",
       comingSoon: "Coming soon",
       soilTestTitle: "Request Soil Testing",
       soilTestDesc: "Request a soil test for your land - Contact nearest agri officer",
@@ -288,10 +292,10 @@ const YieldPredictionLoadingScreen = () => {
                 </LinearGradient>
               </TouchableOpacity>
 
-              {/* Card 3: Soil Test Request (Pro Feature) */}
+              {/* Card 3: My Advice Requests */}
               <TouchableOpacity
                 style={styles.roleCard}
-                onPress={() => setShowProPopup(true)}
+                onPress={() => navigation.navigate("MyAdviceRequestsScreen")}
                 activeOpacity={0.7}
               >
                 <LinearGradient
@@ -301,11 +305,40 @@ const YieldPredictionLoadingScreen = () => {
                   style={styles.roleCardGradient}
                 >
                   <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
-                    <TestTube color="#f59e0b" size={32} />
+                    <Users color="#f59e0b" size={32} />
+                  </View>
+                  <View style={styles.roleContent}>
+                    <Text style={styles.roleTitle}>
+                      {content[language].myAdviceRequests}
+                    </Text>
+                    <Text style={styles.roleDesc}>
+                      {content[language].myAdviceRequestsDesc}
+                    </Text>
+                  </View>
+                  <View style={styles.roleArrow}>
+                    <Text style={styles.roleArrowText}>→</Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Card 4: Soil Test Request (Pro Feature) */}
+              <TouchableOpacity
+                style={styles.roleCard}
+                onPress={() => setShowProPopup(true)}
+                activeOpacity={0.7}
+              >
+                <LinearGradient
+                  colors={["#F3E8FF", "#E9D5FF"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.roleCardGradient}
+                >
+                  <View style={[styles.roleIconCircle, { backgroundColor: "#E9D5FF" }]}>
+                    <TestTube color="#9333ea" size={32} />
                   </View>
                   <View style={styles.roleContent}>
                     <View style={styles.proFeatureBadge}>
-                      <Sparkles size={12} color="#f59e0b" />
+                      <Sparkles size={12} color="#9333ea" />
                       <Text style={styles.proFeatureText}>Pro</Text>
                     </View>
                     <Text style={styles.roleTitle}>

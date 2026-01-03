@@ -197,7 +197,7 @@ export default function HomeScreen() {
         title: t.yieldPrediction,
         description: t.yieldDescription,
         color: "#8b5cf6",
-        route: "YieldPrediction",
+        route: "PredictYield",
       },
     ],
     [t]
