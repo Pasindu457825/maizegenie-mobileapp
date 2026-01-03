@@ -443,9 +443,7 @@ const PriceForecastScreen = () => {
         language
       );
       setWeather(
-        `${Math.round(temperature)}°C • ${translatedCondition}${
-          rainfallMm !== null ? ` • ${rainfallMm.toFixed(1)}mm` : ""
-        }`
+        `${Math.round(temperature)}°C • ${translatedCondition}`
       );
     } else {
       setWeather(
@@ -1208,11 +1206,11 @@ const PriceForecastScreen = () => {
                         </Text>
                       </View>
 
-                      {/* MODEL DETAILS */}
+                      {/* MODEL DETAILS 
                       <Text style={styles.weekSub}>
                         SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
                         {w.ensemble.toFixed(1)}
-                      </Text>
+                      </Text> */}
                     </View>
                   );
                 })}
