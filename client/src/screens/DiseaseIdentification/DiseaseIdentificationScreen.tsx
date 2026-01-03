@@ -28,7 +28,7 @@ import {
   Scan,
   Sparkles,
   ChevronRight,
-  Mic,
+  Volume2,
   Shield,
   ArrowLeft,
   RefreshCw,
@@ -37,7 +37,7 @@ import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { LinearGradient } from "expo-linear-gradient";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import Constants from "expo-constants";
@@ -46,6 +46,7 @@ import * as Speech from "expo-speech";
 import { DiseaseIdentifyStackParamList } from "../../navigation/DiseaseIdentifyStack";
 
 import { Audio } from "expo-av";
+import { useApp } from "../../context/AppContext";
 
 type NavProp = StackNavigationProp<
   DiseaseIdentifyStackParamList,
@@ -96,19 +97,17 @@ const DiseaseIdentificationScreen = () => {
       permissionDenied: "ප්‍රවේශ අවසරය අවශ්‍යයි",
       serverError: "සේවාදායකයට සම්බන්ධ විය නොහැක",
       viewDetails: "වැඩි විස්තර බලන්න",
-      scanLeaf: "කොළය ස්කෑන් කරන්න",
       uploadPhoto: "ඡායාරූපය උඩුගත කරන්න",
       modernAgriculture: "නවීන කෘෂිකර්මය",
-      aiPowered: "AI බලගැන්වූ විශ්ලේෂණය",
       healthyCrop: "සෞඛ්‍ය සම්පන්න බෝග",
       back: "ආපසු",
       newDetection: "නව හඳුනාගැනීම",
       speak: "කියවන්න",
       confidence: "විශ්වාසනීයත්වය",
-      high: "ඉහළ",
-      medium: "මධ්‍යම",
-      low: "අඩු",
-      severity: "දැඩි තත්ත්වය",
+      high: "වැඩිය",
+      medium: "මධ්‍යමය",
+      low: "අඩුය",
+      severity: "රෝගය ආසාදිත ප්‍රමාණය",
       detectionStatus: "හඳුනාගැනීමේ තත්ත්වය",
       healthy: "සෞඛ්‍ය සම්පන්න කොළයකි",
       location: "ස්ථානය",
@@ -118,9 +117,10 @@ const DiseaseIdentificationScreen = () => {
         "මෙය බඩ ඉරිඟු කොළයක් නොවිය හැක. කරුණාකර නිවැරදි කොළ ඡායාරූපයක් නැවත උඩුගත කරන්න.",
       invalidSuggestionsTitle: "ඡායාරූපය නිවැරදි ලෙස ලබාගැනීමට උපදෙස්",
       invalidSuggestions: [
-        "බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
+        "හානි වූ බඩ ඉරිඟු කොළයක් පමණක් ඡායාරූපයට ගන්න",
         "හොඳ ආලෝකය සහ පැහැදිලි බව සහිත ඡායාරූපයක් ගන්න",
-        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට ගන්න",
+        "කොළය සම්පූර්ණයෙන්ම කැමරාවේ මධ්‍යයට පැහැදිලිව ගන්න",
+        "ලප, කහ පැහැය, වියළීම, රස්ට් වැනි රෝග ලක්ෂණ පැහැදිලිව පෙනෙන කොළයක් භාවිතා කරන්න",
         "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
       ],
     },
@@ -143,10 +143,8 @@ const DiseaseIdentificationScreen = () => {
       permissionDenied: "Permission required",
       serverError: "Cannot connect to server",
       viewDetails: "View More Details",
-      scanLeaf: "Scan Leaf",
       uploadPhoto: "Upload Photo",
       modernAgriculture: "Modern Agriculture",
-      aiPowered: "AI Powered Analysis",
       healthyCrop: "Healthy Crop",
       back: "Back",
       newDetection: "New Detection",
@@ -155,7 +153,7 @@ const DiseaseIdentificationScreen = () => {
       high: "High",
       medium: "Medium",
       low: "Low",
-      severity: "Severity",
+      severity: "Degree of Infection",
       detectionStatus: "Detection Status",
       healthy: "Healthy",
       location: "Location",
@@ -165,9 +163,10 @@ const DiseaseIdentificationScreen = () => {
         "This image may not be a maize leaf. Please upload a clear maize leaf image.",
       invalidSuggestionsTitle: "Tips to upload a correct image",
       invalidSuggestions: [
-        "Capture only a maize leaf",
+        "Capture only a damaged or diseased maize leaf",
         "Use good lighting and clear focus",
-        "Keep the leaf centered in the image",
+        "Keep the leaf fully centered in the image",
+        "Ensure visible disease symptoms (spots, discoloration, rust, or drying)",
         "Avoid blurry or distant photos",
       ],
     },
@@ -308,6 +307,8 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
+  const { diseaseModel } = useApp(); // ✅ global value
+
   const uploadAndDetect = async () => {
     if (!imageUri) {
       Alert.alert(content[language].selectImageFirst);
@@ -335,7 +336,7 @@ const DiseaseIdentificationScreen = () => {
       }
 
       const response = await axios.post(
-        `${API_BASE_URL}/api/disease/identify?conf=0.4&return_image=false`,
+        `${API_BASE_URL}/api/disease/identify?model=${diseaseModel}`,
         formData,
         {
           headers: {
@@ -502,9 +503,11 @@ const DiseaseIdentificationScreen = () => {
     blight: require("../../../assets/disease_sinhala_voices/leaf_blight_si.wav"),
   };
 
-  const isInvalidLeafPrediction =
+  const isInvalidPrediction =
     result?.predictions?.length === 1 &&
-    result.predictions[0].class_name.toLowerCase() === "invalid_leaf";
+    ["invalid_leaf", "invalid_image"].includes(
+      result.predictions[0].class_name.toLowerCase()
+    );
 
   const isHealthyPrediction =
     result?.predictions?.length === 1 &&
@@ -531,19 +534,21 @@ const DiseaseIdentificationScreen = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#059669" />
+      <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Enhanced Header */}
+      <LinearGradient
+        colors={["#10ad79ff", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>
             {content[language].headerTitle}
           </Text>
-          <Text style={styles.headerSubtitle}>
-            {content[language].modernAgriculture}
-          </Text>
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Main ScrollView */}
       <ScrollView
@@ -564,13 +569,6 @@ const DiseaseIdentificationScreen = () => {
           {/* Hero Section */}
           <View style={styles.heroSection}>
             <View style={styles.heroContent}>
-              <View style={styles.aiBadge}>
-                <Sparkles size={14} color="#10B981" />
-                <Text style={styles.aiBadgeText}>
-                  {content[language].aiPowered}
-                </Text>
-              </View>
-
               <View style={styles.heroIconContainer}>
                 <Animated.View
                   style={[
@@ -621,12 +619,6 @@ const DiseaseIdentificationScreen = () => {
                   >
                     <X size={20} color="#FFFFFF" />
                   </TouchableOpacity>
-                  <View style={styles.imageLabel}>
-                    <Scan size={16} color="#FFFFFF" />
-                    <Text style={styles.imageLabelText}>
-                      {content[language].scanLeaf}
-                    </Text>
-                  </View>
                 </View>
               </View>
             </Animated.View>
@@ -643,6 +635,53 @@ const DiseaseIdentificationScreen = () => {
                 },
               ]}
             >
+              {/* Image Upload Guidance (Before Image Selection Only) */}
+              <View
+                style={{
+                  backgroundColor: "#ECFDF5",
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 20,
+                  borderWidth: 1,
+                  borderColor: "#A7F3D0",
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 10,
+                  }}
+                >
+                  <AlertCircle size={18} color="#059669" />
+                  <Text
+                    style={{
+                      marginLeft: 8,
+                      fontWeight: "700",
+                      color: "#047857",
+                      fontSize: 14,
+                    }}
+                  >
+                    {content[language].invalidSuggestionsTitle}
+                  </Text>
+                </View>
+
+                {content[language].invalidSuggestions.map(
+                  (tip: string, index: number) => (
+                    <Text
+                      key={index}
+                      style={{
+                        color: "#047857",
+                        fontSize: 13,
+                        marginBottom: 6,
+                        lineHeight: 18,
+                      }}
+                    >
+                      • {tip}
+                    </Text>
+                  )
+                )}
+              </View>
               <View style={styles.actionCards}>
                 <TouchableOpacity
                   style={[styles.actionCard, styles.actionCardPrimary]}
@@ -783,7 +822,7 @@ const DiseaseIdentificationScreen = () => {
           )}
 
           {/* Invalid Leaf Result */}
-          {result && isInvalidLeafPrediction && (
+          {result && isInvalidPrediction && (
             <Animated.View
               style={[
                 styles.resultSection,
@@ -860,7 +899,7 @@ const DiseaseIdentificationScreen = () => {
           {result &&
             result.predictions.length > 0 &&
             !isHealthyPrediction &&
-            !isInvalidLeafPrediction && (
+            !isInvalidPrediction && (
               <Animated.View
                 style={[
                   styles.resultSection,
@@ -896,43 +935,83 @@ const DiseaseIdentificationScreen = () => {
                               : diseaseName}{" "}
                             {content[language].resultTitle}
                           </Text>
-
-                          <TouchableOpacity
-                            style={styles.speakButton}
-                            onPress={async () => {
-                              setIsSpeaking(true);
-                              await speakDisease(primaryPrediction.class_name);
-                            }}
-                            activeOpacity={0.85}
-                          >
-                            <Mic color="#059669" size={18} />
-                          </TouchableOpacity>
-                          {isSpeaking && (
-                            <TouchableOpacity
-                              style={[
-                                styles.speakButton,
-                                { borderColor: "#EF4444" },
-                              ]}
-                              onPress={async () => {
-                                // 🔴 STOP all audio (existing APIs only)
-                                Speech.stop();
-
-                                if (soundRef.current) {
-                                  try {
-                                    await soundRef.current.stopAsync();
-                                    await soundRef.current.unloadAsync();
-                                  } catch {}
-                                  soundRef.current = null;
-                                }
-
-                                setIsSpeaking(false);
-                              }}
-                              activeOpacity={0.85}
-                            >
-                              <X color="#EF4444" size={18} />
-                            </TouchableOpacity>
-                          )}
                         </View>
+                        {/* 🔊 Audio Control Button */}
+                        {!isSpeaking ? (
+                          // ▶️ LISTEN
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 12,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingHorizontal: 18,
+                              paddingVertical: 10,
+                              borderRadius: 20,
+                              backgroundColor: "#ECFDF5",
+                              borderWidth: 1,
+                              borderColor: "#10B981",
+                            }}
+                            onPress={() => {
+                              setIsSpeaking(true);
+                              speakDisease(primaryPrediction.class_name);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <Volume2 size={18} color="#059669" />
+                            <Text
+                              style={{
+                                color: "#047857",
+                                fontWeight: "700",
+                                fontSize: 14,
+                              }}
+                            >
+                              {language === "si" ? "ශබ්දයෙන් අසන්න" : "Listen"}
+                            </Text>
+                          </TouchableOpacity>
+                        ) : (
+                          // ⏹ STOP (INLINE – uses existing logic)
+                          <TouchableOpacity
+                            style={{
+                              marginTop: 12,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 8,
+                              paddingHorizontal: 18,
+                              paddingVertical: 10,
+                              borderRadius: 20,
+                              backgroundColor: "#FEE2E2",
+                              borderWidth: 1,
+                              borderColor: "#DC2626",
+                            }}
+                            onPress={async () => {
+                              // 🔴 SAME stop logic you already have
+                              Speech.stop();
+
+                              if (soundRef.current) {
+                                try {
+                                  await soundRef.current.stopAsync();
+                                  await soundRef.current.unloadAsync();
+                                } catch {}
+                                soundRef.current = null;
+                              }
+
+                              setIsSpeaking(false);
+                            }}
+                            activeOpacity={0.8}
+                          >
+                            <X size={18} color="#DC2626" />
+                            <Text
+                              style={{
+                                color: "#991B1B",
+                                fontWeight: "700",
+                                fontSize: 14,
+                              }}
+                            >
+                              {language === "si" ? "ශබ්දය නවත්වන්න" : "Stop"}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
 
                         {/* Disease detected line (same language only) */}
                         <Text
@@ -940,11 +1019,7 @@ const DiseaseIdentificationScreen = () => {
                             styles.resultSubtitle,
                             { textAlign: "center", marginTop: 8 },
                           ]}
-                        >
-                          {language === "si"
-                            ? "රෝගය හඳුනාගත්තා"
-                            : "Disease detected"}
-                        </Text>
+                        ></Text>
 
                         {/* Confidence line (same language only) */}
                         <Text
@@ -984,7 +1059,17 @@ const DiseaseIdentificationScreen = () => {
                             <Shield color="#FFFFFF" size={16} />
                             <Text style={styles.severityText}>
                               {content[language].severity}:{" "}
-                              {result.severity_label}
+                              {language === "si"
+                                ? result.severity_label
+                                    .toLowerCase()
+                                    .includes("high")
+                                  ? content.si.high
+                                  : result.severity_label
+                                      .toLowerCase()
+                                      .includes("medium")
+                                  ? content.si.medium
+                                  : content.si.low
+                                : result.severity_label}
                             </Text>
                           </View>
                         </View>
@@ -1003,6 +1088,11 @@ const DiseaseIdentificationScreen = () => {
                             severity_score: result.severity_score,
                             severity_label: result.severity_label,
                             predictions: result.predictions,
+
+                            diseaseNameEn: diseaseName,
+                            diseaseNameSi: primaryPrediction
+                              ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : diseaseName,
                           })
                         }
                       >
@@ -1067,19 +1157,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#10ad79ff",
     paddingTop: 50,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     shadowColor: "#059669",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   backButton: {
     width: 40,
@@ -1091,18 +1181,33 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    marginLeft: 16,
+    alignItems: "center",
+    marginHorizontal: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
+    fontSize: 24,
+    fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  headerSubtitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#D1FAE5",
-    opacity: 0.9,
+    fontWeight: "500",
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   langButton: {
     backgroundColor: "#FFFFFF",

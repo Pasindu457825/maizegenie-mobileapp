@@ -18,11 +18,10 @@ import {
   Leaf,
   BarChart3,
   MessageSquare,
-  Cloud,
-  MapPin,
   Settings,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
+import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 
 const { width } = Dimensions.get("window");
 
@@ -119,6 +118,10 @@ export default function HomeScreen() {
   const language: LanguageType = lang === "sinhala" ? "si" : "en";
   const t = translations[language];
 
+  // Role-based authentication using Supabase user data
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
+
   // ✨ Animations
   const fadeAnim = new Animated.Value(0);
   const slideAnim = new Animated.Value(50);
@@ -158,14 +161,14 @@ export default function HomeScreen() {
       title: t.pestIdentifier,
       description: t.pestDescription,
       color: "#ef4444",
-      route: "DiseaseIdentification",
+      route: "DiseaseIdentify",
     },
     {
       icon: Leaf,
       title: t.diseaseIdentifier,
       description: t.diseaseDescription,
       color: "#22c55e",
-      route: "DiseaseIdentification",
+      route: "DiseaseIdentifier",
     },
     {
       icon: AlertCircle,
@@ -211,166 +214,165 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Card */}
-        <Animated.View
-          style={[
-            styles.welcomeCardContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={["#10b981", "#059669"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.welcomeCard}
+        {/* ✅ PADDED SECTION (All normal content) */}
+        <View style={styles.pagePadding}>
+          {/* Welcome Card */}
+          <Animated.View
+            style={[
+              styles.welcomeCardContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
+              },
+            ]}
           >
-            <View style={styles.welcomeContent}>
-              <Text style={styles.welcomeTitle}>{t.welcome}</Text>
-              <Text style={styles.welcomeName}>
-                {user?.full_name || user?.email || "Guest User"}
-              </Text>
-              <Text style={styles.welcomeSubtext}>{t.welcomeSubtext}</Text>
-            </View>
-
-            <View style={styles.welcomeEmoji}>
-              <Text style={styles.emojiText}>👨‍🌾</Text>
-            </View>
-          </LinearGradient>
-
-          {/* Chat Button */}
-          {user?.role === "farmer" ? (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("Chat", {
-                  roomId: null,
-                  userId: user?.id,
-                })
-              }
-              style={styles.chatButtonWrapper}
+            <LinearGradient
+              colors={["#10b981", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.welcomeCard}
             >
-              <LinearGradient
-                colors={["#059669", "#047857"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.chatButton}
+              <View style={styles.welcomeContent}>
+                <Text style={styles.welcomeTitle}>{t.welcome}</Text>
+                <Text style={styles.welcomeName}>
+                  {user?.full_name || user?.email || "Guest User"}
+                </Text>
+                <Text style={styles.welcomeSubtext}>{t.welcomeSubtext}</Text>
+              </View>
+
+              <View style={styles.welcomeEmoji}>
+                <Text style={styles.emojiText}>👨‍🌾</Text>
+              </View>
+            </LinearGradient>
+
+            {/* Chat Button */}
+            {user?.role === "farmer" ? (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("Chat", {
+                    roomId: null,
+                    userId: user?.id,
+                  })
+                }
+                style={styles.chatButtonWrapper}
               >
-                <MessageSquare size={20} color="#ffffff" />
-                <Text style={styles.chatButtonText}>{t.chatWithOfficer}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : user?.role === "officer" ? (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("OfficerRooms", {
-                  officerId: user?.id,
-                })
-              }
-              style={styles.chatButtonWrapper}
-            >
-              <LinearGradient
-                colors={["#3b82f6", "#1d4ed8"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.chatButton}
-              >
-                <MessageSquare size={20} color="#ffffff" />
-                <Text style={styles.chatButtonText}>{t.viewFarmerChats}</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("Login")}
-              style={styles.chatButtonWrapper}
-            ></TouchableOpacity>
-          )}
-        </Animated.View>
-        {/* Features Section */}
-        <Animated.View
-          style={[
-            styles.featuresSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>{t.features}</Text>
-          <View style={styles.featuresContainer}>
-            {features.map((feature, index) => {
-              const IconComponent = feature.icon;
-              return (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => navigation.navigate(feature.route)}
-                  activeOpacity={0.7}
-                  style={styles.featureCardWrapper}
+                <LinearGradient
+                  colors={["#059669", "#047857"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.chatButton}
                 >
-                  <LinearGradient
-                    colors={["#ffffff", "#f9fafb"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.featureCard}
-                  >
-                    <View style={styles.featureCardContent}>
-                      <View
-                        style={[
-                          styles.featureIconBox,
-                          { backgroundColor: feature.color + "20" },
-                        ]}
-                      >
-                        <IconComponent
-                          size={24}
-                          color={feature.color}
-                          strokeWidth={2}
-                        />
-                      </View>
-                      <View style={styles.featureCardText}>
-                        <Text style={styles.featureTitle}>{feature.title}</Text>
-                        <Text style={styles.featureDesc}>
-                          {feature.description}
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={styles.featureArrow}>
-                      <Text style={styles.arrowText}>→</Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Animated.View>
+                  <MessageSquare size={20} color="#ffffff" />
+                  <Text style={styles.chatButtonText}>{t.chatWithOfficer}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : user?.role === "officer" ? (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("OfficerRooms", {
+                    officerId: user?.id,
+                  })
+                }
+                style={styles.chatButtonWrapper}
+              >
+                <LinearGradient
+                  colors={["#3b82f6", "#1d4ed8"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.chatButton}
+                >
+                  <MessageSquare size={20} color="#ffffff" />
+                  <Text style={styles.chatButtonText}>{t.viewFarmerChats}</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Login")}
+                style={styles.chatButtonWrapper}
+              />
+            )}
+          </Animated.View>
+        </View>
 
-        {/* Tips Section */}
-        <Animated.View
-          style={[
-            styles.tipsSection,
-            {
-              opacity: fadeAnim,
-            },
-          ]}
-        >
-          <Text style={styles.sectionTitle}>{t.todaysTip}</Text>
-          <LinearGradient
-            colors={["#fef3c7", "#fde68a"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.tipCard}
+        {/* ✅ FULL WIDTH COMPONENT (No padding) */}
+        <TopOfficialNews />
+
+        {/* ✅ PADDED SECTION (Rest of the page) */}
+        <View style={styles.pagePadding}>
+          {/* Features Section */}
+          <Animated.View
+            style={[styles.featuresSection, { opacity: fadeAnim }]}
           >
-            <View style={styles.tipIconBox}>
-              <Text style={styles.tipIcon}>💡</Text>
+            <Text style={styles.sectionTitle}>{t.features}</Text>
+            <View style={styles.featuresContainer}>
+              {features.map((feature, index) => {
+                const IconComponent = feature.icon;
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    onPress={() => navigation.navigate(feature.route)}
+                    activeOpacity={0.7}
+                    style={styles.featureCardWrapper}
+                  >
+                    <LinearGradient
+                      colors={["#ffffff", "#f9fafb"]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.featureCard}
+                    >
+                      <View style={styles.featureCardContent}>
+                        <View
+                          style={[
+                            styles.featureIconBox,
+                            { backgroundColor: feature.color + "20" },
+                          ]}
+                        >
+                          <IconComponent
+                            size={24}
+                            color={feature.color}
+                            strokeWidth={2}
+                          />
+                        </View>
+                        <View style={styles.featureCardText}>
+                          <Text style={styles.featureTitle}>
+                            {feature.title}
+                          </Text>
+                          <Text style={styles.featureDesc}>
+                            {feature.description}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={styles.featureArrow}>
+                        <Text style={styles.arrowText}>→</Text>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            <View style={styles.tipContent}>
-              <Text style={styles.tipTitle}>{t.monitorCrops}</Text>
-              <Text style={styles.tipDesc}>{t.monitorDescription}</Text>
-            </View>
-          </LinearGradient>
-        </Animated.View>
+          </Animated.View>
 
-        {/* Bottom Spacing */}
-        <View style={styles.bottomSpacing} />
+          {/* Tips Section */}
+          <Animated.View style={[styles.tipsSection, { opacity: fadeAnim }]}>
+            <Text style={styles.sectionTitle}>{t.todaysTip}</Text>
+            <LinearGradient
+              colors={["#fef3c7", "#fde68a"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.tipCard}
+            >
+              <View style={styles.tipIconBox}>
+                <Text style={styles.tipIcon}>💡</Text>
+              </View>
+              <View style={styles.tipContent}>
+                <Text style={styles.tipTitle}>{t.monitorCrops}</Text>
+                <Text style={styles.tipDesc}>{t.monitorDescription}</Text>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+
+          <View style={styles.bottomSpacing} />
+        </View>
       </ScrollView>
     </View>
   );
@@ -447,7 +449,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 40,
   },
@@ -666,4 +667,8 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 20,
   },
+  pagePadding: {
+  paddingHorizontal: 16,
+},
+
 });

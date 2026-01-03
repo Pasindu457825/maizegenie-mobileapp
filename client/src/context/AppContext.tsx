@@ -1,13 +1,9 @@
-import React, {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import React, { createContext, useContext, useMemo, useState } from "react";
 import axios from "axios";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE } from "../services/api";
 import { supabase } from "../lib/supabase"; // ⭐ IMPORTANT
+import { useEffect } from "react";
 
 // =======================
 // Types
@@ -28,6 +24,10 @@ type AppCtx = {
   setLoading: (v: boolean) => void;
   signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+
+  // 🔽 ADD THESE
+  diseaseModel: "local" | "roboflow";
+  setDiseaseModel: (v: "local" | "roboflow") => void;
 };
 
 const Ctx = createContext<AppCtx | undefined>(undefined);
@@ -39,6 +39,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [diseaseModel, setDiseaseModelState] = useState<"local" | "roboflow">(
+    "local"
+  );
+
+  const setDiseaseModel = async (value: "local" | "roboflow") => {
+    setDiseaseModelState(value);
+    await AsyncStorage.setItem("disease_model", value);
+  };
+
+  useEffect(() => {
+    const loadModelPreference = async () => {
+      const saved = await AsyncStorage.getItem("disease_model");
+      if (saved === "local" || saved === "roboflow") {
+        setDiseaseModelState(saved);
+      }
+    };
+
+    loadModelPreference();
+  }, []);
 
   // =======================
   // SIGN IN (SUPABASE + BACKEND)
@@ -109,14 +129,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // =======================
   const signOut = async () => {
     try {
-      await supabase.auth.signOut(); // ⭐ IMPORTANT
+      await supabase.auth.signOut();
     } catch (e) {
       console.log("Supabase signOut error:", e);
     }
 
     setUser(null);
     setToken(null);
-    await AsyncStorage.removeItem("auth_token");
+    setDiseaseModelState("local"); // 👈 optional
+    await AsyncStorage.multiRemove(["auth_token", "disease_model"]);
   };
 
   // =======================
@@ -130,8 +151,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLoading,
       signIn,
       signOut,
+
+      // 🔽 ADD THESE
+      diseaseModel,
+      setDiseaseModel,
     }),
-    [user, token, loading]
+    [user, token, loading, diseaseModel]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

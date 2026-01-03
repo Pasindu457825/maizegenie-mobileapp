@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Platform } from "react-native";
 import * as Location from "expo-location";
 
@@ -8,16 +8,17 @@ type Result = {
   longitude: number | null;
 
   temperature: number | null;
+  humidity: number | null;
   weatherCondition: string | null;
   weatherIcon: string | null;
+
+  rainfallMm: number | null; // ✅ ADD (no removal)
 
   isLoading: boolean;
   error: string | null;
 };
 
-// ------------------------------------------------------
-// Sinhala Transliteration Map for Districts
-// ------------------------------------------------------
+// Sinhala district map
 const SI_DISTRICTS: Record<string, string> = {
   Colombo: "කොළඹ",
   Gampaha: "ගම්පහ",
@@ -46,42 +47,34 @@ const SI_DISTRICTS: Record<string, string> = {
   Kegalle: "කෑගල්ල",
 };
 
-export default function useUniversalLocation(lang: "si" | "en"): Result {
+export default function useUniversalLocation(
+  lang: "si" | "en"
+): Result {
   const [locationName, setLocationName] = useState("Loading...");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
   const [temperature, setTemperature] = useState<number | null>(null);
+  const [humidity, setHumidity] = useState<number | null>(null);
   const [weatherCondition, setWeatherCondition] = useState<string | null>(null);
   const [weatherIcon, setWeatherIcon] = useState<string | null>(null);
+
+  const [rainfallMm, setRainfallMm] = useState<number | null>(null); // ✅ ADD
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const WEATHER_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
 
-  // ---------------------------------------------
-  // Convert District -> Sinhala (if needed)
-  // ---------------------------------------------
-  const toSinhalaDistrict = (d: string) => {
-    return SI_DISTRICTS[d] || d;
-  };
+  // prevent GPS re-fetch on language change
+  const hasFetchedRef = useRef(false);
 
-  // ---------------------------------------------
-  // Clean district names: remove extra words
-  // ---------------------------------------------
-  const cleanDistrict = (d: string | null | undefined) => {
-    if (!d) return "Unknown";
+  const clean = (v?: string | null) =>
+    v ? v.replace(/District|Province/gi, "").trim() : undefined;
 
-    return d
-      .replace(/District/i, "")
-      .replace(/Province/i, "")
-      .trim();
-  };
+  const toSinhalaDistrict = (d?: string) =>
+    d ? SI_DISTRICTS[d] || d : "";
 
-  // ---------------------------------------------
-  // WEATHER API FETCH
-  // ---------------------------------------------
   const fetchWeather = async (lat: number, lon: number) => {
     if (!WEATHER_KEY) return;
 
@@ -89,107 +82,120 @@ export default function useUniversalLocation(lang: "si" | "en"): Result {
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_KEY}`
       );
+
+      if (!res.ok) return;
+
       const json = await res.json();
 
-      setTemperature(json.main?.temp ?? null);
-      if (json.weather?.length > 0) {
-        setWeatherCondition(json.weather[0].description);
-        setWeatherIcon(json.weather[0].icon);
+      setTemperature(
+        typeof json.main?.temp === "number" ? json.main.temp : null
+      );
+
+      setHumidity(
+        typeof json.main?.humidity === "number" ? json.main.humidity : null
+      );
+
+      if (Array.isArray(json.weather) && json.weather.length > 0) {
+        setWeatherCondition(json.weather[0].description ?? null);
+        setWeatherIcon(json.weather[0].icon ?? null);
       }
-    } catch (e) {
-      console.log("Weather fetch error:", e);
+
+      // ✅ ADD: Rainfall (OpenWeatherMap)
+      const rain =
+        typeof json?.rain?.["1h"] === "number"
+          ? json.rain["1h"]
+          : typeof json?.rain?.["3h"] === "number"
+          ? json.rain["3h"]
+          : 0;
+
+      setRainfallMm(rain);
+    } catch {
+      // silent fail (weather is optional)
     }
   };
 
-  // ---------------------------------------------
-  // Extract Sri Lankan District (Correct Logic)
-  // ---------------------------------------------
-  const extractDistrict_OSM = (addr: any): string => {
-    return (
-      addr?.district ||
-      addr?.city_district ||
-      addr?.county ||
-      addr?.municipality ||
-      addr?.town ||
-      addr?.city ||
-      addr?.village ||
-      "Unknown"
-    );
-  };
-
-  // ---------------------------------------------
-  // MAIN LOCATION LOADER
-  // ---------------------------------------------
+  // 🔥 MAIN LOCATION LOGIC
   useEffect(() => {
+    // allow language change to update label only
+    if (hasFetchedRef.current && latitude && longitude) {
+      return;
+    }
+
     const load = async () => {
       setIsLoading(true);
       setError(null);
 
       try {
-        // WEB -------------------------
-        if (Platform.OS === "web") {
-          navigator.geolocation.getCurrentPosition(
-            async (pos) => {
-              const { latitude, longitude } = pos.coords;
-              setLatitude(latitude);
-              setLongitude(longitude);
+        // 1️⃣ Permission
+        const { status } =
+          await Location.requestForegroundPermissionsAsync();
 
-              const res = await fetch(
-                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-              );
-              const data = await res.json();
-
-              const raw = extractDistrict_OSM(data.address);
-              const clean = cleanDistrict(raw);
-
-              setLocationName(lang === "si" ? toSinhalaDistrict(clean) : clean);
-
-              await fetchWeather(latitude, longitude);
-              setIsLoading(false);
-            },
-            (err) => {
-              console.log(err);
-              setLocationName("Permission Denied");
-              setError("Permission Denied");
-              setIsLoading(false);
-            }
-          );
-
-          return;
-        }
-
-        // MOBILE (Expo) -------------------------
-        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          setLocationName("Permission Denied");
           setError("Permission Denied");
+          setLocationName("Permission Denied");
           setIsLoading(false);
           return;
         }
 
-        const loc = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = loc.coords;
-
-        setLatitude(latitude);
-        setLongitude(longitude);
-
-        const geo = await Location.reverseGeocodeAsync({
-          latitude,
-          longitude,
+        // 2️⃣ GPS
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
         });
 
-        const g = geo[0];
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
 
-        const raw =
-          g?.district || g?.subregion || g?.city || g?.region || "Unknown";
+        setLatitude(lat);
+        setLongitude(lon);
 
-        const clean = cleanDistrict(raw);
-        setLocationName(lang === "si" ? toSinhalaDistrict(clean) : clean);
+        hasFetchedRef.current = true;
 
-        await fetchWeather(latitude, longitude);
+        // 3️⃣ Reverse geocode (OSM)
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+          {
+            headers: {
+              "User-Agent": "MaizeGenie-App",
+            },
+          }
+        );
+
+        const data = await res.json();
+        const a = data?.address || {};
+
+        const place = clean(
+          a.neighbourhood ||
+            a.suburb ||
+            a.village ||
+            a.town ||
+            a.city
+        );
+
+        const district = clean(
+          a.district || a.county || a.state
+        );
+
+        // 4️⃣ Build display name
+        let display = "";
+
+        if (lang === "si") {
+          const siDistrict = toSinhalaDistrict(district);
+          display = place
+            ? `${place}, ${siDistrict}`
+            : siDistrict || "ස්ථානය";
+        } else {
+          display = place && district
+            ? `${place}, ${district}`
+            : district || "Location";
+        }
+
+        setLocationName(display);
+
+        // 5️⃣ Weather
+        await fetchWeather(lat, lon);
+
         setIsLoading(false);
       } catch (e) {
-        console.log("Location error:", e);
         setError("Location Error");
         setLocationName("Unknown");
         setIsLoading(false);
@@ -204,8 +210,10 @@ export default function useUniversalLocation(lang: "si" | "en"): Result {
     latitude,
     longitude,
     temperature,
+    humidity,
     weatherCondition,
     weatherIcon,
+    rainfallMm, // ✅ ADD
     isLoading,
     error,
   };

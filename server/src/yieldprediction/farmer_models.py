@@ -22,8 +22,6 @@ class FarmerPredictionRequest(BaseModel):
     # Location data
     district: str = Field(..., description="District name")
     location: Optional[str] = Field(None, description="Specific location name")
-    gps_lat: Optional[float] = Field(None, description="GPS latitude")
-    gps_lng: Optional[float] = Field(None, description="GPS longitude")
     
     # Timing
     planting_date: str = Field(..., description="Planting date (YYYY-MM-DD)")
@@ -33,16 +31,42 @@ class FarmerPredictionRequest(BaseModel):
     land_size_value: float = Field(..., gt=0, description="Land size value")
     land_size_unit: str = Field(..., description="Land size unit (Acres/Hectares)")
     
-    # Crop details
+    # Crop details (mandatory - same as officer)
     variety: str = Field(..., description="Maize variety name")
+    planting_month: int = Field(..., ge=1, le=12, description="Planting month (1-12)")
+    field_size_ha: float = Field(..., gt=0, description="Field size in hectares")
+    
+    # Fertilizer Dates (mandatory - same as officer)
+    first_fert_date: str = Field(..., description="First fertilizer application date (YYYY-MM-DD)")
+    second_fert_date: Optional[str] = Field(None, description="Second fertilizer application date (YYYY-MM-DD)")
+    
+    # Soil information
+    soil_type: Optional[str] = Field(None, description="Soil type (Alluvial, IBL, LHG, RBE, RYP)")
+    soil_condition: str = Field(..., description="Soil condition: Good/Medium/Poor")
+    
+    # Soil test data (mandatory - farmer must provide soil testing results)
+    soil_ph: float = Field(..., ge=0, le=14, description="Soil pH level (0-14)")
+    soil_nitrogen_n: float = Field(..., ge=0, description="Nitrogen content (ppm)")
+    soil_phosphorus_p: float = Field(..., ge=0, description="Phosphorus content (ppm)")
+    soil_potassium_k: float = Field(..., ge=0, description="Potassium content (ppm)")
+    soil_fertility_index: float = Field(..., ge=0, le=1, description="Soil fertility index (0-1)")
+    
+    # NPK Status Classification (mandatory - same as officer)
+    n_status_class: str = Field(..., description="Nitrogen status: Low/Medium/High")
+    p_status_class: str = Field(..., description="Phosphorus status: Low/Medium/High")
+    k_status_class: str = Field(..., description="Potassium status: Low/Medium/High")
     
     # Field conditions (simplified for farmers)
-    soil_condition: str = Field(..., description="Soil condition: Good/Medium/Poor")
     irrigation_type: str = Field(..., description="Irrigation: Rainfed/Irrigated/Mixed")
     rainfall_condition: str = Field(..., description="Rainfall: Low/Normal/High")
     
-    # Optional farmer message
-    farmer_message: Optional[str] = Field(None, description="Optional message to officer")
+    # Weather Data (mandatory - same as officer)
+    rainfall_30d: float = Field(..., ge=0, description="30-day rainfall in mm")
+    seasonal_rainfall: float = Field(..., ge=0, description="Seasonal total rainfall in mm")
+    avg_temperature: float = Field(..., description="Average temperature in Celsius")
+    max_temperature: float = Field(..., description="Maximum temperature in Celsius")
+    avg_humidity: float = Field(..., ge=0, le=100, description="Average humidity percentage")
+    sunshine_hours: float = Field(..., ge=0, le=24, description="Daily sunshine hours")
 
 # ============================================================
 # RESPONSE MODEL - Simple Farmer-Friendly Output
@@ -78,7 +102,7 @@ class PredictionData(BaseModel):
     
     # Model info
     prediction_method: Literal['ml_model', 'rule_based', 'hybrid'] = Field(..., description="Method used")
-    model_version: str = Field(default="v1.0", description="Model version")
+    ml_model_version: str = Field(default="v1.0", description="Model version")
 
 class FarmerPredictionResponse(BaseModel):
     """
@@ -103,6 +127,9 @@ class FarmerPredictionResponse(BaseModel):
     # Summary messages
     summary_english: str = Field(..., description="Summary message in English")
     summary_sinhala: str = Field(..., description="Summary message in Sinhala")
+    
+    # Yield comparison data
+    yield_comparison: Optional[dict] = Field(None, description="Comparison with district optimal yield")
     
     # Status
     status: str = Field(default="completed", description="Prediction status")

@@ -27,7 +27,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { getOfficerRooms } from "../../services/officerApi";
 import { useLanguage } from "../../context/LanguageContext";
-
+import { useApp } from "../../context/AppContext";
 const { width } = Dimensions.get("window");
 
 // ✨ Language translations
@@ -51,7 +51,6 @@ const translations = {
     status: {
       active: "Active",
       waiting: "Waiting",
-      resolved: "Resolved",
     },
   },
   si: {
@@ -73,7 +72,6 @@ const translations = {
     status: {
       active: "සක්‍රිය",
       waiting: "රැඳී සිටී",
-      resolved: "විසඳූ",
     },
   },
 };
@@ -82,7 +80,9 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
   const { language } = useLanguage();
   const t = translations[language === "sinhala" ? "si" : "en"];
 
-  const officerId = route?.params?.officerId;
+  const { user } = useApp();
+  const officerId = user?.id; // ✅ UUID
+
   const [rooms, setRooms] = useState<any[]>([]);
   const [filteredRooms, setFilteredRooms] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,21 +120,20 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
 
   async function loadRooms() {
     try {
-      const data = await getOfficerRooms(officerId);
-      // Add mock data for demonstration
-      const enhancedData = (data || []).map((room: any, index: number) => ({
+      const data = await getOfficerRooms(officerId as string);
+
+      const cleanedData = (data || []).map((room: any) => ({
         ...room,
-        farmer_name: room.farmer_name || `Farmer ${index + 1}`,
-        last_message: room.last_message || "Hello, I need help with my crops",
-        last_message_time:
-          room.last_message_time ||
-          new Date(Date.now() - index * 3600000).toISOString(),
-        unread_count: room.unread_count || Math.floor(Math.random() * 5),
-        status: ["active", "waiting", "resolved"][
-          Math.floor(Math.random() * 3)
-        ] as "active" | "waiting" | "resolved",
+        farmer_name: room.farmer?.full_name || "Unknown Farmer",
+
+        // keep backend fields if they exist, otherwise null
+        last_message: room.last_message ?? null,
+        last_message_time: room.last_message_time ?? null,
+        unread_count: room.unread_count ?? 0,
+        status: room.status ?? "active",
       }));
-      setRooms(enhancedData);
+
+      setRooms(cleanedData);
     } catch (err) {
       console.log("Failed to load officer rooms:", err);
     }
@@ -187,8 +186,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
         return "#10B981";
       case "waiting":
         return "#F59E0B";
-      case "resolved":
-        return "#6B7280";
       default:
         return "#6B7280";
     }
@@ -200,8 +197,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
         return "rgba(16, 185, 129, 0.1)";
       case "waiting":
         return "rgba(245, 158, 11, 0.1)";
-      case "resolved":
-        return "rgba(107, 114, 128, 0.1)";
       default:
         return "rgba(107, 114, 128, 0.1)";
     }
@@ -218,7 +213,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
     { key: "all", label: "All" },
     { key: "active", label: t.status.active },
     { key: "waiting", label: t.status.waiting },
-    { key: "resolved", label: t.status.resolved },
   ];
 
   return (
@@ -400,12 +394,6 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
                   <Text style={styles.statLabel}>{t.status.waiting}</Text>
                 </View>
                 <View style={styles.statDivider} />
-                <View style={styles.statItem}>
-                  <Text style={[styles.statNumber, { color: "#6B7280" }]}>
-                    {rooms.filter((r) => r.status === "resolved").length}
-                  </Text>
-                  <Text style={styles.statLabel}>{t.status.resolved}</Text>
-                </View>
               </LinearGradient>
             </Animated.View>
 
@@ -501,22 +489,26 @@ export default function OfficerRoomsScreen({ route, navigation }: any) {
                           )}
                         </View>
 
-                        {/* Last Message */}
-                        <View style={styles.messagePreview}>
-                          <MessageSquare size={14} color="#9ca3af" />
-                          <Text style={styles.previewText} numberOfLines={2}>
-                            {room.last_message || "No messages yet"}
-                          </Text>
-                        </View>
+                        {room.last_message && (
+                          <View style={styles.messagePreview}>
+                            <MessageSquare size={14} color="#9ca3af" />
+                            <Text style={styles.previewText} numberOfLines={2}>
+                              {room.last_message}
+                            </Text>
+                          </View>
+                        )}
 
                         {/* Footer */}
                         <View style={styles.roomFooter}>
-                          <View style={styles.timeInfo}>
-                            <Clock size={12} color="#9ca3af" />
-                            <Text style={styles.timeText}>
-                              {getTimeAgo(room.last_message_time)}
-                            </Text>
-                          </View>
+                          {room.last_message_time && (
+                            <View style={styles.timeInfo}>
+                              <Clock size={12} color="#9ca3af" />
+                              <Text style={styles.timeText}>
+                                {getTimeAgo(room.last_message_time)}
+                              </Text>
+                            </View>
+                          )}
+
                           <View style={styles.viewChatButton}>
                             <Text style={styles.viewChatText}>
                               {t.viewChat}

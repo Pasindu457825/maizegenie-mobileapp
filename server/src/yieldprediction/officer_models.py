@@ -21,7 +21,7 @@ RecommendationPriority = Literal['high', 'medium', 'low']
 class SoilProfile(BaseModel):
     district: str = Field(..., description="District name")
     location: str = Field(..., description="Specific location within district")
-    soil_type: str = Field(..., description="Soil type (Clay, Loam, Sandy-Loam, etc.)")
+    soil_type: str = Field(..., description="Soil type (Alluvial, IBL, LHG, RBE, RYP)")
     soil_condition: str = Field(..., description="Soil condition: Good/Medium/Poor")
     
     # Soil Chemistry
@@ -66,6 +66,10 @@ class OfficerPredictionRequest(BaseModel):
     """
     officer_id: str = Field(..., description="Officer ID")
     farmer_id: Optional[str] = Field(None, description="Farmer ID (if applicable)")
+    prediction_type: Literal["operational", "experimental"] = Field(
+        default="experimental",
+        description="operational: farmer-requested (saved to DB), experimental: officer-initiated (not saved)"
+    )
     
     # Core data sections
     soil_profile: SoilProfile
@@ -132,7 +136,7 @@ class PredictionData(BaseModel):
     yield_unit: str = Field(default="kg/ha", description="Yield unit")
     confidence_score: float = Field(..., ge=0, le=1, description="Confidence score (0-1)")
     yield_category: str = Field(..., description="Yield category (High/Medium/Low)")
-    
+    prediction_method: str = Field(..., description="Method used: ml_model or rule_based")
     harvest_window: dict = Field(..., description="Harvest window information")
 
 class OfficerPredictionResponse(BaseModel):
@@ -148,6 +152,7 @@ class OfficerPredictionResponse(BaseModel):
     impact_factors: List[ImpactFactor]
     recommendations: List[Recommendation]
     officer_insights: OfficerInsights
+    analysis_data: dict = Field(..., description="Analysis data for charts and visualization")
 
 class PredictionErrorResponse(BaseModel):
     status: Literal['error'] = 'error'
