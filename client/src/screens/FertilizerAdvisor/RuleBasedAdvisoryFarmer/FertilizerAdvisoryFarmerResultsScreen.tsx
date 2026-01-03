@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import React, { useMemo, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Linking, Alert } from "react-native";
 import { useLanguage } from "../../../context/LanguageContext";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -13,6 +13,7 @@ import {
   Info,
   Package,
   MessageCircle,
+  Calendar,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -44,6 +45,51 @@ const content = {
     officialSource: "මූලාශ්‍ර ආධාරකය: DOA/CIC (Rule-Based)",
     contactOfficer: "කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගන්න",
     contactOfficerDesc: "ඔබේ ප්‍රතිඵල සහ තොරතුරු නිලධාරියෙකු සමඟ බෙදා ගන්න",
+    fertilizerSchedule: "පොහොර කාලසටහන",
+    plantingDate: "වගා කළ දිනය",
+    basalApplication: "Basal Application",
+    basalLabel: "මූලික පොහොර යෙදීම",
+    atPlanting: "වගා කිරීමේදී",
+    topDress1: "Top Dress 1",
+    topDress1Label: "පළමු ඉහළ පොහොර යෙදීම",
+    nearDay25: "දින 25 ආසන්නයේ",
+    topDress2: "Top Dress 2",
+    topDress2Label: "දෙවන ඉහළ පොහොර යෙදීම",
+    nearDay52: "දින 52 ආසන්නයේ",
+    scheduleInfo: "විස්තර",
+    closeInfo: "වසන්න",
+    addToCalendar: "Google Calendar එකට එක් කරන්න",
+    calendarAdded: "Google Calendar එකට එක් කරන ලදී",
+    noPlantingDateAlert: "වගා කළ දිනයක් නැත",
+    noPlantingDateMsg: "Calendar එකට එක් කිරීමට වගා කළ දිනය අවශ්‍යයි.",
+    infoTitle: "🌽 බඩ ඉරිඟු පොහොර යෙදීමේ අදියර",
+    basalInfoTitle: "1️⃣ Basal Application",
+    basalInfoSubtitle: "👉 මූලික පොහොර යෙදීම / මුල් පොහොර යෙදීම",
+    basalInfoDate: "📅 දින 0 – බීජ වපුරන වෙලාවේ",
+    basalInfoMeaning: "🔹 අර්ථය (farmer-friendly):",
+    basalInfoDesc: "බඩ ඉරිඟු බීජ වපුරන වෙලාවේදී, පසට මුලින්ම යෙදෙන පොහොරයි.",
+    basalInfoFertilizers: "🔹 සාමාන්‍යයෙන් යෙදෙන්නේ:",
+    basalInfoList: "• TSP\n• MOP\n• (අවශ්‍ය නම්) සුළු Urea ප්‍රමාණයක්",
+    basalInfoReason: "🎯 හේතුව:",
+    basalInfoReasonDesc: "• මුල් වර්ධනය හොඳ කරගැනීම\n• ශාකය ශක්තිමත්ව පටන් ගැනීම",
+    topDress1InfoTitle: "2️⃣ Top Dressing 1",
+    topDress1InfoSubtitle: "👉 පළමු ඉහළ පොහොර යෙදීම",
+    topDress1InfoDate: "📅 දින 25 – බීජ වපුරලා සති 3–4කට පසු",
+    topDress1InfoMeaning: "🔹 අර්ථය:",
+    topDress1InfoDesc: "බඩ ඉරිඟු පැළ හොඳට වර්ධනය වෙන්න පටන් ගන්න වෙලාවේදී, ඉහළින් යෙදෙන පොහොරයි.",
+    topDress1InfoFertilizers: "🔹 සාමාන්‍යයෙන් යෙදෙන්නේ:",
+    topDress1InfoList: "• Urea (නයිට්‍රජන් පොහොර)",
+    topDress1InfoReason: "🎯 හේතුව:",
+    topDress1InfoReasonDesc: "• කොළ හා කඳ වර්ධනය වැඩි කිරීම\n• හොඳ අස්වැන්නකට මූලික වශයෙන් වැදගත් අදියර",
+    topDress2InfoTitle: "3️⃣ Top Dressing 2",
+    topDress2InfoSubtitle: "👉 දෙවන ඉහළ පොහොර යෙදීම",
+    topDress2InfoDate: "📅 දින 52 – බීජ වපුරලා සති 7–8කට පසු",
+    topDress2InfoMeaning: "🔹 අර්ථය:",
+    topDress2InfoDesc: "මල් දැමීමට සහ කරලිය හොඳින් පුරවීමට පෙර, දෙවන වරට ඉහළින් යෙදෙන පොහොරයි.",
+    topDress2InfoFertilizers: "🔹 සාමාන්‍යයෙන් යෙදෙන්නේ:",
+    topDress2InfoList: "• Urea (නයිට්‍රජන් පොහොර)",
+    topDress2InfoReason: "🎯 හේතුව:",
+    topDress2InfoReasonDesc: "• කරලිය හොඳට පුරවීම\n• අස්වැන්න වැඩි කරගැනීම",
   },
   en: {
     title: "Fertilizer Advisory",
@@ -70,6 +116,51 @@ const content = {
     officialSource: "Reference: DOA/CIC (Rule-Based)",
     contactOfficer: "Get Advice from Agricultural Officer",
     contactOfficerDesc: "Share your results and get personalized guidance",
+    fertilizerSchedule: "Fertilizer Schedule",
+    plantingDate: "Planting Date",
+    basalApplication: "Basal Application",
+    basalLabel: "Basal Fertilizer Application",
+    atPlanting: "At Planting",
+    topDress1: "Top Dress 1",
+    topDress1Label: "First Top Dressing",
+    nearDay25: "Near Day 25",
+    topDress2: "Top Dress 2",
+    topDress2Label: "Second Top Dressing",
+    nearDay52: "Near Day 52",
+    scheduleInfo: "Info",
+    closeInfo: "Close",
+    addToCalendar: "Add to Google Calendar",
+    calendarAdded: "Added to Calendar",
+    noPlantingDateAlert: "No Planting Date",
+    noPlantingDateMsg: "Planting date is required to add to calendar.",
+    infoTitle: "🌽 Maize Fertilizer Application Stages",
+    basalInfoTitle: "1️⃣ Basal Application",
+    basalInfoSubtitle: "👉 Base Fertilizer Application / Initial Fertilizer",
+    basalInfoDate: "📅 Day 0 – At Planting Time",
+    basalInfoMeaning: "🔹 Meaning (farmer-friendly):",
+    basalInfoDesc: "The first fertilizer applied to the soil when planting maize seeds.",
+    basalInfoFertilizers: "🔹 Usually Applied:",
+    basalInfoList: "• TSP\n• MOP\n• (If needed) Small amount of Urea",
+    basalInfoReason: "🎯 Purpose:",
+    basalInfoReasonDesc: "• Improve initial growth\n• Help plants start strong",
+    topDress1InfoTitle: "2️⃣ Top Dressing 1",
+    topDress1InfoSubtitle: "👉 First Top Dressing Application",
+    topDress1InfoDate: "📅 Day 25 – 3-4 weeks after planting",
+    topDress1InfoMeaning: "🔹 Meaning:",
+    topDress1InfoDesc: "Fertilizer applied from above when maize plants start growing well.",
+    topDress1InfoFertilizers: "🔹 Usually Applied:",
+    topDress1InfoList: "• Urea (Nitrogen fertilizer)",
+    topDress1InfoReason: "🎯 Purpose:",
+    topDress1InfoReasonDesc: "• Increase leaf and stem growth\n• Critical stage for good harvest",
+    topDress2InfoTitle: "3️⃣ Top Dressing 2",
+    topDress2InfoSubtitle: "👉 Second Top Dressing Application",
+    topDress2InfoDate: "📅 Day 52 – 7-8 weeks after planting",
+    topDress2InfoMeaning: "🔹 Meaning:",
+    topDress2InfoDesc: "Second fertilizer applied from above before flowering and grain filling.",
+    topDress2InfoFertilizers: "🔹 Usually Applied:",
+    topDress2InfoList: "• Urea (Nitrogen fertilizer)",
+    topDress2InfoReason: "🎯 Purpose:",
+    topDress2InfoReasonDesc: "• Fill grains properly\n• Increase yield",
   },
 };
 
@@ -86,7 +177,164 @@ export default function RuleBasedAdvisoryResultsScreen() {
   const language: Language = contextLang === "sinhala" ? "si" : "en";
   const t = content[language];
 
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
   const canApplyToday = data.apply_today === true;
+
+  // Helper function to format date for Google Calendar
+  const formatDate = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Build Google Calendar URL with date range support
+  const buildGoogleCalendarURL = (title: string, details: string, startDate: Date, endDate: Date) => {
+    const start = formatDate(startDate).replace(/-/g, "");
+    const end = formatDate(endDate).replace(/-/g, "");
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      title
+    )}&details=${encodeURIComponent(details)}&dates=${start}/${end}`;
+  };
+
+  // Add Top Dress 1 to Google Calendar
+  const addTopDress1ToCalendar = async () => {
+    const plantingDateStr = data.planting_date || data.plantingDate;
+    if (!plantingDateStr) {
+      Alert.alert(
+        t.noPlantingDateAlert,
+        t.noPlantingDateMsg
+      );
+      return;
+    }
+
+    try {
+      const plantingDate = new Date(plantingDateStr);
+      const topDress1Date = new Date(plantingDate);
+      topDress1Date.setDate(topDress1Date.getDate() + 25);
+      
+      // Calculate date range (±2 days)
+      const topDress1Start = new Date(topDress1Date);
+      topDress1Start.setDate(topDress1Start.getDate() - 2);
+      const topDress1End = new Date(topDress1Date);
+      topDress1End.setDate(topDress1End.getDate() + 2);
+      
+      const topDress1Title = `${t.topDress1} - ${t.topDress1Label}`;
+      const topDress1Details = language === "si"
+        ? "බඩ ඉරිඟු වගාව සඳහා පළමු ඉහළ පොහොර යෙදීම (Urea)"
+        : "First top dressing for maize (Urea)";
+      
+      const topDress1URL = buildGoogleCalendarURL(topDress1Title, topDress1Details, topDress1Start, topDress1End);
+      await Linking.openURL(topDress1URL);
+    } catch (error) {
+      console.error("Error adding to calendar:", error);
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        language === "si" 
+          ? "Calendar එකට එක් කිරීමේදී දෝෂයක් ඇතිවිය."
+          : "An error occurred while adding to calendar."
+      );
+    }
+  };
+
+  // Add Top Dress 2 to Google Calendar
+  const addTopDress2ToCalendar = async () => {
+    const plantingDateStr = data.planting_date || data.plantingDate;
+    if (!plantingDateStr) {
+      Alert.alert(
+        t.noPlantingDateAlert,
+        t.noPlantingDateMsg
+      );
+      return;
+    }
+
+    try {
+      const plantingDate = new Date(plantingDateStr);
+      const topDress2Date = new Date(plantingDate);
+      topDress2Date.setDate(topDress2Date.getDate() + 52);
+      
+      // Calculate date range (±2 days)
+      const topDress2Start = new Date(topDress2Date);
+      topDress2Start.setDate(topDress2Start.getDate() - 2);
+      const topDress2End = new Date(topDress2Date);
+      topDress2End.setDate(topDress2End.getDate() + 2);
+      
+      const topDress2Title = `${t.topDress2} - ${t.topDress2Label}`;
+      const topDress2Details = language === "si"
+        ? "බඩ ඉරිඟු වගාව සඳහා දෙවන ඉහළ පොහොර යෙදීම (Urea)"
+        : "Second top dressing for maize (Urea)";
+      
+      const topDress2URL = buildGoogleCalendarURL(topDress2Title, topDress2Details, topDress2Start, topDress2End);
+      await Linking.openURL(topDress2URL);
+    } catch (error) {
+      console.error("Error adding to calendar:", error);
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        language === "si" 
+          ? "Calendar එකට එක් කිරීමේදී දෝෂයක් ඇතිවිය."
+          : "An error occurred while adding to calendar."
+      );
+    }
+  };
+
+  // Calculate fertilizer application dates based on planting date
+  // Using DOA guidelines from cornKnowledgeBase.ts
+  const fertilizerDates = useMemo(() => {
+    const plantingDateStr = data.planting_date || data.plantingDate;
+    if (!plantingDateStr) {
+      console.log('No planting date found in data:', data);
+      return null;
+    }
+
+    try {
+      const plantingDate = new Date(plantingDateStr);
+      
+      // DOA Fertilizer Schedule (from cornKnowledgeBase.ts):
+      // Basal: At planting (day 0)
+      // Top Dress 1: 3-4 weeks after planting (day 25)
+      // Top Dress 2: 7-8 weeks after planting (day 52)
+      
+      const basalDate = new Date(plantingDate); // Day 0
+      
+      const topDress1Date = new Date(plantingDate);
+      topDress1Date.setDate(topDress1Date.getDate() + 25); // 25 days after planting
+      
+      // Calculate date range for Top Dress 1 (±2 days)
+      const topDress1Start = new Date(topDress1Date);
+      topDress1Start.setDate(topDress1Start.getDate() - 2);
+      const topDress1End = new Date(topDress1Date);
+      topDress1End.setDate(topDress1End.getDate() + 2);
+      
+      const topDress2Date = new Date(plantingDate);
+      topDress2Date.setDate(topDress2Date.getDate() + 52); // 52 days after planting
+      
+      // Calculate date range for Top Dress 2 (±2 days)
+      const topDress2Start = new Date(topDress2Date);
+      topDress2Start.setDate(topDress2Start.getDate() - 2);
+      const topDress2End = new Date(topDress2Date);
+      topDress2End.setDate(topDress2End.getDate() + 2);
+      
+      return {
+        planting: plantingDate.toLocaleDateString(),
+        basal: { date: basalDate.toLocaleDateString(), days: 0 },
+        topDress1: { 
+          dateStart: topDress1Start.toLocaleDateString(),
+          dateEnd: topDress1End.toLocaleDateString(),
+          days: 25 
+        },
+        topDress2: { 
+          dateStart: topDress2Start.toLocaleDateString(),
+          dateEnd: topDress2End.toLocaleDateString(),
+          days: 52 
+        },
+      };
+    } catch (error) {
+      console.error('Error parsing planting date:', error);
+      return null;
+    }
+  }, [data.planting_date, data.plantingDate]);
 
   const handleContactOfficer = () => {
     // Prepare context message to share with officer
@@ -237,6 +485,157 @@ export default function RuleBasedAdvisoryResultsScreen() {
           </View>
         ) : null}
 
+        {/* Fertilizer Schedule - Moved below recommendations */}
+        {fertilizerDates && (
+          <View style={styles.scheduleCard}>
+            <View style={styles.scheduleHeader}>
+              <View style={styles.scheduleHeaderLeft}>
+                <Leaf size={20} color="#10b981" />
+                <Text style={styles.scheduleTitle}>{t.fertilizerSchedule}</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.infoTextButton}
+                onPress={() => setShowInfoModal(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.infoTextButtonText}>{t.scheduleInfo}</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Planting Date - Centered */}
+            <View style={styles.plantingDateContainer}>
+              <Calendar size={20} color="#6B7280" />
+              <View style={styles.plantingDateContent}>
+                <Text style={styles.plantingDateLabel}>{t.plantingDate}</Text>
+                <Text style={styles.plantingDateValue}>{fertilizerDates.planting}</Text>
+              </View>
+            </View>
+
+            <View style={styles.scheduleDivider} />
+
+            {/* Basal Application */}
+            <View style={styles.scheduleItem}>
+              <View style={[styles.scheduleIconContainer, { backgroundColor: "#DBEAFE" }]}>
+                <Text style={styles.scheduleNumber}>1</Text>
+              </View>
+              <View style={styles.scheduleContent}>
+                <Text style={styles.scheduleStage}>{t.basalApplication}</Text>
+                <Text style={styles.scheduleLabel}>{t.basalLabel}</Text>
+                <Text style={styles.scheduleDate}>{fertilizerDates.basal.date}</Text>
+                <Text style={styles.scheduleDays}>{t.atPlanting}</Text>
+              </View>
+            </View>
+
+            {/* Top Dress 1 */}
+            <View style={styles.scheduleItem}>
+              <View style={[styles.scheduleIconContainer, { backgroundColor: "#FEF3C7" }]}>
+                <Text style={styles.scheduleNumber}>2</Text>
+              </View>
+              <View style={styles.scheduleContent}>
+                <Text style={styles.scheduleStage}>{t.topDress1}</Text>
+                <Text style={styles.scheduleLabel}>{t.topDress1Label}</Text>
+                <Text style={styles.scheduleDateRange}>
+                  {fertilizerDates.topDress1.dateStart} - {fertilizerDates.topDress1.dateEnd}
+                </Text>
+                <Text style={styles.scheduleDays}>{t.nearDay25}</Text>
+                <TouchableOpacity 
+                  style={styles.scheduleCalendarButton}
+                  onPress={addTopDress1ToCalendar}
+                  activeOpacity={0.8}
+                >
+                  <Calendar size={14} color="#10b981" />
+                  <Text style={styles.scheduleCalendarButtonText}>{t.addToCalendar}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Top Dress 2 */}
+            <View style={styles.scheduleItem}>
+              <View style={[styles.scheduleIconContainer, { backgroundColor: "#D1FAE5" }]}>
+                <Text style={styles.scheduleNumber}>3</Text>
+              </View>
+              <View style={styles.scheduleContent}>
+                <Text style={styles.scheduleStage}>{t.topDress2}</Text>
+                <Text style={styles.scheduleLabel}>{t.topDress2Label}</Text>
+                <Text style={styles.scheduleDateRange}>
+                  {fertilizerDates.topDress2.dateStart} - {fertilizerDates.topDress2.dateEnd}
+                </Text>
+                <Text style={styles.scheduleDays}>{t.nearDay52}</Text>
+                <TouchableOpacity 
+                  style={styles.scheduleCalendarButton}
+                  onPress={addTopDress2ToCalendar}
+                  activeOpacity={0.8}
+                >
+                  <Calendar size={14} color="#10b981" />
+                  <Text style={styles.scheduleCalendarButtonText}>{t.addToCalendar}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Info Modal */}
+        <Modal
+          visible={showInfoModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowInfoModal(false)}
+        >
+          <View style={styles.infoModalOverlay}>
+            <View style={styles.infoModalContent}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.infoModalTitle}>{t.infoTitle}</Text>
+                
+                {/* Basal Application Info */}
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>{t.basalInfoTitle}</Text>
+                  <Text style={styles.infoSectionSubtitle}>{t.basalInfoSubtitle}</Text>
+                  <Text style={styles.infoSectionDate}>{t.basalInfoDate}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.basalInfoMeaning}</Text>
+                  <Text style={styles.infoSectionText}>{t.basalInfoDesc}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.basalInfoFertilizers}</Text>
+                  <Text style={styles.infoSectionText}>{t.basalInfoList}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.basalInfoReason}</Text>
+                  <Text style={styles.infoSectionText}>{t.basalInfoReasonDesc}</Text>
+                </View>
+
+                {/* Top Dress 1 Info */}
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>{t.topDress1InfoTitle}</Text>
+                  <Text style={styles.infoSectionSubtitle}>{t.topDress1InfoSubtitle}</Text>
+                  <Text style={styles.infoSectionDate}>{t.topDress1InfoDate}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoMeaning}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress1InfoDesc}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoFertilizers}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress1InfoList}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoReason}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress1InfoReasonDesc}</Text>
+                </View>
+
+                {/* Top Dress 2 Info */}
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>{t.topDress2InfoTitle}</Text>
+                  <Text style={styles.infoSectionSubtitle}>{t.topDress2InfoSubtitle}</Text>
+                  <Text style={styles.infoSectionDate}>{t.topDress2InfoDate}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoMeaning}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress2InfoDesc}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoFertilizers}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress2InfoList}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoReason}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress2InfoReasonDesc}</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.closeInfoButton}
+                  onPress={() => setShowInfoModal(false)}
+                >
+                  <Text style={styles.closeInfoButtonText}>{t.closeInfo}</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
         {/* Warnings */}
         {Array.isArray(data.warnings) && data.warnings.length > 0 ? (
           <View style={styles.section}>
@@ -320,6 +719,220 @@ const styles = StyleSheet.create({
 
   scrollContainer: { flex: 1 },
   scrollContent: { padding: 16 },
+
+  scheduleCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  scheduleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  scheduleHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  scheduleTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginLeft: 8,
+  },
+  infoTextButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  infoTextButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#10b981",
+  },
+  plantingDateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  plantingDateContent: {
+    marginLeft: 12,
+    alignItems: "center",
+  },
+  plantingDateLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  plantingDateValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  scheduleCalendarButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#10b981",
+  },
+  scheduleCalendarButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#10b981",
+  },
+  scheduleDivider: {
+    height: 1,
+    backgroundColor: "#E5E7EB",
+    marginBottom: 16,
+  },
+  scheduleItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  scheduleIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scheduleNumber: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  scheduleContent: {
+    flex: 1,
+  },
+  scheduleStage: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#10b981",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  scheduleLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  scheduleDate: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 2,
+  },
+  scheduleDateRange: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  scheduleDays: {
+    fontSize: 12,
+    color: "#10b981",
+    fontWeight: "600",
+  },
+
+  infoModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  infoModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    maxHeight: "80%",
+    width: "100%",
+  },
+  infoModalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  infoSection: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10b981",
+  },
+  infoSectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 8,
+  },
+  infoSectionSubtitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#059669",
+    marginBottom: 8,
+  },
+  infoSectionDate: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 12,
+  },
+  infoSectionHeading: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  infoSectionText: {
+    fontSize: 13,
+    color: "#4B5563",
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  closeInfoButton: {
+    backgroundColor: "#10b981",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  closeInfoButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
 
   inputCard: { backgroundColor: "#F3F4F6", borderRadius: 12, padding: 16, marginBottom: 16 },
   inputLabel: { fontSize: 12, fontWeight: "600", color: "#6B7280", marginBottom: 8 },
