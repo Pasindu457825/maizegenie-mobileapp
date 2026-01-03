@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal, Linking, Alert } from "react-native";
 import { useLanguage } from "../../../context/LanguageContext";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import {
@@ -56,8 +56,12 @@ const content = {
     topDress2: "Top Dress 2",
     topDress2Label: "දෙවන ඉහළ පොහොර යෙදීම",
     nearDay52: "දින 52 ආසන්නයේ",
-    scheduleInfo: "පොහොර යෙදීමේ තොරතුරු",
+    scheduleInfo: "විස්තර",
     closeInfo: "වසන්න",
+    addToCalendar: "Google Calendar එකට එක් කරන්න",
+    calendarAdded: "Google Calendar එකට එක් කරන ලදී",
+    noPlantingDateAlert: "වගා කළ දිනයක් නැත",
+    noPlantingDateMsg: "Calendar එකට එක් කිරීමට වගා කළ දිනය අවශ්‍යයි.",
     infoTitle: "🌽 බඩ ඉරිඟු පොහොර යෙදීමේ අදියර",
     basalInfoTitle: "1️⃣ Basal Application",
     basalInfoSubtitle: "👉 මූලික පොහොර යෙදීම / මුල් පොහොර යෙදීම",
@@ -123,8 +127,12 @@ const content = {
     topDress2: "Top Dress 2",
     topDress2Label: "Second Top Dressing",
     nearDay52: "Near Day 52",
-    scheduleInfo: "Fertilizer Application Info",
+    scheduleInfo: "Info",
     closeInfo: "Close",
+    addToCalendar: "Add to Google Calendar",
+    calendarAdded: "Added to Calendar",
+    noPlantingDateAlert: "No Planting Date",
+    noPlantingDateMsg: "Planting date is required to add to calendar.",
     infoTitle: "🌽 Maize Fertilizer Application Stages",
     basalInfoTitle: "1️⃣ Basal Application",
     basalInfoSubtitle: "👉 Base Fertilizer Application / Initial Fertilizer",
@@ -173,6 +181,104 @@ export default function RuleBasedAdvisoryResultsScreen() {
 
   const canApplyToday = data.apply_today === true;
 
+  // Helper function to format date for Google Calendar
+  const formatDate = (d: Date) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Build Google Calendar URL with date range support
+  const buildGoogleCalendarURL = (title: string, details: string, startDate: Date, endDate: Date) => {
+    const start = formatDate(startDate).replace(/-/g, "");
+    const end = formatDate(endDate).replace(/-/g, "");
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+      title
+    )}&details=${encodeURIComponent(details)}&dates=${start}/${end}`;
+  };
+
+  // Add Top Dress 1 to Google Calendar
+  const addTopDress1ToCalendar = async () => {
+    const plantingDateStr = data.planting_date || data.plantingDate;
+    if (!plantingDateStr) {
+      Alert.alert(
+        t.noPlantingDateAlert,
+        t.noPlantingDateMsg
+      );
+      return;
+    }
+
+    try {
+      const plantingDate = new Date(plantingDateStr);
+      const topDress1Date = new Date(plantingDate);
+      topDress1Date.setDate(topDress1Date.getDate() + 25);
+      
+      // Calculate date range (±2 days)
+      const topDress1Start = new Date(topDress1Date);
+      topDress1Start.setDate(topDress1Start.getDate() - 2);
+      const topDress1End = new Date(topDress1Date);
+      topDress1End.setDate(topDress1End.getDate() + 2);
+      
+      const topDress1Title = `${t.topDress1} - ${t.topDress1Label}`;
+      const topDress1Details = language === "si"
+        ? "බඩ ඉරිඟු වගාව සඳහා පළමු ඉහළ පොහොර යෙදීම (Urea)"
+        : "First top dressing for maize (Urea)";
+      
+      const topDress1URL = buildGoogleCalendarURL(topDress1Title, topDress1Details, topDress1Start, topDress1End);
+      await Linking.openURL(topDress1URL);
+    } catch (error) {
+      console.error("Error adding to calendar:", error);
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        language === "si" 
+          ? "Calendar එකට එක් කිරීමේදී දෝෂයක් ඇතිවිය."
+          : "An error occurred while adding to calendar."
+      );
+    }
+  };
+
+  // Add Top Dress 2 to Google Calendar
+  const addTopDress2ToCalendar = async () => {
+    const plantingDateStr = data.planting_date || data.plantingDate;
+    if (!plantingDateStr) {
+      Alert.alert(
+        t.noPlantingDateAlert,
+        t.noPlantingDateMsg
+      );
+      return;
+    }
+
+    try {
+      const plantingDate = new Date(plantingDateStr);
+      const topDress2Date = new Date(plantingDate);
+      topDress2Date.setDate(topDress2Date.getDate() + 52);
+      
+      // Calculate date range (±2 days)
+      const topDress2Start = new Date(topDress2Date);
+      topDress2Start.setDate(topDress2Start.getDate() - 2);
+      const topDress2End = new Date(topDress2Date);
+      topDress2End.setDate(topDress2End.getDate() + 2);
+      
+      const topDress2Title = `${t.topDress2} - ${t.topDress2Label}`;
+      const topDress2Details = language === "si"
+        ? "බඩ ඉරිඟු වගාව සඳහා දෙවන ඉහළ පොහොර යෙදීම (Urea)"
+        : "Second top dressing for maize (Urea)";
+      
+      const topDress2URL = buildGoogleCalendarURL(topDress2Title, topDress2Details, topDress2Start, topDress2End);
+      await Linking.openURL(topDress2URL);
+    } catch (error) {
+      console.error("Error adding to calendar:", error);
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        language === "si" 
+          ? "Calendar එකට එක් කිරීමේදී දෝෂයක් ඇතිවිය."
+          : "An error occurred while adding to calendar."
+      );
+    }
+  };
+
   // Calculate fertilizer application dates based on planting date
   // Using DOA guidelines from cornKnowledgeBase.ts
   const fertilizerDates = useMemo(() => {
@@ -195,20 +301,20 @@ export default function RuleBasedAdvisoryResultsScreen() {
       const topDress1Date = new Date(plantingDate);
       topDress1Date.setDate(topDress1Date.getDate() + 25); // 25 days after planting
       
-      // Calculate date range for Top Dress 1 (±4 days)
+      // Calculate date range for Top Dress 1 (±2 days)
       const topDress1Start = new Date(topDress1Date);
-      topDress1Start.setDate(topDress1Start.getDate() - 4);
+      topDress1Start.setDate(topDress1Start.getDate() - 2);
       const topDress1End = new Date(topDress1Date);
-      topDress1End.setDate(topDress1End.getDate() + 4);
+      topDress1End.setDate(topDress1End.getDate() + 2);
       
       const topDress2Date = new Date(plantingDate);
       topDress2Date.setDate(topDress2Date.getDate() + 52); // 52 days after planting
       
-      // Calculate date range for Top Dress 2 (±4 days)
+      // Calculate date range for Top Dress 2 (±2 days)
       const topDress2Start = new Date(topDress2Date);
-      topDress2Start.setDate(topDress2Start.getDate() - 4);
+      topDress2Start.setDate(topDress2Start.getDate() - 2);
       const topDress2End = new Date(topDress2Date);
-      topDress2End.setDate(topDress2End.getDate() + 4);
+      topDress2End.setDate(topDress2End.getDate() + 2);
       
       return {
         planting: plantingDate.toLocaleDateString(),
@@ -384,16 +490,15 @@ export default function RuleBasedAdvisoryResultsScreen() {
           <View style={styles.scheduleCard}>
             <View style={styles.scheduleHeader}>
               <View style={styles.scheduleHeaderLeft}>
-                <Calendar size={24} color="#10b981" />
+                <Leaf size={20} color="#10b981" />
                 <Text style={styles.scheduleTitle}>{t.fertilizerSchedule}</Text>
               </View>
               <TouchableOpacity 
-                style={styles.infoButton}
+                style={styles.infoTextButton}
                 onPress={() => setShowInfoModal(true)}
+                activeOpacity={0.7}
               >
-                <View style={styles.infoIconCircle}>
-                  <Info size={16} color="#10b981" />
-                </View>
+                <Text style={styles.infoTextButtonText}>{t.scheduleInfo}</Text>
               </TouchableOpacity>
             </View>
             
@@ -433,6 +538,14 @@ export default function RuleBasedAdvisoryResultsScreen() {
                   {fertilizerDates.topDress1.dateStart} - {fertilizerDates.topDress1.dateEnd}
                 </Text>
                 <Text style={styles.scheduleDays}>{t.nearDay25}</Text>
+                <TouchableOpacity 
+                  style={styles.scheduleCalendarButton}
+                  onPress={addTopDress1ToCalendar}
+                  activeOpacity={0.8}
+                >
+                  <Calendar size={14} color="#10b981" />
+                  <Text style={styles.scheduleCalendarButtonText}>{t.addToCalendar}</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -448,6 +561,14 @@ export default function RuleBasedAdvisoryResultsScreen() {
                   {fertilizerDates.topDress2.dateStart} - {fertilizerDates.topDress2.dateEnd}
                 </Text>
                 <Text style={styles.scheduleDays}>{t.nearDay52}</Text>
+                <TouchableOpacity 
+                  style={styles.scheduleCalendarButton}
+                  onPress={addTopDress2ToCalendar}
+                  activeOpacity={0.8}
+                >
+                  <Calendar size={14} color="#10b981" />
+                  <Text style={styles.scheduleCalendarButtonText}>{t.addToCalendar}</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -628,18 +749,14 @@ const styles = StyleSheet.create({
     color: "#1F2937",
     marginLeft: 8,
   },
-  infoButton: {
-    padding: 4,
+  infoTextButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
   },
-  infoIconCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#ECFDF5",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#10b981",
+  infoTextButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#10b981",
   },
   plantingDateContainer: {
     flexDirection: "row",
@@ -664,6 +781,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#1F2937",
+  },
+  scheduleCalendarButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#10b981",
+  },
+  scheduleCalendarButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#10b981",
   },
   scheduleDivider: {
     height: 1,
