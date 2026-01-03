@@ -19,21 +19,21 @@ const content = {
     si: {
         title: "පොහොර උපදේශ",
         subtitle: "ඔබේ සේවා",
-        nlpAdvisory: "නීති පදනම් පොහොර උපදේශක",
-        nlpDescription: "ස්වභාවික භාෂාවෙන් පොහොර උපදේශ ලබා ගන්න",
+        nlpAdvisory: "ඔබේ පොහොර උපදේශ සහායක",
+        nlpDescription: "දෘශ්‍යමාන ලක්ෂණ මත පදනම්ව පොහොර උපදේශ ලබා ගන්න",
         farmerChat: "කෘෂි නිලධාරියා සමඟ කතා කරන්න",
         farmerChatDescription: "විශේෂඥ උපදේශ සඳහා සජීවී චැට්",
-        knowledgeBank: "පෝෂක මාර්ගෝපදේශ",
+        knowledgeBank: "පෝෂක මාර්ගෝපදේශ කියවන්න",
         knowledgeBankDescription: "වගාව සඳහා වැදගත් වන පෝෂක තොරතුරු ලබාගන්න",
     },
     en: {
         title: "Fertilizer Advisory",
         subtitle: "Your Services",
-        nlpAdvisory: "Rule-Based Fertilizer Advisory",
-        nlpDescription: "Get fertilizer advice in natural language",
+        nlpAdvisory: "Your Fertilizer Advisory Assistant",
+        nlpDescription: "Get fertilizer advices on visible signs based",
         farmerChat: "Chat With Agriculture Officer",
         farmerChatDescription: "Live chat for expert advice",
-        knowledgeBank: "Fertilizer Guidelines",
+        knowledgeBank: "Read Fertilizer Guidelines",
         knowledgeBankDescription: "Get important nutrient information for cultivation",
     },
 };
@@ -232,8 +232,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#F9FAFB",
     },
     header: {
-        paddingTop: 50,
-        paddingBottom: 20,
+        paddingTop: 60,
+        paddingBottom: 32,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -249,13 +249,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "700",
         color: "#ffffff",
-        marginBottom: 2,
+        marginBottom: 4,
     },
     headerSubtitle: {
-        fontSize: 13,
+        fontSize: 15,
         color: "#D1FAE5",
     },
     langButton: {
@@ -273,13 +273,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        flexGrow: 1,
-        justifyContent: "center",
+        paddingHorizontal: 16,
+        paddingTop: 24,
         paddingBottom: 20,
-        paddingTop: 16,
     },
     servicesSection: {
-        paddingHorizontal: 16,
+        gap: 16,
     },
     serviceCard: {
         marginBottom: 16,

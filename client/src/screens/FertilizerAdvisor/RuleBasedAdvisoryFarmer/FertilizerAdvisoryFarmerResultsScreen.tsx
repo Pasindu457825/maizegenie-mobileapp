@@ -14,8 +14,11 @@ import {
   Package,
   MessageCircle,
   Calendar,
+  Volume2,
+  VolumeX,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Speech from "expo-speech";
 
 type Language = "si" | "en";
 
@@ -49,12 +52,15 @@ const content = {
     plantingDate: "වගා කළ දිනය",
     basalApplication: "Basal Application",
     basalLabel: "මූලික පොහොර යෙදීම",
+    basalFertilizers: "TSP 100kg/ha + MOP 75kg/ha + Urea 35kg/ha",
     atPlanting: "වගා කිරීමේදී",
     topDress1: "Top Dress 1",
     topDress1Label: "පළමු ඉහළ පොහොර යෙදීම",
+    topDress1Fertilizers: "Urea 65kg/ha (අක්කරයකට 26kg)",
     nearDay25: "දින 25 ආසන්නයේ",
     topDress2: "Top Dress 2",
     topDress2Label: "දෙවන ඉහළ පොහොර යෙදීම",
+    topDress2Fertilizers: "Urea 65kg/ha (අක්කරයකට 26kg)",
     nearDay52: "දින 52 ආසන්නයේ",
     scheduleInfo: "විස්තර",
     closeInfo: "වසන්න",
@@ -90,6 +96,27 @@ const content = {
     topDress2InfoList: "• Urea (නයිට්‍රජන් පොහොර)",
     topDress2InfoReason: "🎯 හේතුව:",
     topDress2InfoReasonDesc: "• කරලිය හොඳට පුරවීම\n• අස්වැන්න වැඩි කරගැනීම",
+    speakAdvice: "🔊 උපදෙස් කියවන්න",
+    stopSpeaking: "⏹️ නවතන්න",
+    growthStages: "වර්ධන අදියර",
+    growthStagesTitle: "වර්ධන අදියර (වගා කළ දින මත පදනම්ව)",
+    days: "දින",
+    stageEnglish: "අදියර (ඉංග්‍රීසි)",
+    stageSinhala: "අදියර (සිංහල)",
+    seedlingStage: "Seedling stage",
+    seedlingStageSi: "පැළ අවධිය",
+    vegetativeStage: "Vegetative stage",
+    vegetativeStageSi: "සාප විකසන අවධිය",
+    kneeHeightStage: "Knee-height stage",
+    kneeHeightStageSi: "දණහිස උස අවධිය",
+    tasselingStage: "Tasseling/Flowering stage",
+    tasselingStageSi: "මල් පිපීමේ අවධිය",
+    grainFillingStage: "Grain filling stage",
+    grainFillingStageSi: "ධාන්‍ය පිරවීමේ අවධිය",
+    harvestTime: "Harvest time",
+    harvestTimeSi: "අස්වනු නෙළීමේ කාලය",
+    currentGrowthStage: "වත්මන් වර්ධන අවධිය",
+    daysAfterPlanting: "වගා කළ දින",
   },
   en: {
     title: "Fertilizer Advisory",
@@ -120,12 +147,15 @@ const content = {
     plantingDate: "Planting Date",
     basalApplication: "Basal Application",
     basalLabel: "Basal Fertilizer Application",
+    basalFertilizers: "TSP 100kg/ha + MOP 75kg/ha + Urea 35kg/ha",
     atPlanting: "At Planting",
     topDress1: "Top Dress 1",
     topDress1Label: "First Top Dressing",
+    topDress1Fertilizers: "Urea 65kg/ha (26kg per acre)",
     nearDay25: "Near Day 25",
     topDress2: "Top Dress 2",
     topDress2Label: "Second Top Dressing",
+    topDress2Fertilizers: "Urea 65kg/ha (26kg per acre)",
     nearDay52: "Near Day 52",
     scheduleInfo: "Info",
     closeInfo: "Close",
@@ -161,6 +191,27 @@ const content = {
     topDress2InfoList: "• Urea (Nitrogen fertilizer)",
     topDress2InfoReason: "🎯 Purpose:",
     topDress2InfoReasonDesc: "• Fill grains properly\n• Increase yield",
+    speakAdvice: "🔊 Speak Advice",
+    stopSpeaking: "⏹️ Stop",
+    growthStages: "Growth Stages",
+    growthStagesTitle: "Growth Stages (Based on Days After Planting)",
+    days: "Days",
+    stageEnglish: "Stage (English)",
+    stageSinhala: "Stage (Sinhala)",
+    seedlingStage: "Seedling stage",
+    seedlingStageSi: "පැළ අවධිය/බීජ අංකුර අවස්ථාව",
+    vegetativeStage: "Vegetative stage",
+    vegetativeStageSi: "ශාක වර්ධක අවධිය",
+    kneeHeightStage: "Knee-height stage",
+    kneeHeightStageSi: "දණහිසට උස අවධිය",
+    tasselingStage: "Tasseling/Flowering stage",
+    tasselingStageSi: "මල් පිපීමේ අවධිය",
+    grainFillingStage: "Grain filling stage",
+    grainFillingStageSi: "ධාන්‍ය පිරෙන අවධිය",
+    harvestTime: "Harvest time",
+    harvestTimeSi: "අස්වනු නෙළීමේ කාලය",
+    currentGrowthStage: "Planting Stage",
+    daysAfterPlanting: "Days After Planting",
   },
 };
 
@@ -178,8 +229,213 @@ export default function RuleBasedAdvisoryResultsScreen() {
   const t = content[language];
 
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showGrowthStages, setShowGrowthStages] = useState(false);
 
   const canApplyToday = data.apply_today === true;
+
+  // Calculate growth stage based on days after planting
+  const calculateGrowthStage = (): { stage: string; days: number | null } => {
+    if (!data.planting_date) {
+      return { stage: "-", days: null };
+    }
+
+    try {
+      const plantingDate = new Date(data.planting_date);
+      const today = new Date();
+      const diffTime = Math.abs(today.getTime() - plantingDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      let stageName = "";
+      
+      if (diffDays >= 0 && diffDays <= 10) {
+        stageName = language === "si" ? t.seedlingStageSi : t.seedlingStage;
+      } else if (diffDays > 10 && diffDays <= 25) {
+        stageName = language === "si" ? t.vegetativeStageSi : t.vegetativeStage;
+      } else if (diffDays > 25 && diffDays <= 52) {
+        stageName = language === "si" ? t.kneeHeightStageSi : t.kneeHeightStage;
+      } else if (diffDays > 52 && diffDays <= 75) {
+        stageName = language === "si" ? t.tasselingStageSi : t.tasselingStage;
+      } else if (diffDays > 75 && diffDays <= 110) {
+        stageName = language === "si" ? t.grainFillingStageSi : t.grainFillingStage;
+      } else if (diffDays > 110) {
+        stageName = language === "si" ? t.harvestTimeSi : t.harvestTime;
+      } else {
+        stageName = "-";
+      }
+
+      return { stage: stageName, days: diffDays };
+    } catch (error) {
+      return { stage: "-", days: null };
+    }
+  };
+
+  const growthStageInfo = calculateGrowthStage();
+
+  // Generate TTS summary text
+  const generateAdvisorySummary = (): string => {
+    if (!data) return "";
+
+    let summary = "";
+
+    if (language === "si") {
+      // Sinhala summary
+      summary = "පොහොර උපදේශ ප්‍රතිඵල. ";
+
+      // Apply today status
+      if (canApplyToday) {
+        summary += "අද පොහොර යෙදීම සුදුසුයි. ";
+      } else {
+        summary += "අද පොහොර යෙදීම නිර්දේශ නොකරයි. ";
+      }
+
+      // Observation
+      if (data.observation_si) {
+        summary += `නිරීක්ෂණය: ${data.observation_si}. `;
+      }
+
+      // Cause
+      if (data.cause_si) {
+        summary += `හේතුව: ${data.cause_si}. `;
+      }
+
+      // Reasoning
+      if (data.reasoning_si) {
+        summary += `විශ්ලේෂණය: ${data.reasoning_si}. `;
+      }
+
+      // Recommendations
+      if (data.recommendations && data.recommendations.length > 0) {
+        summary += "නිර්දේශිත පොහොර: ";
+        data.recommendations.forEach((rec: any, idx: number) => {
+          summary += `${idx + 1}. ${rec.nutrient_si || rec.nutrient}. `;
+        });
+      }
+
+      // Warnings
+      if (data.warnings && data.warnings.length > 0) {
+        summary += "අවවාද: ";
+        data.warnings.forEach((warn: any) => {
+          summary += `${warn.message_si || warn.message}. `;
+        });
+      }
+
+      // Advice
+      if (data.advice_si) {
+        summary += `උපදේශ: ${data.advice_si}. `;
+      }
+    } else {
+      // English summary
+      summary = "Fertilizer Advisory Results. ";
+
+      // Apply today status
+      if (canApplyToday) {
+        summary += "It is suitable to apply fertilizer today. ";
+      } else {
+        summary += "It is not recommended to apply fertilizer today. ";
+      }
+
+      // Observation
+      if (data.observation_en) {
+        summary += `Observation: ${data.observation_en}. `;
+      }
+
+      // Cause
+      if (data.cause_en) {
+        summary += `Cause: ${data.cause_en}. `;
+      }
+
+      // Reasoning
+      if (data.reasoning_en) {
+        summary += `Analysis: ${data.reasoning_en}. `;
+      }
+
+      // Recommendations
+      if (data.recommendations && data.recommendations.length > 0) {
+        summary += "Recommended fertilizers: ";
+        data.recommendations.forEach((rec: any, idx: number) => {
+          summary += `${idx + 1}. ${rec.nutrient_en || rec.nutrient}. `;
+        });
+      }
+
+      // Warnings
+      if (data.warnings && data.warnings.length > 0) {
+        summary += "Warnings: ";
+        data.warnings.forEach((warn: any) => {
+          summary += `${warn.message_en || warn.message}. `;
+        });
+      }
+
+      // Advice
+      if (data.advice_en) {
+        summary += `Advice: ${data.advice_en}. `;
+      }
+    }
+
+    return summary;
+  };
+
+  // Speak advisory summary
+  const speakAdvisory = async () => {
+    try {
+      await Speech.stop();
+      setIsSpeaking(true);
+
+      const summary = generateAdvisorySummary();
+
+      if (!summary) {
+        console.log("No summary to speak");
+        setIsSpeaking(false);
+        return;
+      }
+
+      // Check for Sinhala TTS availability
+      if (language === "si") {
+        const voices = await Speech.getAvailableVoicesAsync();
+        const hasSinhala = voices.some(
+          (v) => v.language?.toLowerCase().includes("si") || v.language?.toLowerCase().includes("sin")
+        );
+        if (!hasSinhala) {
+          Alert.alert(
+            "Sinhala Voice Not Available",
+            "Sinhala voice is not available on this device. Please enable Sinhala Text-to-Speech in your phone's system settings."
+          );
+          setIsSpeaking(false);
+          return;
+        }
+      }
+
+      const speechOptions: any = {
+        pitch: 1,
+        rate: language === "si" ? 0.85 : 0.9,
+        language: language === "si" ? "si-LK" : "en-US",
+        onDone: () => {
+          console.log("Speech finished");
+          setIsSpeaking(false);
+        },
+        onError: (error: any) => {
+          console.log("Speech error:", error);
+          setIsSpeaking(false);
+        },
+      };
+
+      await Speech.speak(summary, speechOptions);
+    } catch (err) {
+      console.log("Speech error:", err);
+      setIsSpeaking(false);
+    }
+  };
+
+  // Stop speech
+  const stopSpeech = async () => {
+    try {
+      await Speech.stop();
+      setIsSpeaking(false);
+    } catch (err) {
+      console.log("Stop speech error:", err);
+      setIsSpeaking(false);
+    }
+  };
 
   // Helper function to format date for Google Calendar
   const formatDate = (d: Date) => {
@@ -399,6 +655,21 @@ export default function RuleBasedAdvisoryResultsScreen() {
           <Text style={styles.inputText}>{data.farmer_input || data.input_text}</Text>
         </View>
 
+        {/* TTS Button */}
+        <TouchableOpacity
+          style={[styles.ttsButton, isSpeaking && styles.ttsButtonActive]}
+          onPress={isSpeaking ? stopSpeech : speakAdvisory}
+        >
+          {isSpeaking ? (
+            <VolumeX color="#ffffff" size={20} />
+          ) : (
+            <Volume2 color="#ffffff" size={20} />
+          )}
+          <Text style={styles.ttsButtonText}>
+            {isSpeaking ? t.stopSpeaking : t.speakAdvice}
+          </Text>
+        </TouchableOpacity>
+
         {/* Apply Today */}
         <View style={[styles.applyCard, canApplyToday ? styles.applyCardGreen : styles.applyCardRed]}>
           {canApplyToday ? <CheckCircle color="#10B981" size={24} /> : <XCircle color="#EF4444" size={24} />}
@@ -409,6 +680,22 @@ export default function RuleBasedAdvisoryResultsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Current Growth Stage Display */}
+        {growthStageInfo.days !== null && (
+          <View style={styles.growthStageCard}>
+            <View style={styles.growthStageHeader}>
+              <TrendingUp color="#10b981" size={20} />
+              <Text style={styles.growthStageTitle}>{t.currentGrowthStage}</Text>
+            </View>
+            <View style={styles.growthStageContent}>
+              <Text style={styles.growthStageName}>{growthStageInfo.stage}</Text>
+              <Text style={styles.growthStageDays}>
+                {t.daysAfterPlanting}: {growthStageInfo.days} {language === "si" ? "දින" : "days"}
+              </Text>
+            </View>
+          </View>
+        )}
 
         {/* WHY sections */}
         {data.observation ? (
@@ -485,7 +772,87 @@ export default function RuleBasedAdvisoryResultsScreen() {
           </View>
         ) : null}
 
-        {/* Fertilizer Schedule - Moved below recommendations */}
+        {/* Info Modal */}
+        <Modal
+          visible={showInfoModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowInfoModal(false)}
+        >
+          <View style={styles.infoModalOverlay}>
+            <View style={styles.infoModalContent}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <Text style={styles.infoModalTitle}>{t.infoTitle}</Text>
+                
+                {/* Basal Application Info */}
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>{t.basalInfoTitle}</Text>
+                  <Text style={styles.infoSectionSubtitle}>{t.basalInfoSubtitle}</Text>
+                  <Text style={styles.infoSectionDate}>{t.basalInfoDate}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.basalInfoMeaning}</Text>
+                  <Text style={styles.infoSectionText}>{t.basalInfoDesc}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.basalInfoFertilizers}</Text>
+                  <Text style={styles.infoSectionText}>{t.basalInfoList}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.basalInfoReason}</Text>
+                  <Text style={styles.infoSectionText}>{t.basalInfoReasonDesc}</Text>
+                </View>
+
+                {/* Top Dress 1 Info */}
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>{t.topDress1InfoTitle}</Text>
+                  <Text style={styles.infoSectionSubtitle}>{t.topDress1InfoSubtitle}</Text>
+                  <Text style={styles.infoSectionDate}>{t.topDress1InfoDate}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoMeaning}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress1InfoDesc}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoFertilizers}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress1InfoList}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoReason}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress1InfoReasonDesc}</Text>
+                </View>
+
+                {/* Top Dress 2 Info */}
+                <View style={styles.infoSection}>
+                  <Text style={styles.infoSectionTitle}>{t.topDress2InfoTitle}</Text>
+                  <Text style={styles.infoSectionSubtitle}>{t.topDress2InfoSubtitle}</Text>
+                  <Text style={styles.infoSectionDate}>{t.topDress2InfoDate}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoMeaning}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress2InfoDesc}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoFertilizers}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress2InfoList}</Text>
+                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoReason}</Text>
+                  <Text style={styles.infoSectionText}>{t.topDress2InfoReasonDesc}</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.closeInfoButton}
+                  onPress={() => setShowInfoModal(false)}
+                >
+                  <Text style={styles.closeInfoButtonText}>{t.closeInfo}</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Warnings */}
+        {Array.isArray(data.warnings) && data.warnings.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <AlertTriangle color="#F59E0B" size={20} />
+              <Text style={styles.sectionTitle}>{t.warnings}</Text>
+            </View>
+
+            {data.warnings.map((warning: any, index: number) => (
+              <View key={index} style={[styles.warningCard, { borderLeftColor: getSeverityColor(warning.severity) }]}>
+                <Text style={styles.warningText}>
+                  {language === "si" ? warning.message_si : warning.message_en}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {/* Fertilizer Schedule - Moved after warnings */}
         {fertilizerDates && (
           <View style={styles.scheduleCard}>
             <View style={styles.scheduleHeader}>
@@ -573,86 +940,6 @@ export default function RuleBasedAdvisoryResultsScreen() {
             </View>
           </View>
         )}
-
-        {/* Info Modal */}
-        <Modal
-          visible={showInfoModal}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setShowInfoModal(false)}
-        >
-          <View style={styles.infoModalOverlay}>
-            <View style={styles.infoModalContent}>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                <Text style={styles.infoModalTitle}>{t.infoTitle}</Text>
-                
-                {/* Basal Application Info */}
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>{t.basalInfoTitle}</Text>
-                  <Text style={styles.infoSectionSubtitle}>{t.basalInfoSubtitle}</Text>
-                  <Text style={styles.infoSectionDate}>{t.basalInfoDate}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.basalInfoMeaning}</Text>
-                  <Text style={styles.infoSectionText}>{t.basalInfoDesc}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.basalInfoFertilizers}</Text>
-                  <Text style={styles.infoSectionText}>{t.basalInfoList}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.basalInfoReason}</Text>
-                  <Text style={styles.infoSectionText}>{t.basalInfoReasonDesc}</Text>
-                </View>
-
-                {/* Top Dress 1 Info */}
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>{t.topDress1InfoTitle}</Text>
-                  <Text style={styles.infoSectionSubtitle}>{t.topDress1InfoSubtitle}</Text>
-                  <Text style={styles.infoSectionDate}>{t.topDress1InfoDate}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoMeaning}</Text>
-                  <Text style={styles.infoSectionText}>{t.topDress1InfoDesc}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoFertilizers}</Text>
-                  <Text style={styles.infoSectionText}>{t.topDress1InfoList}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.topDress1InfoReason}</Text>
-                  <Text style={styles.infoSectionText}>{t.topDress1InfoReasonDesc}</Text>
-                </View>
-
-                {/* Top Dress 2 Info */}
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>{t.topDress2InfoTitle}</Text>
-                  <Text style={styles.infoSectionSubtitle}>{t.topDress2InfoSubtitle}</Text>
-                  <Text style={styles.infoSectionDate}>{t.topDress2InfoDate}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoMeaning}</Text>
-                  <Text style={styles.infoSectionText}>{t.topDress2InfoDesc}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoFertilizers}</Text>
-                  <Text style={styles.infoSectionText}>{t.topDress2InfoList}</Text>
-                  <Text style={styles.infoSectionHeading}>{t.topDress2InfoReason}</Text>
-                  <Text style={styles.infoSectionText}>{t.topDress2InfoReasonDesc}</Text>
-                </View>
-
-                <TouchableOpacity 
-                  style={styles.closeInfoButton}
-                  onPress={() => setShowInfoModal(false)}
-                >
-                  <Text style={styles.closeInfoButtonText}>{t.closeInfo}</Text>
-                </TouchableOpacity>
-              </ScrollView>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Warnings */}
-        {Array.isArray(data.warnings) && data.warnings.length > 0 ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <AlertTriangle color="#F59E0B" size={20} />
-              <Text style={styles.sectionTitle}>{t.warnings}</Text>
-            </View>
-
-            {data.warnings.map((warning: any, index: number) => (
-              <View key={index} style={[styles.warningCard, { borderLeftColor: getSeverityColor(warning.severity) }]}>
-                <Text style={styles.warningText}>
-                  {language === "si" ? warning.message_si : warning.message_en}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
 
         {/* Detected issues (from backend, not from knowledge base) */}
         {/* {Array.isArray(data.detected_issues) && data.detected_issues.length > 0 ? (
@@ -843,6 +1130,17 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginBottom: 4,
   },
+  scheduleFertilizers: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#059669",
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    marginBottom: 6,
+    alignSelf: "flex-start",
+  },
   scheduleDate: {
     fontSize: 16,
     fontWeight: "700",
@@ -921,23 +1219,32 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 8,
   },
-  closeInfoButton: {
-    backgroundColor: "#10b981",
+  ttsButton: {
+    backgroundColor: "#3B82F6",
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 8,
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  closeInfoButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
+  ttsButtonActive: {
+    backgroundColor: "#EF4444",
+  },
+  ttsButtonText: {
     color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
   },
-
   inputCard: { backgroundColor: "#F3F4F6", borderRadius: 12, padding: 16, marginBottom: 16 },
   inputLabel: { fontSize: 12, fontWeight: "600", color: "#6B7280", marginBottom: 8 },
   inputText: { fontSize: 14, color: "#1F2937", lineHeight: 20 },
-
   applyCard: { borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", marginBottom: 16, borderWidth: 2 },
   applyCardGreen: { backgroundColor: "#ECFDF5", borderColor: "#A7F3D0" },
   applyCardRed: { backgroundColor: "#FEF2F2", borderColor: "#FECACA" },
@@ -1028,6 +1335,129 @@ const styles = StyleSheet.create({
   contactOfficerButtonText: { fontSize: 16, fontWeight: "700", color: "#ffffff", marginBottom: 2 },
   contactOfficerButtonDesc: { fontSize: 12, color: "#DBEAFE" },
 
-  newAnalysisButton: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 2, borderColor: "#10B981" },
+  closeInfoButton: {
+    backgroundColor: "#10b981",
+    borderRadius: 12,
+    padding: 14,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  closeInfoButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  
+  // Growth Stages Table Styles
+  growthStagesToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+    marginBottom: 8,
+    gap: 8,
+  },
+  growthStagesToggleText: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#10b981",
+  },
+  growthStagesToggleIcon: {
+    fontSize: 12,
+    color: "#10b981",
+    fontWeight: "700",
+  },
+  growthStagesTable: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  growthStagesTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#10b981",
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  tableHeaderCell: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textAlign: "center",
+  },
+  tableDaysColumn: {
+    width: "20%",
+  },
+  tableStageColumn: {
+    width: "40%",
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  tableRowAlt: {
+    backgroundColor: "#F9FAFB",
+  },
+  tableCell: {
+    fontSize: 11,
+    color: "#374151",
+    textAlign: "center",
+  },
+  
+  // Growth Stage Display Card Styles
+  growthStageCard: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: "#10b981",
+    borderLeftWidth: 4,
+  },
+  growthStageHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    gap: 8,
+  },
+  growthStageTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#047857",
+  },
+  growthStageContent: {
+    gap: 6,
+  },
+  growthStageName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#059669",
+    marginBottom: 4,
+  },
+  growthStageDays: {
+    fontSize: 13,
+    color: "#047857",
+    fontWeight: "600",
+  },
+  
+  newAnalysisButton: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 2, borderColor: "#10B981", marginTop: 8 },
   newAnalysisButtonText: { fontSize: 16, fontWeight: "700", color: "#10B981" },
 });

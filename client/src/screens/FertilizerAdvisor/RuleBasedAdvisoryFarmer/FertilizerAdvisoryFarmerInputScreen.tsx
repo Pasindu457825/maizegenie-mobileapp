@@ -12,7 +12,7 @@ import {
     Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, MessageSquare, Send, AlertCircle, CloudRain, Calendar } from "lucide-react-native";
+import { ArrowLeft, MessageSquare, Send, AlertCircle, CloudRain, Calendar, TrendingUp } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useApp } from "../../../context/AppContext";
@@ -36,25 +36,47 @@ const content = {
         mainLabel: "ඔබගේ වගා තත්ත්වය ඔබේ වචන වලින් කියන්න",
         plantingDateLabel: "වගා කළ දිනය",
         plantingDatePlaceholder: "YYYY-MM-DD",
-        plantingStageLabel: "වගා අවධිය",
+        plantingStageLabel: "වත්මන් වර්ධන අවධිය",
         plantingStageAuto: "ස්වයංක්‍රීයව ගණනය කරන ලදී",
         rainfallLabel: "වර්ෂාපතන තත්ත්වය",
         rainfallPlaceholder: "වර්ෂාපතන තත්ත්වය තෝරන්න",
-        rainfallLow: "අඩු වර්ෂාපතනය",
-        rainfallModerate: "මධ්‍යම වර්ෂාපතනය",
-        rainfallHigh: "ඉහළ වර්ෂාපතනය",
+        rainfallLow: "අඩු වර්ෂාපතනය / වැස්ස නැහැ",
+        rainfallHigh: "අධික වර්ෂාපතනය / වැහි වැඩි",
+        soilLabel: "පස තත්ත්වය",
+        soilPlaceholder: "පස තත්ත්වය තෝරන්න",
+        soilDry: "වියළි පස",
+        soilWet: "තෙත් / ජලයෙන් පිරුණු පස",
         selectDate: "දිනය තෝරන්න",
         cancel: "අවලංගු කරන්න",
-        quickTags: "ඉක්මන් උපකාර (විකල්ප):",
+        keywordsHelper: "වචන උපකාර:",
         getAdvice: "උපදෙස් ලබා ගන්න",
         gettingAdvice: "උපදෙස් ලබා ගනිමින්...",
         howItWorks: "මෙය ක්‍රියා කරන්නේ කෙසේද?",
         howItWorksDesc:
             "ඔබේ වචන වලින් කියන්න. පද්ධතිය ඔබේ භාෂාව (සිංහල/English) අනුව ගැළපෙන පොහොර උපදේශ ලබා දෙයි.",
-        exampleRotate1: "දවස් 25ක් වගා කරලා. කොළ කහයි. වැස්ස අඩුයි.",
-        exampleRotate2: "මල් එන වෙලාව. කොළ අග දහනවා වගේ.",
-        exampleRotate3: "බිම වියලි. පැළ දුර්වලයි.",
+        details: "විස්තර",
+        detailsDesc: "මෙම පද්ධතිය පිළිගන්නේ පෙනෙන දෘශ්‍යමාන ලක්ෂණ පමණි:\n• කොළ කහ/පැහැති වීම\n• දම් පාට කොළ\n• කොළ අග පිළිස්සීම/වියළීම\n• පැළ දුර්වල වීම\n• වර්ධනය අඩු වීම\n• අධික වැසි/වැස්ස අඩු\n• වියලි පස/තෙත් පස",
+        exampleRotate1: "කොළ කහ. පැළ දුර්වල. වියලි පස.",
+        exampleRotate2: "කොළ අග පිළිස්ස. වර්ධනය අඩු.",
+        exampleRotate3: "දම්පාට කොළ. වැහි වැඩි.",
         plantingDateTooOld: "වගා කළ දිනය දින 130කට වඩා පැරණි විය නොහැක. කරුණාකර වලංගු දිනයක් ඇතුළත් කරන්න.",
+        growthStages: "වර්ධන අදියර",
+        growthStagesTitle: "වර්ධන අදියර (වගා කළ දින මත පදනම්ව)",
+        days: "දින",
+        stageEnglish: "අදියර (ඉංග්‍රීසි)",
+        stageSinhala: "අදියර (සිංහල)",
+        seedlingStage: "Seedling stage",
+        seedlingStageSi: "පැළ අවධිය/බීජ අංකුර අවස්ථාව",
+        vegetativeStage: "Vegetative stage",
+        vegetativeStageSi: "ශාක වර්ධක අවධිය",
+        kneeHeightStage: "Knee-height stage",
+        kneeHeightStageSi: "දණහිසට උස අවධිය",
+        tasselingStage: "Tasseling/Flowering stage",
+        tasselingStageSi: "මල් පිපීමේ අවධිය",
+        grainFillingStage: "Grain filling stage",
+        grainFillingStageSi: "ධාන්‍ය පිරෙන අවධිය",
+        harvestTime: "Harvest time",
+        harvestTimeSi: "අස්වනු නෙළීමේ කාලය",
     },
     en: {
         title: "Fertilizer Advisory",
@@ -62,25 +84,47 @@ const content = {
         mainLabel: "Describe your crop condition in your own words",
         plantingDateLabel: "Planting Date",
         plantingDatePlaceholder: "YYYY-MM-DD",
-        plantingStageLabel: "Planting Stage",
+        plantingStageLabel: "Current Growth Stage",
         plantingStageAuto: "Auto-calculated",
         rainfallLabel: "Rainfall Condition",
         rainfallPlaceholder: "Select rainfall condition",
-        rainfallLow: "Low Rainfall",
-        rainfallModerate: "Moderate Rainfall",
-        rainfallHigh: "High Rainfall",
+        rainfallLow: "Low Rainfall / No Rain",
+        rainfallHigh: "Heavy Rainfall / Too Much Rain",
+        soilLabel: "Soil Condition",
+        soilPlaceholder: "Select soil condition",
+        soilDry: "Dry Soil",
+        soilWet: "Wet / Waterlogged Soil",
         selectDate: "Select Date",
         cancel: "Cancel",
-        quickTags: "Quick helpers (optional):",
+        keywordsHelper: "Keywords Helper:",
         getAdvice: "Get Advice",
         gettingAdvice: "Getting Advice...",
         howItWorks: "How it works?",
         howItWorksDesc:
             "Describe in your own words. The system uses your selected language (Sinhala/English) to provide fertilizer advice.",
-        exampleRotate1: "25 days planted. Leaves yellow. Less rain.",
-        exampleRotate2: "Flowering time. Leaf tips burning.",
-        exampleRotate3: "Soil dry. Plants weak.",
+        details: "Details",
+        detailsDesc: "This system only detects these visible signs:\n• Yellow/pale leaves\n• Purple leaves\n• Leaf tip/edge burn\n• Weak plants\n• Stunted/slow growth\n• Heavy rain/low rainfall\n• Dry soil/wet soil",
+        exampleRotate1: "yellow leaves. weak plants. dry soil.",
+        exampleRotate2: "leaf edge burn. slow growth.",
+        exampleRotate3: "purple leaves. heavy rain.",
         plantingDateTooOld: "Planting date cannot be more than 130 days old. Please enter a valid date.",
+        growthStages: "Growth Stages",
+        growthStagesTitle: "Growth Stages (Based on Days After Planting)",
+        days: "Days",
+        stageEnglish: "Stage (English)",
+        stageSinhala: "Stage (Sinhala)",
+        seedlingStage: "Seedling stage",
+        seedlingStageSi: "පැළ අවධිය/බීජ අංකුර අවස්ථාව",
+        vegetativeStage: "Vegetative stage",
+        vegetativeStageSi: "ශාක වර්ධක අවධිය",
+        kneeHeightStage: "Knee-height stage",
+        kneeHeightStageSi: "දණහිසට උස අවධිය",
+        tasselingStage: "Tasseling/Flowering stage",
+        tasselingStageSi: "මල් පිපීමේ අවධිය",
+        grainFillingStage: "Grain filling stage",
+        grainFillingStageSi: "ධාන්‍ය පිරෙන අවධිය",
+        harvestTime: "Harvest time",
+        harvestTimeSi: "අස්වනු නෙළීමේ කාලය",
     },
 };
 
@@ -93,10 +137,16 @@ export default function RuleBasedAdvisoryInputScreen() {
     const [plantingDate, setPlantingDate] = useState<string>("");
     const [plantingStage, setPlantingStage] = useState<string>("");
     const [rainfallCondition, setRainfallCondition] = useState<string>("");
+    const [rainfallValue, setRainfallValue] = useState<string>(""); // Backend value: "low" or "high"
+    const [soilCondition, setSoilCondition] = useState<string>("");
+    const [soilValue, setSoilValue] = useState<string>(""); // Backend value: "dry" or "wet"
     const [showRainfallPicker, setShowRainfallPicker] = useState(false);
+    const [showSoilPicker, setShowSoilPicker] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [loading, setLoading] = useState(false);
     const [placeholderIndex, setPlaceholderIndex] = useState(0);
+    const [showDetails, setShowDetails] = useState(false);
+    const [showGrowthStages, setShowGrowthStages] = useState(false);
 
     useEffect(() => {
         if (!user || user.role !== "farmer") {
@@ -245,7 +295,8 @@ export default function RuleBasedAdvisoryInputScreen() {
                 farmer_input: inputText.trim(),
                 planting_date: plantingDate || null,
                 planting_stage: plantingStage || null,
-                rainfall_condition: rainfallCondition || null,
+                rainfall_condition: rainfallValue || null, // Send backend value: "low" or "high"
+                soil_condition: soilValue || null, // Send backend value: "dry" or "wet"
                 language, // IMPORTANT: backend respects this
             };
 
@@ -307,6 +358,18 @@ export default function RuleBasedAdvisoryInputScreen() {
                     <View style={styles.infoTextContainer}>
                         <Text style={styles.infoTitle}>{t.howItWorks}</Text>
                         <Text style={styles.infoDesc}>{t.howItWorksDesc}</Text>
+                        <TouchableOpacity 
+                            style={styles.detailsButton} 
+                            onPress={() => setShowDetails(!showDetails)}
+                        >
+                            <Text style={styles.detailsButtonText}>{t.details}</Text>
+                            <Text style={styles.detailsArrow}>{showDetails ? "▲" : "▼"}</Text>
+                        </TouchableOpacity>
+                        {showDetails && (
+                            <View style={styles.detailsContent}>
+                                <Text style={styles.detailsText}>{t.detailsDesc}</Text>
+                            </View>
+                        )}
                     </View>
                 </View>
 
@@ -366,6 +429,69 @@ export default function RuleBasedAdvisoryInputScreen() {
                     </View>
                 )}
 
+                {/* Growth Stages - Collapsible */}
+                <View style={styles.inputSection}>
+                    <TouchableOpacity 
+                        style={styles.growthStagesToggle}
+                        onPress={() => setShowGrowthStages(!showGrowthStages)}
+                        activeOpacity={0.7}
+                    >
+                        <TrendingUp size={18} color="#10b981" />
+                        <Text style={styles.growthStagesToggleText}>{t.growthStages}</Text>
+                        <Text style={styles.growthStagesToggleIcon}>{showGrowthStages ? '▼' : '▶'}</Text>
+                    </TouchableOpacity>
+
+                    {showGrowthStages && (
+                        <View style={styles.growthStagesTable}>
+                            <Text style={styles.growthStagesTitle}>{t.growthStagesTitle}</Text>
+                            
+                            {/* Table Header */}
+                            <View style={styles.tableHeader}>
+                                <Text style={[styles.tableHeaderCell, styles.tableDaysColumn]}>{t.days}</Text>
+                                <Text style={[styles.tableHeaderCell, styles.tableStageColumn]}>{t.stageEnglish}</Text>
+                                <Text style={[styles.tableHeaderCell, styles.tableStageColumn]}>{t.stageSinhala}</Text>
+                            </View>
+
+                            {/* Table Rows */}
+                            <View style={styles.tableRow}>
+                                <Text style={[styles.tableCell, styles.tableDaysColumn]}>0-10</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.seedlingStage}</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.seedlingStageSi}</Text>
+                            </View>
+
+                            <View style={[styles.tableRow, styles.tableRowAlt]}>
+                                <Text style={[styles.tableCell, styles.tableDaysColumn]}>10-25</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.vegetativeStage}</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.vegetativeStageSi}</Text>
+                            </View>
+
+                            <View style={styles.tableRow}>
+                                <Text style={[styles.tableCell, styles.tableDaysColumn]}>25-52</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.kneeHeightStage}</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.kneeHeightStageSi}</Text>
+                            </View>
+
+                            <View style={[styles.tableRow, styles.tableRowAlt]}>
+                                <Text style={[styles.tableCell, styles.tableDaysColumn]}>52-75</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.tasselingStage}</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.tasselingStageSi}</Text>
+                            </View>
+
+                            <View style={styles.tableRow}>
+                                <Text style={[styles.tableCell, styles.tableDaysColumn]}>75-110</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.grainFillingStage}</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.grainFillingStageSi}</Text>
+                            </View>
+
+                            <View style={[styles.tableRow, styles.tableRowAlt]}>
+                                <Text style={[styles.tableCell, styles.tableDaysColumn]}>110+</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.harvestTime}</Text>
+                                <Text style={[styles.tableCell, styles.tableStageColumn]}>{t.harvestTimeSi}</Text>
+                            </View>
+                        </View>
+                    )}
+                </View>
+
                 {/* Rainfall Condition Field */}
                 <View style={styles.inputSection}>
                     <View style={styles.labelWithIcon}>
@@ -383,32 +509,53 @@ export default function RuleBasedAdvisoryInputScreen() {
                     </TouchableOpacity>
                 </View>
 
+                {/* Soil Condition Field */}
+                <View style={styles.inputSection}>
+                    <View style={styles.labelWithIcon}>
+                        <Text style={{ fontSize: 18 }}>🌱</Text>
+                        <Text style={styles.mainLabel}>{t.soilLabel}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.selectInput}
+                        onPress={() => setShowSoilPicker(true)}
+                    >
+                        <Text style={[styles.selectInputText, !soilCondition && styles.placeholderText]}>
+                            {soilCondition || t.soilPlaceholder}
+                        </Text>
+                        <Text style={{ fontSize: 18 }}>🌱</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.quickTagsSection}>
-                    <Text style={styles.quickTagsTitle}>{t.quickTags}</Text>
+                    <Text style={styles.quickTagsTitle}>{t.keywordsHelper}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "දවස් 0-20" : "Days 0-20")}>
-                            <Text style={styles.quickTagIcon}>🌱</Text>
-                            <Text style={styles.quickTagText}>{language === "si" ? "දවස් 0-20" : "Days 0-20"}</Text>
+                        {/* Symptom tags - match backend keywords exactly - NO emojis */}
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "කොළ කහ" : "yellow leaves")}>
+                            <Text style={styles.quickTagText}>{language === "si" ? "කොළ කහ" : "Yellow leaves"}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "දවස් 20-60" : "Days 20-60")}>
-                            <Text style={styles.quickTagIcon}>🌿</Text>
-                            <Text style={styles.quickTagText}>{language === "si" ? "දවස් 20-60" : "Days 20-60"}</Text>
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "දම්පාට" : "purple leaves")}>
+                            <Text style={styles.quickTagText}>{language === "si" ? "දම්පාට" : "Purple leaves"}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "දවස් 60-90" : "Days 60-90")}>
-                            <Text style={styles.quickTagIcon}>🌽</Text>
-                            <Text style={styles.quickTagText}>{language === "si" ? "දවස් 60-90" : "Days 60-90"}</Text>
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "කොළ අග පිළිස්ස" : "leaf edge burn")}>
+                            <Text style={styles.quickTagText}>{language === "si" ? "කොළ අග පිළිස්ස" : "Edge burn"}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "කොළ කහයි" : "Yellow leaves")}>
-                            <Text style={styles.quickTagIcon}>🍂</Text>
-                            <Text style={styles.quickTagText}>{language === "si" ? "කොළ කහයි" : "Yellow leaves"}</Text>
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "පැළ දුර්වල" : "weak plants")}>
+                            <Text style={styles.quickTagText}>{language === "si" ? "පැළ දුර්වල" : "Weak plants"}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "වියලි පස" : "Dry soil")}>
-                            <Text style={styles.quickTagIcon}>🏜️</Text>
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "වර්ධනය අඩු" : "slow growth")}>
+                            <Text style={styles.quickTagText}>{language === "si" ? "වර්ධනය අඩු" : "Slow growth"}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "වියලි පස" : "dry soil")}>
                             <Text style={styles.quickTagText}>{language === "si" ? "වියලි පස" : "Dry soil"}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.quickTag} onPress={() => handleQuickTag(language === "si" ? "වැහි වැඩි" : "heavy rain")}>
+                            <Text style={styles.quickTagText}>{language === "si" ? "වැහි වැඩි" : "Heavy rain"}</Text>
                         </TouchableOpacity>
                     </ScrollView>
                 </View>
@@ -486,6 +633,7 @@ export default function RuleBasedAdvisoryInputScreen() {
             )}
 
             {/* Rainfall Picker Modal */}
+            {/* Rainfall Picker Modal - 2 options only */}
             <Modal
                 visible={showRainfallPicker}
                 transparent
@@ -499,6 +647,7 @@ export default function RuleBasedAdvisoryInputScreen() {
                             style={styles.rainfallOption}
                             onPress={() => {
                                 setRainfallCondition(t.rainfallLow);
+                                setRainfallValue("low");
                                 setShowRainfallPicker(false);
                             }}
                         >
@@ -508,26 +657,59 @@ export default function RuleBasedAdvisoryInputScreen() {
                         <TouchableOpacity
                             style={styles.rainfallOption}
                             onPress={() => {
-                                setRainfallCondition(t.rainfallModerate);
+                                setRainfallCondition(t.rainfallHigh);
+                                setRainfallValue("high");
                                 setShowRainfallPicker(false);
                             }}
                         >
                             <CloudRain size={20} color="#3B82F6" />
-                            <Text style={styles.rainfallOptionText}>{t.rainfallModerate}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.rainfallOption}
-                            onPress={() => {
-                                setRainfallCondition(t.rainfallHigh);
-                                setShowRainfallPicker(false);
-                            }}
-                        >
-                            <CloudRain size={20} color="#10B981" />
                             <Text style={styles.rainfallOptionText}>{t.rainfallHigh}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.modalCancelButton}
                             onPress={() => setShowRainfallPicker(false)}
+                        >
+                            <Text style={styles.modalCancelText}>{t.cancel}</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Soil Condition Picker Modal */}
+            <Modal
+                visible={showSoilPicker}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowSoilPicker(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>{t.soilLabel}</Text>
+                        <TouchableOpacity
+                            style={styles.rainfallOption}
+                            onPress={() => {
+                                setSoilCondition(t.soilDry);
+                                setSoilValue("dry");
+                                setShowSoilPicker(false);
+                            }}
+                        >
+                            <Text style={{ fontSize: 20 }}>🏜️</Text>
+                            <Text style={styles.rainfallOptionText}>{t.soilDry}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.rainfallOption}
+                            onPress={() => {
+                                setSoilCondition(t.soilWet);
+                                setSoilValue("wet");
+                                setShowSoilPicker(false);
+                            }}
+                        >
+                            <Text style={{ fontSize: 20 }}>💧</Text>
+                            <Text style={styles.rainfallOptionText}>{t.soilWet}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.modalCancelButton}
+                            onPress={() => setShowSoilPicker(false)}
                         >
                             <Text style={styles.modalCancelText}>{t.cancel}</Text>
                         </TouchableOpacity>
@@ -573,6 +755,33 @@ const styles = StyleSheet.create({
     infoTextContainer: { flex: 1, marginLeft: 12 },
     infoTitle: { fontSize: 16, fontWeight: "700", color: "#065F46", marginBottom: 4 },
     infoDesc: { fontSize: 13, color: "#047857", lineHeight: 18 },
+    detailsButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 8,
+        paddingVertical: 4,
+    },
+    detailsButtonText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#10b981",
+        marginRight: 4,
+    },
+    detailsArrow: {
+        fontSize: 10,
+        color: "#10b981",
+    },
+    detailsContent: {
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: "#A7F3D0",
+    },
+    detailsText: {
+        fontSize: 12,
+        color: "#065F46",
+        lineHeight: 20,
+    },
     inputSection: { marginBottom: 24 },
     labelWithIcon: { flexDirection: "row", alignItems: "center", marginBottom: 12, gap: 8 },
     mainLabel: { fontSize: 16, fontWeight: "700", color: "#1F2937", flex: 1 },
@@ -748,4 +957,75 @@ const styles = StyleSheet.create({
     accessDeniedText: { fontSize: 16, color: "#6B7280", textAlign: "center", lineHeight: 24, marginBottom: 32 },
     backButtonLarge: { backgroundColor: "#10b981", paddingHorizontal: 32, paddingVertical: 16, borderRadius: 12 },
     backButtonText: { fontSize: 16, fontWeight: "700", color: "#ffffff" },
+
+    // Growth Stages Table Styles
+    growthStagesToggle: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#F3F4F6",
+        borderRadius: 10,
+        padding: 12,
+        gap: 8,
+    },
+    growthStagesToggleText: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: "700",
+        color: "#10b981",
+    },
+    growthStagesToggleIcon: {
+        fontSize: 12,
+        color: "#10b981",
+        fontWeight: "700",
+    },
+    growthStagesTable: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: "#E5E7EB",
+    },
+    growthStagesTitle: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#374151",
+        marginBottom: 12,
+        textAlign: "center",
+    },
+    tableHeader: {
+        flexDirection: "row",
+        backgroundColor: "#10b981",
+        borderTopLeftRadius: 8,
+        borderTopRightRadius: 8,
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+    },
+    tableHeaderCell: {
+        fontSize: 12,
+        fontWeight: "700",
+        color: "#FFFFFF",
+        textAlign: "center",
+    },
+    tableDaysColumn: {
+        width: "20%",
+    },
+    tableStageColumn: {
+        width: "40%",
+    },
+    tableRow: {
+        flexDirection: "row",
+        paddingVertical: 10,
+        paddingHorizontal: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: "#E5E7EB",
+    },
+    tableRowAlt: {
+        backgroundColor: "#F9FAFB",
+    },
+    tableCell: {
+        fontSize: 11,
+        color: "#374151",
+        textAlign: "center",
+    },
 });
