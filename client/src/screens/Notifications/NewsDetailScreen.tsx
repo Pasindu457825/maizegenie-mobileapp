@@ -16,8 +16,8 @@ import axios from "axios";
 import { API_BASE } from "../../services/api";
 import { Ionicons } from "@expo/vector-icons";
 import type { RootStackParamList } from "../../navigation";
-import { Linking, Alert } from "react-native";
-import { Platform } from "react-native";
+import { Linking, Alert, Platform } from "react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -60,9 +60,70 @@ interface NewsDetail {
   image_url?: string | null;
 }
 
+// ✅ Add language type
+type LanguageType = "si" | "en";
+
+// ✅ Add translations
+const translations: Record<LanguageType, any> = {
+  si: {
+    invalidId: "Invalid news id",
+    fetchError: "පුවත ලබා ගැනීමට නොහැකි විය",
+    notFound: "පුවත හමු නොවීය",
+    oops: "අපොයි!",
+    goBack: "ආපසු යන්න",
+    linkError: "Link open කරන්න බැහැ",
+    linkErrorDesc: "මෙම ලින්ක් එක open කරන්න device එකට නොහැක",
+    errorOpening: "ලින්ක් එක open කිරීමේදී දෝෂයක් ඇතිවිය",
+    loading: "පුවත පූරණය වෙමින්...",
+    date: "දිනය",
+    source: "මූලාශ්‍රය",
+    district: "දිස්ත්‍රික්කය",
+    details: "සවිස්තර විස්තරය",
+    readMore: "සම්පූර්ණ පුවත කියවන්න",
+    price: "මිල",
+    weather: "කාලගුණය",
+    policy: "ප්‍රතිපත්ති",
+    alert: "අනතුරු ඇඟවීම",
+    pest: "පළිබෝධ",
+    disease: "රෝග",
+    fertilizer: "පොහොර",
+    cultivation: "වගා උපදෙස්",
+    program: "වැඩසටහන්",
+  },
+  en: {
+    invalidId: "Invalid news id",
+    fetchError: "Unable to fetch news",
+    notFound: "News not found",
+    oops: "Oops!",
+    goBack: "Go Back",
+    linkError: "Cannot open link",
+    linkErrorDesc: "This link cannot be opened on your device",
+    errorOpening: "Error opening link",
+    loading: "Loading news...",
+    date: "Date",
+    source: "Source",
+    district: "District",
+    details: "Full Details",
+    readMore: "Read Full News",
+    price: "Price",
+    weather: "Weather",
+    policy: "Policy",
+    alert: "Alert",
+    pest: "Pest",
+    disease: "Disease",
+    fertilizer: "Fertilizer",
+    cultivation: "Cultivation Tips",
+    program: "Program",
+  },
+};
+
 export default function NewsDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
+  const { language: globalLang } = useLanguage();
+  const language: LanguageType = globalLang === "sinhala" ? "si" : "en";
+  const t = translations[language];
+
   const newsId = route.params?.id;
 
   const [news, setNews] = useState<NewsDetail | null>(null);
@@ -74,7 +135,7 @@ export default function NewsDetailScreen() {
 
   useEffect(() => {
     if (!newsId) {
-      setError("Invalid news id");
+      setError(t.invalidId);
       setLoading(false);
       return;
     }
@@ -90,58 +151,63 @@ export default function NewsDetailScreen() {
           useNativeDriver: true,
         }).start();
       } catch (err) {
-        setError("පුවත ලබා ගැනීමට නොහැකි විය");
+        setError(t.fetchError);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNewsDetail();
-  }, [newsId]);
+  }, [newsId, language]);
 
   const getCategoryConfig = (category: string) => {
-    const configs = {
-      price: { label: "මිල", color: "#059669", icon: "💰", bg: "#d1fae5" },
+    const configs: Record<
+      string,
+      { label: string; color: string; icon: string; bg: string }
+    > = {
+      price: { label: t.price, color: "#059669", icon: "💰", bg: "#d1fae5" },
       weather: {
-        label: "කාලගුණය",
+        label: t.weather,
         color: "#0d9488",
         icon: "🌤️",
         bg: "#ccfbf1",
       },
-      policy: {
-        label: "ප්‍රතිපත්ති",
-        color: "#16a34a",
-        icon: "📋",
-        bg: "#dcfce7",
+      policy: { label: t.policy, color: "#16a34a", icon: "📋", bg: "#dcfce7" },
+      alert: { label: t.alert, color: "#ea580c", icon: "⚠️", bg: "#ffedd5" },
+      pest: { label: t.pest, color: "#b45309", icon: "🐛", bg: "#fed7aa" },
+      disease: {
+        label: t.disease,
+        color: "#991b1b",
+        icon: "🦠",
+        bg: "#fecaca",
       },
-      alert: {
-        label: "අනතුරු ඇඟවීම",
-        color: "#ea580c",
-        icon: "⚠️",
-        bg: "#ffedd5",
-      },
-      pest: { label: "පළිබෝධ", color: "#b45309", icon: "🐛", bg: "#fed7aa" },
-      disease: { label: "රෝග", color: "#991b1b", icon: "🦠", bg: "#fecaca" },
       fertilizer: {
-        label: "පොහොර",
+        label: t.fertilizer,
         color: "#15803d",
         icon: "🌱",
         bg: "#dcfce7",
       },
       cultivation: {
-        label: "වගා උපදෙස්",
+        label: t.cultivation,
         color: "#0f766e",
         icon: "🌾",
         bg: "#ccfbf1",
       },
       program: {
-        label: "වැඩසටහන්",
+        label: t.program,
         color: "#1d4ed8",
         icon: "📅",
         bg: "#dbeafe",
       },
     };
-    return { label: category, color: "#10b981", icon: "📢", bg: "#d1fae5" };
+    return (
+      configs[category] || {
+        label: category,
+        color: "#10b981",
+        icon: "📢",
+        bg: "#d1fae5",
+      }
+    );
   };
 
   // Parallax header animations
@@ -182,13 +248,10 @@ export default function NewsDetailScreen() {
       if (supported) {
         await Linking.openURL(url);
       } else {
-        Alert.alert(
-          "Link open කරන්න බැහැ",
-          "මෙම ලින්ක් එක open කරන්න device එකට නොහැක"
-        );
+        Alert.alert(t.linkError, t.linkErrorDesc);
       }
     } catch (err) {
-      Alert.alert("Error", "ලින්ක් එක open කිරීමේදී දෝෂයක් ඇතිවිය");
+      Alert.alert("Error", t.errorOpening);
     }
   };
 
@@ -200,7 +263,7 @@ export default function NewsDetailScreen() {
           <View style={styles.loadingCircle}>
             <ActivityIndicator size="large" color="#16a34a" />
           </View>
-          <Text style={styles.loadingText}>පුවත පූරණය වෙමින්...</Text>
+          <Text style={styles.loadingText}>{t.loading}</Text>
           <View style={styles.loadingDots}>
             <View style={styles.dot} />
             <View style={[styles.dot, styles.dotDelay1]} />
@@ -218,14 +281,14 @@ export default function NewsDetailScreen() {
           <View style={styles.errorIconContainer}>
             <Ionicons name="alert-circle-outline" size={64} color="#dc2626" />
           </View>
-          <Text style={styles.errorTitle}>අපොයි!</Text>
-          <Text style={styles.errorText}>{error || "පුවත හමු නොවීය"}</Text>
+          <Text style={styles.errorTitle}>{t.oops}</Text>
+          <Text style={styles.errorText}>{error || t.notFound}</Text>
           <Pressable
             style={styles.retryButton}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={20} color="#ffffff" />
-            <Text style={styles.retryText}>ආපසු යන්න</Text>
+            <Text style={styles.retryText}>{t.goBack}</Text>
           </Pressable>
         </View>
       </View>
@@ -340,13 +403,16 @@ export default function NewsDetailScreen() {
                 <Ionicons name="calendar-outline" size={18} color="#2563eb" />
               </View>
               <View style={styles.metaContent}>
-                <Text style={styles.metaLabel}>දිනය</Text>
+                <Text style={styles.metaLabel}>{t.date}</Text>
                 <Text style={styles.metaValue}>
-                  {new Date(news.created_at).toLocaleDateString("si-LK", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                  {new Date(news.created_at).toLocaleDateString(
+                    language === "si" ? "si-LK" : "en-US",
+                    {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    }
+                  )}
                 </Text>
               </View>
             </View>
@@ -361,7 +427,7 @@ export default function NewsDetailScreen() {
                 <Ionicons name="newspaper-outline" size={18} color="#f59e0b" />
               </View>
               <View style={styles.metaContent}>
-                <Text style={styles.metaLabel}>මූලාශ්‍රය</Text>
+                <Text style={styles.metaLabel}>{t.source}</Text>
                 <Text style={styles.metaValue} numberOfLines={1}>
                   {news.source}
                 </Text>
@@ -379,7 +445,7 @@ export default function NewsDetailScreen() {
                   <Ionicons name="location" size={18} color="#16a34a" />
                 </View>
                 <View style={styles.metaContent}>
-                  <Text style={styles.metaLabel}>දිස්ත්‍රික්කය</Text>
+                  <Text style={styles.metaLabel}>{t.district}</Text>
                   <Text
                     style={[
                       styles.metaValue,
@@ -407,7 +473,7 @@ export default function NewsDetailScreen() {
                 <View style={styles.summaryIconContainer}>
                   <Ionicons name="document-text" size={20} color="#16a34a" />
                 </View>
-                <Text style={styles.summaryTitle}>සවිස්තර විස්තරය</Text>
+                <Text style={styles.summaryTitle}>{t.details}</Text>
               </View>
               <Text style={styles.summary}>{news.summary}</Text>
             </View>
@@ -422,7 +488,7 @@ export default function NewsDetailScreen() {
               <View style={styles.linkIconContainer}>
                 <Ionicons name="link" size={20} color="#ffffff" />
               </View>
-              <Text style={styles.linkText}>සම්පූර්ණ පුවත කියවන්න</Text>
+              <Text style={styles.linkText}>{t.readMore}</Text>
               <Ionicons name="arrow-forward" size={20} color="#ffffff" />
             </Pressable>
           )}
