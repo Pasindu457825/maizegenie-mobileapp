@@ -1667,6 +1667,7 @@ const PriceAdvisorScreen: React.FC = () => {
     message_si: string;
   };
 
+  // ✅ STORAGE ADVICE CARD COMPONENT — WITH LANGUAGE SUPPORT
   const StorageAdviceCard = ({
     storageAdvice,
     language,
@@ -1676,8 +1677,10 @@ const PriceAdvisorScreen: React.FC = () => {
   }) => {
     if (!storageAdvice || !storageAdvice.required) return null;
 
+    // ✅ LANGUAGE-AWARE TITLES & LABELS
     const title =
       language === "si" ? "ගබඩා කිරීම සුදුසුයි" : "Storage is recommended";
+
     const weeksLine =
       language === "si"
         ? `සති ${storageAdvice.duration_weeks}ක් පමණ ගබඩා කර තබාගත යුතුයි`
@@ -1687,6 +1690,17 @@ const PriceAdvisorScreen: React.FC = () => {
       language === "si"
         ? "වියලි ස්ථානයක් තෝරන්න • වායු ගමනාගමනය හොඳ විය යුතුයි"
         : "Choose a dry place • Ensure good ventilation";
+
+    // ✅ LANGUAGE-AWARE MESSAGE (BUILD FROM storageAdvice)
+    const storageMessage =
+      language === "si"
+        ? storageAdvice.message_si ||
+          (storageAdvice.duration_weeks > 0
+            ? `සති ${storageAdvice.duration_weeks}ක් පමණ ගබඩා කර විකුණන්න.`
+            : "වහාම විකුණන්න.")
+        : storageAdvice.reason === "DELAYED_HARVEST"
+        ? `Store for ${storageAdvice.duration_weeks} weeks before selling for better prices.`
+        : "Sell immediately after harvest.";
 
     return (
       <View style={styles.storageCard}>
@@ -1699,7 +1713,7 @@ const PriceAdvisorScreen: React.FC = () => {
 
         <Text style={styles.storageWeeks}>{weeksLine}</Text>
 
-        <Text style={styles.storageMsg}>{storageAdvice.message_si}</Text>
+        <Text style={styles.storageMsg}>{storageMessage}</Text>
 
         <View style={styles.storageNoteBox}>
           <Text style={styles.storageNoteText}>⚠️ {note}</Text>
