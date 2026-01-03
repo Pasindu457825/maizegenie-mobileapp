@@ -8,7 +8,7 @@ import {
     Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, Sparkles, MessageCircle, AlertCircle } from "lucide-react-native";
+import { ArrowLeft, Sparkles, MessageCircle, AlertCircle, BookOpen } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -23,6 +23,8 @@ const content = {
         nlpDescription: "ස්වභාවික භාෂාවෙන් පොහොර උපදේශ ලබා ගන්න",
         farmerChat: "කෘෂි නිලධාරියා සමඟ කතා කරන්න",
         farmerChatDescription: "විශේෂඥ උපදේශ සඳහා සජීවී චැට්",
+        knowledgeBank: "පෝෂක මාර්ගෝපදේශ",
+        knowledgeBankDescription: "වගාව සඳහා වැදගත් වන පෝෂක තොරතුරු ලබාගන්න",
     },
     en: {
         title: "Fertilizer Advisory",
@@ -31,6 +33,8 @@ const content = {
         nlpDescription: "Get fertilizer advice in natural language",
         farmerChat: "Chat With Agriculture Officer",
         farmerChatDescription: "Live chat for expert advice",
+        knowledgeBank: "Fertilizer Guidelines",
+        knowledgeBankDescription: "Get important nutrient information for cultivation",
     },
 };
 
@@ -187,6 +191,33 @@ export default function FertilizerAdvisorLandingScreen() {
                             </View>
                         </LinearGradient>
                     </TouchableOpacity>
+
+                    {/* Knowledge Bank Card */}
+                    <TouchableOpacity
+                        style={styles.serviceCard}
+                        onPress={() => navigation.navigate("KnowledgeBankMain")}
+                        activeOpacity={0.7}
+                    >
+                        <LinearGradient
+                            colors={["#FEF3C7", "#FDE68A"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.serviceCardGradient}
+                        >
+                            <View style={[styles.serviceIconContainer, { backgroundColor: "#FDE68A" }]}>
+                                <BookOpen color="#F59E0B" size={28} />
+                            </View>
+                            <View style={styles.serviceContent}>
+                                <Text style={styles.serviceTitle}>{t.knowledgeBank}</Text>
+                                <Text style={styles.serviceDescription}>
+                                    {t.knowledgeBankDescription}
+                                </Text>
+                            </View>
+                            <View style={styles.serviceArrow}>
+                                <Text style={styles.serviceArrowText}>→</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
                 </View>
 
                 <View style={{ height: 40 }} />
@@ -242,6 +273,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
+        flexGrow: 1,
+        justifyContent: "center",
         paddingBottom: 20,
         paddingTop: 16,
     },
