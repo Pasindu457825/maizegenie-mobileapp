@@ -442,9 +442,7 @@ const PriceForecastScreen = () => {
         weatherCondition,
         language
       );
-      setWeather(
-        `${Math.round(temperature)}°C • ${translatedCondition}`
-      );
+      setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
     } else {
       setWeather(
         language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
@@ -460,6 +458,9 @@ const PriceForecastScreen = () => {
 
   const generateForecast = async () => {
     try {
+      // 🔥 RESET NOTIFICATION FLAG for new forecast
+      notificationSentRef.current = false;
+
       setIsLoadingForecast(true);
 
       // 🔥 START LOADING ANIMATION
