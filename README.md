@@ -1,4 +1,4 @@
-# 🌽 MaizeGenie
+🌽 MaizeGenie
 
 MaizeGenie is an AI-powered, bilingual (Sinhala/English) farmer advisory platform designed to support Sri Lankan maize farmers.  
 It integrates **price forecasting, cultivation timing, yield prediction, fertilizer advisory, and pest/disease identification** into one farmer-friendly mobile/web application.  
@@ -57,11 +57,14 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 
 ---
 
+<img width="3780" height="1890" alt="SYSTEM DIAGRAM (1)" src="https://github.com/user-attachments/assets/ebd0d5e7-f3a7-4e03-a16c-14ed22c9b828" />
+
 ## 📍 Pilot Districts
 
 - Monaragala  
 - Anuradhapura  
-- Thissamaharama 
+- Ampara
+- Dabulla
 
 ---
 
