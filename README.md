@@ -9,7 +9,20 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 ## 🚀 Features
 
 - 📈 **Corn Price Forecasting & Cultivation Timing**  
-  Short-term price predictions (1–4 weeks) using SARIMAX/ARIMA + Prophet + ML ensemble (with planned LSTM/GRU extension), combined with district/GPS + live weather context, best-week detection, profit analysis  and notifications. Outputs include traffic-light signals and recommendations (Sell Now / Store / Sell Later / Wait), with bilingual (සිංහල/English) UI, trend charts, and a smart entry/loading gateway linked to Weather Forecast + Cultivation Advisor. 
+   - Generates short-term maize price predictions (1–4 weeks) using RF model.
+   - Integrates district/GPS-based context with live daily and hourly weather data to ensure location-specific decision support.
+   - Identifies the best selling week using forecasted prices combined with historical seasonal profit patterns from previous years.
+   - Recommends delaying or starting cultivation (e.g., by 1–2 weeks) when historical data shows higher profitability in upcoming periods.
+   - Performs profit analysis by combining predicted price, expected yield, and cultivation costs to support sell, store, or wait decisions.
+   - Displays clear traffic-light signals (Sell Now / Store / Sell Later / Wait) for easy and quick farmer understanding.
+   - Provides trend charts, confidence levels, and simple reasoning to improve trust in predictions and recommendations.
+   - Integrates daily and hourly weather risk analysis to warn farmers about rain, humidity, heat stress, and harvest timing risks.
+   - Enables officer-verified cultivation and selling advice, allowing agricultural officers to review, approve, or adjust system recommendations.
+   - Allows farmers to receive direct guidance and feedback from agricultural officers within the application.
+   - Delivers official agricultural news, policy updates, and announcements published by officers through the platform.
+   - Sends timely notifications for best selling weeks, recommended planting delays, weather risks, officer replies, and new announcements.
+   - Connects with Weather Forecast and Cultivation Advisor through a smart entry/loading screen that acts as a single gateway to decision support.
+   - Supports Sinhala and English languages with a farmer-friendly mobile UI designed for field-level use. 
 
 - 🍂 **Disease Identification & Solution Advisory**  
   - apture or upload maize leaf images for disease detection.  
