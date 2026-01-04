@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  SafeAreaView,
 } from "react-native";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
@@ -323,10 +324,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
     try {
       setLoading(true);
       await axios.delete(`${API_BASE}/official-news/admin/${newsId}`);
-      Alert.alert(
-        uiLang === "si" ? "මකා දමන ලදී" : "Deleted",
-        t.deleteSuccess
-      );
+      Alert.alert(uiLang === "si" ? "මකා දමන ලදී" : "Deleted", t.deleteSuccess);
       navigation.goBack();
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Delete failed");
@@ -349,21 +347,23 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   return (
     <View style={styles.wrapper}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={22} color="#E8F5E9" />
-          </TouchableOpacity>
+      <SafeAreaView style={{ backgroundColor: "#2E7D32" }}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <ArrowLeft size={22} color="#E8F5E9" />
+            </TouchableOpacity>
 
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>{t.title}</Text>
-            <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>{t.title}</Text>
+              <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+            </View>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* FORM */}
       <ScrollView
@@ -688,7 +688,12 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
         <Modal visible={showDeleteModal} transparent animationType="fade">
           <View style={styles.successOverlay}>
             <View style={styles.successCard}>
-              <View style={[styles.successIconCircle, { backgroundColor: "#FFEBEE" }]}>
+              <View
+                style={[
+                  styles.successIconCircle,
+                  { backgroundColor: "#FFEBEE" },
+                ]}
+              >
                 <Trash2 size={34} color="#C62828" />
               </View>
 
@@ -731,7 +736,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F8E9",
   },
   header: {
-    paddingTop: Platform.OS === "ios" ? 52 : 18,
+    paddingTop: 36,
     paddingBottom: 16,
     paddingHorizontal: 16,
     backgroundColor: "#2E7D32",

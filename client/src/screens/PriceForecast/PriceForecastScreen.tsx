@@ -443,9 +443,7 @@ const PriceForecastScreen = () => {
         language
       );
       setWeather(
-        `${Math.round(temperature)}°C • ${translatedCondition}${
-          rainfallMm !== null ? ` • ${rainfallMm.toFixed(1)}mm` : ""
-        }`
+        `${Math.round(temperature)}°C • ${translatedCondition}`
       );
     } else {
       setWeather(
@@ -561,8 +559,9 @@ const PriceForecastScreen = () => {
       const first = res.weeks[0];
       const firstWeek = res.weeks[0];
 
-      // if you are using ensemble first.ensemble etc keep your existing logic
-      setConfidenceScore(firstWeek?.confidence_pct ?? 70);
+      // ✅ USE ACTUAL CONFIDENCE FROM API (not hardcoded)
+      const actualConfidence = firstWeek?.confidence_pct ?? 70;
+      setConfidenceScore(actualConfidence);
 
       setPredictedPrice(first.ensemble);
 
@@ -572,6 +571,7 @@ const PriceForecastScreen = () => {
         (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
         0
       );
+
       // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
       if (!notificationSentRef.current) {
         if (bestIdx === 0) {
@@ -601,16 +601,20 @@ const PriceForecastScreen = () => {
         notificationSentRef.current = true;
       }
 
-      if (currentPriceNumeric > 0) {
+      if (Number.isFinite(lastPriceValue) && lastPriceValue >= 50) {
         const change =
-          ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100;
-        setPriceChange(change);
+          ((first.ensemble - lastPriceValue) / lastPriceValue) * 100;
+
+        // small-change visibility fix
+        const visibleChange = Math.abs(change) < 0.05 ? 0 : change;
+
+        setPriceChange(Math.max(Math.min(visibleChange, 100), -100));
       } else {
         setPriceChange(0);
       }
 
-      // simple fixed confidence (api eken enne naththam)
-      setConfidenceScore(85);
+      // ✅ REMOVED hardcoded setConfidenceScore(85)
+      // Confidence is now set from API above
 
       // Recommendation logic
       const changePct = currentPriceNumeric
@@ -1202,11 +1206,11 @@ const PriceForecastScreen = () => {
                         </Text>
                       </View>
 
-                      {/* MODEL DETAILS */}
+                      {/* MODEL DETAILS 
                       <Text style={styles.weekSub}>
                         SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
                         {w.ensemble.toFixed(1)}
-                      </Text>
+                      </Text> */}
                     </View>
                   );
                 })}

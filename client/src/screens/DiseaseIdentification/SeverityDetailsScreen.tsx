@@ -1035,6 +1035,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
             onPress={() =>
               navigation.navigate("DiseaseInfo", {
                 predictions,
+                severity_label,
               })
             }
           >
