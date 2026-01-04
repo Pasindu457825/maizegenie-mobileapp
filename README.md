@@ -13,7 +13,7 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 
 - 🍂 **Disease Identification & Control**  
    - apture or upload maize leaf images for disease detection.  
-  ML-powered disease identification using YOLOv8-based object detection, optimized for efficient and accurate maize leaf disease recognition.
+  - ML-powered disease identification using YOLOv8-based object detection, optimized for efficient and accurate maize leaf disease recognition.
   Displays disease name, severity level (Low / Medium / High), and confidence score.  
   Provides disease symptoms, causes, prevention methods, and safe control practices.  
   Supports Sinhala and English languages.  
