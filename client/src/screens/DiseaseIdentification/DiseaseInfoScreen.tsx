@@ -74,7 +74,7 @@ const DISEASE_INFO: Record<
 > = {
   common_rust: {
     en: {
-      name: "Common Rust",
+      name: "Common Rust Disease",
       overview:
         "Common rust is caused by Puccinia sorghi and spreads rapidly in humid, cool conditions. It affects photosynthesis and reduces yield.",
       symptoms: [
@@ -152,7 +152,7 @@ const DISEASE_INFO: Record<
 
   blight: {
     en: {
-      name: "Leaf Blight",
+      name: "Leaf Blight Disease",
       overview:
         "Leaf blight spreads rapidly and reduces photosynthesis significantly, weakening the plant structure and yield potential.",
       symptoms: [
@@ -230,7 +230,7 @@ const DISEASE_INFO: Record<
 
   gray_spot: {
     en: {
-      name: "Gray Leaf Spot",
+      name: "Gray Spot Disease",
       overview:
         "Gray leaf spot severely damages maize leaves, reducing photosynthetic area and causing significant yield losses in susceptible varieties.",
       symptoms: [
@@ -310,11 +310,24 @@ const DISEASE_INFO: Record<
 // ------------------ COMPONENT ------------------
 export default function DiseaseInfoScreen({ route }: Props) {
   const navigation = useNavigation<NavProp>();
-  const { predictions } = route.params;
+  const { predictions, severity_label } = route.params;
 
   // 🌐 GLOBAL LANGUAGE (sinhala / english)
   const { language: lang, setLanguage } = useLanguage();
   const language = lang === "sinhala" ? "si" : "en";
+
+  const getSeverityUI = (label: string) => {
+    const l = label.toLowerCase();
+    if (l.includes("low") || l.includes("mild")) {
+      return { level: "low", color: "#10B981" };
+    }
+    if (l.includes("medium") || l.includes("moderate")) {
+      return { level: "medium", color: "#F59E0B" };
+    }
+    return { level: "high", color: "#EF4444" };
+  };
+
+  const severityUI = getSeverityUI(severity_label);
 
   // 🌐 UI TRANSLATIONS
   const content = {
@@ -468,19 +481,23 @@ export default function DiseaseInfoScreen({ route }: Props) {
                 </Text>
                 <View style={styles.riskBadges}>
                   <View style={styles.riskBadge}>
-                    <Thermometer
-                      size={14}
-                      color={getSeverityColor(disease.severity)}
-                    />
+                    <Thermometer size={14} color={severityUI.color} />
+
                     <Text
                       style={[
                         styles.riskBadgeText,
-                        { color: getSeverityColor(disease.severity) },
+                        { color: severityUI.color, fontWeight: "700" },
                       ]}
                     >
-                      {content[language].severityLevel}: {disease.severity}
+                      {content[language].severityLevel}:{" "}
+                      {severityUI.level === "low"
+                        ? content[language].lowRisk
+                        : severityUI.level === "medium"
+                        ? content[language].mediumRisk
+                        : content[language].highRisk}
                     </Text>
                   </View>
+
                   <View style={styles.riskBadge}>
                     <Sprout
                       size={14}
