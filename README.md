@@ -11,7 +11,7 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 - 📈 **Corn Price Forecasting & Cultivation Timing**  
   Short-term price predictions (1–4 weeks) using SARIMAX/ARIMA + Prophet + ML ensemble (with planned LSTM/GRU extension), combined with district/GPS + live weather context, best-week detection, profit analysis  and notifications. Outputs include traffic-light signals and recommendations (Sell Now / Store / Sell Later / Wait), with bilingual (සිංහල/English) UI, trend charts, and a smart entry/loading gateway linked to Weather Forecast + Cultivation Advisor. 
 
-- 🍂 **Disease Identification & Control**  
+- 🍂 **Disease Identification & Solution Advisory**  
   - apture or upload maize leaf images for disease detection.  
   - ML-powered disease identification using YOLOv8-based object detection, optimized for efficient and accurate maize leaf disease recognition.
   - Displays disease name, severity level (Low / Medium / High), and confidence score.  
@@ -37,9 +37,9 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React Native  
-- **Backend**: Flask / FastAPI (Python)
-- **Machine Learning**: TensorFlow, scikit-learn, Prophet, XGBoost, YOLO  
-- **Database**: Superbase
+- **Backend**: FastAPI (Python)
+- **Machine Learning**: TensorFlow, scikit-learn, Prophet, XGBoost, YOLOV8, OpenCV  
+- **Database**: Supabase
 - **Explainability**: SHAP, LIME  
 - **Other Services**: Google Calendar API, gTTS/Coqui TTS (Sinhala/English voice) 
 
