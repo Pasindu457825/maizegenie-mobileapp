@@ -27,7 +27,7 @@ type LanguageType = "sinhala" | "english";
 
 const translations = {
   sinhala: {
-    title: "🌾 ස්මාර්ට් ගොවි මිතුරු",
+    title: "🌽 ස්මාර්ට් ගොවි මිතුරු",
     description: "වගා අස්වැන්න, කාලගුණ, මිල සහ පෝෂක උපදෙස්",
     next: "ආරම්භ කරමු",
     feature1: "🌽 අස්වැන්න පුරෝකථනය",
@@ -36,7 +36,7 @@ const translations = {
     feature4: "💰 මිල තොරතුරු",
   },
   english: {
-    title: "🌾 Smart Farming Assistant",
+    title: "🌽 Smart Farming Assistant",
     description: "Weather, prices, and fertilizer guidance",
     next: "Get Started",
     feature1: "🌽 Yield Prediction",

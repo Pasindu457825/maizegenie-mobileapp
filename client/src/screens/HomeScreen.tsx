@@ -207,7 +207,7 @@ export default function HomeScreen() {
       >
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.appTitle}>🌾 MaizeGenie</Text>
+            <Text style={styles.appTitle}>🌱 MaizeGenie</Text>
             <Text style={styles.headerSubtitle}>{t.farmingCompanion}</Text>
           </View>
 
