@@ -74,7 +74,7 @@ const DISEASE_INFO: Record<
 > = {
   common_rust: {
     en: {
-      name: "Common Rust",
+      name: "Common Rust Disease",
       overview:
         "Common rust is caused by Puccinia sorghi and spreads rapidly in humid, cool conditions. It affects photosynthesis and reduces yield.",
       symptoms: [
@@ -152,7 +152,7 @@ const DISEASE_INFO: Record<
 
   blight: {
     en: {
-      name: "Leaf Blight",
+      name: "Leaf Blight Disease",
       overview:
         "Leaf blight spreads rapidly and reduces photosynthesis significantly, weakening the plant structure and yield potential.",
       symptoms: [
@@ -230,7 +230,7 @@ const DISEASE_INFO: Record<
 
   gray_spot: {
     en: {
-      name: "Gray Leaf Spot",
+      name: "Gray Spot Disease",
       overview:
         "Gray leaf spot severely damages maize leaves, reducing photosynthetic area and causing significant yield losses in susceptible varieties.",
       symptoms: [
