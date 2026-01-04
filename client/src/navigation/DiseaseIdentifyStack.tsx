@@ -38,6 +38,7 @@ export type DiseaseIdentifyStackParamList = {
 
   DiseaseInfo: {
     predictions: Prediction[];
+    severity_label: string;
   };
 };
 
