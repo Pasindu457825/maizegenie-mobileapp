@@ -29,7 +29,11 @@ async def analyze_farmer_input(request: FertilizerAdvisoryRequest):
 
         result = rule_based_engine.process_farmer_input(
             request.farmer_input,
-            language=request.language
+            language=request.language,
+            planting_date=request.planting_date,
+            planting_stage=request.planting_stage,
+            rainfall_condition=request.rainfall_condition,
+            soil_condition=request.soil_condition
         )
 
         return FertilizerAdvisoryResponse(
