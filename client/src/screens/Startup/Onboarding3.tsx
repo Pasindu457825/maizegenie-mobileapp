@@ -19,6 +19,8 @@ import {
     BarChart3,
     MessageCircle,
     Zap,
+    Camera,
+    Send,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -31,14 +33,14 @@ const translations = {
         subtitle: "ඔබේ ගොවිතැනට සුදුසු පැකේජය තෝරන්න",
         free: "නොමිලේ",
         pro: "Pro",
-        monthly: "මාසිකව",
-        lifetime: "ජීවිත කාලය සඳහා",
+        perMonth: "මාසිකව",
+        perYear: "වාර්ෂිකව",
+        monthlyPrice: "රු. 300",
+        annualPrice: "රු. 2,500",
         getStarted: "ආරම්භ කරමු",
         upgradeToPro: "Pro වෙත උත්ශ්‍රේණි කරන්න",
         mostPopular: "වඩාත් ජනප්‍රිය",
         limitedOffer: "සීමිත දීමනාව",
-        saveAmount: "රු. 2,500 ඉතිරි කරන්න",
-        originalPrice: "මුල් මිල: රු. 4,999",
 
         // Free Features
         freeFeature1: "මූලික අස්වැන්න පුරෝකථනය",
@@ -48,28 +50,26 @@ const translations = {
         freeFeature5: "මූලික පෝෂක උපදෙස්",
 
         // Pro Features
-        proFeature1: "AI අස්වැන්න පුරෝකථනය",
-        proFeature2: "පස් පරීක්ෂණ ඉල්ලීම",
-        proFeature3: "විශේෂඥ උපදෙස්",
-        proFeature4: "ප්‍රමුඛ සහාය",
-        proFeature5: "සවිස්තර වාර්තා",
-        proFeature6: "දියුණු විශ්ලේෂණ",
-        proFeature7: "දැන්වීම් රහිත",
-        proFeature8: "ඕනෑම කාලයක අවලංගු කරන්න",
+        proFeature1: "විශේෂඥ උපදෙස්",
+        proFeature2: "සවිස්තර වාර්තා",
+        proFeature3: "පස් පරීක්ෂණ ඉල්ලීම",
+        proFeature4: "දැන්වීම් රහිත",
+        proFeature5: "Pro රෝග හඳුනාගැනීම",
+        proFeature6: "කෘෂිකර්ම නිලධාරීන්ට පින්තූර යැවීම",
     },
     english: {
         title: "Choose Your Plan",
         subtitle: "Select the perfect package for your farming needs",
         free: "Free",
         pro: "Pro",
-        monthly: "per month",
-        lifetime: "Lifetime",
+        perMonth: "per month",
+        perYear: "per year",
+        monthlyPrice: "Rs. 300",
+        annualPrice: "Rs. 2,500",
         getStarted: "Get Started",
         upgradeToPro: "Upgrade to Pro",
         mostPopular: "Most Popular",
         limitedOffer: "Limited Offer",
-        saveAmount: "Save Rs. 2,500",
-        originalPrice: "Original: Rs. 4,999",
 
         // Free Features
         freeFeature1: "Basic Yield Prediction",
@@ -79,14 +79,12 @@ const translations = {
         freeFeature5: "Basic Fertilizer Tips",
 
         // Pro Features
-        proFeature1: "AI Yield Prediction",
-        proFeature2: "Soil Test Request",
-        proFeature3: "Expert Consultation",
-        proFeature4: "Priority Support",
-        proFeature5: "Detailed Reports",
-        proFeature6: "Advanced Analytics",
-        proFeature7: "Ad-Free Experience",
-        proFeature8: "Cancel Anytime",
+        proFeature1: "Expert Consultation",
+        proFeature2: "Detailed Reports",
+        proFeature3: "Soil Test Request",
+        proFeature4: "Ad-Free Experience",
+        proFeature5: "Pro Disease Identification",
+        proFeature6: "Send Images to Agri Officers",
     },
 };
 
@@ -283,24 +281,27 @@ export default function Onboarding3({ navigation, route }: any) {
                                 <View style={styles.limitedOfferBadge}>
                                     <Text style={styles.limitedOfferText}>{t.limitedOffer}</Text>
                                 </View>
-                                <Text style={styles.originalPrice}>{t.originalPrice}</Text>
-                                <View style={styles.proPrice}>
-                                    <Text style={styles.proPriceAmount}>රු. 2,499</Text>
-                                    <Text style={styles.proPriceLifetime}>{t.lifetime}</Text>
+                                <View style={styles.pricingOptions}>
+                                    <View style={styles.priceOption}>
+                                        <Text style={styles.priceLabel}>{t.perMonth}</Text>
+                                        <Text style={styles.proPriceAmount}>{t.monthlyPrice}</Text>
+                                    </View>
+                                    <View style={styles.priceDivider} />
+                                    <View style={styles.priceOption}>
+                                        <Text style={styles.priceLabel}>{t.perYear}</Text>
+                                        <Text style={styles.proPriceAmount}>{t.annualPrice}</Text>
+                                    </View>
                                 </View>
-                                <Text style={styles.saveText}>{t.saveAmount}</Text>
                             </View>
                         </View>
 
                         <View style={styles.featuresContainer}>
-                            <ProFeatureItem icon={Check} text={t.proFeature1} highlight />
-                            <ProFeatureItem icon={TestTube} text={t.proFeature2} highlight />
-                            <ProFeatureItem icon={MessageCircle} text={t.proFeature3} />
-                            <ProFeatureItem icon={Check} text={t.proFeature4} />
-                            <ProFeatureItem icon={BarChart3} text={t.proFeature5} />
-                            <ProFeatureItem icon={Check} text={t.proFeature6} />
-                            <ProFeatureItem icon={Check} text={t.proFeature7} />
-                            <ProFeatureItem icon={Check} text={t.proFeature8} />
+                            <ProFeatureItem icon={MessageCircle} text={t.proFeature1} />
+                            <ProFeatureItem icon={BarChart3} text={t.proFeature2} />
+                            <ProFeatureItem icon={TestTube} text={t.proFeature3} />
+                            <ProFeatureItem icon={Sparkles} text={t.proFeature4} />
+                            <ProFeatureItem icon={Camera} text={t.proFeature5} highlight={true} />
+                            <ProFeatureItem icon={Send} text={t.proFeature6} highlight={true} />
                         </View>
 
                         <TouchableOpacity
@@ -614,32 +615,35 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
 
-    originalPrice: {
-        fontSize: 13,
-        color: "rgba(255, 255, 255, 0.6)",
-        textDecorationLine: "line-through",
-        marginBottom: 4,
-    },
-    proPrice: {
+    pricingOptions: {
         flexDirection: "row",
-        alignItems: "baseline",
-        gap: 8,
-        marginBottom: 4,
+        justifyContent: "space-around",
+        alignItems: "center",
+        marginTop: 12,
+        paddingVertical: 16,
+        borderTopWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: "rgba(255, 255, 255, 0.15)",
+    },
+    priceOption: {
+        alignItems: "center",
+        flex: 1,
+    },
+    priceDivider: {
+        width: 1,
+        height: 50,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+    },
+    priceLabel: {
+        fontSize: 12,
+        color: "rgba(255, 255, 255, 0.7)",
+        marginBottom: 6,
+        fontWeight: "600",
     },
     proPriceAmount: {
-        fontSize: 42,
+        fontSize: 28,
         fontWeight: "900",
         color: "#ffffff",
-    },
-    proPriceLifetime: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: "rgba(255, 255, 255, 0.8)",
-    },
-    saveText: {
-        fontSize: 13,
-        fontWeight: "700",
-        color: "#6ee7b7",
     },
 
     proFeatureItem: {
