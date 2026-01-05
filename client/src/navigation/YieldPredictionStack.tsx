@@ -20,10 +20,15 @@ import FertilizerAdvisorOfficerLandingScreen from "../screens/FertilizerAdvisor/
 import OfficerAdvisoryInputScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryInputScreen";
 import OfficerAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryResultsScreen";
 
+// Knowledge Bank Screens
+import KnowledgeBankMainScreen from "../screens/FertilizerAdvisor/KnowledgeBank/KnowledgeBankMainScreen";
+import NutrientDeficiencyScreen from "../screens/FertilizerAdvisor/KnowledgeBank/NutrientDeficiencyScreen";
+
 // Advice Requests Screen
 import FarmerAdviceRequestsScreen from "../screens/YieldPrediction/FarmerAdviceRequestsScreen";
 import ViewAdviceRequestDetailsScreen from "../screens/YieldPrediction/ViewAdviceRequestDetailsScreen";
 import ProvideAdviceScreen from "../screens/YieldPrediction/ProvideAdviceScreen";
+import MyAdviceRequestsScreen from "../screens/YieldPrediction/MyAdviceRequestsScreen";
 
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
@@ -49,9 +54,12 @@ export type YieldPredictionStackParamList = {
   RuleBasedAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
   OfficerAdvisoryInputScreen: undefined;
   OfficerAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
+  KnowledgeBankMain: undefined;
+  NutrientDeficiency: undefined;
   FarmerAdviceRequestsScreen: undefined;
   ViewAdviceRequestDetailsScreen: { requestId: string };
   ProvideAdviceScreen: { requestId: string };
+  MyAdviceRequestsScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -107,6 +115,14 @@ export default function YieldPredictionStack() {
         component={OfficerAdvisoryResultsScreen}
       />
       <Stack.Screen
+        name="KnowledgeBankMain"
+        component={KnowledgeBankMainScreen}
+      />
+      <Stack.Screen
+        name="NutrientDeficiency"
+        component={NutrientDeficiencyScreen}
+      />
+      <Stack.Screen
         name="FarmerAdviceRequestsScreen"
         component={FarmerAdviceRequestsScreen}
       />
@@ -117,6 +133,10 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="ProvideAdviceScreen"
         component={ProvideAdviceScreen}
+      />
+      <Stack.Screen
+        name="MyAdviceRequestsScreen"
+        component={MyAdviceRequestsScreen}
       />
     </Stack.Navigator>
   );

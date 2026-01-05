@@ -61,7 +61,7 @@ export default function LoginScreen({ navigation, route }: any) {
     }
   > = {
     si: {
-      welcomeTitle: "ආයුබෝවන් 🌾",
+      welcomeTitle: "ආයුබෝවන් 🌱",
       welcomeSubtitle: "ඔබේ ගොවිතැන් ගමන දිගටම කරගෙන යන්න",
       emailLabel: "ඉමේල් ලිපිනය",
       emailPlaceholder: "your.email@example.com",
@@ -80,7 +80,7 @@ export default function LoginScreen({ navigation, route }: any) {
       invalidCredentials: "අවලංගු ඉමේල් හෝ මුරපදය",
     },
     en: {
-      welcomeTitle: "Welcome Back 🌾",
+      welcomeTitle: "Welcome Back 🌱",
       welcomeSubtitle: "Continue your farming journey",
       emailLabel: "Email Address",
       emailPlaceholder: "your.email@example.com",
@@ -178,7 +178,7 @@ export default function LoginScreen({ navigation, route }: any) {
           opacity: logoAnim,
           transform: [{ translateY: cornAnim2 }]
         }}>
-          <Text style={{ fontSize: 60, opacity: 0.2 }}>🌾</Text>
+          <Text style={{ fontSize: 60, opacity: 0.2 }}>🌽</Text>
         </Animated.View>
 
         {/* Logo and Brand */}
@@ -199,7 +199,7 @@ export default function LoginScreen({ navigation, route }: any) {
             borderWidth: 3,
             borderColor: 'rgba(255, 255, 255, 0.3)',
           }}>
-            <Text style={{ fontSize: 50 }}>🌾</Text>
+            <Text style={{ fontSize: 50 }}>🌽</Text>
           </View>
 
           {/* App Name */}

@@ -133,7 +133,7 @@ const PriceForecastLoadingScreen = () => {
 
   const content: Content = {
     si: {
-      title: "🌾 බිම ගොවිතැන",
+      title: "🌱 බිම ගොවිතැන",
       subtitle: "ස්මාර්ට් කෘෂි තාක්ෂණය",
       mainText: "ඔබේ ගොවිතැනට",
       description: "නවීන තාක්ෂණික සහාය",
@@ -146,7 +146,7 @@ const PriceForecastLoadingScreen = () => {
       weatherDesc: "අද සහ ඉදිරි දින 7 සඳහා පුරෝකථනය",
     },
     en: {
-      title: "🌾 Smart Farming",
+      title: "🌱 Smart Farming",
       subtitle: "Agricultural Technology",
       mainText: "For Your Farm",
       description: "Modern Tech Support",
@@ -471,7 +471,7 @@ const PriceForecastLoadingScreen = () => {
       <View style={styles.subHeader}>
         <View style={styles.logoContainer}>
           <View style={styles.logoCircle}>
-            <Text style={styles.logoText}>🌾</Text>
+            <Text style={styles.logoText}>🌿</Text>
           </View>
           <View style={styles.locationInfo}>
             <View style={styles.locationRow}>
@@ -540,7 +540,7 @@ const PriceForecastLoadingScreen = () => {
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
             <View style={styles.iconCircle}>
               <View style={styles.iconInner}>
-                <Text style={styles.cornEmoji}>🌾</Text>
+                <Text style={styles.cornEmoji}>🌱</Text>
               </View>
               <View style={styles.pulseRing} />
             </View>

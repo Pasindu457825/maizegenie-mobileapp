@@ -32,6 +32,10 @@ class AdvisoryWarning(BaseModel):
 class FertilizerAdvisoryRequest(BaseModel):
     farmer_input: str = Field(..., min_length=3)
     language: Optional[Language] = None  # if missing, backend will auto-detect (fallback)
+    planting_date: Optional[str] = None  # YYYY-MM-DD format
+    planting_stage: Optional[str] = None  # Auto-calculated stage from frontend
+    rainfall_condition: Optional[str] = None  # low / high
+    soil_condition: Optional[str] = None  # dry / wet
 
 
 class FertilizerAdvisoryResponse(BaseModel):

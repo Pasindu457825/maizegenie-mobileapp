@@ -27,7 +27,7 @@ import {
   TrendingUp,
   Bell,
 } from "lucide-react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
 import { useApp } from "../../context/AppContext";
@@ -150,6 +150,13 @@ export default function ProAdvisorListScreen() {
   useEffect(() => {
     fetchData();
   }, [language]);
+
+  /* ---------- Refresh on focus ---------- */
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchData();
+    }, [language])
+  );
 
   /* ---------- Expand ---------- */
   const toggleExpand = (id: string) => {
@@ -551,7 +558,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0FDF4" },
 
   headerWrap: {
-    paddingTop: 10,
+    paddingTop: 24,
     paddingBottom: 14,
     paddingHorizontal: 14,
     backgroundColor: "#FFFFFF",

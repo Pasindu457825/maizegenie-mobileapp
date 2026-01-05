@@ -217,7 +217,7 @@ const ProAdvisorPage: React.FC = () => {
       loading: "ලබාගැනෙමින්...",
       noData: "තොරතුරු ලබාගත නොහැක",
       tryAgain: "නැවත උත්සාහ කරන්න",
-      harvest: "🌾 අස්වැන්න හා ගබඩා කිරීම",
+      harvest: "🌽 අස්වැන්න හා ගබඩා කිරීම",
       storage: "ගබඩා සලකා බැලීම",
       seed: "🌱 බීජ සඳහා උපදෙස්",
       water: "💧 ජල කළමනාකරණය",
@@ -246,7 +246,7 @@ const ProAdvisorPage: React.FC = () => {
       loading: "Loading...",
       noData: "Unable to fetch data",
       tryAgain: "Try Again",
-      harvest: "🌾 Harvest & Storage",
+      harvest: "🌽 Harvest & Storage",
       storage: "Storage Consideration",
       seed: "🌱 Seed Guidance",
       water: "💧 Water Management",
@@ -617,12 +617,20 @@ const ProAdvisorPage: React.FC = () => {
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingVertical: 16,
+            minHeight: 64,
+            paddingVertical: 12,
             paddingHorizontal: 16,
             backgroundColor: isExpanded ? `${accentColor}15` : "#FFFFFF",
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 12,
+              flex: 1,
+            }}
+          >
             <View
               style={{
                 width: 40,
@@ -631,6 +639,7 @@ const ProAdvisorPage: React.FC = () => {
                 backgroundColor: `${accentColor}20`,
                 justifyContent: "center",
                 alignItems: "center",
+                flexShrink: 0,
               }}
             >
               {icon}
@@ -647,13 +656,23 @@ const ProAdvisorPage: React.FC = () => {
             </Text>
           </View>
 
-          <ChevronDown
-            size={24}
-            color={accentColor}
+          <View
             style={{
-              transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+              justifyContent: "center",
+              alignItems: "center",
+              width: 32,
+              height: 32,
+              flexShrink: 0,
             }}
-          />
+          >
+            <ChevronDown
+              size={24}
+              color={accentColor}
+              style={{
+                transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+              }}
+            />
+          </View>
         </View>
 
         {isExpanded && (
@@ -754,7 +773,9 @@ const ProAdvisorPage: React.FC = () => {
             }))
           }
           style={{
-            padding: 16,
+            minHeight: 64,
+            paddingVertical: 12,
+            paddingHorizontal: 16,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
@@ -777,6 +798,7 @@ const ProAdvisorPage: React.FC = () => {
                 backgroundColor: "#10B98120",
                 justifyContent: "center",
                 alignItems: "center",
+                flexShrink: 0,
               }}
             >
               {icon}
@@ -792,13 +814,24 @@ const ProAdvisorPage: React.FC = () => {
               {title}
             </Text>
           </View>
-          <ChevronDown
-            size={24}
-            color="#10B981"
+
+          <View
             style={{
-              transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+              justifyContent: "center",
+              alignItems: "center",
+              width: 32,
+              height: 32,
+              flexShrink: 0,
             }}
-          />
+          >
+            <ChevronDown
+              size={24}
+              color="#10B981"
+              style={{
+                transform: [{ rotate: isExpanded ? "180deg" : "0deg" }],
+              }}
+            />
+          </View>
         </TouchableOpacity>
 
         {isExpanded && (

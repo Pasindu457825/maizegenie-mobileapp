@@ -3,10 +3,12 @@ Improved keyword-based rule engine for fertilizer advisory
 - Supports Sinhala and English
 - Single Source of Truth (backend)
 - Handles overlaps with scoring + priority
+- Context-aware: considers growth stage and planting days
 """
 
 from typing import Dict, List, Tuple, Optional
 import re
+from datetime import datetime, date
 
 class FertilizerRuleBasedEngine:
     def __init__(self):
@@ -93,15 +95,69 @@ class FertilizerRuleBasedEngine:
         return out
 
     # -----------------------
-    # Score + Decide issues
+    # Calculate days after planting
     # -----------------------
-    def _score_deficiencies(self, signals: Dict[str, bool]) -> Dict[str, int]:
+    def _calculate_days_after_planting(self, planting_date_str: Optional[str]) -> Optional[int]:
         """
-        Map signals into deficiency scores with simple weights
-        This reduces overlap issues (Root Cause #3).
+        Calculate days since planting from YYYY-MM-DD string
+        Returns None if invalid or missing
+        """
+        if not planting_date_str:
+            return None
+        
+        try:
+            planting_date = datetime.strptime(planting_date_str, "%Y-%m-%d").date()
+            today = date.today()
+            days_diff = (today - planting_date).days
+            return days_diff if days_diff >= 0 else None
+        except (ValueError, TypeError):
+            return None
+
+    # -----------------------
+    # Determine growth stage from days
+    # -----------------------
+    def _get_growth_stage_from_days(self, days: Optional[int]) -> Optional[str]:
+        """
+        Map days after planting to growth stage ID
+        Based on DOA guidelines and cornKnowledgeBase.ts
+        """
+        if days is None:
+            return None
+        
+        if days < 0:
+            return "future"
+        elif days <= 10:
+            return "seedling"  # Days 0-10: Seedling stage
+        elif days <= 25:
+            return "early_vegetative"  # Days 10-25: Early vegetative
+        elif days <= 52:
+            return "vegetative"  # Days 25-52: Vegetative/knee-height
+        elif days <= 75:
+            return "flowering"  # Days 52-75: Tasseling/flowering
+        elif days <= 110:
+            return "grain_filling"  # Days 75-110: Grain filling
+        else:
+            return "maturity"  # Days 110+: Maturity/harvest
+
+    # -----------------------
+    # Score + Decide issues (CONTEXT-AWARE)
+    # -----------------------
+    def _score_deficiencies(self, signals: Dict[str, bool], days_after_planting: Optional[int] = None) -> Dict[str, int]:
+        """
+        Map signals into deficiency scores with context-aware weights
+        Growth stage influences nutrient priority:
+        - Days 0-10 (Seedling): P > K > N (roots priority)
+        - Days 10-25 (Early Veg): N = P > K (balanced growth)
+        - Days 25-52 (Vegetative): N > K > P (leaf growth critical)
+        - Days 52-75 (Flowering): N > K > P (last N window, K for strength)
+        - Days 75+ (Grain Filling): K > N (no more N needed)
         """
         score = {"nitrogen": 0, "phosphorus": 0, "potassium": 0}
+        
+        # Determine growth stage
+        stage = self._get_growth_stage_from_days(days_after_planting)
 
+        # Base scoring from symptoms
         # Nitrogen
         if signals.get("yellow_leaves"):
             score["nitrogen"] += 3
@@ -122,6 +178,70 @@ class FertilizerRuleBasedEngine:
         if signals.get("weak_plants"):
             score["potassium"] += 2
 
+        # CONTEXT-AWARE ADJUSTMENTS based on growth stage
+        # Applies to ALL detected symptoms, not just yellow leaves
+        has_any_symptom = any([
+            signals.get("yellow_leaves"), signals.get("pale_leaves"), 
+            signals.get("purple_leaves"), signals.get("edge_burn"),
+            signals.get("weak_plants"), signals.get("stunted_growth")
+        ])
+        
+        if stage == "seedling":  # Days 0-10
+            # At seedling stage, root development is priority
+            # Any symptom at this stage → recommend Phosphorus for roots
+            if has_any_symptom:
+                score["phosphorus"] = max(score["phosphorus"], 3)
+            # Phosphorus is critical for root establishment
+            score["phosphorus"] = int(score["phosphorus"] * 1.5)
+            # Nitrogen/Potassium deficiency symptoms are often NORMAL at this stage
+            score["nitrogen"] = int(score["nitrogen"] * 0.3)
+            score["potassium"] = int(score["potassium"] * 0.5)
+            
+        elif stage == "early_vegetative":  # Days 10-25
+            # Balanced growth - all nutrients important
+            # If any symptom detected, ensure a recommendation is made
+            if has_any_symptom:
+                # Boost the highest scoring nutrient to ensure recommendation
+                max_nutrient = max(score, key=score.get)
+                score[max_nutrient] = max(score[max_nutrient], 2)
+            score["nitrogen"] = int(score["nitrogen"] * 1.2)
+            score["phosphorus"] = int(score["phosphorus"] * 1.1)
+            score["potassium"] = int(score["potassium"] * 1.0)
+            
+        elif stage == "vegetative":  # Days 25-52
+            # CRITICAL NITROGEN WINDOW - Top Dress 1 timing
+            # If any symptom detected, ensure a recommendation
+            if has_any_symptom:
+                max_nutrient = max(score, key=score.get)
+                score[max_nutrient] = max(score[max_nutrient], 2)
+            score["nitrogen"] = int(score["nitrogen"] * 1.8)
+            score["potassium"] = int(score["potassium"] * 1.2)
+            score["phosphorus"] = int(score["phosphorus"] * 0.7)
+            
+        elif stage == "flowering":  # Days 52-75
+            # LAST NITROGEN WINDOW - Top Dress 2 timing
+            if has_any_symptom:
+                max_nutrient = max(score, key=score.get)
+                score[max_nutrient] = max(score[max_nutrient], 2)
+            score["nitrogen"] = int(score["nitrogen"] * 1.6)
+            score["potassium"] = int(score["potassium"] * 1.4)
+            score["phosphorus"] = int(score["phosphorus"] * 0.5)
+            
+        elif stage == "grain_filling":  # Days 75-110
+            # TOO LATE for nitrogen - focus on K only
+            if has_any_symptom:
+                # Only potassium can help at this stage
+                score["potassium"] = max(score["potassium"], 2)
+            score["nitrogen"] = int(score["nitrogen"] * 0.2)
+            score["potassium"] = int(score["potassium"] * 1.5)
+            score["phosphorus"] = int(score["phosphorus"] * 0.3)
+            
+        elif stage == "maturity":  # Days 110+
+            # Harvest time - no fertilizer needed regardless of symptoms
+            score["nitrogen"] = 0
+            score["phosphorus"] = 0
+            score["potassium"] = 0
+
         return score
 
     def _pick_primary_deficiency(self, scores: Dict[str, int]) -> Optional[str]:
@@ -133,43 +253,137 @@ class FertilizerRuleBasedEngine:
     # -----------------------
     # Build response fields
     # -----------------------
-    def _build_warnings(self, signals: Dict[str, bool]) -> Tuple[List[dict], bool]:
+    def _build_warnings(self, signals: Dict[str, bool], days_after_planting: Optional[int] = None, rainfall_condition: Optional[str] = None, soil_condition: Optional[str] = None) -> Tuple[List[dict], bool]:
         warnings: List[dict] = []
         apply_today = True
+        stage = self._get_growth_stage_from_days(days_after_planting)
 
-        if signals.get("rain_high") or signals.get("soil_wet"):
+        # Weather/soil warnings - dropdown selections take priority, mutually exclusive
+        has_wet_conditions = False
+        has_dry_conditions = False
+        detected_conditions = []  # Track what was actually detected
+        
+        # Priority 1: Check dropdown selections (user's explicit choice)
+        if rainfall_condition == "high":
+            has_wet_conditions = True
+            detected_conditions.append("heavy_rain")
+        elif rainfall_condition == "low":
+            has_dry_conditions = True
+            detected_conditions.append("low_rain")
+            
+        if soil_condition == "wet":
+            has_wet_conditions = True
+            detected_conditions.append("wet_soil")
+        elif soil_condition == "dry":
+            has_dry_conditions = True
+            detected_conditions.append("dry_soil")
+        
+        # Priority 2: Check text-based signals only if no dropdown selection made
+        if not rainfall_condition and not soil_condition:
+            if signals.get("rain_high") or signals.get("soil_wet"):
+                has_wet_conditions = True
+                if signals.get("rain_high"):
+                    detected_conditions.append("heavy_rain")
+                if signals.get("soil_wet"):
+                    detected_conditions.append("wet_soil")
+            elif signals.get("soil_dry") or signals.get("rain_low"):
+                has_dry_conditions = True
+                if signals.get("rain_low"):
+                    detected_conditions.append("low_rain")
+                if signals.get("soil_dry"):
+                    detected_conditions.append("dry_soil")
+        
+        # Build warning messages based on what was actually detected (mutually exclusive)
+        if has_wet_conditions:
             apply_today = False
+            # Build specific message based on detected conditions
+            if "heavy_rain" in detected_conditions and "wet_soil" in detected_conditions:
+                msg_en = "Heavy rain / waterlogged soil detected. Delay fertilizer application to avoid nutrient loss."
+                msg_si = "අධික වැසි / ජලයෙන් පිරුණු පස හඳුනාගෙන ඇත. පෝෂක අහිමි වීම වැළැක්වීමට පොහොර යෙදීම ප්‍රමාද කරන්න."
+            elif "heavy_rain" in detected_conditions:
+                msg_en = "Heavy rain detected. Delay fertilizer application to avoid nutrient loss."
+                msg_si = "අධික වැසි හඳුනාගෙන ඇත. පෝෂක අහිමි වීම වැළැක්වීමට පොහොර යෙදීම ප්‍රමාද කරන්න."
+            else:  # wet_soil only
+                msg_en = "Waterlogged soil detected. Delay fertilizer application to avoid nutrient loss."
+                msg_si = "ජලයෙන් පිරුණු පස හඳුනාගෙන ඇත. පෝෂක අහිමි වීම වැළැක්වීමට පොහොර යෙදීම ප්‍රමාද කරන්න."
+            
             warnings.append(
                 {
                     "type": "rain_delay",
                     "severity": "high",
-                    "message_en": "Heavy rain / waterlogged soil detected. Delay fertilizer application to avoid nutrient loss.",
-                    "message_si": "අධික වැසි / ජලයෙන් පිරුණු පස හඳුනාගෙන ඇත. පෝෂක අහිමි වීම වැළැක්වීමට පොහොර යෙදීම ප්‍රමාද කරන්න.",
+                    "message_en": msg_en,
+                    "message_si": msg_si,
                 }
             )
-
-        if signals.get("soil_dry") or signals.get("rain_low"):
+        elif has_dry_conditions:
+            # Build specific message based on detected conditions
+            if "low_rain" in detected_conditions and "dry_soil" in detected_conditions:
+                msg_en = "Dry conditions detected. Consider split application and water after fertilizing."
+                msg_si = "වියළි තත්ත්ව හඳුනාගෙන ඇත. පොහොර කොටස් වශයෙන් යෙදීම සලකා බලන්න සහ පොහොර දැමීමෙන් පසු ජලය දෙන්න."
+            elif "low_rain" in detected_conditions:
+                msg_en = "Low rainfall detected. Consider split application and water after fertilizing."
+                msg_si = "අඩු වර්ෂාපතනය හඳුනාගෙන ඇත. පොහොර කොටස් වශයෙන් යෙදීම සලකා බලන්න සහ පොහොර දැමීමෙන් පසු ජලය දෙන්න."
+            else:  # dry_soil only
+                msg_en = "Dry soil detected. Consider split application and water after fertilizing."
+                msg_si = "වියළි පස හඳුනාගෙන ඇත. පොහොර කොටස් වශයෙන් යෙදීම සලකා බලන්න සහ පොහොර දැමීමෙන් පසු ජලය දෙන්න."
+            
             warnings.append(
                 {
                     "type": "dry_soil",
                     "severity": "medium",
-                    "message_en": "Dry conditions detected. Consider split application and water after fertilizing.",
-                    "message_si": "වියළි තත්ත්ව හඳුනාගෙන ඇත. පොහොර කොටස් වශයෙන් යෙදීම සලකා බලන්න සහ පොහොර දැමීමෙන් පසු ජලය දෙන්න.",
+                    "message_en": msg_en,
+                    "message_si": msg_si,
+                }
+            )
+
+        # Growth stage warnings
+        if stage == "maturity":
+            apply_today = False
+            warnings.append(
+                {
+                    "type": "too_late",
+                    "severity": "high",
+                    "message_en": "Crop is at maturity/harvest stage (110+ days). Fertilizer application is no longer beneficial.",
+                    "message_si": "වගාව අස්වනු අවධියේ (දින 110+). පොහොර යෙදීම තවදුරටත් ප්‍රයෝජනවත් නොවේ.",
+                }
+            )
+        elif stage == "grain_filling":
+            warnings.append(
+                {
+                    "type": "late_stage",
+                    "severity": "medium",
+                    "message_en": "Crop is in grain filling stage (75-110 days). Nitrogen application is too late. Only Potassium may help.",
+                    "message_si": "වගාව ධාන්‍ය පිරවීමේ අවධියේ (දින 75-110). නයිට්‍රජන් යෙදීම ප්‍රමාද වී ඇත. පොටෑසියම් පමණක් උපකාර විය හැක.",
+                }
+            )
+        elif stage == "seedling":
+            warnings.append(
+                {
+                    "type": "early_stage",
+                    "severity": "low",
+                    "message_en": "Crop is in early seedling stage (0-10 days). Some yellowing is normal. Focus on root development (Phosphorus).",
+                    "message_si": "වගාව මුල් අවධියේ (දින 0-10). යම් කහ පැහැයක් සාමාන්‍යයි. මුල් වර්ධනය කෙරෙහි අවධානය යොමු කරන්න (පොස්පරස්).",
                 }
             )
 
         return warnings, apply_today
 
-    def _build_reasoning(self, language: str, primary: Optional[str], signals: Dict[str, bool]) -> Dict[str, Optional[str]]:
+    def _build_reasoning(self, language: str, primary: Optional[str], signals: Dict[str, bool], days_after_planting: Optional[int] = None) -> Dict[str, Optional[str]]:
         if not primary and not any(signals.values()):
             return {"observation": None, "cause": None, "reasoning": None}
+        
+        stage = self._get_growth_stage_from_days(days_after_planting)
+        stage_context = ""
 
-        # Observation
+        # Observation - include ALL detected signals
         obs_parts_si = []
         obs_parts_en = []
         if signals.get("yellow_leaves") or signals.get("pale_leaves"):
             obs_parts_si.append("කොළ කහ/පැහැති වීම")
             obs_parts_en.append("yellow/pale leaves")
+        if signals.get("purple_leaves"):
+            obs_parts_si.append("දම් පාට කොළ")
+            obs_parts_en.append("purple leaves")
         if signals.get("edge_burn"):
             obs_parts_si.append("කොළ අග පිළිස්සීම/වියළීම")
             obs_parts_en.append("leaf tip/edge burn")
@@ -182,9 +396,15 @@ class FertilizerRuleBasedEngine:
         if signals.get("rain_high"):
             obs_parts_si.append("අධික වැසි")
             obs_parts_en.append("heavy rain")
+        if signals.get("rain_low"):
+            obs_parts_si.append("වැස්ස අඩු")
+            obs_parts_en.append("low rainfall")
         if signals.get("soil_dry"):
             obs_parts_si.append("වියලි පස")
             obs_parts_en.append("dry soil")
+        if signals.get("soil_wet"):
+            obs_parts_si.append("තෙත්/ජලයෙන් පිරුණු පස")
+            obs_parts_en.append("wet/waterlogged soil")
 
         observation = (
             ("ඔබ විස්තර කළ ලක්ෂණ: " + ", ".join(obs_parts_si)) if language == "si" else ("Symptoms described: " + ", ".join(obs_parts_en))
@@ -208,11 +428,36 @@ class FertilizerRuleBasedEngine:
                 }
             cause = cause_map.get(primary, "—")
 
-        reasoning = (
+        # Add growth stage context to reasoning
+        if stage and days_after_planting is not None:
+            if language == "si":
+                stage_map = {
+                    "seedling": f"වගාව මුල් අවධියේ (දින {days_after_planting}). මුල් වර්ධනය ප්‍රමුඛතාවයයි.",
+                    "early_vegetative": f"වගාව මුල් ශාක වර්ධන අවධියේ (දින {days_after_planting}). සමබර පෝෂක සැපයුම වැදගත්.",
+                    "vegetative": f"වගාව ශාක වර්ධන අවධියේ (දින {days_after_planting}). නයිට්‍රජන් ඉතා වැදගත් කාලයයි.",
+                    "flowering": f"වගාව මල් පිපීමේ අවධියේ (දින {days_after_planting}). නයිට්‍රජන් සඳහා අවසාන කාලයයි.",
+                    "grain_filling": f"වගාව ධාන්‍ය පිරවීමේ අවධියේ (දින {days_after_planting}). නයිට්‍රජන් සඳහා ප්‍රමාද වී ඇත.",
+                    "maturity": f"වගාව අස්වනු අවධියේ (දින {days_after_planting}). පොහොර අවශ්‍ය නැත.",
+                }
+                stage_context = stage_map.get(stage, "")
+            else:
+                stage_map = {
+                    "seedling": f"Crop is in seedling stage (Day {days_after_planting}). Root development is priority.",
+                    "early_vegetative": f"Crop is in early vegetative stage (Day {days_after_planting}). Balanced nutrients important.",
+                    "vegetative": f"Crop is in vegetative stage (Day {days_after_planting}). Critical nitrogen window.",
+                    "flowering": f"Crop is in flowering stage (Day {days_after_planting}). Last window for nitrogen.",
+                    "grain_filling": f"Crop is in grain filling stage (Day {days_after_planting}). Too late for nitrogen.",
+                    "maturity": f"Crop is at maturity (Day {days_after_planting}). No fertilizer needed.",
+                }
+                stage_context = stage_map.get(stage, "")
+        
+        base_reasoning = (
             "DOA සහ CIC නිල උපදෙස් අනුව, හඳුනාගත් ලක්ෂණ වලට ගැළපෙන පොහොර අනුපිළිවෙලක් යෝජනා කර ඇත."
             if language == "si"
             else "Based on DOA & CIC guidance, a suitable fertilizer plan is suggested for the detected symptoms."
         )
+        
+        reasoning = f"{stage_context} {base_reasoning}" if stage_context else base_reasoning
 
         return {"observation": observation, "cause": cause, "reasoning": reasoning}
 
@@ -254,12 +499,23 @@ class FertilizerRuleBasedEngine:
     # -----------------------
     # Public entry
     # -----------------------
-    def process_farmer_input(self, text: str, language: Optional[str] = None) -> Dict:
+    def process_farmer_input(
+        self, 
+        text: str, 
+        language: Optional[str] = None,
+        planting_date: Optional[str] = None,
+        planting_stage: Optional[str] = None,
+        rainfall_condition: Optional[str] = None,
+        soil_condition: Optional[str] = None
+    ) -> Dict:
         # Language = explicit > fallback detection (Root Cause #4 fix)
         lang = language if language in ("si", "en") else self.detect_language(text)
+        
+        # Calculate days after planting for context-aware scoring
+        days_after_planting = self._calculate_days_after_planting(planting_date)
 
         signals = self._match_signals(text, lang)
-        scores = self._score_deficiencies(signals)
+        scores = self._score_deficiencies(signals, days_after_planting)
         primary = self._pick_primary_deficiency(scores)
 
         recommendations: List[dict] = []
@@ -279,11 +535,11 @@ class FertilizerRuleBasedEngine:
             )
             detected_issues.append(f"{primary}_deficiency")
 
-        # Weather/soil warnings + apply_today gate
-        warnings, apply_today = self._build_warnings(signals)
+        # Weather/soil warnings + apply_today gate (context-aware)
+        warnings, apply_today = self._build_warnings(signals, days_after_planting, rainfall_condition, soil_condition)
 
-        # WHY fields
-        why = self._build_reasoning(lang, primary, signals)
+        # WHY fields (context-aware)
+        why = self._build_reasoning(lang, primary, signals, days_after_planting)
 
         advice = self._build_advice_text(lang, recommendations, warnings, apply_today)
 
