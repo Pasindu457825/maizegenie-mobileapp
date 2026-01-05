@@ -36,8 +36,26 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
   - SHAP and LIME visualizations to explain factor influence on yield predictions, with downloadable analytical reports for Agricultural Officers.
   - Natural Language Support rule-based fertilizer intelligence engine to to generate advices to farmers.(Safe Urea/MOP dose recommendations with Sinhala/English TTS.)
 
-- 🐛 **Pest Identification**  
-  Offline AI-based detection of maize pests (e.g., Fall Armyworm) using YOLO models with AR life cycle visualization.  
+- 🐛 **Pest Identification & Control System**
+
+   - This component is designed to help maize farmers identify pests early and take the correct control actions at the right time.
+
+   - 📷 **Image-based pest identification**  
+     Farmers can capture or upload images of maize pests using a mobile phone to identify common pests such as Fall Armyworm.
+   - 🤖 **AI-powered pest detection**  
+     The system uses AI models to accurately detect maize pests, even when different pests look similar.
+   - 🌱 **Pest lifecycle visualization**  
+     Displays clear lifecycle stages (egg, larva, pupa, adult) for each pest to help farmers understand pest behavior.
+   - ⏱️ **Stage-based control guidance**  
+     Provides control and treatment recommendations based on the current lifecycle stage instead of general advice.
+   - 🔊 **Sinhala and English language support**  
+     Supports both text and voice explanations in Sinhala and English for better accessibility.
+   - 👨‍🌾👨‍💼 **Pest Forum with expert support**  
+     Farmers can ask pest-related questions through the Pest Forum. Agriculture Officers can review, approve, and reply with trusted expert advice.
+   - ✅ **Reduces wrong pesticide usage**  
+     Helps farmers avoid unnecessary or incorrect pesticide application, improving crop safety and yield.
+
+---
 
 - 🔍 **Explainable AI**  
   SHAP and LIME visualizations for factor influence, with simplified reason codes for farmers.  
