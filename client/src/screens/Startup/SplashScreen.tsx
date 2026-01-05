@@ -178,7 +178,7 @@ export default function SplashScreen({ navigation }: any) {
             },
           ]}
         >
-          🌾 MaizeGenie
+          🌽 MaizeGenie
         </Animated.Text>
 
         {/* ✨ UPDATED: Enhanced tagline section */}

@@ -33,7 +33,7 @@ def normalize_class(name: str) -> str:
     return CLASS_MAP.get(name.strip().lower(), name.strip().lower())
 
 
-def predict_disease_with_roboflow(image_bytes: bytes, conf=0.6):
+def predict_disease_with_roboflow(image_bytes: bytes, conf=0.5):
     # ---- Decode image ----
     img_array = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)

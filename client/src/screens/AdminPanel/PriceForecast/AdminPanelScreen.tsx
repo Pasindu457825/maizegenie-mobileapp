@@ -59,7 +59,7 @@ const AdminPanelScreen = () => {
   const content = {
     sinhala: {
       title: "මිල යාවත්කාලීන කිරීම",
-      subtitle: "🌾 MaizeGenie",
+      subtitle: "🌽 MaizeGenie",
       welcome: "ස්වාගතයි",
       description: "වත්මන් වෙළඳපොළ මිල සහ බද්ද යාවත්කාලීන කරන්න",
       fuelPrice: "ඉන්ධන මිල",
@@ -82,7 +82,7 @@ const AdminPanelScreen = () => {
     },
     english: {
       title: "Price Update",
-      subtitle: "🌾 MaizeGenie",
+      subtitle: "🌽 MaizeGenie",
       welcome: "Welcome",
       description: "Update current market prices and taxes",
       fuelPrice: "Fuel Price",
