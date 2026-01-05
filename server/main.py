@@ -42,6 +42,7 @@ from priceforecast.price_prediction_router import router as price_forecast_route
 from pricewindow.router import router as price_window_router
 from fertilizeradvisory.router import router as fertilizer_advisory_router
 from official_news.official_news_router import router as official_news_router
+from pro_advisor.router import router as pro_advisor_router
 from advicerequests.router import router as advice_requests_router
 
 
@@ -97,4 +98,5 @@ app.include_router(price_forecast_router)
 app.include_router(fertilizer_advisory_router)  # Rule-Based Fertilizer Advisory
 app.include_router(price_window_router)
 app.include_router(official_news_router)
+app.include_router(pro_advisor_router)
 app.include_router(advice_requests_router)  # Farmer Advice Requests

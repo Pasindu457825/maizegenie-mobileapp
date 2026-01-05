@@ -1,7 +1,18 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Picker } from "@react-native-picker/picker";
-import { useLanguage } from "../../context/LanguageContext"; // 🆕 Import global context
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path, Circle, G, Text as SvgText } from "react-native-svg";
+import { useLanguage } from "../../context/LanguageContext";
+import { 
+  TrendingUp, 
+  AlertTriangle, 
+  CheckCircle, 
+  Info,
+  MapPin,
+  Calendar,
+  Activity
+} from "lucide-react-native";
 
 const riskData = {
   fallarmyworm: {
@@ -140,8 +151,6 @@ const riskData = {
   }
 };
 
-/* --------------------------  STATIC DATA ------------------------------ */
-
 const pestNames = {
   fallarmyworm: { en: "Fall Armyworm", si: "හමුදා පණුවා" },
   bollworm: { en: "Bollworm", si: "බෝල් පණුවා" },
@@ -176,7 +185,7 @@ const monthTranslations = {
 
 const riskLevels = {
   High: { 
-    color: "#dc2626", 
+    color: "#ef4444", 
     label: { en: "High Risk", si: "ඉහළ අවදානම" }, 
     percentage: 85 
   },
@@ -218,19 +227,141 @@ const riskMessages = {
 
 const labels = {
   title: { en: "Pest Risk Assessment", si: "කෘමි අවදානම් තක්සේරුව" },
-  subtitle: { en: "Seasonal Risk Analysis", si: "කාලීය අවදානම් විශ්ලේෂණය" },
+  subtitle: { en: "Real-time Risk Analysis", si: "තත්‍ය කාලීන අවදානම් විශ්ලේෂණය" },
   pestType: { en: "Pest Type", si: "කෘමි වර්ගය" },
   district: { en: "District", si: "දිස්ත්‍රික්කය" },
   month: { en: "Month", si: "මාසය" },
-  riskLevel: { en: "Risk Level", si: "අවදානම් මට්ටම" },
+  riskLevel: { en: "Current Risk Level", si: "වර්තමාන අවදානම් මට්ටම" },
   recommendation: { en: "Recommendation", si: "නිර්දේශය" },
   lastUpdated: { en: "Last updated", si: "අවසන් යාවත්කාලීන" },
   low: { en: "Low", si: "අඩු" },
   medium: { en: "Medium", si: "මධ්‍යම" },
-  high: { en: "High", si: "ඉහළ" }
+  high: { en: "High", si: "ඉහළ" },
+  selectParameters: { en: "Select Parameters", si: "පරාමිති තෝරන්න" }
 };
 
-/* --------------------------  MAIN COMPONENT ------------------------------ */
+// Speedometer Gauge Component
+const SpeedometerGauge = ({ percentage, color }: { percentage: number; color: string }) => {
+  const size = 280;
+  const strokeWidth = 25;
+  const center = size / 2;
+  const radius = (size - strokeWidth) / 2;
+  
+  // Calculate angle (from -120° to 120°, total 240°)
+  const startAngle = -120;
+  const endAngle = 120;
+  const totalAngle = endAngle - startAngle;
+  const currentAngle = startAngle + (totalAngle * percentage) / 100;
+  
+  // Convert to radians
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  
+  // Calculate needle endpoint
+  const needleLength = radius - 10;
+  const needleX = center + needleLength * Math.cos(toRad(currentAngle - 90));
+  const needleY = center + needleLength * Math.sin(toRad(currentAngle - 90));
+  
+  // Create arc path for gauge background
+  const createArcPath = (start: number, end: number, r: number) => {
+    const startRad = toRad(start - 90);
+    const endRad = toRad(end - 90);
+    const x1 = center + r * Math.cos(startRad);
+    const y1 = center + r * Math.sin(startRad);
+    const x2 = center + r * Math.cos(endRad);
+    const y2 = center + r * Math.sin(endRad);
+    const largeArc = end - start > 180 ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+  };
+
+  return (
+    <Svg width={size} height={size * 0.7} viewBox={`0 0 ${size} ${size * 0.7}`}>
+      {/* Background arc - gray */}
+      <Path
+        d={createArcPath(startAngle, endAngle, radius)}
+        stroke="#e5e7eb"
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+      />
+      
+      {/* Colored segments */}
+      {/* Low (green) - 0-33% */}
+      <Path
+        d={createArcPath(startAngle, startAngle + totalAngle * 0.33, radius)}
+        stroke="#10b981"
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+        opacity={0.3}
+      />
+      
+      {/* Medium (orange) - 33-66% */}
+      <Path
+        d={createArcPath(startAngle + totalAngle * 0.33, startAngle + totalAngle * 0.66, radius)}
+        stroke="#f59e0b"
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+        opacity={0.3}
+      />
+      
+      {/* High (red) - 66-100% */}
+      <Path
+        d={createArcPath(startAngle + totalAngle * 0.66, endAngle, radius)}
+        stroke="#ef4444"
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+        opacity={0.3}
+      />
+      
+      {/* Active arc showing current value */}
+      <Path
+        d={createArcPath(startAngle, currentAngle, radius)}
+        stroke={color}
+        strokeWidth={strokeWidth}
+        fill="none"
+        strokeLinecap="round"
+      />
+      
+      {/* Tick marks */}
+      {[0, 20, 40, 60, 80, 100].map((tick) => {
+        const angle = startAngle + (totalAngle * tick) / 100;
+        const innerR = radius - strokeWidth / 2 - 5;
+        const outerR = radius - strokeWidth / 2 + 5;
+        const x1 = center + innerR * Math.cos(toRad(angle - 90));
+        const y1 = center + innerR * Math.sin(toRad(angle - 90));
+        const x2 = center + outerR * Math.cos(toRad(angle - 90));
+        const y2 = center + outerR * Math.sin(toRad(angle - 90));
+        
+        return (
+          <G key={tick}>
+            <Path
+              d={`M ${x1} ${y1} L ${x2} ${y2}`}
+              stroke="#94a3b8"
+              strokeWidth={2}
+            />
+          </G>
+        );
+      })}
+      
+      {/* Center hub */}
+      <Circle cx={center} cy={center} r={15} fill="#1f2937" />
+      <Circle cx={center} cy={center} r={10} fill={color} />
+      
+      {/* Needle */}
+      <Path
+        d={`M ${center} ${center} L ${needleX} ${needleY}`}
+        stroke="#1f2937"
+        strokeWidth={4}
+        strokeLinecap="round"
+      />
+      
+      {/* Needle tip circle */}
+      <Circle cx={needleX} cy={needleY} r={6} fill={color} />
+    </Svg>
+  );
+};
 
 export default function PestRiskMeter() {
   const currentMonth = months[new Date().getMonth()];
@@ -239,11 +370,9 @@ export default function PestRiskMeter() {
   const [district, setDistrict] = useState("Kurunegala");
   const [month, setMonth] = useState(currentMonth);
 
-  // 🆕 Use global language context
-  const { language: appLang, setLanguage } = useLanguage();
+  const { language: appLang } = useLanguage();
   const language = appLang === "sinhala" ? "si" : "en";
 
-  // Get risk from riskData
   const getRisk = (): "High" | "Medium" | "Low" | "Unknown" => {
     try {
       const pestData = riskData[pest as keyof typeof riskData];
@@ -261,17 +390,53 @@ export default function PestRiskMeter() {
   const riskConfig = riskLevels[risk];
   const riskNote = riskMessages[risk]?.[language] || riskMessages.Unknown.en;
 
-  return (
-    <ScrollView style={styles.container}>
-      <View style={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{labels.title[language]}</Text>
-          <Text style={styles.subtitle}>{labels.subtitle[language]}</Text>
-        </View>
+  const getRiskIcon = () => {
+    switch (risk) {
+      case "High":
+        return <AlertTriangle size={24} color="#ffffff" />;
+      case "Medium":
+        return <TrendingUp size={24} color="#ffffff" />;
+      case "Low":
+        return <CheckCircle size={24} color="#ffffff" />;
+      default:
+        return <Info size={24} color="#ffffff" />;
+    }
+  };
 
+  return (
+    <View style={styles.container}>
+      {/* Modern Gradient Header */}
+      <LinearGradient
+        colors={["#10ad79", "#0f9d6b"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.headerIconContainer}>
+            <Activity size={32} color="#ffffff" strokeWidth={2.5} />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.title}>{labels.title[language]}</Text>
+            <Text style={styles.subtitle}>{labels.subtitle[language]}</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Selection Card */}
-        <View style={styles.card}>
+        <View style={styles.selectionCard}>
+          <View style={styles.selectionHeader}>
+            <View style={styles.selectionIconContainer}>
+              <Info size={20} color="#10ad79" />
+            </View>
+            <Text style={styles.selectionTitle}>{labels.selectParameters[language]}</Text>
+          </View>
+
           {/* Pest Picker */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>{labels.pestType[language]}</Text>
@@ -294,7 +459,10 @@ export default function PestRiskMeter() {
 
           {/* District Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{labels.district[language]}</Text>
+            <View style={styles.labelRow}>
+              <MapPin size={16} color="#10ad79" />
+              <Text style={styles.label}>{labels.district[language]}</Text>
+            </View>
             <View style={styles.pickerWrapper}>
               <Picker 
                 selectedValue={district} 
@@ -314,7 +482,10 @@ export default function PestRiskMeter() {
 
           {/* Month Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>{labels.month[language]}</Text>
+            <View style={styles.labelRow}>
+              <Calendar size={16} color="#10ad79" />
+              <Text style={styles.label}>{labels.month[language]}</Text>
+            </View>
             <View style={styles.pickerWrapper}>
               <Picker 
                 selectedValue={month} 
@@ -333,39 +504,41 @@ export default function PestRiskMeter() {
           </View>
         </View>
 
-        {/* Risk Meter */}
+        {/* Risk Meter Card with Speedometer */}
         <View style={styles.meterCard}>
           <Text style={styles.meterTitle}>{labels.riskLevel[language]}</Text>
           
-          {/* Circular Progress Meter */}
-          <View style={styles.meterContainer}>
-            <View style={styles.meterOuter}>
-              <View style={[styles.meterFill, { 
-                backgroundColor: riskConfig.color,
-                height: `${riskConfig.percentage}%`
-              }]} />
-            </View>
+          {/* Speedometer Gauge */}
+          <View style={styles.gaugeContainer}>
+            <SpeedometerGauge 
+              percentage={riskConfig.percentage} 
+              color={riskConfig.color}
+            />
             
-            <View style={styles.meterInfo}>
-              <Text style={[styles.riskPercentage, { color: riskConfig.color }]}>
+            {/* Center Display */}
+            <View style={styles.centerDisplay}>
+              <Text style={[styles.percentageText, { color: riskConfig.color }]}>
                 {riskConfig.percentage}%
               </Text>
-              <Text style={[styles.riskLabel, { color: riskConfig.color }]}>
+              <Text style={styles.riskLabelText}>
                 {riskConfig.label[language]}
               </Text>
             </View>
           </View>
 
-          {/* Risk Indicator Bar */}
-          <View style={styles.indicatorBar}>
-            <View style={[styles.indicator, { backgroundColor: "#10b981" }]}>
-              <Text style={styles.indicatorText}>{labels.low[language]}</Text>
+          {/* Risk Level Indicators */}
+          <View style={styles.indicatorsRow}>
+            <View style={styles.indicatorItem}>
+              <View style={[styles.indicatorDot, { backgroundColor: "#10b981" }]} />
+              <Text style={styles.indicatorLabel}>{labels.low[language]}</Text>
             </View>
-            <View style={[styles.indicator, { backgroundColor: "#f59e0b" }]}>
-              <Text style={styles.indicatorText}>{labels.medium[language]}</Text>
+            <View style={styles.indicatorItem}>
+              <View style={[styles.indicatorDot, { backgroundColor: "#f59e0b" }]} />
+              <Text style={styles.indicatorLabel}>{labels.medium[language]}</Text>
             </View>
-            <View style={[styles.indicator, { backgroundColor: "#dc2626" }]}>
-              <Text style={styles.indicatorText}>{labels.high[language]}</Text>
+            <View style={styles.indicatorItem}>
+              <View style={[styles.indicatorDot, { backgroundColor: "#ef4444" }]} />
+              <Text style={styles.indicatorLabel}>{labels.high[language]}</Text>
             </View>
           </View>
         </View>
@@ -373,10 +546,17 @@ export default function PestRiskMeter() {
         {/* Recommendation Card */}
         <View style={[styles.recommendationCard, { borderLeftColor: riskConfig.color }]}>
           <View style={styles.recommendationHeader}>
-            <View style={[styles.iconCircle, { backgroundColor: riskConfig.color + "20" }]}>
-              <Text style={styles.iconText}>⚠️</Text>
+            <View style={[styles.iconCircle, { backgroundColor: riskConfig.color }]}>
+              {getRiskIcon()}
             </View>
-            <Text style={styles.recommendationTitle}>{labels.recommendation[language]}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.recommendationTitle}>
+                {labels.recommendation[language]}
+              </Text>
+              <Text style={[styles.riskBadge, { color: riskConfig.color }]}>
+                {riskConfig.label[language]}
+              </Text>
+            </View>
           </View>
           <Text style={styles.recommendationText}>{riskNote}</Text>
         </View>
@@ -387,209 +567,266 @@ export default function PestRiskMeter() {
             {labels.lastUpdated[language]}: {new Date().toLocaleDateString()}
           </Text>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
-
-/* --------------------------  STYLES ------------------------------ */
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: "#f8fafc" 
+    backgroundColor: "#f8fafb" 
   },
-  
+
+  // Header Styles
+  header: {
+    paddingTop: 60,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  headerIconContainer: {
+    width: 56,
+    height: 56,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontWeight: "500",
+  },
+
+  scrollView: {
+    flex: 1,
+  },
+
   content: { 
     padding: 20,
     paddingBottom: 40
   },
-  
-  header: {
-    marginBottom: 24,
-    alignItems: "center"
-  },
-  
-  title: { 
-    fontSize: 28, 
-    fontWeight: "800", 
-    color: "#0f172a",
-    marginBottom: 4
-  },
-  
-  subtitle: {
-    fontSize: 16,
-    color: "#64748b",
-    fontWeight: "500"
-  },
 
-  card: {
-    backgroundColor: "#fff",
+  // Selection Card
+  selectionCard: {
+    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+
+  selectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 20,
+  },
+
+  selectionIconContainer: {
+    width: 40,
+    height: 40,
+    backgroundColor: "#e8f8f2",
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  selectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1f2937",
   },
 
   inputGroup: {
-    marginBottom: 20
+    marginBottom: 16
+  },
+
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 8,
   },
 
   label: { 
     fontSize: 14, 
-    marginBottom: 8, 
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#334155",
     textTransform: "uppercase",
     letterSpacing: 0.5
   },
 
   pickerWrapper: {
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#f8fafb",
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderWidth: 2,
+    borderColor: "#e8f8f2",
     overflow: "hidden"
   },
 
   picker: {
-    height: 50
+    height: 50,
   },
 
+  // Meter Card
   meterCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 24,
     marginBottom: 20,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
     alignItems: "center"
   },
 
   meterTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#0f172a",
-    marginBottom: 24
+    color: "#1f2937",
+    marginBottom: 20,
+    textAlign: "center"
   },
 
-  meterContainer: {
-    flexDirection: "row",
+  gaugeContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 32,
-    width: "100%"
+    marginBottom: 24,
+    position: "relative",
   },
 
-  meterOuter: {
-    width: 120,
-    height: 200,
-    backgroundColor: "#f1f5f9",
-    borderRadius: 60,
-    overflow: "hidden",
-    justifyContent: "flex-end",
-    borderWidth: 3,
-    borderColor: "#e2e8f0"
+  centerDisplay: {
+    position: "absolute",
+    bottom: 20,
+    alignItems: "center",
   },
 
-  meterFill: {
-    width: "100%",
-    borderRadius: 60
-  },
-
-  meterInfo: {
-    marginLeft: 32,
-    alignItems: "flex-start"
-  },
-
-  riskPercentage: {
+  percentageText: {
     fontSize: 48,
     fontWeight: "800",
-    marginBottom: 4
+    marginBottom: 40,
   },
 
-  riskLabel: {
-    fontSize: 18,
-    fontWeight: "700"
+  riskLabelText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#64748b",
   },
 
-  indicatorBar: {
+  indicatorsRow: {
     flexDirection: "row",
+    justifyContent: "center",
+    gap: 24,
     width: "100%",
-    borderRadius: 8,
-    overflow: "hidden",
-    height: 8
   },
 
-  indicator: {
-    flex: 1,
-    height: "100%"
+  indicatorItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 
-  indicatorText: {
-    display: "none"
+  indicatorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
 
+  indicatorLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#64748b",
+  },
+
+  // Recommendation Card
   recommendationCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     borderLeftWidth: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 3
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
 
   recommendationHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12
+    gap: 16,
+    marginBottom: 16,
   },
 
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12
-  },
-
-  iconText: {
-    fontSize: 20
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   recommendationTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#0f172a"
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+
+  riskBadge: {
+    fontSize: 13,
+    fontWeight: "700",
   },
 
   recommendationText: {
     fontSize: 15,
     lineHeight: 24,
-    color: "#475569"
+    color: "#475569",
   },
 
+  // Footer
   footer: {
     alignItems: "center",
     paddingTop: 16,
-    paddingBottom: 8
+    paddingBottom: 8,
   },
 
   footerText: {
     fontSize: 13,
     color: "#94a3b8",
-    fontWeight: "500"
+    fontWeight: "500",
   }
 });

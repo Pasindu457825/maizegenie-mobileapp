@@ -16,6 +16,20 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation";
 
+
+// 🔥 Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    return "http://localhost:8000";
+  } else {
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 type RootNavProp = StackNavigationProp<
   RootStackParamList,
   "Notifications"

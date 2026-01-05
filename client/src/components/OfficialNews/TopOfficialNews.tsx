@@ -59,7 +59,7 @@ const translations: Record<
   }
 > = {
   si: {
-    title: "📰 නිල පුවත්",
+    title: "නිල පුවත්",
     more: "තව",
     new: "අලුත්",
     category: {
@@ -75,7 +75,7 @@ const translations: Record<
     },
   },
   en: {
-    title: "📰 Official News",
+    title: "Official News",
     more: "More",
     new: "NEW",
     category: {
@@ -245,7 +245,7 @@ export default function TopOfficialNews() {
                 end={{ x: 1, y: 1 }}
                 style={styles.iconGradient}
               >
-                <Text style={styles.headerIcon}>🌾</Text>
+                <Text style={styles.headerIcon}>📰</Text>
               </LinearGradient>
             </View>
             <View>

@@ -11,13 +11,13 @@ import {
   TextInput,
   Modal,
   Platform,
+  Image,
 } from "react-native";
 import {
   useNavigation,
   useRoute,
   NavigationProp,
 } from "@react-navigation/native";
-import type { StackNavigationProp } from "@react-navigation/stack";
 import {
   ArrowLeft,
   Bell,
@@ -35,6 +35,7 @@ import {
   Calendar,
   X,
   Archive,
+  Zap,
 } from "lucide-react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
@@ -42,6 +43,14 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import type { StackNavigationProp } from "@react-navigation/stack";
+import { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
+import PricingModal1 from "../../components/PricingModal1";
+
+type NavProp = StackNavigationProp<
+  PriceForecastStackParamList,
+  "PriceAdvisorScreen"
+>;
 
 type CircularProgressProps = {
   percent: number;
@@ -130,6 +139,11 @@ type RootStackParamList = {
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
   Notifications: undefined;
+
+  // ✅ ADD THIS
+  ProAdvisorPage: {
+    formData: any;
+  };
 };
 
 interface RouteParams {
@@ -190,6 +204,39 @@ const VARIETY_DURATION_WEEKS: Record<string, number> = {
   Unknown: 14,
 };
 
+const VARIETIES = [
+  {
+    name: "Commando",
+    weeks: "18–20 weeks",
+    image: require("../../../assets/varieties/commando.png"),
+  },
+  {
+    name: "GT 200",
+    weeks: "16–18 weeks",
+    image: require("../../../assets/varieties/gt200.png"),
+  },
+  {
+    name: "GT 709",
+    weeks: "17–19 weeks",
+    image: require("../../../assets/varieties/gt709.png"),
+  },
+  {
+    name: "Jet 999",
+    weeks: "16–17 weeks",
+    image: require("../../../assets/varieties/jet999.png"),
+  },
+  {
+    name: "Pacific 808",
+    weeks: "18–20 weeks",
+    image: require("../../../assets/varieties/pacific808.png"),
+  },
+  {
+    name: "Local Variety",
+    weeks: "20–22 weeks",
+    image: require("../../../assets/varieties/Unknown.png"),
+  },
+];
+
 const DISTRICT_TO_API_LOCATION: Record<string, string> = {
   අනුරාධපුර: "Anuradapura",
   මොණරාගල: "Monaragala",
@@ -246,6 +293,7 @@ const PriceAdvisorScreen: React.FC = () => {
   );
   const [advisorGuideLoading, setAdvisorGuideLoading] = useState(false);
   const [showAdvisorGuide, setShowAdvisorGuide] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
 
   const {
     locationName,
@@ -1420,6 +1468,11 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const handleGoBack = () => navigation.goBack();
 
+  // ✅ ADD THIS BUTTON
+  const handleOpenProAdvisor = () => {
+    rootNavigation.navigate("ProAdvisor" as never);
+  };
+
   // Render Variety Picker
   const renderVarietyPicker = () => {
     return (
@@ -2013,11 +2066,6 @@ const PriceAdvisorScreen: React.FC = () => {
                 {/* Readiness Progress at Top */}
                 {fullAdvisorText && (
                   <>
-                    {(() => {
-                      const { percent } = getReadinessScore();
-                      return <CircularProgress percent={percent} />;
-                    })()}
-
                     {/* Decision Badge */}
                     <View
                       style={[
@@ -2068,130 +2116,136 @@ const PriceAdvisorScreen: React.FC = () => {
                       <Text style={styles.advisoryText}>{fullAdvisorText}</Text>
                     </View>
 
-                                                                {/* ✅ Advisor Guide (NEW) */}
-                {(advisorGuideLoading || advisorGuideResult?.advisor_guide) && (
-                  <View style={{ marginTop: 14 }}>
-                    <TouchableOpacity
-                      onPress={() => setShowAdvisorGuide((s) => !s)}
-                      style={{
-                        padding: 14,
-                        borderRadius: 14,
-                        backgroundColor: "#F0FDF4",
-                        borderWidth: 1.5,
-                        borderColor: "#A7F3D0",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "800",
-                          color: "#065F46",
-                        }}
-                      >
-                        {language === "si"
-                          ? "📘 උපදේශක මාර්ගෝපදේශය"
-                          : "📘 Advisor Guide"}
-                      </Text>
-
-                      <Text
-                        style={{
-                          fontSize: 12,
-                          fontWeight: "700",
-                          color: "#047857",
-                        }}
-                      >
-                        {showAdvisorGuide
-                          ? language === "si"
-                            ? "Hide"
-                            : "Hide"
-                          : language === "si"
-                          ? "Show"
-                          : "Show"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {showAdvisorGuide && (
-                      <View
-                        style={{
-                          marginTop: 10,
-                          padding: 14,
-                          borderRadius: 14,
-                          backgroundColor: "#FFFFFF",
-                          borderWidth: 1,
-                          borderColor: "#D1FAE5",
-                        }}
-                      >
-                        {advisorGuideLoading ? (
-                          <Text style={{ color: "#6B7280" }}>
+                    {/* ✅ Advisor Guide (NEW) */}
+                    {(advisorGuideLoading ||
+                      advisorGuideResult?.advisor_guide) && (
+                      <View style={{ marginTop: 14 }}>
+                        <TouchableOpacity
+                          onPress={() => setShowAdvisorGuide((s) => !s)}
+                          style={{
+                            padding: 14,
+                            borderRadius: 14,
+                            backgroundColor: "#F0FDF4",
+                            borderWidth: 1.5,
+                            borderColor: "#A7F3D0",
+                            flexDirection: "row",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                          }}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "800",
+                              color: "#065F46",
+                            }}
+                          >
                             {language === "si"
-                              ? "ලබාගැනෙමින්..."
-                              : "Loading..."}
+                              ? "📘 උපදේශක මාර්ගෝපදේශය"
+                              : "📘 Advisor Guide"}
                           </Text>
-                        ) : (
-                          <>
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                color: "#065F46",
-                                lineHeight: 19,
-                              }}
-                            >
-                              🌱 {advisorGuideResult?.advisor_guide?.seed}
-                            </Text>
 
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                color: "#065F46",
-                                lineHeight: 19,
-                                marginTop: 8,
-                              }}
-                            >
-                              💧 {advisorGuideResult?.advisor_guide?.water}
-                            </Text>
+                          <Text
+                            style={{
+                              fontSize: 12,
+                              fontWeight: "700",
+                              color: "#047857",
+                            }}
+                          >
+                            {showAdvisorGuide
+                              ? language === "si"
+                                ? "Hide"
+                                : "Hide"
+                              : language === "si"
+                              ? "Show"
+                              : "Show"}
+                          </Text>
+                        </TouchableOpacity>
 
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                color: "#065F46",
-                                lineHeight: 19,
-                                marginTop: 8,
-                              }}
-                            >
-                              🧪 {advisorGuideResult?.advisor_guide?.fertilizer}
-                            </Text>
+                        {showAdvisorGuide && (
+                          <View
+                            style={{
+                              marginTop: 10,
+                              padding: 14,
+                              borderRadius: 14,
+                              backgroundColor: "#FFFFFF",
+                              borderWidth: 1,
+                              borderColor: "#D1FAE5",
+                            }}
+                          >
+                            {advisorGuideLoading ? (
+                              <Text style={{ color: "#6B7280" }}>
+                                {language === "si"
+                                  ? "ලබාගැනෙමින්..."
+                                  : "Loading..."}
+                              </Text>
+                            ) : (
+                              <>
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: "#065F46",
+                                    lineHeight: 19,
+                                  }}
+                                >
+                                  🌱 {advisorGuideResult?.advisor_guide?.seed}
+                                </Text>
 
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                color: "#065F46",
-                                lineHeight: 19,
-                                marginTop: 8,
-                              }}
-                            >
-                              🏠 {advisorGuideResult?.advisor_guide?.storage}
-                            </Text>
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: "#065F46",
+                                    lineHeight: 19,
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  💧 {advisorGuideResult?.advisor_guide?.water}
+                                </Text>
 
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                color: "#065F46",
-                                lineHeight: 19,
-                                marginTop: 8,
-                              }}
-                            >
-                              💰 {advisorGuideResult?.advisor_guide?.finance}
-                            </Text>
-                          </>
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: "#065F46",
+                                    lineHeight: 19,
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  🧪{" "}
+                                  {
+                                    advisorGuideResult?.advisor_guide
+                                      ?.fertilizer
+                                  }
+                                </Text>
+
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: "#065F46",
+                                    lineHeight: 19,
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  🏠{" "}
+                                  {advisorGuideResult?.advisor_guide?.storage}
+                                </Text>
+
+                                <Text
+                                  style={{
+                                    fontSize: 13,
+                                    color: "#065F46",
+                                    lineHeight: 19,
+                                    marginTop: 8,
+                                  }}
+                                >
+                                  💰{" "}
+                                  {advisorGuideResult?.advisor_guide?.finance}
+                                </Text>
+                              </>
+                            )}
+                          </View>
                         )}
                       </View>
                     )}
-                  </View>
-                )}
-
 
                     {/* Divider */}
                     <View style={styles.sectionDivider} />
@@ -2218,6 +2272,38 @@ const PriceAdvisorScreen: React.FC = () => {
                     </TouchableOpacity>
                   </View>
                 )}
+
+                {/* ✅ NEW — Pro Advisor Button */}
+                {fullAdvisorText && (
+                  <TouchableOpacity
+                    style={styles.proAdvisorButton}
+                    onPress={() => setShowPricingModal(true)}
+                  >
+                    <View style={styles.proAdvisorContent}>
+                      <Zap size={20} color="#FFFFFF" />
+                      <Text style={styles.proAdvisorButtonText}>
+                        {language === "si"
+                          ? "🚀 Pro Advisor ගිහින් තවත් විස්තර ලබාගන්න"
+                          : "🚀 Go to Pro Advisor for detailed plan"}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                {/* ✅ ADD THIS HERE — Pricing Popup */}
+                <PricingModal1
+                  visible={showPricingModal}
+                  onClose={() => setShowPricingModal(false)}
+                  onSelectFree={() => {
+                    setShowPricingModal(false);
+                  }}
+                  onSelectPro={() => {
+                    setShowPricingModal(false);
+                    rootNavigation.navigate("ProAdvisorPage", {
+                      formData: form,
+                    });
+                  }}
+                />
               </View>
             </View>
           )}
@@ -2369,20 +2455,52 @@ const PriceAdvisorScreen: React.FC = () => {
 
                   {/* Seed Variety */}
                   <Text style={styles.inputLabel}>{t.formVariety}</Text>
-                  <TouchableOpacity
-                    style={styles.pickerInput}
-                    onPress={() => setShowVarietyPicker(true)}
-                  >
-                    <Leaf color="#10B981" size={20} />
-                    <Text
-                      style={[
-                        styles.pickerText,
-                        !form.seedVariety && styles.pickerPlaceholder,
-                      ]}
-                    >
-                      {form.seedVariety || t.selectVariety}
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.varietyGrid}>
+                    {VARIETIES.map((item) => {
+                      const selected = form.seedVariety === item.name;
+
+                      return (
+                        <TouchableOpacity
+                          key={item.name}
+                          style={[
+                            styles.varietyCard,
+                            selected && styles.varietyCardSelected,
+                          ]}
+                          onPress={() =>
+                            setForm((f) => ({
+                              ...f,
+                              seedVariety: item.name,
+                            }))
+                          }
+                        >
+                          <Image
+                            source={item.image}
+                            style={styles.varietyImage}
+                          />
+
+                          <Text
+                            style={[
+                              styles.varietyText,
+                              selected && styles.varietyTextSelected,
+                            ]}
+                          >
+                            {item.name}
+                          </Text>
+
+                          {/* ✅ WEEK INFO UNDER VARIETY */}
+                          <Text style={styles.varietyWeek}>
+                            {language === "si"
+                              ? `අස්වැන්නට සති ${
+                                  VARIETY_DURATION_WEEKS[item.name]
+                                }`
+                              : `Harvest in ${
+                                  VARIETY_DURATION_WEEKS[item.name]
+                                } weeks`}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
                   {/* Land Area */}
                   <Text style={styles.inputLabel}>{t.formArea}</Text>
@@ -2572,10 +2690,10 @@ const PriceAdvisorScreen: React.FC = () => {
 
           <View style={{ height: 40 }} />
         </Animated.View>
-      </ScrollView>
 
-      {renderVarietyPicker()}
-      {renderDistrictPicker()}
+        {renderVarietyPicker()}
+        {renderDistrictPicker()}
+      </ScrollView>
     </View>
   );
 };
@@ -3123,7 +3241,7 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#ECFEFF",
     paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
@@ -3135,36 +3253,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  combinedSummary: {
-    marginTop: 8,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
-  },
-  badgeStrong: { backgroundColor: "#DCFCE7" },
-  badgeModerate: { backgroundColor: "#FEF3C7" },
-  badgeWeak: { backgroundColor: "#FEE2E2" },
-  badgeConfidence: { backgroundColor: "#E0F2FE" },
-  mainActionText: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-    color: "#064E3B",
-    marginBottom: 14,
-  },
-  reasonText: {
-    fontSize: 13,
-    color: "#374151",
-    textAlign: "center",
-    lineHeight: 18,
-  },
-  storageCard: {
-    marginTop: 14,
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "#FFFBEB",
+  proAdvisorButton: {
+    marginTop: 16,
+    backgroundColor: "#047857",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
     borderWidth: 1.5,
     borderColor: "#FCD34D",
   },
@@ -3174,6 +3271,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
+
   storageIconWrap: {
     width: 30,
     height: 30,
@@ -3184,12 +3282,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#FCD34D",
   },
+
   storageTitle: {
     fontSize: 15,
     fontWeight: "800",
     color: "#92400E",
     flex: 1,
   },
+
   storageWeeks: {
     fontSize: 13,
     fontWeight: "700",
@@ -3197,12 +3297,14 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textAlign: "center",
   },
+
   storageMsg: {
     fontSize: 13,
     color: "#451A03",
     lineHeight: 19,
     textAlign: "center",
   },
+
   storageNoteBox: {
     marginTop: 10,
     paddingVertical: 10,
@@ -3210,16 +3312,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: "#FEF3C7",
   },
+
   storageNoteText: {
     fontSize: 12,
     color: "#92400E",
     textAlign: "center",
     fontWeight: "600",
   },
+
   timelineCard: {
     marginTop: 12,
     marginBottom: 12,
-    paddingVertical: 12, // 🔧 top/bottom balance
+    paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 16,
     backgroundColor: "#ECFDF5",
@@ -3230,30 +3334,31 @@ const styles = StyleSheet.create({
   timelineRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center", // ✅ center everything
-    gap: 8, // ✅ controlled spacing
+    justifyContent: "center",
+    gap: 8,
   },
 
   timelineStep: {
-    flex: 1, // ✅ responsive width
+    flex: 1,
     minHeight: 104,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 6,
-    paddingHorizontal: 6, // 🔧 side empty space reduce
+    paddingHorizontal: 6,
   },
 
   timelineStepBest: {
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    paddingVertical: 8, // 🔧 slightly more than left
+    paddingVertical: 8,
     paddingHorizontal: 8,
     borderWidth: 1,
     borderColor: "#D1FAE5",
   },
+
   timelineIcon: {
     fontSize: 20,
-    marginBottom: 2, // 🔧 from 4 → 2
+    marginBottom: 2,
   },
 
   timelineTitle: {
@@ -3261,7 +3366,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#065F46",
     textAlign: "center",
-    lineHeight: 16, // 🔧 text spacing consistency
+    lineHeight: 16,
   },
 
   timelineDesc: {
@@ -3270,15 +3375,7 @@ const styles = StyleSheet.create({
     color: "#065F46",
     textAlign: "center",
     lineHeight: 16,
-    marginTop: 2, // 🔧 controlled gap between lines
-  },
-
-  timelineWeek: {
     marginTop: 2,
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#6B7280", // 🔧 de-emphasize week label
-    textAlign: "center",
   },
 
   timelineMiddle: {
@@ -3287,8 +3384,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     position: "relative",
     height: 52,
-    marginHorizontal: 6, // ⬅️ from 4 → 6 (breathing space)
+    marginHorizontal: 6,
   },
+
   timelineLine: {
     position: "absolute",
     height: 4,
@@ -3298,10 +3396,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#10B981",
     opacity: 0.25,
   },
+
   timelinePill: {
-    paddingHorizontal: 14, // ⬅️ from 12 → 14
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    minWidth: 100, // ⬅️ from 82 → 100 (MAIN FIX)
+    minWidth: 100,
     borderRadius: 999,
     backgroundColor: "#FFFFFF",
     borderWidth: 1.5,
@@ -3320,7 +3419,7 @@ const styles = StyleSheet.create({
 
   timelineArrow: {
     position: "absolute",
-    right: -6, // ⬅️ from 2 → -6 (push arrow outward)
+    right: -6,
     width: 0,
     height: 0,
     borderTopWidth: 6,
@@ -3345,5 +3444,139 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#065F46",
     lineHeight: 20,
+  },
+  storageCard: {
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1.5,
+    borderColor: "#FCD34D",
+  },
+
+  combinedSummary: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+
+  badgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  badgeStrong: {
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+
+  badgeModerate: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#F59E0B",
+  },
+
+  badgeWeak: {
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#EF4444",
+  },
+
+  badgeConfidence: {
+    backgroundColor: "#EDE9FE",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#A78BFA",
+  },
+
+  mainActionText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#065F46",
+    textAlign: "center",
+    marginVertical: 12,
+    letterSpacing: 0.3,
+  },
+
+  reasonText: {
+    fontSize: 13,
+    color: "#374151",
+    lineHeight: 20,
+    marginTop: 12,
+    textAlign: "center",
+    paddingHorizontal: 8,
+  },
+
+  proAdvisorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+
+  proAdvisorButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  varietyWeek: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginTop: 4,
+    textAlign: "center",
+  },
+  varietyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+
+  varietyCard: {
+    width: "30%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+
+  varietyCardSelected: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+
+  varietyImage: {
+    width: 70,
+    height: 70,
+    resizeMode: "contain",
+    marginBottom: 6,
+  },
+
+  varietyText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  varietyTextSelected: {
+    color: "#047857",
+    fontWeight: "700",
   },
 });
