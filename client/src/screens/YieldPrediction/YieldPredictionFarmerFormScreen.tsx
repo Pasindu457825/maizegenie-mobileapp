@@ -189,7 +189,7 @@ const YieldPredictionFormScreen = () => {
                 timestamp: new Date().toISOString(),
                 district,
                 location,
-                plantingDate: plantingDate?.toISOString(),
+                plantingDate: plantingDate?.toISOString() || null,
                 season,
                 landSize,
                 landSizeUnit,
@@ -212,10 +212,12 @@ const YieldPredictionFormScreen = () => {
                 kStatusClass,
                 maxTemperature,
                 sunshineHours,
-                firstFertDate: firstFertDate?.toISOString(),
-                secondFertDate: secondFertDate?.toISOString(),
+                firstFertDate: firstFertDate?.toISOString() || null,
+                secondFertDate: secondFertDate?.toISOString() || null,
             };
 
+            console.log("💾 Saving form data to AsyncStorage...");
+            
             const existing = await AsyncStorage.getItem("savedFarmerForms");
             const forms = existing ? JSON.parse(existing) : [];
 
@@ -227,6 +229,8 @@ const YieldPredictionFormScreen = () => {
             }
 
             await AsyncStorage.setItem("savedFarmerForms", JSON.stringify(forms));
+            
+            console.log("✅ Form data saved successfully. Total saved forms:", forms.length);
 
             Alert.alert(
                 language === "si" ? "සුරකින ලදී" : "Saved",
@@ -235,11 +239,12 @@ const YieldPredictionFormScreen = () => {
                     : "✅ Form data saved successfully!"
             );
         } catch (error) {
+            console.error("❌ Error saving form data:", error);
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si"
                     ? "❌ දත්ත සුරකින්න නොහැකි විය."
-                    : "❌ Failed to save form data."
+                    : `❌ Failed to save form data: ${error instanceof Error ? error.message : 'Unknown error'}`
             );
         }
     };
@@ -247,8 +252,12 @@ const YieldPredictionFormScreen = () => {
     // Load latest saved form data
     const loadSavedFormData = async () => {
         try {
+            console.log("📂 Loading saved form data from AsyncStorage...");
+            
             const existing = await AsyncStorage.getItem("savedFarmerForms");
+            
             if (!existing) {
+                console.log("ℹ️ No saved forms found in AsyncStorage");
                 Alert.alert(
                     language === "si" ? "දත්ත නැත" : "No Data",
                     language === "si"
@@ -259,6 +268,8 @@ const YieldPredictionFormScreen = () => {
             }
 
             const forms = JSON.parse(existing);
+            console.log("📋 Found saved forms:", forms.length);
+            
             if (!forms.length) {
                 Alert.alert(
                     language === "si" ? "දත්ත නැත" : "No Data",
@@ -270,6 +281,7 @@ const YieldPredictionFormScreen = () => {
             }
 
             const latestForm = forms[0]; // Latest saved
+            console.log("🔄 Restoring latest form from:", latestForm.timestamp);
 
             // Restore all form fields
             setDistrict(latestForm.district || "");
@@ -300,6 +312,8 @@ const YieldPredictionFormScreen = () => {
             setFirstFertDate(latestForm.firstFertDate ? new Date(latestForm.firstFertDate) : null);
             setSecondFertDate(latestForm.secondFertDate ? new Date(latestForm.secondFertDate) : null);
 
+            console.log("✅ Form data restored successfully");
+
             Alert.alert(
                 language === "si" ? "පුරවන ලදී" : "Loaded",
                 language === "si"
@@ -307,11 +321,12 @@ const YieldPredictionFormScreen = () => {
                     : "✅ Saved data has been restored!"
             );
         } catch (error) {
+            console.error("❌ Error loading form data:", error);
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si"
                     ? "❌ දත්ත නැවත ලබාගත නොහැකි විය."
-                    : "❌ Failed to restore saved data."
+                    : `❌ Failed to restore saved data: ${error instanceof Error ? error.message : 'Unknown error'}`
             );
         }
     };
