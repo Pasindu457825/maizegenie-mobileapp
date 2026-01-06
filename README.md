@@ -38,19 +38,19 @@ It integrates **pest identification, disease identification, yield prediction & 
 
    - This component is designed to help maize farmers identify pests early and take the correct control actions at the right time.
 
-   - 📷 **Image-based pest identification**  
+   -  **Image-based pest identification**  
      Farmers can capture or upload images of maize pests using a mobile phone to identify common pests such as Fall Armyworm.
-   - 🤖 **AI-powered pest detection**  
+   -  **AI-powered pest detection**  
      The system uses AI models to accurately detect maize pests, even when different pests look similar.
-   - 🌱 **Pest lifecycle visualization**  
+   -  **Pest lifecycle visualization**  
      Displays clear lifecycle stages (egg, larva, pupa, adult) for each pest to help farmers understand pest behavior.
-   - ⏱️ **Stage-based control guidance**  
+   -  **Stage-based control guidance**  
      Provides control and treatment recommendations based on the current lifecycle stage instead of general advice.
-   - 🔊 **Sinhala and English language support**  
+   -  **Sinhala and English language support**  
      Supports both text and voice explanations in Sinhala and English for better accessibility.
-   - 👨‍🌾👨‍💼 **Pest Forum with expert support**  
+   -  **Pest Forum with expert support**  
      Farmers can ask pest-related questions through the Pest Forum. Agriculture Officers can review, approve, and reply with trusted expert advice.
-   - ✅ **Reduces wrong pesticide usage**  
+   -  **Reduces wrong pesticide usage**  
      Helps farmers avoid unnecessary or incorrect pesticide application, improving crop safety and yield.
 
 ## 🛠️ Tech Stack
