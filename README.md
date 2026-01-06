@@ -4,26 +4,54 @@ MaizeGenie is an AI-powered, bilingual (Sinhala/English) farmer advisory platfor
 It integrates **pest identification, disease identification, yield prediction & fertilizer advisory, price forecasting & cultivation timing** into one farmer-friendly mobile/web application.
 
 ---
-
 ## 🚀 Features
 
-- 🐛 **Pest Identification**  
-  Offline AI-based detection of maize pests (e.g., Fall Armyworm) using YOLO models with AR life cycle visualization.  
-
-- 🍂 **Disease Detection**  
-  Lightweight CNN models (EfficientNet/ResNet/MobileNet) deployed via TensorFlow Lite for offline disease recognition with safe control steps.  
-
-- 🌱 **Yield Prediction & Fertilizer Advisory**  
-  Role-based outputs (Farmer & Agri Officer) with localized soil baselines and CIC fertilizer protocols.  
-  Safe Urea/MOP dose recommendations with Sinhala/English TTS and calendar reminders.
-
 - 📈 **Corn Price Forecasting & Cultivation Timing**  
-  Short-term price predictions (1–4 weeks) using ARIMA, Prophet, LSTM, and GRU, with traffic-light signals (Sell Now / Stable / Wait).  
+   - Generates short-term maize price predictions (1–4 weeks) using RF model.
+   - Integrates district/GPS-based context with live daily and hourly weather data to ensure location-specific decision support.
+   - Identifies the best selling week using forecasted prices combined with historical seasonal profit patterns from previous years.
+   - Recommends delaying or starting cultivation (e.g., by 1–2 weeks) when historical data shows higher profitability in upcoming periods.
+   - Performs profit analysis by combining predicted price, expected yield, and cultivation costs to support sell, store, or wait decisions.
+   - Displays clear traffic-light signals (Sell Now / Store / Sell Later / Wait) for easy and quick farmer understanding.
+   - Provides trend charts, confidence levels, and simple reasoning to improve trust in predictions and recommendations.
+   - Integrates daily and hourly weather risk analysis to warn farmers about rain, humidity, heat stress, and harvest timing risks.
+   - Enables officer-verified cultivation and selling advice, allowing agricultural officers to review, approve, or adjust system recommendations.
+   - Allows farmers to receive direct guidance and feedback from agricultural officers within the application.
+   - Delivers official agricultural news, policy updates, and announcements published by officers through the platform.
+   - Sends timely notifications for best selling weeks, recommended planting delays, weather risks, officer replies, and new announcements.
+   - Connects with Weather Forecast and Cultivation Advisor through a smart entry/loading screen that acts as a single gateway to decision support.
+   - Supports Sinhala and English languages with a farmer-friendly mobile UI designed for field-level use. 
 
-- 📱 **Farmer-Friendly Interface**  
-  Bilingual UI, simple icons, voice guidance, traffic-light signals, and offline dashboards for rural usability.  
+- 🍂 **Disease Identification & Solution Advisory**  
+  - apture or upload maize leaf images for disease detection.  
+  - ML-powered disease identification using YOLOv8-based object detection, optimized for efficient and accurate maize leaf disease recognition.
+  - Displays disease name, severity level (Low / Medium / High), and confidence score.  
+  - Provides disease symptoms, causes, prevention methods, and treatment recommendations based on disease severity with safe control practices. 
+  - Supports Sinhala and English languages.  
 
----
+- 🌱 **Yield Prediction & Fertilizer Advisory**
+  - Role-based outputs (Farmer & Agri Officer) of yield prediction using localized collected dataset with including vertiety, soil parameters, climeate, and cultivation practices parameters. (Calendar reminder feature to harvest period and fetilization periods.)
+  - SHAP and LIME visualizations to explain factor influence on yield predictions, with downloadable analytical reports for Agricultural Officers.
+  - Natural Language Support rule-based fertilizer intelligence engine to to generate advices to farmers.(Safe Urea/MOP dose recommendations with Sinhala/English TTS.)
+
+- 🐛 **Pest Identification & Control System**
+
+   - This component is designed to help maize farmers identify pests early and take the correct control actions at the right time.
+
+   - 📷 **Image-based pest identification**  
+     Farmers can capture or upload images of maize pests using a mobile phone to identify common pests such as Fall Armyworm.
+   - 🤖 **AI-powered pest detection**  
+     The system uses AI models to accurately detect maize pests, even when different pests look similar.
+   - 🌱 **Pest lifecycle visualization**  
+     Displays clear lifecycle stages (egg, larva, pupa, adult) for each pest to help farmers understand pest behavior.
+   - ⏱️ **Stage-based control guidance**  
+     Provides control and treatment recommendations based on the current lifecycle stage instead of general advice.
+   - 🔊 **Sinhala and English language support**  
+     Supports both text and voice explanations in Sinhala and English for better accessibility.
+   - 👨‍🌾👨‍💼 **Pest Forum with expert support**  
+     Farmers can ask pest-related questions through the Pest Forum. Agriculture Officers can review, approve, and reply with trusted expert advice.
+   - ✅ **Reduces wrong pesticide usage**  
+     Helps farmers avoid unnecessary or incorrect pesticide application, improving crop safety and yield.
 
 ## 🛠️ Tech Stack
 
