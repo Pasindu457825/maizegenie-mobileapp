@@ -1,19 +1,11 @@
 # 🌽 MaizeGenie
 
 MaizeGenie is an AI-powered, bilingual (Sinhala/English) farmer advisory platform designed to support Sri Lankan maize farmers.  
-It integrates **price forecasting, cultivation timing, yield prediction, fertilizer advisory, and pest/disease identification** into one farmer-friendly mobile/web application.  
-The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure transparency and trust.
+It integrates **pest identification, disease identification, yield prediction & fertilizer advisory, price forecasting & cultivation timing** into one farmer-friendly mobile/web application.
 
 ---
 
 ## 🚀 Features
-
-- 📈 **Corn Price Forecasting & Cultivation Timing**  
-  Short-term price predictions (1–4 weeks) using ARIMA, Prophet, LSTM, and GRU, with traffic-light signals (Sell Now / Stable / Wait).  
-
-- 🌱 **Yield Prediction & Fertilizer Advisory**  
-  Role-based outputs (Farmer & Agri Officer) with localized soil baselines and CIC fertilizer protocols.  
-  Safe Urea/MOP dose recommendations with Sinhala/English TTS and calendar reminders.
 
 - 🐛 **Pest Identification**  
   Offline AI-based detection of maize pests (e.g., Fall Armyworm) using YOLO models with AR life cycle visualization.  
@@ -21,8 +13,12 @@ The system is offline-capable and uses **explainable AI (SHAP/LIME)** to ensure 
 - 🍂 **Disease Detection**  
   Lightweight CNN models (EfficientNet/ResNet/MobileNet) deployed via TensorFlow Lite for offline disease recognition with safe control steps.  
 
-- 🔍 **Explainable AI**  
-  SHAP and LIME visualizations for factor influence, with simplified reason codes for farmers.  
+- 🌱 **Yield Prediction & Fertilizer Advisory**  
+  Role-based outputs (Farmer & Agri Officer) with localized soil baselines and CIC fertilizer protocols.  
+  Safe Urea/MOP dose recommendations with Sinhala/English TTS and calendar reminders.
+
+- 📈 **Corn Price Forecasting & Cultivation Timing**  
+  Short-term price predictions (1–4 weeks) using ARIMA, Prophet, LSTM, and GRU, with traffic-light signals (Sell Now / Stable / Wait).  
 
 - 📱 **Farmer-Friendly Interface**  
   Bilingual UI, simple icons, voice guidance, traffic-light signals, and offline dashboards for rural usability.  
@@ -185,14 +181,6 @@ uvicorn main:app --reload
 - Monaragala  
 - Anuradhapura  
 - Ampara  
-
----
-
-## 📅 Roadmap
-
-- **Phase 1 (MVP)**: Price forecasting + cultivation timing with offline reminder support.  
-- **Phase 2**: Full integration of pest/disease detection and yield/fertilizer advisory.  
-- **Phase 3**: Commercialization (freemium → institutional licensing → scaling).  
 
 ---
 
