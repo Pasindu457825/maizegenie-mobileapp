@@ -415,40 +415,6 @@ const YieldPredictionResultsScreen = () => {
             </Text>
           </View>
 
-          {/* Confidence Card */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <CheckCircle color="#10B981" size={20} />
-              </View>
-              <Text style={styles.sectionTitle}>
-                {content[language].confidence}
-              </Text>
-            </View>
-
-            <View style={styles.confidenceCard}>
-              <View style={styles.confidenceHeader}>
-                <Text style={styles.confidenceLabel}>
-                  {getConfidenceLabel(confidenceLevel)}
-                </Text>
-                <Text style={styles.confidenceScore}>
-                  {(confidenceScore * 100).toFixed(0)}%
-                </Text>
-              </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${confidenceScore * 100}%`,
-                      backgroundColor: getConfidenceColor(confidenceLevel),
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-
           {/* Yield Comparison Table */}
           {yieldComparison && (
             <View style={styles.section}>
