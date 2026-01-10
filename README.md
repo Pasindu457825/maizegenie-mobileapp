@@ -32,7 +32,8 @@ It integrates **pest identification, disease identification, yield prediction & 
 - 🌱 **Yield Prediction & Fertilizer Advisory**
   - Role-based outputs (Farmer & Agri Officer) of yield prediction using localized collected dataset with including vertiety, soil parameters, climeate, and cultivation practices parameters. (Calendar reminder feature to harvest period and fetilization periods.)
   - SHAP and LIME visualizations to explain factor influence on yield predictions, with downloadable analytical reports for Agricultural Officers.
-  - Natural Language Support rule-based fertilizer intelligence engine to to generate advices to farmers.(Safe Urea/MOP dose recommendations with Sinhala/English TTS.)
+  - Rule-based fertilizer intelligence engine to to generate advices to farmers.(Safe Urea/MOP dose recommendations with Sinhala/English TTS.)
+  - Role-Based fertilizer advisory request system (Approve/Pending/Completed status)
 
 - 🐛 **Pest Identification & Control System**
 
