@@ -4,6 +4,11 @@ MaizeGenie is an AI-powered, bilingual (Sinhala/English) farmer advisory platfor
 It integrates **pest identification, disease identification, yield prediction & fertilizer advisory, price forecasting & cultivation timing** into one farmer-friendly mobile/web application.
 
 ---
+
+## 📊 System Diagram
+
+![Solution advisory System With Sinhala TTS (1)](https://github.com/user-attachments/assets/50d648ec-8369-4d62-85a7-f89e6896b34e)
+
 ## 🚀 Features
 
 - 📈 **Corn Price Forecasting & Cultivation Timing**  
