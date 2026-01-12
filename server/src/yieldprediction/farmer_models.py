@@ -67,6 +67,9 @@ class FarmerPredictionRequest(BaseModel):
     max_temperature: float = Field(..., description="Maximum temperature in Celsius")
     avg_humidity: float = Field(..., ge=0, le=100, description="Average humidity percentage")
     sunshine_hours: float = Field(..., ge=0, le=24, description="Daily sunshine hours")
+    
+    # Weather data source tracking
+    weather_data_source: Optional[str] = Field(default="auto", description="Weather data source: 'auto' or 'manual'")
 
 # ============================================================
 # RESPONSE MODEL - Simple Farmer-Friendly Output
@@ -130,6 +133,10 @@ class FarmerPredictionResponse(BaseModel):
     
     # Yield comparison data
     yield_comparison: Optional[dict] = Field(None, description="Comparison with district optimal yield")
+    
+    # Variety and irrigation comparisons
+    variety_comparison: Optional[dict] = Field(None, description="Seed variety comparison with potential yield improvement")
+    irrigation_comparison: Optional[dict] = Field(None, description="Irrigation system comparison with potential yield improvement")
     
     # Status
     status: str = Field(default="completed", description="Prediction status")

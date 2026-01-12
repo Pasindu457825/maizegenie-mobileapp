@@ -21,8 +21,10 @@ import HybridDateInput from "../../components/HybridDateInput";
 import { predictYieldFarmer, FarmerPredictionRequest } from "../../services/yieldPredictionApi";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Archive } from "lucide-react-native";
 import { SEASONAL_CLIMATE, getSeasonalClimate } from "../../constants/seasonalClimate";
-import { DISTRICTS as DISTRICT_LIST, LOCATIONS_BY_DISTRICT, LOCATION_COORDINATES as LOCATION_DATA, SOIL_TYPE_MAPPING } from "../../constants/locations";
+import { DISTRICTS as DISTRICT_LIST, LOCATIONS_BY_DISTRICT, LOCATION_COORDINATES as LOCATION_DATA, SOIL_TYPE_MAPPING, DISTRICTS_SINHALA, LOCATIONS_SINHALA } from "../../constants/locations";
 import { autoFillWeatherData } from "../../utils/seasonalClimateHelper";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import {
@@ -41,7 +43,7 @@ type NavProp = StackNavigationProp<
     "YieldPredictionFormScreen"
 >;
 
-const DISTRICTS = DISTRICT_LIST.map(d => ({ label: d, value: d }));
+// Districts will be generated dynamically based on language
 
 const SEED_VARIETIES = [
     { name: "Commando", image: require("../../../assets/varieties/commando.png") },
@@ -173,11 +175,161 @@ const YieldPredictionFormScreen = () => {
 
     const [isLiveData, setIsLiveData] = useState(false);
     const [gpsCoords, setGpsCoords] = useState<{ latitude: number, longitude: number } | null>(null);
+    const [weatherDataSource, setWeatherDataSource] = useState<"auto" | "manual">("auto");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [landSizeUnit, setLandSizeUnit] = useState<"Acres" | "Hectares">("Acres");
 
     // Get user from auth context
     const { user } = useApp();
+    
+    // Save form data to AsyncStorage
+    const saveFormData = async () => {
+        try {
+            const formData = {
+                timestamp: new Date().toISOString(),
+                district,
+                location,
+                plantingDate: plantingDate?.toISOString() || null,
+                season,
+                landSize,
+                landSizeUnit,
+                soilType,
+                soilCondition,
+                irrigationType,
+                variety,
+                rainfallCondition,
+                rainfall30d,
+                seasonalTemperature,
+                seasonalHumidity,
+                rainfallSeasonal,
+                soilPh,
+                soilNitrogen,
+                soilPhosphorus,
+                soilPotassium,
+                soilFertilityIndex,
+                nStatusClass,
+                pStatusClass,
+                kStatusClass,
+                maxTemperature,
+                sunshineHours,
+                firstFertDate: firstFertDate?.toISOString() || null,
+                secondFertDate: secondFertDate?.toISOString() || null,
+            };
+
+            console.log("💾 Saving form data to AsyncStorage...");
+            
+            const existing = await AsyncStorage.getItem("savedFarmerForms");
+            const forms = existing ? JSON.parse(existing) : [];
+
+            forms.unshift(formData); // Latest first
+
+            // Keep only last 10 saved forms
+            if (forms.length > 10) {
+                forms.splice(10);
+            }
+
+            await AsyncStorage.setItem("savedFarmerForms", JSON.stringify(forms));
+            
+            console.log("✅ Form data saved successfully. Total saved forms:", forms.length);
+
+            Alert.alert(
+                language === "si" ? "සුරකින ලදී" : "Saved",
+                language === "si"
+                    ? "✅ ආකෘති දත්ත සාර්ථකව සුරකින ලදී!"
+                    : "✅ Form data saved successfully!"
+            );
+        } catch (error) {
+            console.error("❌ Error saving form data:", error);
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si"
+                    ? "❌ දත්ත සුරකින්න නොහැකි විය."
+                    : `❌ Failed to save form data: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+        }
+    };
+
+    // Load latest saved form data
+    const loadSavedFormData = async () => {
+        try {
+            console.log("📂 Loading saved form data from AsyncStorage...");
+            
+            const existing = await AsyncStorage.getItem("savedFarmerForms");
+            
+            if (!existing) {
+                console.log("ℹ️ No saved forms found in AsyncStorage");
+                Alert.alert(
+                    language === "si" ? "දත්ත නැත" : "No Data",
+                    language === "si"
+                        ? "සුරකින ලද ආකෘති දත්ත නොමැත."
+                        : "No saved form data found."
+                );
+                return;
+            }
+
+            const forms = JSON.parse(existing);
+            console.log("📋 Found saved forms:", forms.length);
+            
+            if (!forms.length) {
+                Alert.alert(
+                    language === "si" ? "දත්ත නැත" : "No Data",
+                    language === "si"
+                        ? "සුරකින ලද ආකෘති දත්ත නොමැත."
+                        : "No saved form data found."
+                );
+                return;
+            }
+
+            const latestForm = forms[0]; // Latest saved
+            console.log("🔄 Restoring latest form from:", latestForm.timestamp);
+
+            // Restore all form fields
+            setDistrict(latestForm.district || "");
+            setLocation(latestForm.location || "");
+            setPlantingDate(latestForm.plantingDate ? new Date(latestForm.plantingDate) : null);
+            setSeason(latestForm.season || "");
+            setLandSize(latestForm.landSize || "");
+            setLandSizeUnit(latestForm.landSizeUnit || "Acres");
+            setSoilType(latestForm.soilType || "");
+            setSoilCondition(latestForm.soilCondition || "");
+            setIrrigationType(latestForm.irrigationType || "");
+            setVariety(latestForm.variety || "");
+            setRainfallCondition(latestForm.rainfallCondition || "");
+            setRainfall30d(latestForm.rainfall30d || "");
+            setSeasonalTemperature(latestForm.seasonalTemperature || "");
+            setSeasonalHumidity(latestForm.seasonalHumidity || "");
+            setRainfallSeasonal(latestForm.rainfallSeasonal || "");
+            setSoilPh(latestForm.soilPh || "");
+            setSoilNitrogen(latestForm.soilNitrogen || "");
+            setSoilPhosphorus(latestForm.soilPhosphorus || "");
+            setSoilPotassium(latestForm.soilPotassium || "");
+            setSoilFertilityIndex(latestForm.soilFertilityIndex || "");
+            setNStatusClass(latestForm.nStatusClass || "");
+            setPStatusClass(latestForm.pStatusClass || "");
+            setKStatusClass(latestForm.kStatusClass || "");
+            setMaxTemperature(latestForm.maxTemperature || "");
+            setSunshineHours(latestForm.sunshineHours || "");
+            setFirstFertDate(latestForm.firstFertDate ? new Date(latestForm.firstFertDate) : null);
+            setSecondFertDate(latestForm.secondFertDate ? new Date(latestForm.secondFertDate) : null);
+
+            console.log("✅ Form data restored successfully");
+
+            Alert.alert(
+                language === "si" ? "පුරවන ලදී" : "Loaded",
+                language === "si"
+                    ? "✅ සුරකින ලද දත්ත නැවත පුරවන ලදී!"
+                    : "✅ Saved data has been restored!"
+            );
+        } catch (error) {
+            console.error("❌ Error loading form data:", error);
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si"
+                    ? "❌ දත්ත නැවත ලබාගත නොහැකි විය."
+                    : `❌ Failed to restore saved data: ${error instanceof Error ? error.message : 'Unknown error'}`
+            );
+        }
+    };
     
     // Auto-fill NPK status based on ppm values (from dataset analysis)
     const autoFillNPKStatus = (n: number, p: number, k: number) => {
@@ -209,10 +361,19 @@ const YieldPredictionFormScreen = () => {
         secondDate.setDate(secondDate.getDate() + 50);
         setSecondFertDate(secondDate);
     };
+    
+    // Helper function to handle weather field changes and mark as manual
+    const handleWeatherFieldChange = (setter: (value: string) => void, value: string) => {
+        setter(value);
+        setWeatherDataSource("manual");
+    };
 
     // Auto-fill weather data when district and season change
     useEffect(() => {
         if (district && season) {
+            // Reset to auto when auto-filling
+            setWeatherDataSource("auto");
+            
             // Max Temperature: average ~31.7°C for both seasons
             if (!maxTemperature) {
                 const avgMaxTemp = season === "Maha" ? "31.6" : "31.9";
@@ -281,11 +442,19 @@ const YieldPredictionFormScreen = () => {
         return language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable";
     };
 
+    // Get district options with Sinhala translations
+    const getDistrictOptions = () => {
+        return DISTRICT_LIST.map(d => ({
+            label: language === "si" ? (DISTRICTS_SINHALA[d] || d) : d,
+            value: d,
+        }));
+    };
+
     // Get location options based on selected district
     const getLocationOptions = () => {
         if (!district || !LOCATION_COORDINATES[district]) return [];
         return Object.keys(LOCATION_COORDINATES[district]).map(loc => ({
-            label: loc,
+            label: language === "si" ? (LOCATIONS_SINHALA[district]?.[loc] || loc) : loc,
             value: loc,
         }));
     };
@@ -661,6 +830,9 @@ const YieldPredictionFormScreen = () => {
                 max_temperature: parseFloat(maxTemperature),
                 avg_humidity: seasonalHumidity ? parseFloat(seasonalHumidity) : 0,
                 sunshine_hours: parseFloat(sunshineHours),
+                
+                // Weather data source tracking
+                weather_data_source: weatherDataSource,
             };
 
             console.log("📤 Sending prediction request:", requestData);
@@ -715,6 +887,14 @@ const YieldPredictionFormScreen = () => {
                     <Text style={styles.headerTitle}>{content[language].title}</Text>
                     <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
                 </View>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity onPress={loadSavedFormData} style={styles.headerIconButton}>
+                        <Archive color="#FFFFFF" size={20} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={saveFormData} style={styles.headerIconButton}>
+                        <Archive color="#FFFFFF" size={20} fill="#FFFFFF" />
+                    </TouchableOpacity>
+                </View>
             </LinearGradient>
 
             {/* Location & Weather Detection Bar*/}
@@ -759,7 +939,7 @@ const YieldPredictionFormScreen = () => {
                     <CustomDropdown
                         label={content[language].district}
                         value={district}
-                        options={DISTRICTS}
+                        options={getDistrictOptions()}
                         onSelect={setDistrict}
                         placeholder="Select"
                         required
@@ -804,7 +984,7 @@ const YieldPredictionFormScreen = () => {
                                 style={styles.landSizeInput}
                                 value={landSize}
                                 onChangeText={(value) => handleNumericChange(setLandSize, value, true)}
-                                placeholder="2.5"
+                                placeholder="0.66"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
                                 maxLength={6}
@@ -879,10 +1059,10 @@ const YieldPredictionFormScreen = () => {
                                 style={styles.input}
                                 value={soilPh}
                                 onChangeText={(value) => handleNumericChange(setSoilPh, value, true)}
-                                placeholder={language === "si" ? "උදා: 6.5" : "e.g., 6.5"}
+                                placeholder={language === "si" ? "උදා: 6.439" : "e.g., 6.439"}
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
-                                maxLength={4}
+                                maxLength={5}
                             />
                         </View>
 
@@ -895,10 +1075,10 @@ const YieldPredictionFormScreen = () => {
                                 style={styles.input}
                                 value={soilNitrogen}
                                 onChangeText={(value) => handleNumericChange(setSoilNitrogen, value, true)}
-                                placeholder={language === "si" ? "උදා: 85" : "e.g., 85"}
+                                placeholder={language === "si" ? "උදා: 89.898" : "e.g., 89.898"}
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
-                                maxLength={6}
+                                maxLength={7}
                             />
                         </View>
 
@@ -911,10 +1091,10 @@ const YieldPredictionFormScreen = () => {
                                 style={styles.input}
                                 value={soilPhosphorus}
                                 onChangeText={(value) => handleNumericChange(setSoilPhosphorus, value, true)}
-                                placeholder={language === "si" ? "උදා: 20" : "e.g., 20"}
+                                placeholder={language === "si" ? "උදා: 21.509" : "e.g., 21.509"}
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
-                                maxLength={6}
+                                maxLength={7}
                             />
                         </View>
 
@@ -927,10 +1107,10 @@ const YieldPredictionFormScreen = () => {
                                 style={styles.input}
                                 value={soilPotassium}
                                 onChangeText={(value) => handleNumericChange(setSoilPotassium, value, true)}
-                                placeholder={language === "si" ? "උදා: 195" : "e.g., 195"}
+                                placeholder={language === "si" ? "උදා: 84.409" : "e.g., 84.409"}
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
-                                maxLength={6}
+                                maxLength={7}
                             />
                         </View>
 
@@ -943,10 +1123,10 @@ const YieldPredictionFormScreen = () => {
                                 style={styles.input}
                                 value={soilFertilityIndex}
                                 onChangeText={(value) => handleNumericChange(setSoilFertilityIndex, value, true)}
-                                placeholder={language === "si" ? "උදා: 0.65" : "e.g., 0.65"}
+                                placeholder={language === "si" ? "උදා: 0.538" : "e.g., 0.538"}
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
-                                maxLength={4}
+                                maxLength={5}
                             />
                         </View>
                         
@@ -1072,7 +1252,10 @@ const YieldPredictionFormScreen = () => {
                             <TextInput
                                 style={[styles.input, styles.autoDetectedInput]}
                                 value={rainfall30d}
-                                onChangeText={(value) => handleNumericChange(setRainfall30d, value, true)}
+                                onChangeText={(value) => {
+                                    handleNumericChange(setRainfall30d, value, true);
+                                    setWeatherDataSource("manual");
+                                }}
                                 placeholder="Auto-filled"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
@@ -1086,7 +1269,10 @@ const YieldPredictionFormScreen = () => {
                             <TextInput
                                 style={[styles.input, styles.autoDetectedInput]}
                                 value={seasonalTemperature}
-                                onChangeText={(value) => handleNumericChange(setSeasonalTemperature, value, true)}
+                                onChangeText={(value) => {
+                                    handleNumericChange(setSeasonalTemperature, value, true);
+                                    setWeatherDataSource("manual");
+                                }}
                                 placeholder="Auto-filled"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
@@ -1100,7 +1286,10 @@ const YieldPredictionFormScreen = () => {
                             <TextInput
                                 style={[styles.input, styles.autoDetectedInput]}
                                 value={seasonalHumidity}
-                                onChangeText={(value) => handleNumericChange(setSeasonalHumidity, value, true)}
+                                onChangeText={(value) => {
+                                    handleNumericChange(setSeasonalHumidity, value, true);
+                                    setWeatherDataSource("manual");
+                                }}
                                 placeholder="Auto-filled"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
@@ -1114,7 +1303,10 @@ const YieldPredictionFormScreen = () => {
                             <TextInput
                                 style={[styles.input, styles.autoDetectedInput]}
                                 value={rainfallSeasonal}
-                                onChangeText={(value) => handleNumericChange(setRainfallSeasonal, value, true)}
+                                onChangeText={(value) => {
+                                    handleNumericChange(setRainfallSeasonal, value, true);
+                                    setWeatherDataSource("manual");
+                                }}
                                 placeholder="Auto-filled"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
@@ -1130,7 +1322,10 @@ const YieldPredictionFormScreen = () => {
                             <TextInput
                                 style={[styles.input, styles.autoDetectedInput]}
                                 value={maxTemperature}
-                                onChangeText={(value) => handleNumericChange(setMaxTemperature, value, true)}
+                                onChangeText={(value) => {
+                                    handleNumericChange(setMaxTemperature, value, true);
+                                    setWeatherDataSource("manual");
+                                }}
                                 placeholder="Auto-filled"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
@@ -1146,7 +1341,10 @@ const YieldPredictionFormScreen = () => {
                             <TextInput
                                 style={[styles.input, styles.autoDetectedInput]}
                                 value={sunshineHours}
-                                onChangeText={(value) => handleNumericChange(setSunshineHours, value, true)}
+                                onChangeText={(value) => {
+                                    handleNumericChange(setSunshineHours, value, true);
+                                    setWeatherDataSource("manual");
+                                }}
                                 placeholder="Auto-filled"
                                 placeholderTextColor="#9CA3AF"
                                 keyboardType="decimal-pad"
@@ -1287,6 +1485,15 @@ const styles = StyleSheet.create({
     headerSubtitle: {
         fontSize: 13,
         color: "#D1FAE5",
+    },
+    headerActions: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    headerIconButton: {
+        padding: 8,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        borderRadius: 8,
     },
     langButton: {
         backgroundColor: "#D1FAE5",

@@ -38,6 +38,55 @@ export const DISTRICTS = [
   "Monaragala"
 ];
 
+// Sinhala translations for districts
+export const DISTRICTS_SINHALA: Record<string, string> = {
+  "Ampara": "අම්පාර",
+  "Anuradhapura": "අනුරාධපුරය",
+  "Badulla": "බදුල්ල",
+  "Colombo": "කොළඹ",
+  "Kalutara": "කළුතර",
+  "Matale": "මාතලේ",
+  "Monaragala": "මොණරාගල"
+};
+
+// Sinhala translations for locations
+export const LOCATIONS_SINHALA: Record<string, Record<string, string>> = {
+  "Ampara": {
+    "Dehiattakandiya": "දෙහිආටකන්දිය",
+    "Maha Oya": "මහ ඔය",
+    "Padiyathalawa": "පදියතලාව"
+  },
+  "Anuradhapura": {
+    "Eppawala": "ඇප්පාවල",
+    "Horowpathana": "හොරොව්පතන",
+    "Kahatagasdigiliya": "කහටගස්දිගිලිය",
+    "Nochchiyagama": "නොච්චියාගම",
+    "Tambuttegama": "තඹුත්තේගම"
+  },
+  "Badulla": {
+    "Mahiyanganaya": "මහියංගනය",
+    "Rideemaliyadda": "රිදීමලියද්ද"
+  },
+  "Colombo": {
+    "Kaduwela": "කඩුවෙල",
+    "Malabe": "මාලබේ",
+    "Pittugala": "පිට්ටුගල"
+  },
+  "Kalutara": {
+    "Panadura": "පානදුර"
+  },
+  "Matale": {
+    "Dambulla": "දඹුල්ල",
+    "Pelwehera": "පෙල්වෙහෙර"
+  },
+  "Monaragala": {
+    "Buttala": "බුත්තල",
+    "Siyambalanduwa": "සියඹලාන්දුව",
+    "Thanamalwila": "තනමල්විල",
+    "Wellawaya": "වැල්ලවාය"
+  }
+};
+
 export const LOCATIONS_BY_DISTRICT: Record<string, string[]> = {
   "Ampara": [
     "Dehiattakandiya",
