@@ -23,6 +23,7 @@ import {
   BarChart3,
   MessageSquare,
   Bell,
+  MapPin,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -192,6 +193,19 @@ export default function HomeScreen() {
         color: "#8b5cf6",
         route: "PredictYield",
       },
+      {
+        icon: MapPin,
+        title: language === "si" ? "කෘෂිකර්ම කාර්යාල" : "Agriculture Offices",
+        description:
+          language === "si"
+            ? "ආසන්න කෘෂිකර්ම දෙපාර්තමේන්තු සොයන්න"
+            : "Find nearby agriculture departments",
+        color: "#059669",
+        route: {
+          parent: "PriceForecast",
+          screen: "AgricultureDepartmentScreen",
+        },
+      },
     ],
     [t]
   );
@@ -329,7 +343,15 @@ export default function HomeScreen() {
                 return (
                   <TouchableOpacity
                     key={index}
-                    onPress={() => navigation.navigate(feature.route)}
+                    onPress={() => {
+                      if (typeof feature.route === "string") {
+                        navigation.navigate(feature.route);
+                      } else {
+                        navigation.navigate(feature.route.parent, {
+                          screen: feature.route.screen,
+                        });
+                      }
+                    }}
                     activeOpacity={0.7}
                     style={styles.featureCardWrapper}
                   >

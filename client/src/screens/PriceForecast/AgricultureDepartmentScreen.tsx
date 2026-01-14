@@ -1,0 +1,805 @@
+import React, { useEffect, useState, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+  RefreshControl,
+  Linking,
+  Platform,
+  Alert,
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import useUniversalLocation from "../../utils/useUniversalLocation";
+import {
+  MaterialIcons,
+  FontAwesome5,
+  Ionicons,
+  Entypo,
+} from "@expo/vector-icons";
+
+type AgricultureDepartment = {
+  id: string;
+  name: string;
+  type: string;
+  category: string;
+  distance: string | number;
+  lat: number;
+  lon: number;
+  address: string;
+  phone?: string;
+  email?: string;
+  services?: string[];
+  hours?: string;
+};
+
+const AgricultureDepartmentScreen = () => {
+  const {
+    latitude,
+    longitude,
+    isLoading: locationLoading,
+    error: locationError,
+  } = useUniversalLocation("en");
+
+  const [departments, setDepartments] = useState<AgricultureDepartment[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [searchRadius, setSearchRadius] = useState(5); // Larger radius for departments
+  const [selectedType, setSelectedType] = useState("all");
+
+  const fetchAgriOfficesFromOSM = async (): Promise<
+    AgricultureDepartment[]
+  > => {
+    if (!latitude || !longitude) return [];
+
+    const radiusMeters = searchRadius * 1000;
+
+    const delta = searchRadius / 111; // approx km → lat/lon
+
+    const query = `
+[out:json][timeout:25];
+(
+  node["name"~"govijan|agrarian|seva|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
+    (${latitude - delta},${longitude - delta},${latitude + delta},${
+      longitude + delta
+    });
+  way["name"~"govijan|agrarian|seva|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
+    (${latitude - delta},${longitude - delta},${latitude + delta},${
+      longitude + delta
+    });
+);
+out center tags;
+`;
+
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: query,
+    });
+
+    const json = await res.json();
+
+    const results: AgricultureDepartment[] = [];
+
+    for (const [index, el] of json.elements.entries()) {
+      const lat = el.lat ?? el.center?.lat;
+      const lon = el.lon ?? el.center?.lon;
+
+      if (typeof lat !== "number" || typeof lon !== "number") continue;
+
+      const tags = el.tags || {};
+      const name = (tags.name || "").toLowerCase();
+
+      // ❌ Skip banks / finance
+      if (
+        name.includes("bank") ||
+        name.includes("finance") ||
+        name.includes("insurance")
+      ) {
+        continue;
+      }
+
+      let officeType: string | null = null;
+
+      if (name.includes("cic")) officeType = "CIC Office";
+      else if (name.includes("research") || name.includes("පර්යේෂණ"))
+        officeType = "Research Institute";
+      else if (name.includes("extension") || name.includes("සහය"))
+        officeType = "Extension Center";
+      else if (name.includes("head")) officeType = "Head Office";
+      else if (
+        name.includes("agriculture") ||
+        name.includes("agri") ||
+        name.includes("කෘෂි")
+      )
+        officeType = "District Office";
+
+      if (!officeType || !ALLOWED_TYPES.includes(officeType)) continue;
+
+      const distKm = parseFloat(
+        calculateDistance(latitude, longitude, lat, lon)
+      );
+
+      if (isNaN(distKm) || distKm > searchRadius) continue;
+      const phone =
+        tags.phone ||
+        tags["contact:phone"] ||
+        tags.mobile ||
+        tags["contact:mobile"];
+
+      results.push({
+        id: `${el.id}_${index}`,
+        name: tags.name || "Agriculture Office",
+        type: officeType,
+        category: "Live",
+        lat: el.lat,
+        lon: el.lon,
+        address:
+          tags["addr:city"] ||
+          tags["addr:district"] ||
+          tags["addr:full"] ||
+          "Sri Lanka",
+        phone,
+        email: tags.email || tags["contact:email"],
+        distance: distKm.toFixed(1),
+      });
+    }
+    console.log(
+      "OSM elements:",
+      json.elements.length,
+      "Filtered:",
+      results.length,
+      "Radius:",
+      searchRadius
+    );
+
+    return results;
+  };
+
+  const departmentTypes = [
+    { id: "all", label: "සියල්ල" },
+    { id: "District Office", label: "දිස්ත්‍රික් කාර්යාල" },
+    { id: "Head Office", label: "මූලස්ථානය" },
+    { id: "Research Institute", label: "පර්යේෂණ ආයතන" },
+    { id: "Extension Center", label: "සහය මධ්‍යස්ථාන" },
+    { id: "CIC Office", label: "CIC කාර්යාල" },
+  ];
+
+  const ALLOWED_TYPES = [
+    "District Office",
+    "Head Office",
+    "Research Institute",
+    "Extension Center",
+    "CIC Office",
+  ];
+
+  // Calculate distance
+  const calculateDistance = (
+    lat1: number | null,
+    lon1: number | null,
+    lat2: number | null,
+    lon2: number | null
+  ): string => {
+    if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) {
+      return "N/A";
+    }
+
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+
+    return distance.toFixed(1);
+  };
+
+  const loadDepartments = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const liveData = await fetchAgriOfficesFromOSM();
+
+      const filtered =
+        selectedType === "all"
+          ? liveData
+          : liveData.filter((d) => d.type === selectedType);
+
+      setDepartments(filtered);
+
+      // optional cache
+      await AsyncStorage.setItem(
+        "deptCache",
+        JSON.stringify({ data: filtered, ts: Date.now() })
+      );
+    } catch (err) {
+      const cached = await AsyncStorage.getItem("deptCache");
+      if (cached) {
+        setDepartments(JSON.parse(cached).data);
+      } else {
+        setDepartments([]);
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadDepartments();
+  };
+
+  const openInMaps = (lat: number, lon: number, name: string): void => {
+    const url = Platform.select({
+      ios: `maps://?q=${encodeURIComponent(name)}&ll=${lat},${lon}`,
+      android: `geo:${lat},${lon}?q=${encodeURIComponent(name)}`,
+      default: `https://maps.google.com/?q=${lat},${lon}`,
+    });
+
+    Linking.openURL(url ?? "").catch(() => {
+      const googleUrl = `https://maps.google.com/?q=${lat},${lon}&query=${encodeURIComponent(
+        name
+      )}`;
+      Linking.openURL(googleUrl);
+    });
+  };
+
+  const makePhoneCall = (phoneNumber?: string): void => {
+    if (!phoneNumber) return;
+
+    Alert.alert("දුරකථන ඇමතුම", `${phoneNumber} අංකයට ඇමතීමට අවශ්‍යද?`, [
+      { text: "අවලංගු කරන්න", style: "cancel" },
+      {
+        text: "ඇමතීම",
+        onPress: () => Linking.openURL(`tel:${phoneNumber}`),
+      },
+    ]);
+  };
+
+  const openEmail = (email?: string): void => {
+    if (!email) return;
+
+    Linking.openURL(`mailto:${email}`).catch(() => {
+      Alert.alert("දෝෂය", "ඊ-තැපැල් යෙදුම විවෘත කිරීමට නොහැකි විය");
+    });
+  };
+
+  useEffect(() => {
+    if (latitude && longitude) {
+      loadDepartments();
+    }
+  }, [latitude, longitude, searchRadius, selectedType]);
+
+  if (locationLoading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2d5016" />
+        <Text style={styles.loadingText}>ස්ථානය හඳුනාගනිමින්...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <FontAwesome5 name="landmark" size={24} color="#2d5016" />
+        <Text style={styles.headerTitle}>කෘෂිකර්ම දෙපාර්තමේන්තුව</Text>
+        <Text style={styles.headerSubtitle}>ශ්‍රී ලංකාව</Text>
+      </View>
+
+      {/* Controls */}
+      <View style={styles.controls}>
+        {/* Type Filter */}
+        <View style={styles.filterContainer}>
+          <Text style={styles.filterLabel}>මධ්‍යස්ථාන වර්ගය:</Text>
+          <FlatList
+            horizontal
+            data={departmentTypes}
+            keyExtractor={(item) => item.id}
+            showsHorizontalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.typeBtn,
+                  selectedType === item.id && styles.typeBtnActive,
+                ]}
+                onPress={() => setSelectedType(item.id)}
+              >
+                <Text
+                  style={[
+                    styles.typeBtnText,
+                    selectedType === item.id && styles.typeBtnTextActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.typeList}
+          />
+        </View>
+
+        {/* Radius Control */}
+        <View style={styles.radiusControl}>
+          <Text style={styles.controlLabel}>සෙවුම් අරය:</Text>
+          <View style={styles.radiusButtons}>
+            {[5, 10, 25, 50].map((radius) => (
+              <TouchableOpacity
+                key={radius}
+                style={[
+                  styles.radiusBtn,
+                  searchRadius === radius && styles.radiusBtnActive,
+                ]}
+                onPress={() => setSearchRadius(radius)}
+              >
+                <Text
+                  style={[
+                    styles.radiusBtnText,
+                    searchRadius === radius && styles.radiusBtnTextActive,
+                  ]}
+                >
+                  {radius} km
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* Content */}
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#2d5016" />
+          <Text style={styles.loadingText}>මධ්‍යස්ථාන ලබා ගනිමින්...</Text>
+        </View>
+      ) : departments.length === 0 ? (
+        <View style={styles.center}>
+          <Entypo name="location" size={60} color="#9ca3af" />
+          <Text style={styles.noResults}>මධ්‍යස්ථාන හමු නොවීය</Text>
+          <Text style={styles.noResultsSub}>කරුණාකර සෙවුම් අරය වැඩි කරන්න</Text>
+
+          <TouchableOpacity style={styles.retryBtn} onPress={loadDepartments}>
+            <MaterialIcons name="refresh" size={20} color="#fff" />
+            <Text style={styles.retryBtnText}>නැවත උත්සාහ කරන්න</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={departments}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={["#2d5016"]}
+              tintColor="#2d5016"
+            />
+          }
+          ListHeaderComponent={
+            <View style={styles.listHeader}>
+              <Text style={styles.resultsCount}>
+                සොයාගත් මධ්‍යස්ථාන: {departments.length}
+              </Text>
+              {latitude && longitude && (
+                <Text style={styles.locationNote}>
+                  ඔබගේ ස්ථානයෙන් දුර අනුව ලැයිස්තුගත කර ඇත
+                </Text>
+              )}
+            </View>
+          }
+          renderItem={({ item }) => (
+            <View style={styles.departmentCard}>
+              <View style={styles.deptHeader}>
+                <View style={styles.deptIcon}>
+                  {item.type === "Head Office" ? (
+                    <FontAwesome5 name="building" size={20} color="#2d5016" />
+                  ) : item.type === "Research Institute" ? (
+                    <FontAwesome5 name="flask" size={20} color="#2d5016" />
+                  ) : (
+                    <FontAwesome5 name="landmark" size={20} color="#2d5016" />
+                  )}
+                </View>
+                <View style={styles.deptInfo}>
+                  <Text style={styles.deptName}>{item.name}</Text>
+                  <View style={styles.deptMeta}>
+                    <Text style={styles.deptType}>{item.type}</Text>
+                    {item.distance !== "N/A" && (
+                      <Text style={styles.deptDistance}>
+                        • {item.distance} km
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.deptDetails}>
+                <View style={styles.detailRow}>
+                  <MaterialIcons name="place" size={14} color="#6b7280" />
+                  <Text style={styles.detailText}>{item.address}</Text>
+                </View>
+
+                {item.services && (
+                  <View style={styles.servicesRow}>
+                    <MaterialIcons name="list" size={14} color="#6b7280" />
+                    <Text style={styles.servicesText}>
+                      සේවා: {item.services.join(", ")}
+                    </Text>
+                  </View>
+                )}
+
+                {item.hours && (
+                  <View style={styles.detailRow}>
+                    <MaterialIcons
+                      name="access-time"
+                      size={14}
+                      color="#6b7280"
+                    />
+                    <Text style={styles.detailText}>{item.hours}</Text>
+                  </View>
+                )}
+
+                <View style={styles.actionRow}>
+                  {item.phone && (
+                    <TouchableOpacity
+                      style={styles.phoneBtn}
+                      onPress={() => makePhoneCall(item.phone)}
+                    >
+                      <MaterialIcons name="phone" size={14} color="#fff" />
+                      <Text style={styles.actionBtnText}>ඇමතුම</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {item.email && (
+                    <TouchableOpacity
+                      style={styles.emailBtn}
+                      onPress={() => openEmail(item.email)}
+                    >
+                      <MaterialIcons name="email" size={14} color="#fff" />
+                      <Text style={styles.actionBtnText}>ඊ-තැපැල්</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.directionsBtn}
+                    onPress={() => openInMaps(item.lat, item.lon, item.name)}
+                  >
+                    <MaterialIcons name="directions" size={14} color="#fff" />
+                    <Text style={styles.actionBtnText}>මාර්ගය</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+          ListFooterComponent={
+            <View style={styles.footer}>
+              <Text style={styles.footerNote}>
+                * තොරතුරු: ශ්‍රී ලංකා කෘෂිකර්ම දෙපාර්තමේන්තුව
+              </Text>
+              <Text style={styles.footerTip}>
+                💡 උපදෙස්: නිවසට සමීපම මධ්‍යස්ථානය සොයා ගෙන දුරකථන ඇමතුමකින්
+                සේවා වලංගු කර ගන්න. වැඩිදුර තොරතුරු: www.agridept.gov.lk
+              </Text>
+            </View>
+          }
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  header: {
+    backgroundColor: "#fff",
+    padding: 20,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#2d5016",
+    marginTop: 10,
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  controls: {
+    backgroundColor: "#fff",
+    padding: 16,
+    marginTop: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  filterContainer: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 10,
+  },
+  typeList: {
+    paddingBottom: 4,
+  },
+  typeBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "#f3f4f6",
+    marginRight: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  typeBtnActive: {
+    backgroundColor: "#2d5016",
+    borderColor: "#225015",
+  },
+  typeBtnText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  typeBtnTextActive: {
+    color: "#fff",
+  },
+  radiusControl: {
+    marginTop: 8,
+  },
+  controlLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 10,
+  },
+  radiusButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  radiusBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  radiusBtnActive: {
+    backgroundColor: "#2d5016",
+    borderColor: "#225015",
+  },
+  radiusBtnText: {
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: "500",
+  },
+  radiusBtnTextActive: {
+    color: "#fff",
+  },
+  loadingText: {
+    fontSize: 16,
+    color: "#4b5563",
+    marginTop: 12,
+    fontWeight: "500",
+  },
+  noResults: {
+    fontSize: 20,
+    color: "#4b5563",
+    marginTop: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  noResultsSub: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginTop: 8,
+    textAlign: "center",
+    marginBottom: 24,
+  },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2d5016",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  retryBtnText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  listHeader: {
+    backgroundColor: "#fff",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e9ecef",
+  },
+  resultsCount: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  locationNote: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 4,
+  },
+  departmentCard: {
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#f1f5f9",
+  },
+  deptHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  deptIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f0fdf4",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#dcfce7",
+  },
+  deptInfo: {
+    flex: 1,
+  },
+  deptName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+    marginBottom: 4,
+  },
+  deptMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  deptType: {
+    fontSize: 14,
+    color: "#059669",
+    fontWeight: "500",
+  },
+  deptDistance: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginLeft: 8,
+  },
+  deptDetails: {
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+    paddingTop: 12,
+  },
+  detailRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  detailText: {
+    fontSize: 14,
+    color: "#4b5563",
+    marginLeft: 8,
+    flex: 1,
+  },
+  servicesRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+  },
+  servicesText: {
+    fontSize: 14,
+    color: "#4b5563",
+    marginLeft: 8,
+    flex: 1,
+    lineHeight: 20,
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 12,
+    gap: 8,
+  },
+  phoneBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3b82f6",
+    padding: 10,
+    borderRadius: 6,
+    gap: 6,
+  },
+  emailBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#10b981",
+    padding: 10,
+    borderRadius: 6,
+    gap: 6,
+  },
+  directionsBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2d5016",
+    padding: 10,
+    borderRadius: 6,
+    gap: 6,
+  },
+  actionBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  footer: {
+    padding: 20,
+    paddingTop: 30,
+    alignItems: "center",
+  },
+  footerNote: {
+    fontSize: 12,
+    color: "#9ca3af",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  footerTip: {
+    fontSize: 13,
+    color: "#4b5563",
+    textAlign: "center",
+    lineHeight: 18,
+    backgroundColor: "#fef3c7",
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#fde68a",
+  },
+});
+
+export default AgricultureDepartmentScreen;

@@ -9,6 +9,7 @@ import PriceAdvisorScreen from "../screens/PriceForecast/PriceAdvisorScreen";
 import OfficerPriceForecastScreen from "@screens/PriceForecast/OfficerPriceForecastScreen";
 import ProAdvisorPage from "../screens/PriceForecast/ProAdvisorPage";
 import ProAdvisorFollowScreen from "../screens/PriceForecast/ProAdvisorFollowScreen";
+import AgricultureDepartmentScreen from "@screens/PriceForecast/AgricultureDepartmentScreen";
 
 export type PriceForecastStackParamList = {
   PriceForecastLoadingScreen: undefined;
@@ -31,6 +32,7 @@ export type PriceForecastStackParamList = {
    ProAdvisorFollowScreen: {
     formData: any;   
   };
+  AgricultureDepartmentScreen: undefined;
 };
 
 const Stack = createStackNavigator<PriceForecastStackParamList>();
@@ -85,6 +87,10 @@ const PriceForecastStack = () => {
             <Stack.Screen
         name="ProAdvisorFollowScreen"
         component={ProAdvisorFollowScreen}
+      />
+      <Stack.Screen
+        name="AgricultureDepartmentScreen"
+        component={AgricultureDepartmentScreen}
       />
     </Stack.Navigator>
   );
