@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import {
   Ionicons,
   Entypo,
 } from "@expo/vector-icons";
+import { useLanguage } from "../../context/LanguageContext";
 
 type AgricultureDepartment = {
   id: string;
@@ -35,7 +36,123 @@ type AgricultureDepartment = {
   hours?: string;
 };
 
+type LanguageType = "si" | "en";
+
+// ✨ Translations
+const translations: Record<
+  LanguageType,
+  {
+    locating: string;
+    centerType: string;
+    allCenters: string;
+    districtOffice: string;
+    headOffice: string;
+    researchInstitute: string;
+    extensionCenter: string;
+    cicOffice: string;
+    searchRadius: string;
+    loading: string;
+    noResults: string;
+    noResultsSub: string;
+    retry: string;
+    foundCenters: string;
+    sortedByDistance: string;
+    services: string;
+    hours: string;
+    call: string;
+    email: string;
+    directions: string;
+    callConfirm: string;
+    callConfirmSub: string;
+    cancel: string;
+    emailError: string;
+    emailErrorMessage: string;
+    source: string;
+    tip: string;
+    tipDescription: string;
+    title: string;
+    subtitle: string;
+  }
+> = {
+  si: {
+    locating: "ස්ථානය හඳුනාගනිමින්...",
+    centerType: "මධ්‍යස්ථාන වර්ගය:",
+    allCenters: "සියල්ල",
+    districtOffice: "දිස්ත්‍රික් කාර්යාල",
+    headOffice: "මූලස්ථානය",
+    researchInstitute: "පර්යේෂණ ආයතන",
+    extensionCenter: "සහය මධ්‍යස්ථාන",
+    cicOffice: "CIC කාර්යාල",
+    searchRadius: "සෙවුම් අරය:",
+    loading: "මධ්‍යස්ථාන ලබා ගනිමින්...",
+    noResults: "මධ්‍යස්ථාන හමු නොවීය",
+    noResultsSub: "කරුණාකර සෙවුම් අරය වැඩි කරන්න",
+    retry: "නැවත උත්සාහ කරන්න",
+    foundCenters: "සොයාගත් මධ්‍යස්ථාන:",
+    sortedByDistance: "ඔබගේ ස්ථානයෙන් දුර අනුව ලැයිස්තුගත කර ඇත",
+    services: "සේවා:",
+    hours: "කාර්ය කාලය",
+    call: "ඇමතුම",
+    email: "ඊ-තැපැල්",
+    directions: "මාර්ගය",
+    callConfirm: "දුරකථන ඇමතුම",
+    callConfirmSub: "අංකයට ඇමතීමට අවශ්‍යද?",
+    cancel: "අවලංගු කරන්න",
+    emailError: "දෝෂය",
+    emailErrorMessage: "ඊ-තැපැල් යෙදුම විවෘත කිරීමට නොහැකි විය",
+    source: "තොරතුරු: ශ්‍රී ලංකා කෘෂිකර්ම දෙපාර්තමේන්තුව",
+    tip: "උපදෙස්",
+    tipDescription:
+      "නිවසට සමීපම මධ්‍යස්ථානය සොයා ගෙන දුරකථන ඇමතුමකින් සේවා වලංගු කර ගන්න.",
+    title: "කෘෂිකර්ම දෙපාර්තමේන්තුව",
+    subtitle: "ශ්‍රී ලංකාව",
+  },
+  en: {
+    locating: "Locating you...",
+    centerType: "Center Type:",
+    allCenters: "All",
+    districtOffice: "District Office",
+    headOffice: "Head Office",
+    researchInstitute: "Research Institute",
+    extensionCenter: "Extension Center",
+    cicOffice: "CIC Office",
+    searchRadius: "Search Radius:",
+    loading: "Loading centers...",
+    noResults: "No centers found",
+    noResultsSub: "Please increase search radius",
+    retry: "Retry",
+    foundCenters: "Centers found:",
+    sortedByDistance: "Sorted by distance from your location",
+    services: "Services:",
+    hours: "Hours",
+    call: "Call",
+    email: "Email",
+    directions: "Directions",
+    callConfirm: "Phone Call",
+    callConfirmSub: "Call this number?",
+    cancel: "Cancel",
+    emailError: "Error",
+    emailErrorMessage: "Unable to open email application",
+    source: "* Data Source: Sri Lanka Agriculture Department",
+    tip: "Tip",
+    tipDescription:
+      "Find the nearest agriculture center and call to confirm service availability.",
+    title: "Agriculture Department",
+    subtitle: "Sri Lanka",
+  },
+};
+
 const AgricultureDepartmentScreen = () => {
+  const { language: lang } = useLanguage();
+
+  // ✅ Ensure language is properly tracked
+  const language: LanguageType = useMemo(() => {
+    return lang === "sinhala" ? "si" : "en";
+  }, [lang]);
+
+  // ✅ Get translations based on language
+  const t = useMemo(() => translations[language], [language]);
+
   const {
     latitude,
     longitude,
@@ -159,14 +276,17 @@ out center tags;
     return results;
   };
 
-  const departmentTypes = [
-    { id: "all", label: "සියල්ල" },
-    { id: "District Office", label: "දිස්ත්‍රික් කාර්යාල" },
-    { id: "Head Office", label: "මූලස්ථානය" },
-    { id: "Research Institute", label: "පර්යේෂණ ආයතන" },
-    { id: "Extension Center", label: "සහය මධ්‍යස්ථාන" },
-    { id: "CIC Office", label: "CIC කාර්යාල" },
-  ];
+  const departmentTypes = useMemo(
+    () => [
+      { id: "all", label: t.allCenters },
+      { id: "District Office", label: t.districtOffice },
+      { id: "Head Office", label: t.headOffice },
+      { id: "Research Institute", label: t.researchInstitute },
+      { id: "Extension Center", label: t.extensionCenter },
+      { id: "CIC Office", label: t.cicOffice },
+    ],
+    [t]
+  );
 
   const ALLOWED_TYPES = [
     "District Office",
@@ -259,10 +379,10 @@ out center tags;
   const makePhoneCall = (phoneNumber?: string): void => {
     if (!phoneNumber) return;
 
-    Alert.alert("දුරකථන ඇමතුම", `${phoneNumber} අංකයට ඇමතීමට අවශ්‍යද?`, [
-      { text: "අවලංගු කරන්න", style: "cancel" },
+    Alert.alert(t.callConfirm, `${phoneNumber} ${t.callConfirmSub}`, [
+      { text: t.cancel, style: "cancel" },
       {
-        text: "ඇමතීම",
+        text: t.call,
         onPress: () => Linking.openURL(`tel:${phoneNumber}`),
       },
     ]);
@@ -272,7 +392,7 @@ out center tags;
     if (!email) return;
 
     Linking.openURL(`mailto:${email}`).catch(() => {
-      Alert.alert("දෝෂය", "ඊ-තැපැල් යෙදුම විවෘත කිරීමට නොහැකි විය");
+      Alert.alert(t.emailError, t.emailErrorMessage);
     });
   };
 
@@ -286,7 +406,7 @@ out center tags;
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#2d5016" />
-        <Text style={styles.loadingText}>ස්ථානය හඳුනාගනිමින්...</Text>
+        <Text style={styles.loadingText}>{t.locating}</Text>
       </View>
     );
   }
@@ -296,15 +416,15 @@ out center tags;
       {/* Header */}
       <View style={styles.header}>
         <FontAwesome5 name="landmark" size={24} color="#2d5016" />
-        <Text style={styles.headerTitle}>කෘෂිකර්ම දෙපාර්තමේන්තුව</Text>
-        <Text style={styles.headerSubtitle}>ශ්‍රී ලංකාව</Text>
+        <Text style={styles.headerTitle}>{t.title}</Text>
+        <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
       </View>
 
       {/* Controls */}
       <View style={styles.controls}>
         {/* Type Filter */}
         <View style={styles.filterContainer}>
-          <Text style={styles.filterLabel}>මධ්‍යස්ථාන වර්ගය:</Text>
+          <Text style={styles.filterLabel}>{t.centerType}</Text>
           <FlatList
             horizontal
             data={departmentTypes}
@@ -334,7 +454,7 @@ out center tags;
 
         {/* Radius Control */}
         <View style={styles.radiusControl}>
-          <Text style={styles.controlLabel}>සෙවුම් අරය:</Text>
+          <Text style={styles.controlLabel}>{t.searchRadius}</Text>
           <View style={styles.radiusButtons}>
             {[5, 10, 25, 50].map((radius) => (
               <TouchableOpacity
@@ -363,17 +483,17 @@ out center tags;
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#2d5016" />
-          <Text style={styles.loadingText}>මධ්‍යස්ථාන ලබා ගනිමින්...</Text>
+          <Text style={styles.loadingText}>{t.loading}</Text>
         </View>
       ) : departments.length === 0 ? (
         <View style={styles.center}>
           <Entypo name="location" size={60} color="#9ca3af" />
-          <Text style={styles.noResults}>මධ්‍යස්ථාන හමු නොවීය</Text>
-          <Text style={styles.noResultsSub}>කරුණාකර සෙවුම් අරය වැඩි කරන්න</Text>
+          <Text style={styles.noResults}>{t.noResults}</Text>
+          <Text style={styles.noResultsSub}>{t.noResultsSub}</Text>
 
           <TouchableOpacity style={styles.retryBtn} onPress={loadDepartments}>
             <MaterialIcons name="refresh" size={20} color="#fff" />
-            <Text style={styles.retryBtnText}>නැවත උත්සාහ කරන්න</Text>
+            <Text style={styles.retryBtnText}>{t.retry}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -391,12 +511,10 @@ out center tags;
           ListHeaderComponent={
             <View style={styles.listHeader}>
               <Text style={styles.resultsCount}>
-                සොයාගත් මධ්‍යස්ථාන: {departments.length}
+                {t.foundCenters} {departments.length}
               </Text>
               {latitude && longitude && (
-                <Text style={styles.locationNote}>
-                  ඔබගේ ස්ථානයෙන් දුර අනුව ලැයිස්තුගත කර ඇත
-                </Text>
+                <Text style={styles.locationNote}>{t.sortedByDistance}</Text>
               )}
             </View>
           }
@@ -435,7 +553,7 @@ out center tags;
                   <View style={styles.servicesRow}>
                     <MaterialIcons name="list" size={14} color="#6b7280" />
                     <Text style={styles.servicesText}>
-                      සේවා: {item.services.join(", ")}
+                      {t.services} {item.services.join(", ")}
                     </Text>
                   </View>
                 )}
@@ -458,7 +576,7 @@ out center tags;
                       onPress={() => makePhoneCall(item.phone)}
                     >
                       <MaterialIcons name="phone" size={14} color="#fff" />
-                      <Text style={styles.actionBtnText}>ඇමතුම</Text>
+                      <Text style={styles.actionBtnText}>{t.call}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -468,7 +586,7 @@ out center tags;
                       onPress={() => openEmail(item.email)}
                     >
                       <MaterialIcons name="email" size={14} color="#fff" />
-                      <Text style={styles.actionBtnText}>ඊ-තැපැල්</Text>
+                      <Text style={styles.actionBtnText}>{t.email}</Text>
                     </TouchableOpacity>
                   )}
 
@@ -477,7 +595,7 @@ out center tags;
                     onPress={() => openInMaps(item.lat, item.lon, item.name)}
                   >
                     <MaterialIcons name="directions" size={14} color="#fff" />
-                    <Text style={styles.actionBtnText}>මාර්ගය</Text>
+                    <Text style={styles.actionBtnText}>{t.directions}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -485,13 +603,8 @@ out center tags;
           )}
           ListFooterComponent={
             <View style={styles.footer}>
-              <Text style={styles.footerNote}>
-                * තොරතුරු: ශ්‍රී ලංකා කෘෂිකර්ම දෙපාර්තමේන්තුව
-              </Text>
-              <Text style={styles.footerTip}>
-                💡 උපදෙස්: නිවසට සමීපම මධ්‍යස්ථානය සොයා ගෙන දුරකථන ඇමතුමකින්
-                සේවා වලංගු කර ගන්න. වැඩිදුර තොරතුරු: www.agridept.gov.lk
-              </Text>
+              <Text style={styles.footerNote}>* {t.source}</Text>
+              <Text style={styles.footerTip}>{t.tip}</Text>
             </View>
           }
         />
