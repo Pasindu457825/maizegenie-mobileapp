@@ -13,6 +13,8 @@ import {
   Modal,
   Platform,
   TextInput,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { createAdviceRequest } from "../../services/adviceRequestApi";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -349,7 +351,8 @@ const YieldPredictionResultsScreen = () => {
   const convertedYields = convertYield(expectedYieldValue, yieldUnit);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#10b981" />
       {/* Header */}
       <LinearGradient
         colors={["#10b981", "#059669"]}
@@ -357,20 +360,22 @@ const YieldPredictionResultsScreen = () => {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <ArrowLeft color="#ffffff" size={24} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>
-            {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
-          </Text>
-          {farmerInput && (farmerInput.district || farmerInput.variety) && (
-            <Text style={styles.headerSubtitle}>
-              {farmerInput.district || ""} {farmerInput.district && farmerInput.variety && "•"} {farmerInput.variety || ""}
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+            <ArrowLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>
+              {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
             </Text>
-          )}
+            {farmerInput && (farmerInput.district || farmerInput.variety) && (
+              <Text style={styles.headerSubtitle}>
+                {farmerInput.district || ""} {farmerInput.district && farmerInput.variety && "•"} {farmerInput.variety || ""}
+              </Text>
+            )}
+          </View>
+          <View style={{ width: 24 }} />
         </View>
-        <View style={{ width: 24 }} />
       </LinearGradient>
 
       <ScrollView
@@ -413,40 +418,6 @@ const YieldPredictionResultsScreen = () => {
             <Text style={styles.methodText}>
               {content[language].predictionMethod}: {isPredictionML ? content[language].mlModel : content[language].ruleBased}
             </Text>
-          </View>
-
-          {/* Confidence Card */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <CheckCircle color="#10B981" size={20} />
-              </View>
-              <Text style={styles.sectionTitle}>
-                {content[language].confidence}
-              </Text>
-            </View>
-
-            <View style={styles.confidenceCard}>
-              <View style={styles.confidenceHeader}>
-                <Text style={styles.confidenceLabel}>
-                  {getConfidenceLabel(confidenceLevel)}
-                </Text>
-                <Text style={styles.confidenceScore}>
-                  {(confidenceScore * 100).toFixed(0)}%
-                </Text>
-              </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${confidenceScore * 100}%`,
-                      backgroundColor: getConfidenceColor(confidenceLevel),
-                    },
-                  ]}
-                />
-              </View>
-            </View>
           </View>
 
           {/* Yield Comparison Table */}
@@ -920,7 +891,7 @@ const YieldPredictionResultsScreen = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -930,11 +901,17 @@ flex: 1,
 backgroundColor: "#F0FDF4",
 },
 header: {
-paddingTop: 50,
-paddingBottom: 20,
+paddingTop: 16,
+paddingBottom: 24,
 paddingHorizontal: 20,
 borderBottomLeftRadius: 24,
 borderBottomRightRadius: 24,
+minHeight: 100,
+},
+headerContent: {
+flexDirection: "row",
+alignItems: "center",
+justifyContent: "space-between",
 },
 backButton: {
 marginRight: 12,
@@ -945,10 +922,11 @@ alignItems: "center",
 justifyContent: "center",
 },
 headerTitle: {
-fontSize: 20,
+fontSize: 22,
 fontWeight: "700",
 color: "#ffffff",
 textAlign: "center",
+letterSpacing: 0.5,
 },
 headerSubtitle: {
 fontSize: 14,

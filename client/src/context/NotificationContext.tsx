@@ -79,11 +79,10 @@ export const NotificationProvider = ({
   }, []);
 
   /* =======================
-     REALTIME LISTENER (FIXED)
+     REALTIME LISTENER (SAFE)
   ======================= */
   useEffect(() => {
-    // 🔐 Guard: only start realtime when userId exists
-    if (!userId) return;
+    if (!userId) return; // 🔐 IMPORTANT GUARD
 
     const channel = supabase
       .channel(`notifications-${userId}`)
@@ -128,19 +127,23 @@ export const NotificationProvider = ({
   }, [userId]);
 
   /* =======================
-     SEND NOTIFICATION
+     SEND NOTIFICATION (RLS SAFE)
   ======================= */
   const sendNotification = async (
     title: string,
     message: string,
     type: "price" | "weather" | "system"
   ) => {
-    if (!userId) return;
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
 
     const { data, error } = await supabase
       .from("notifications")
       .insert({
-        user_id: userId,
+        user_id: user.id, // 🔐 MUST MATCH auth.uid()
         title,
         message,
         type,
