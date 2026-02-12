@@ -11,3 +11,5 @@ inference-sdk==0.9.0
 statsmodels>=0.14.6
 pandas>=2.3.0
 reportlab>=4.0.0
+pdfplumber==0.10.3
+pytesseract==0.3.10
