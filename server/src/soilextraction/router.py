@@ -82,15 +82,30 @@ def extract_from_pdf(content: bytes) -> dict:
         print(f"  ✅ Text extraction found {len(result)} fields")
         return result
     
-    # Strategy 3: OCR fallback
+    # Strategy 3: OCR fallback — try multiple OCR strategies and merge results
     print("🔍 Strategy 3: Falling back to OCR...")
-    text = _extract_text_via_ocr(content)
-    if text.strip():
-        print(f"📝 OCR text ({len(text)} chars):\n{text[:800]}")
-        result = extract_soil_values(text)
-        if result:
-            print(f"  ✅ OCR extraction found {len(result)} fields")
-            return result
+    ocr_texts = _extract_text_via_ocr(content)
+    
+    if ocr_texts:
+        merged_result = {}
+        
+        for idx, text in enumerate(ocr_texts):
+            if not text.strip():
+                continue
+            if idx == 0:
+                print(f"📝 OCR text ({len(text)} chars):\n{text[:800]}")
+            
+            values = extract_soil_values(text)
+            # Merge: fill in any missing fields from this strategy
+            for key, value in values.items():
+                if key not in merged_result:
+                    merged_result[key] = value
+                    if idx > 0:
+                        print(f"  [merge from strategy {idx+1}] {key} = {value}")
+        
+        if merged_result:
+            print(f"  ✅ OCR extraction found {len(merged_result)} fields (merged)")
+            return merged_result
     
     return {}
 
@@ -229,16 +244,16 @@ def _extract_text_via_ocr(content: bytes) -> str:
             page.close()
         pdf.close()
         
-        # Try multiple OCR strategies and pick the best
-        best_text = ""
-        best_field_count = 0
+        # Try multiple OCR strategies — collect all texts for merging
+        all_texts = []
         
         strategies = [
+            ("remove_lines", "--psm 6"),  # Remove table grid lines — best for table images
+            ("remove_lines", "--psm 3"),  # Remove lines + auto segmentation
+            ("remove_lines_contrast", "--psm 6"),  # Remove lines + contrast boost
             ("raw", "--psm 3"),           # No preprocessing, auto page segmentation
             ("raw", "--psm 6"),           # No preprocessing, uniform text block
-            ("contrast", "--psm 3"),      # Light contrast boost
             ("contrast", "--psm 6"),      # Light contrast boost, uniform block
-            ("sharpen", "--psm 3"),       # Sharpen + contrast
         ]
         
         for preprocess_name, psm_config in strategies:
@@ -253,22 +268,24 @@ def _extract_text_via_ocr(content: bytes) -> str:
                     print(f"    OCR error with {preprocess_name}/{psm_config}: {e}")
                     continue
             
-            # Count how many soil fields this strategy found
             field_count = _count_soil_fields(text)
             print(f"  [{preprocess_name}/{psm_config}] → {field_count} fields, {len(text)} chars")
             
-            if field_count > best_field_count:
-                best_field_count = field_count
-                best_text = text
-            elif field_count == best_field_count and len(text) > len(best_text):
-                best_text = text
+            if text.strip():
+                all_texts.append(text)
             
-            # If we found all major fields, stop early
-            if field_count >= 4:
-                print(f"  ✅ Good enough result with {preprocess_name}/{psm_config}")
+            # If a single strategy found all fields, no need to try more
+            if field_count >= 7:
+                print(f"  ✅ Complete result with {preprocess_name}/{psm_config}")
+                break
+            
+            # Limit to 4 strategies max to avoid slow processing
+            if len(all_texts) >= 4:
                 break
         
-        return best_text
+        # Sort texts by field count (best first), return all for merging
+        all_texts.sort(key=lambda t: _count_soil_fields(t), reverse=True)
+        return all_texts
         
     except ImportError as e:
         print(f"  OCR import error: {str(e)}")
@@ -281,24 +298,77 @@ def _extract_text_via_ocr(content: bytes) -> str:
         raise HTTPException(status_code=500, detail=f"Failed to OCR PDF pages: {str(e)}")
 
 
+def _remove_table_lines(pil_image):
+    """
+    Remove horizontal and vertical table grid lines from an image using OpenCV.
+    This dramatically improves OCR accuracy for table-based documents.
+    """
+    try:
+        import cv2
+        import numpy as np
+        
+        # Convert PIL → OpenCV
+        img_array = np.array(pil_image.convert('L'))
+        
+        # Threshold to binary (inverted — text and lines become white)
+        _, binary = cv2.threshold(img_array, 180, 255, cv2.THRESH_BINARY_INV)
+        
+        # Detect horizontal lines
+        h_kernel_len = max(img_array.shape[1] // 30, 20)  # Scale with image width
+        h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (h_kernel_len, 1))
+        h_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, h_kernel, iterations=2)
+        
+        # Detect vertical lines  
+        v_kernel_len = max(img_array.shape[0] // 30, 20)  # Scale with image height
+        v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, v_kernel_len))
+        v_lines = cv2.morphologyEx(binary, cv2.MORPH_OPEN, v_kernel, iterations=2)
+        
+        # Combine all detected lines
+        all_lines = cv2.add(h_lines, v_lines)
+        
+        # Dilate lines slightly to ensure full coverage
+        dilate_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+        all_lines = cv2.dilate(all_lines, dilate_kernel, iterations=1)
+        
+        # Remove lines from original image: where lines were detected, set to white
+        result = img_array.copy()
+        result[all_lines == 255] = 255
+        
+        # Convert back to PIL
+        from PIL import Image
+        return Image.fromarray(result)
+        
+    except ImportError:
+        print("    OpenCV not available, falling back to grayscale")
+        return pil_image.convert('L')
+    except Exception as e:
+        print(f"    Line removal error: {e}")
+        return pil_image.convert('L')
+
+
 def _preprocess_image(image, method: str):
     """Apply preprocessing to an image for OCR."""
     from PIL import ImageEnhance, ImageFilter
     
     if method == "raw":
-        # Convert to grayscale only
         return image.convert('L')
     
     elif method == "contrast":
-        # Grayscale + moderate contrast boost
         img = image.convert('L')
         enhancer = ImageEnhance.Contrast(img)
         return enhancer.enhance(1.5)
     
     elif method == "sharpen":
-        # Grayscale + sharpen + contrast
         img = image.convert('L')
         img = img.filter(ImageFilter.SHARPEN)
+        enhancer = ImageEnhance.Contrast(img)
+        return enhancer.enhance(1.5)
+    
+    elif method == "remove_lines":
+        return _remove_table_lines(image)
+    
+    elif method == "remove_lines_contrast":
+        img = _remove_table_lines(image)
         enhancer = ImageEnhance.Contrast(img)
         return enhancer.enhance(1.5)
     
@@ -352,6 +422,9 @@ def extract_text_from_image(content: bytes) -> str:
         best_field_count = 0
         
         strategies = [
+            ("remove_lines", "--psm 6"),
+            ("remove_lines", "--psm 3"),
+            ("remove_lines_contrast", "--psm 6"),
             ("raw", "--psm 3"),
             ("raw", "--psm 6"),
             ("contrast", "--psm 3"),
@@ -421,7 +494,9 @@ def extract_soil_values(text: str) -> dict:
             r'Total\s+N\s*[:\|]?\s*(\d+\.?\d*)',
         ],
         'phosphorus': [
-            r'Phosphorus\s*\(?P?\)?\s*[:\|]?\s*(\d+\.?\d*)',
+            r'Phosphorus\s*\(P\)\s*[:\|]?\s*(\d+\.?\d*)',
+            r'Phosphorus\s*[:\|]?\s*(\d+\.?\d*)',
+            r'Phosphorus\s*\(?P?\)?[^\d\n]*(\d+\.?\d*)',
             r'(?:Available\s+)?P\s*[:\|]?\s*(\d+\.?\d*)\s*(?:ppm|mg)',
             r'P2O5\s*[:\|]?\s*(\d+\.?\d*)',
         ],
@@ -445,12 +520,15 @@ def extract_soil_values(text: str) -> dict:
     status_patterns = {
         'nitrogen_status': [
             r'Nitrogen\s*\(?N?\)?\s*[\|\s]+[\d.]+\s*[\|\s]+\w+\s*[\|\s]+(\w+)',
+            r'Nitrogen[^\n]+(Low|Medium|High)',
         ],
         'phosphorus_status': [
             r'Phosphorus\s*\(?P?\)?\s*[\|\s]+[\d.]+\s*[\|\s]+\w+\s*[\|\s]+(\w+)',
+            r'Phosphorus[^\n]+(Low|Medium|High)',
         ],
         'potassium_status': [
             r'Potassium\s*\(?K?\)?\s*[\|\s]+[\d.]+\s*[\|\s]+\w+\s*[\|\s]+(\w+)',
+            r'Potassium[^\n]+(Low|Medium|High)',
         ],
     }
     
@@ -483,19 +561,21 @@ def extract_soil_values(text: str) -> dict:
         for pattern in pattern_list:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
-                status = _normalize_status(match.group(1))
+                raw_status = match.group(1)
+                status = _normalize_status(raw_status)
+                print(f"  [status debug] {param}: raw='{raw_status}' → normalized='{status}'")
                 if status:
                     results[param] = status
                     print(f"  [regex] {param} = {status}")
                     break
     
-    # Also try line-by-line table parsing for OCR text
-    if len(results) < 3:
-        print("  Trying line-by-line table parsing...")
-        line_results = _parse_table_lines(text)
-        for key, value in line_results.items():
-            if key not in results:
-                results[key] = value
+    # Always try line-by-line table parsing to supplement missing fields
+    print("  Trying line-by-line table parsing to supplement...")
+    line_results = _parse_table_lines(text)
+    for key, value in line_results.items():
+        if key not in results:
+            results[key] = value
+            print(f"  [supplement] {key} = {value}")
     
     return results
 
@@ -518,18 +598,37 @@ def _parse_table_lines(text: str) -> dict:
         cells = re.split(r'[|\[\]]+|\s{2,}', line)
         cells = [c.strip() for c in cells if c.strip()]
         
+        # If splitting by 2+ spaces gives only 1 cell, try single space
+        if len(cells) < 2:
+            cells = line.split()
+        
         if len(cells) < 2:
             continue
         
-        # Identify parameter from first cell
-        first_cell = cells[0].lower().strip()
-        field = _identify_parameter(first_cell)
+        # Identify parameter — check full line first for compound names like "Phosphorus (P)"
+        field = None
+        param_end_idx = 0
         
-        if not field or field in results:
+        # Try matching compound parameter names first (e.g. "Phosphorus (P)")
+        line_lower = line.lower()
+        for i in range(min(len(cells), 4), 0, -1):
+            candidate = ' '.join(cells[:i]).lower()
+            field = _identify_parameter(candidate)
+            if field:
+                param_end_idx = i
+                break
+        
+        if not field:
             continue
         
+        if field in results:
+            continue
+        
+        remaining_cells = cells[param_end_idx:]
+        
         # Find numeric value in remaining cells
-        for cell in cells[1:]:
+        value_found = False
+        for cell in remaining_cells:
             numbers = re.findall(r'(\d+\.?\d+|\d+)', cell.strip())
             for num_str in numbers:
                 try:
@@ -545,21 +644,24 @@ def _parse_table_lines(text: str) -> dict:
                         continue
                     
                     results[field] = value
+                    value_found = True
                     print(f"  [line] {field} = {value}")
                     break
                 except ValueError:
                     continue
-            if field in results:
+            if value_found:
                 break
         
-        # Find status in remaining cells
+        # Find status in remaining cells (even if numeric value was not found)
         if field in ['nitrogen', 'phosphorus', 'potassium']:
-            for cell in cells[1:]:
-                status = _normalize_status(cell.strip())
-                if status:
-                    results[field + "_status"] = status
-                    print(f"  [line] {field}_status = {status}")
-                    break
+            status_key = field + "_status"
+            if status_key not in results:
+                for cell in remaining_cells:
+                    status = _normalize_status(cell.strip())
+                    if status:
+                        results[status_key] = status
+                        print(f"  [line] {status_key} = {status}")
+                        break
     
     return results
 
@@ -577,7 +679,7 @@ def _identify_parameter(text: str) -> Optional[str]:
         return 'ph'
     if 'nitrogen' in text or text.startswith('n ') or text == 'n':
         return 'nitrogen'
-    if 'phosphorus' in text or text.startswith('p ') or text == 'p':
+    if 'phosphorus' in text or 'phospho' in text or 'phosp' in text:
         return 'phosphorus'
     if 'potassium' in text or text.startswith('k ') or text == 'k':
         return 'potassium'

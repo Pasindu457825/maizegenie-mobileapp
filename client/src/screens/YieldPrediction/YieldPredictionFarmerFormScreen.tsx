@@ -565,19 +565,32 @@ const YieldPredictionFormScreen = () => {
             if (extractedData.potassium !== undefined) setSoilPotassium(extractedData.potassium.toString());
             if (extractedData.fertility_index !== undefined) setSoilFertilityIndex(extractedData.fertility_index.toString());
 
-            // Auto-fill NPK status: prefer server-provided status, fall back to computed
-            if (extractedData.nitrogen_status && extractedData.phosphorus_status && extractedData.potassium_status) {
-                // Use status from the soil report directly
+            // Auto-fill NPK status: set each individually from server, fall back to computed
+            if (extractedData.nitrogen_status) {
                 setNStatusClass(extractedData.nitrogen_status);
+            } else if (extractedData.nitrogen) {
+                const n = parseFloat(extractedData.nitrogen);
+                if (n < 55) setNStatusClass("Low");
+                else if (n <= 90) setNStatusClass("Medium");
+                else setNStatusClass("High");
+            }
+
+            if (extractedData.phosphorus_status) {
                 setPStatusClass(extractedData.phosphorus_status);
+            } else if (extractedData.phosphorus) {
+                const p = parseFloat(extractedData.phosphorus);
+                if (p < 11) setPStatusClass("Low");
+                else if (p <= 19) setPStatusClass("Medium");
+                else setPStatusClass("High");
+            }
+
+            if (extractedData.potassium_status) {
                 setKStatusClass(extractedData.potassium_status);
-            } else if (extractedData.nitrogen && extractedData.phosphorus && extractedData.potassium) {
-                // Fall back to computing status from numeric values
-                autoFillNPKStatus(
-                    parseFloat(extractedData.nitrogen),
-                    parseFloat(extractedData.phosphorus),
-                    parseFloat(extractedData.potassium)
-                );
+            } else if (extractedData.potassium) {
+                const k = parseFloat(extractedData.potassium);
+                if (k < 120) setKStatusClass("Low");
+                else if (k <= 200) setKStatusClass("Medium");
+                else setKStatusClass("High");
             }
 
             setSoilDataExtracted(true);
