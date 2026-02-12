@@ -556,16 +556,23 @@ const YieldPredictionFormScreen = () => {
             }
 
             const extractedData = await response.json();
+            console.log("Extracted soil data:", JSON.stringify(extractedData));
 
             // Auto-fill soil data fields with extracted values
-            if (extractedData.ph) setSoilPh(extractedData.ph.toString());
-            if (extractedData.nitrogen) setSoilNitrogen(extractedData.nitrogen.toString());
-            if (extractedData.phosphorus) setSoilPhosphorus(extractedData.phosphorus.toString());
-            if (extractedData.potassium) setSoilPotassium(extractedData.potassium.toString());
-            if (extractedData.fertility_index) setSoilFertilityIndex(extractedData.fertility_index.toString());
+            if (extractedData.ph !== undefined) setSoilPh(extractedData.ph.toString());
+            if (extractedData.nitrogen !== undefined) setSoilNitrogen(extractedData.nitrogen.toString());
+            if (extractedData.phosphorus !== undefined) setSoilPhosphorus(extractedData.phosphorus.toString());
+            if (extractedData.potassium !== undefined) setSoilPotassium(extractedData.potassium.toString());
+            if (extractedData.fertility_index !== undefined) setSoilFertilityIndex(extractedData.fertility_index.toString());
 
-            // Auto-fill NPK status if values are available
-            if (extractedData.nitrogen && extractedData.phosphorus && extractedData.potassium) {
+            // Auto-fill NPK status: prefer server-provided status, fall back to computed
+            if (extractedData.nitrogen_status && extractedData.phosphorus_status && extractedData.potassium_status) {
+                // Use status from the soil report directly
+                setNStatusClass(extractedData.nitrogen_status);
+                setPStatusClass(extractedData.phosphorus_status);
+                setKStatusClass(extractedData.potassium_status);
+            } else if (extractedData.nitrogen && extractedData.phosphorus && extractedData.potassium) {
+                // Fall back to computing status from numeric values
                 autoFillNPKStatus(
                     parseFloat(extractedData.nitrogen),
                     parseFloat(extractedData.phosphorus),
