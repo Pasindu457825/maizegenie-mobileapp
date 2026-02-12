@@ -276,17 +276,23 @@ def _extract_from_table(text: str) -> dict:
     results = {}
     
     # Fuzzy name matching: OCR commonly garbles these parameter names
-    # Map partial/garbled text to parameter keys
+    # Use strict hints that are specific enough to avoid cross-matching
     param_hints = {
-        'ph': ['ph', 'piece', 'pice', 'piee', 'p.h', 'p h', 'pii'],
-        'nitrogen': ['nitrogen', 'nitro', 'nit', 'nitr', 'n ', 'nitogen'],
+        'ph': ['ph', 'piece', 'pice', 'piee', 'p.h', 'p h'],
+        'nitrogen': ['nitrogen', 'nitro', 'nit', 'nitr', 'nitogen'],
         'phosphorus': ['phosphorus', 'phospho', 'phos', 'pion', 'phosp', 'phosph'],
-        'potassium': ['potassium', 'potas', 'peon', 'potas', 'potass', 'pot'],
+        'potassium': ['potassium', 'potas', 'peon', 'potass', 'pot'],
     }
+    
+    # Expected row order in typical soil reports (fallback)
+    expected_order = ['ph', 'nitrogen', 'phosphorus', 'potassium']
+    order_index = 0
     
     # Split text into lines and look for table-row patterns
     lines = text.split('\n')
     
+    # First pass: identify table data rows (lines with | or [ delimiters and numbers)
+    table_rows = []
     for line in lines:
         line_stripped = line.strip()
         if not line_stripped:
@@ -299,44 +305,69 @@ def _extract_from_table(text: str) -> dict:
         if len(cells) < 2:
             continue
         
-        # Try to identify the parameter from first cell (name column)
+        # Check if any cell contains a number (data row vs header row)
+        has_number = any(re.search(r'\d+\.?\d*', c) for c in cells[1:])
+        if not has_number:
+            continue
+        
+        table_rows.append((line_stripped, cells))
+    
+    print(f"  [table] Found {len(table_rows)} data rows")
+    
+    for line_stripped, cells in table_rows:
         first_cell = cells[0].lower().strip('()[] ')
         matched_param = None
+        best_match_score = 0
         
+        # Try to identify the parameter from first cell using hints
         for param, hints in param_hints.items():
+            if param in results:
+                continue  # Skip already found params
+            
             for hint in hints:
-                if hint in first_cell or first_cell in hint:
+                score = 0
+                if first_cell == hint:
+                    score = 100  # Exact match
+                elif hint in first_cell:
+                    score = 80  # Hint is substring of cell
+                elif first_cell in hint and len(first_cell) >= 3:
+                    score = 60  # Cell is substring of hint (only for 3+ chars)
+                
+                if score > best_match_score:
+                    best_match_score = score
                     matched_param = param
-                    break
-                # Also check edit distance for short garbled text
-                if len(first_cell) >= 2 and len(hint) >= 2:
-                    if _fuzzy_match(first_cell, hint):
-                        matched_param = param
-                        break
-            if matched_param:
-                break
         
-        if not matched_param:
+        # If no confident match found, use row order as fallback
+        if matched_param is None and order_index < len(expected_order):
+            # Only use order fallback if the row looks like a data row
+            fallback_param = expected_order[order_index]
+            if fallback_param not in results:
+                matched_param = fallback_param
+                print(f"  [table] Using row-order fallback: row '{first_cell}' → {matched_param}")
+        
+        if not matched_param or matched_param in results:
+            order_index += 1
             continue
         
         # Try to extract a numeric value from remaining cells
         for cell in cells[1:]:
-            # Extract numbers from the cell
             numbers = re.findall(r'(\d+\.?\d*)', cell)
             for num_str in numbers:
                 try:
                     value = float(num_str)
                     
                     # Apply smart validation and correction
-                    value = _validate_and_correct(matched_param, value)
-                    if value is not None:
-                        results[matched_param] = value
-                        print(f"  [table] Extracted {matched_param}: {value} (from cell '{cell}')")
+                    corrected = _validate_and_correct(matched_param, value)
+                    if corrected is not None:
+                        results[matched_param] = corrected
+                        print(f"  [table] Extracted {matched_param}: {corrected} (from cell '{cell}', row '{first_cell}')")
                         break
                 except ValueError:
                     continue
             if matched_param in results:
                 break
+        
+        order_index += 1
     
     return results
 
