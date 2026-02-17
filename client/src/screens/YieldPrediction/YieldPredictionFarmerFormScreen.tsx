@@ -28,6 +28,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { SEASONAL_CLIMATE, getSeasonalClimate } from "../../constants/seasonalClimate";
 import { DISTRICTS as DISTRICT_LIST, LOCATIONS_BY_DISTRICT, LOCATION_COORDINATES as LOCATION_DATA, SOIL_TYPE_MAPPING, DISTRICTS_SINHALA, LOCATIONS_SINHALA } from "../../constants/locations";
 import { autoFillWeatherData } from "../../utils/seasonalClimateHelper";
+import SoilReportUploadModal from "../../components/SoilReportUploadModal";
 
 const getApiUrl = () => {
     if (Platform.OS === "android") {
@@ -192,6 +193,7 @@ const YieldPredictionFormScreen = () => {
     const [isAnalyzingPDF, setIsAnalyzingPDF] = useState(false);
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
     const [soilDataExtracted, setSoilDataExtracted] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
 
     // Get user from auth context
     const { user } = useApp();
@@ -446,25 +448,7 @@ const YieldPredictionFormScreen = () => {
     // Handle PDF/Image upload for soil test data extraction
     const handleUploadSoilReport = async () => {
         try {
-            // Show options: PDF or Photo
-            Alert.alert(
-                language === "si" ? "පස් පරීක්ෂණ වාර්තාව උඩුගත කරන්න" : "Upload Soil Test Report",
-                language === "si" ? "ඔබට අවශ්‍ය ආකාරය තෝරන්න:" : "Choose upload method:",
-                [
-                    {
-                        text: language === "si" ? "PDF ලේඛනය" : "PDF Document",
-                        onPress: () => pickDocument(),
-                    },
-                    {
-                        text: language === "si" ? "ඡායාරූපය" : "Take Photo",
-                        onPress: () => pickImage(),
-                    },
-                    {
-                        text: language === "si" ? "අවලංගු කරන්න" : "Cancel",
-                        style: "cancel",
-                    },
-                ]
-            );
+            setShowUploadModal(true);
         } catch (error) {
             console.error("Upload error:", error);
         }
@@ -1260,7 +1244,7 @@ const YieldPredictionFormScreen = () => {
                                     <>
                                         <Upload color="#FFFFFF" size={20} style={{ marginRight: 8 }} />
                                         <Text style={styles.uploadButtonText}>
-                                            {language === "si" ? "පස් වාර්තාව උඩුගත කරන්න (PDF/ඡායාරූපය)" : "Upload Soil Report (PDF/Photo)"}
+                                            {language === "si" ? "පස් වාර්තාව උඩුගත කරන්න" : "Upload Soil Report"}
                                         </Text>
                                     </>
                                 )}
@@ -1428,19 +1412,29 @@ const YieldPredictionFormScreen = () => {
                         </Text>
                         <Text style={styles.helperText}>{content[language].selectVariety}</Text>
                         <View style={styles.varietyGrid}>
-                            {SEED_VARIETIES.map((item) => (
-                                <TouchableOpacity
-                                    key={item.name}
-                                    style={[
-                                        styles.varietyCard,
-                                        variety === item.name && styles.varietyCardSelected,
-                                    ]}
-                                    onPress={() => setVariety(item.name)}
-                                >
-                                    <Image source={item.image} style={styles.varietyImage} />
-                                    <Text style={styles.varietyName}>{item.name}</Text>
-                                </TouchableOpacity>
-                            ))}
+                            {SEED_VARIETIES.map((item) => {
+                                const selected = variety === item.name;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.name}
+                                        style={[
+                                            styles.varietyCard,
+                                            selected && styles.varietyCardSelected,
+                                        ]}
+                                        onPress={() => setVariety(item.name)}
+                                    >
+                                        <Image source={item.image} style={styles.varietyImage} />
+                                        <Text
+                                            style={[
+                                                styles.varietyText,
+                                                selected && styles.varietyTextSelected,
+                                            ]}
+                                        >
+                                            {item.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                         </View>
                     </View>
 
@@ -1676,6 +1670,15 @@ const YieldPredictionFormScreen = () => {
                     </TouchableOpacity>
                 </View>
             </ScrollView>
+
+            {/* Upload Method Modal */}
+            <SoilReportUploadModal
+                visible={showUploadModal}
+                onClose={() => setShowUploadModal(false)}
+                onPickDocument={() => pickDocument()}
+                onPickImage={() => pickImage()}
+                language={language}
+            />
         </View>
     );
 };
@@ -1860,28 +1863,40 @@ const styles = StyleSheet.create({
     },
     varietyCard: {
         width: "30%",
-        backgroundColor: "#F9FAFB",
-        borderRadius: 12,
-        padding: 12,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        padding: 10,
         alignItems: "center",
         borderWidth: 2,
         borderColor: "#E5E7EB",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 3,
+        elevation: 1,
     },
     varietyCardSelected: {
         borderColor: "#10B981",
-        backgroundColor: "#D1FAE5",
+        backgroundColor: "#ECFDF5",
+        shadowColor: "#10B981",
+        shadowOpacity: 0.15,
+        elevation: 3,
     },
     varietyImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
+        width: 70,
+        height: 70,
+        resizeMode: "contain",
         marginBottom: 8,
     },
-    varietyName: {
-        fontSize: 12,
-        color: "#000000",
-        marginTop: 4,
+    varietyText: {
+        fontSize: 13,
+        color: "#374151",
         textAlign: "center",
+        fontWeight: "600",
+    },
+    varietyTextSelected: {
+        color: "#047857",
+        fontWeight: "bold",
     },
     submitButton: {
         backgroundColor: "#10B981",
