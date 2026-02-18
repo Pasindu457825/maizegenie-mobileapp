@@ -13,3 +13,5 @@ pandas>=2.3.0
 reportlab>=4.0.0
 pdfplumber==0.10.3
 pytesseract==0.3.10
+opencv-python-headless>=4.8.0
+pypdfium2>=4.25.0
