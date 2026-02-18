@@ -27,6 +27,7 @@ import {
   CloudDrizzle,
   CloudLightning,
   CloudFog,
+  ShoppingCart,
 } from "lucide-react-native";
 
 import { useNavigation } from "@react-navigation/native";
@@ -75,6 +76,7 @@ type RootStackParamList = {
   Notifications: undefined;
   AdminPanelScreen: undefined;
   ProAdvisorFollowScreen: { formData: any };
+  MarketPlaceScreen: undefined;
 };
 
 type Language = "si" | "en";
@@ -103,6 +105,9 @@ const PriceForecastLoadingScreen = () => {
   const { unreadCount } = useNotifications();
   type RootNavProp = StackNavigationProp<RootStackParamList>;
   const rootNavigation = useNavigation<RootNavProp>();
+
+  // 🔥 ADD: Local navigation for PriceForecastStack
+  const localNavigation = useNavigation<NavProp>();
   const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const { language: globalLang } = useLanguage();
   const language: Language = globalLang === "sinhala" ? "si" : "en";
@@ -254,7 +259,7 @@ const PriceForecastLoadingScreen = () => {
           useNativeDriver: true,
         }),
         Animated.delay(3000),
-      ])
+      ]),
     ).start();
 
     // Location pulse animation
@@ -270,7 +275,7 @@ const PriceForecastLoadingScreen = () => {
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     Animated.timing(fadeAnim, {
@@ -297,7 +302,7 @@ const PriceForecastLoadingScreen = () => {
           duration: 2000,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     Animated.loop(
@@ -312,7 +317,7 @@ const PriceForecastLoadingScreen = () => {
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
 
     const interval = setInterval(() => {
@@ -354,15 +359,15 @@ const PriceForecastLoadingScreen = () => {
   });
 
   const handleGetStarted = () => {
-    navigation.navigate("PriceForecastFormScreen");
+    localNavigation.navigate("PriceForecastFormScreen");
   };
 
   const handleWeatherForecast = () => {
-    navigation.navigate("WeatherForecastScreen");
+    localNavigation.navigate("WeatherForecastScreen");
   };
 
   const handleAdvisor = () => {
-    navigation.navigate("PriceAdvisorScreen", {
+    localNavigation.navigate("PriceAdvisorScreen", {
       formData: {
         cropDuration: 14,
         cost: 45000,
@@ -372,7 +377,11 @@ const PriceForecastLoadingScreen = () => {
   };
 
   const handleAddPriceDetails = () => {
-    navigation.navigate("AdminPanelScreen");
+    localNavigation.navigate("AdminPanelScreen");
+  };
+
+  const handleMarketplace = () => {
+    localNavigation.navigate("MarketPlaceScreen");
   };
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
@@ -395,7 +404,7 @@ const PriceForecastLoadingScreen = () => {
 
   const getWeatherTranslation = (
     condition: string | null,
-    lang: Language
+    lang: Language,
   ): string => {
     if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
 
@@ -719,6 +728,35 @@ const PriceForecastLoadingScreen = () => {
                   </View>
                 </TouchableOpacity>
               )}
+              <TouchableOpacity
+                style={[styles.featureCard, styles.marketplaceCard]}
+                onPress={handleMarketplace}
+                activeOpacity={0.9}
+              >
+                <View style={styles.cardIconContainer}>
+                  <View
+                    style={[
+                      styles.cardIconCircle,
+                      styles.marketplaceIconCircle,
+                    ]}
+                  >
+                    <ShoppingCart color="#0284C7" size={28} />
+                  </View>
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>
+                    {language === "si" ? "🛒 වෙළඳපල" : "🛒 Marketplace"}
+                  </Text>
+                  <Text style={styles.cardDescription}>
+                    {language === "si"
+                      ? "අස්වනු මිලදී ගැනීම සහ ඉදිරිපත්කරණ"
+                      : "Buy harvest & send offers"}
+                  </Text>
+                </View>
+                <View style={styles.cardArrow}>
+                  <Text style={styles.arrowText}>→</Text>
+                </View>
+              </TouchableOpacity>
             </Animated.View>
           )}
         </Animated.View>
@@ -1110,6 +1148,13 @@ const styles = StyleSheet.create({
   },
   proAdvisorCard: {
     borderColor: "#A7F3D0",
+  },
+  marketplaceCard: {
+    borderColor: "#DBEAFE",
+  },
+  marketplaceIconCircle: {
+    backgroundColor: "#F0F9FF",
+    borderColor: "#E0F2FE",
   },
 });
 export default PriceForecastLoadingScreen;

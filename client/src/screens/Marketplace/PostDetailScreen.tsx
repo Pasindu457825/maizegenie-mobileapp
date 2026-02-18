@@ -41,6 +41,8 @@ import {
   createOffer,
   acceptOffer,
   rejectOffer,
+  checkUserOffer,
+  getBestOffer,
   type PostWithOffers,
   type Offer,
 } from "../../services/postService";
@@ -69,13 +71,11 @@ const PostDetailScreen = () => {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [isFarmer, setIsFarmer] = useState(false);
 
-  // Offer modal state
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerPrice, setOfferPrice] = useState("");
   const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const [userOffer, setUserOffer] = useState<Offer | null>(null);
 
-  // Accept offer confirmation
   const [showAcceptModal, setShowAcceptModal] = useState(false);
   const [selectedOfferForAccept, setSelectedOfferForAccept] =
     useState<Offer | null>(null);
@@ -167,14 +167,13 @@ const PostDetailScreen = () => {
     },
   };
 
-  // Load post data
+  // Load post with offers
   const loadPost = async () => {
     try {
       setIsLoading(true);
       const postData = await getPost(postId);
       setPost(postData);
 
-      // Get current user
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -183,15 +182,15 @@ const PostDetailScreen = () => {
         setCurrentUserId(user.id);
         setIsFarmer(user.id === postData.farmer_id);
 
-        // Check if current user already made an offer
-        const userOfferData = postData.offers?.find(
-          (o) => o.buyer_id === user.id
+        // Check user's offer
+        const userOfferData = postData.offers.find(
+          (o) => o.buyer_id === user.id,
         );
         setUserOffer(userOfferData || null);
       }
     } catch (error) {
       console.error("Load post error:", error);
-      Alert.alert(content[language].error, String(error));
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
     } finally {
       setIsLoading(false);
     }
@@ -200,46 +199,57 @@ const PostDetailScreen = () => {
   useFocusEffect(
     useCallback(() => {
       loadPost();
-    }, [postId, language])
+    }, [postId, language]),
   );
 
+  // Create offer
   const handleMakeOffer = async () => {
     try {
-      if (!offerPrice || parseFloat(offerPrice) <= 0) {
-        Alert.alert(content[language].error, content[language].invalidPrice);
+      const price = parseFloat(offerPrice);
+
+      if (!offerPrice || !Number.isFinite(price) || price <= 0) {
+        Alert.alert(
+          language === "si" ? "දෝෂයක්" : "Error",
+          language === "si"
+            ? "කරුණාකර වලංගු මිල ඇතුලු කරන්න"
+            : "Please enter a valid price",
+        );
         return;
       }
 
       if (userOffer) {
-        Alert.alert(content[language].error, content[language].alreadyOffered);
+        Alert.alert(
+          language === "si" ? "දෝෂයක්" : "Error",
+          language === "si"
+            ? "ඔබ පෙර ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත"
+            : "You have already submitted an offer",
+        );
         return;
       }
 
       setIsSubmittingOffer(true);
 
-      const offerData = await createOffer(postId, parseFloat(offerPrice));
-      setUserOffer(offerData);
+      const newOffer = await createOffer(postId, price);
+      setUserOffer(newOffer);
       setShowOfferModal(false);
       setOfferPrice("");
 
       await sendNotification(
-        content[language].offerSubmitted,
-        `${language === "si" ? "ඔබ" : "You"} Rs ${parseFloat(
-          offerPrice
-        ).toFixed(2)}/kg ${content[language].perKg}`,
-        "offer"
+        language === "si" ? "ඉදිරිපත්කරණ සාර්ථක" : "Offer Submitted",
+        `Rs ${price.toFixed(2)}/kg`,
+        "offer",
       );
 
-      // Reload post to show new offer
       await loadPost();
     } catch (error) {
       console.error("Offer error:", error);
-      Alert.alert(content[language].error, String(error));
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
     } finally {
       setIsSubmittingOffer(false);
     }
   };
 
+  // Accept offer
   const handleAcceptOffer = async (offer: Offer) => {
     try {
       setIsAcceptingOffer(true);
@@ -247,41 +257,37 @@ const PostDetailScreen = () => {
       await acceptOffer(offer.id);
 
       await sendNotification(
-        content[language].offerAccepted,
-        `${
-          language === "si" ? "ඔබේ" : "Your"
-        } Rs ${offer.offer_price_per_kg.toFixed(2)}/kg ${
-          content[language].perKg
-        }`,
-        "offer"
+        language === "si" ? "ඉදිරිපත්කරණ පිළිගනු ලැබුවි" : "Offer Accepted",
+        `Rs ${offer.offer_price_per_kg.toFixed(2)}/kg`,
+        "offer",
       );
 
       setShowAcceptModal(false);
       setSelectedOfferForAccept(null);
       await loadPost();
     } catch (error) {
-      console.error("Accept offer error:", error);
-      Alert.alert(content[language].error, String(error));
+      console.error("Accept error:", error);
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
     } finally {
       setIsAcceptingOffer(false);
     }
   };
 
+  // Reject offer
   const handleRejectOffer = async (offerId: string) => {
     try {
       await rejectOffer(offerId);
 
       Alert.alert(
-        content[language].offerRejected,
         language === "si"
-          ? "ඉදිරිපත්කරණ සාර්ථකව ප්‍රතික්ෂේප කරන ලදි"
-          : "Offer rejected successfully"
+          ? "ඉදිරිපත්කරණ ප්‍රතික්ෂේප කරන ලදි"
+          : "Offer Rejected",
       );
 
       await loadPost();
     } catch (error) {
-      console.error("Reject offer error:", error);
-      Alert.alert(content[language].error, String(error));
+      console.error("Reject error:", error);
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
     }
   };
 
@@ -296,18 +302,18 @@ const PostDetailScreen = () => {
     };
     return date.toLocaleDateString(
       language === "si" ? "si-LK" : "en-US",
-      options
+      options,
     );
   };
 
-  const getBestOffer = () => {
-    if (!post?.offers || post.offers.length === 0) return null;
-    return post.offers.reduce((best, current) =>
-      current.offer_price_per_kg > best.offer_price_per_kg ? current : best
+  const getBestOffer = (offers: Offer[]) => {
+    if (!offers || offers.length === 0) return null;
+    return offers.reduce((best, current) =>
+      current.offer_price_per_kg > best.offer_price_per_kg ? current : best,
     );
   };
 
-  const bestOffer = getBestOffer();
+  const bestOffer = post ? getBestOffer(post.offers) : null;
 
   if (isLoading) {
     return (
@@ -487,189 +493,112 @@ const PostDetailScreen = () => {
           <View style={styles.sectionHeader}>
             <MessageCircle size={20} color="#065F46" />
             <Text style={styles.sectionTitle}>
-              {content[language].offers} ({post.offers?.length || 0})
+              Offers ({post?.offers?.length || 0})
             </Text>
           </View>
 
-          {/* User Offer (Buyer) */}
+          {/* User's own offer */}
           {!isFarmer && userOffer && (
             <View style={[styles.offerCard, styles.userOfferCard]}>
-              <View style={styles.offerHeader}>
-                <Text style={styles.offerLabel}>
-                  {content[language].yourOffer}
-                </Text>
-                <View
-                  style={[
-                    styles.offerStatusBadge,
-                    {
-                      backgroundColor:
-                        userOffer.status === "accepted"
-                          ? "#D1FAE5"
-                          : userOffer.status === "rejected"
+              <Text style={styles.offerLabel}>Your Offer</Text>
+              <Text style={styles.offerPrice}>
+                Rs {userOffer.offer_price_per_kg.toFixed(2)}
+              </Text>
+              <View
+                style={[
+                  styles.offerStatusBadge,
+                  {
+                    backgroundColor:
+                      userOffer.status === "accepted"
+                        ? "#D1FAE5"
+                        : userOffer.status === "rejected"
                           ? "#FEE2E2"
                           : "#FEF3C7",
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.offerStatusText,
+                    {
+                      color:
+                        userOffer.status === "accepted"
+                          ? "#047857"
+                          : userOffer.status === "rejected"
+                            ? "#991B1B"
+                            : "#92400E",
                     },
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.offerStatusText,
-                      {
-                        color:
-                          userOffer.status === "accepted"
-                            ? "#047857"
-                            : userOffer.status === "rejected"
-                            ? "#991B1B"
-                            : "#92400E",
-                      },
-                    ]}
-                  >
-                    {
-                      content[language][
-                        userOffer.status as "pending" | "accepted" | "rejected"
-                      ]
-                    }
-                  </Text>
-                </View>
+                  {userOffer.status.charAt(0).toUpperCase() +
+                    userOffer.status.slice(1)}
+                </Text>
               </View>
-              <Text style={styles.offerPrice}>
-                Rs {userOffer.offer_price_per_kg.toFixed(2)}{" "}
-                {content[language].perKg}
-              </Text>
-              <Text style={styles.offerTime}>
-                {formatDate(userOffer.created_at)}
-              </Text>
             </View>
           )}
 
-          {/* Best Offer Badge */}
+          {/* Best offer banner */}
           {bestOffer && bestOffer.status === "pending" && (
             <View style={styles.bestOfferBanner}>
               <TrendingUp size={16} color="#10B981" />
-              <View style={styles.bestOfferContent}>
-                <Text style={styles.bestOfferTitle}>
-                  {content[language].bestOffer}
-                </Text>
+              <View>
+                <Text style={styles.bestOfferTitle}>Best Offer</Text>
                 <Text style={styles.bestOfferPrice}>
-                  Rs {bestOffer.offer_price_per_kg.toFixed(2)}{" "}
-                  {content[language].perKg}
+                  Rs {bestOffer.offer_price_per_kg.toFixed(2)}
                 </Text>
               </View>
             </View>
           )}
 
-          {/* All Offers List (Farmer View) */}
-          {isFarmer && post.offers && post.offers.length > 0 ? (
+          {/* All offers (farmer view) */}
+          {isFarmer && post?.offers && post.offers.length > 0 ? (
             <View style={styles.offersList}>
               {post.offers.map((offer) => (
-                <View
-                  key={offer.id}
-                  style={[
-                    styles.offerCard,
-                    offer.status === "accepted" && styles.acceptedOfferCard,
-                  ]}
-                >
-                  <View style={styles.offerHeader}>
-                    <View>
-                      <Text style={styles.buyerName}>{offer.buyer_name}</Text>
-                      <Text style={styles.offerTime}>
-                        {formatDate(offer.created_at)}
-                      </Text>
-                    </View>
-                    <View
-                      style={[
-                        styles.offerStatusBadge,
-                        {
-                          backgroundColor:
-                            offer.status === "accepted"
-                              ? "#D1FAE5"
-                              : offer.status === "rejected"
-                              ? "#FEE2E2"
-                              : "#FEF3C7",
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.offerStatusText,
-                          {
-                            color:
-                              offer.status === "accepted"
-                                ? "#047857"
-                                : offer.status === "rejected"
-                                ? "#991B1B"
-                                : "#92400E",
-                          },
-                        ]}
-                      >
-                        {
-                          content[language][
-                            offer.status as "pending" | "accepted" | "rejected"
-                          ]
-                        }
-                      </Text>
-                    </View>
-                  </View>
-
+                <View key={offer.id} style={styles.offerCard}>
+                  <Text style={styles.buyerName}>{offer.buyer_name}</Text>
                   <Text style={styles.offerPrice}>
-                    Rs {offer.offer_price_per_kg.toFixed(2)}{" "}
-                    {content[language].perKg}
+                    Rs {offer.offer_price_per_kg.toFixed(2)}
                   </Text>
 
-                  {/* Action Buttons (Farmer Only, Pending Offers) */}
-                  {offer.status === "pending" && (
-                    <View style={styles.offerActions}>
-                      <TouchableOpacity
-                        style={styles.rejectButton}
-                        onPress={() => handleRejectOffer(offer.id)}
-                      >
-                        <XCircle size={16} color="#FFFFFF" />
-                        <Text style={styles.rejectButtonText}>
-                          {content[language].reject}
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={styles.acceptButton}
-                        onPress={() => {
-                          setSelectedOfferForAccept(offer);
-                          setShowAcceptModal(true);
-                        }}
-                      >
-                        <CheckCircle size={16} color="#FFFFFF" />
-                        <Text style={styles.acceptButtonText}>
-                          {content[language].accept}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+                  <View style={styles.offerActions}>
+                    {offer.status === "pending" && (
+                      <>
+                        <TouchableOpacity
+                          style={styles.rejectButton}
+                          onPress={() => handleRejectOffer(offer.id)}
+                        >
+                          <Text style={styles.rejectButtonText}>Reject</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.acceptButton}
+                          onPress={() => {
+                            setSelectedOfferForAccept(offer);
+                            setShowAcceptModal(true);
+                          }}
+                        >
+                          <Text style={styles.acceptButtonText}>Accept</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
                 </View>
               ))}
             </View>
-          ) : isFarmer ? (
-            <View style={styles.emptyOffersBox}>
-              <MessageCircle size={32} color="#D1D5DB" />
-              <Text style={styles.emptyOffersText}>
-                {content[language].noOffers}
-              </Text>
-            </View>
-          ) : null}
+          ) : !isFarmer ? null : (
+            <Text style={styles.noOffersText}>No offers yet</Text>
+          )}
         </View>
-
-        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Make Offer Button (Buyer Only, Post Active) */}
-      {!isFarmer && post.status === "active" && !userOffer && (
+      {/* Make offer button */}
+      {!isFarmer && post?.status === "active" && !userOffer && (
         <View style={styles.footer}>
           <TouchableOpacity
             style={styles.makeOfferButton}
             onPress={() => setShowOfferModal(true)}
           >
-            <Send size={20} color="#FFFFFF" />
-            <Text style={styles.makeOfferButtonText}>
-              {content[language].makeOffer}
-            </Text>
+            <Send size={20} color="#FFF" />
+            <Text style={styles.makeOfferButtonText}>Make an Offer</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -732,12 +661,12 @@ const PostDetailScreen = () => {
                           ? "වත්මන් මිලට වඩා ඉහළ"
                           : "Higher than current price"
                         : language === "si"
-                        ? "වත්මන් මිලට වඩා අඩු"
-                        : "Lower than current price"}
+                          ? "වත්මන් මිලට වඩා අඩු"
+                          : "Lower than current price"}
                     </Text>
                     <Text style={styles.comparisonValue}>
                       {Math.abs(
-                        parseFloat(offerPrice) - post.price_per_kg
+                        parseFloat(offerPrice) - post.price_per_kg,
                       ).toFixed(2)}{" "}
                       Rs
                     </Text>
@@ -1157,19 +1086,21 @@ const styles = StyleSheet.create({
   // Modal Styles
   modalContainer: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "flex-end",
   },
   modalOverlay: {
-    paddingHorizontal: 0,
-    paddingTop: 0,
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingHorizontal: 20,
-    maxHeight: "90%",
+    paddingTop: 16,
+    paddingBottom: 30,
+    maxHeight: "85%",
   },
   modalHeader: {
     flexDirection: "row",
@@ -1381,6 +1312,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#EF4444",
     fontWeight: "600",
+  },
+  noOffersText: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    fontWeight: "500",
+    textAlign: "center",
+    marginTop: 8,
   },
 });
 

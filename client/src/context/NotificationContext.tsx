@@ -1,20 +1,23 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 /* =======================
    TYPES
 ======================= */
 
+export type NotificationType =
+  | "price"
+  | "weather"
+  | "system"
+  | "offer"
+  | "message"
+  | "marketplace";
+
 export type AppNotification = {
   id: string;
   title: string;
   message: string;
-  type: "price" | "weather" | "system";
+  type: NotificationType;
   created_at: string;
   read: boolean;
   user_id?: string;
@@ -29,12 +32,11 @@ type NotificationContextType = {
   sendNotification: (
     title: string,
     message: string,
-    type: "price" | "weather" | "system"
+    type: NotificationType,
   ) => Promise<void>;
 };
 
-const NotificationContext =
-  createContext<NotificationContextType | null>(null);
+const NotificationContext = createContext<NotificationContextType | null>(null);
 
 /* =======================
    PROVIDER
@@ -72,17 +74,17 @@ export const NotificationProvider = ({
         return;
       }
 
-      if (data) setNotifications(data);
+      if (data) setNotifications(data as AppNotification[]);
     };
 
     init();
   }, []);
 
   /* =======================
-     REALTIME LISTENER (SAFE)
+     REALTIME LISTENER
   ======================= */
   useEffect(() => {
-    if (!userId) return; // 🔐 IMPORTANT GUARD
+    if (!userId) return;
 
     const channel = supabase
       .channel(`notifications-${userId}`)
@@ -104,20 +106,18 @@ export const NotificationProvider = ({
 
           if (payload.eventType === "DELETE") {
             setNotifications((prev) =>
-              prev.filter((n) => n.id !== payload.old.id)
+              prev.filter((n) => n.id !== payload.old.id),
             );
           }
 
           if (payload.eventType === "UPDATE") {
             setNotifications((prev) =>
               prev.map((n) =>
-                n.id === payload.new.id
-                  ? (payload.new as AppNotification)
-                  : n
-              )
+                n.id === payload.new.id ? (payload.new as AppNotification) : n,
+              ),
             );
           }
-        }
+        },
       )
       .subscribe();
 
@@ -127,12 +127,12 @@ export const NotificationProvider = ({
   }, [userId]);
 
   /* =======================
-     SEND NOTIFICATION (RLS SAFE)
+     SEND NOTIFICATION
   ======================= */
   const sendNotification = async (
     title: string,
     message: string,
-    type: "price" | "weather" | "system"
+    type: NotificationType,
   ) => {
     const {
       data: { user },
@@ -143,7 +143,7 @@ export const NotificationProvider = ({
     const { data, error } = await supabase
       .from("notifications")
       .insert({
-        user_id: user.id, // 🔐 MUST MATCH auth.uid()
+        user_id: user.id,
         title,
         message,
         type,
@@ -163,12 +163,11 @@ export const NotificationProvider = ({
   };
 
   /* =======================
-     DELETE (RLS SAFE)
+     DELETE
   ======================= */
   const deleteNotification = async (id: string) => {
     if (!userId) return;
 
-    // optimistic UI
     setNotifications((prev) => prev.filter((n) => n.id !== id));
 
     const { error } = await supabase
@@ -180,23 +179,22 @@ export const NotificationProvider = ({
     if (error) {
       console.error("❌ Delete failed", error);
 
-      // rollback
       const { data } = await supabase
         .from("notifications")
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (data) setNotifications(data);
+      if (data) setNotifications(data as AppNotification[]);
     }
   };
 
   /* =======================
-     READ
+     MARK READ
   ======================= */
   const markAsRead = async (id: string) => {
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
 
     await supabase
@@ -209,9 +207,7 @@ export const NotificationProvider = ({
   const markAllAsRead = async () => {
     if (!userId) return;
 
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, read: true }))
-    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
     await supabase
       .from("notifications")
@@ -245,7 +241,7 @@ export const useNotifications = () => {
   const ctx = useContext(NotificationContext);
   if (!ctx) {
     throw new Error(
-      "useNotifications must be used inside NotificationProvider"
+      "useNotifications must be used inside NotificationProvider",
     );
   }
   return ctx;

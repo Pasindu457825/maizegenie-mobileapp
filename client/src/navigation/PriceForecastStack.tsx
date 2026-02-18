@@ -20,6 +20,7 @@ export interface PostDraft {
   quantityKg: number;
   pricePerKg: number;
   district: string;
+  week: number;
 
   // 🔒 Internal / AI metadata (NOT shown to buyers)
   forecastWeek?: number;

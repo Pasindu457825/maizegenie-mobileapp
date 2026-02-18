@@ -7,6 +7,10 @@ import {
   FlatList,
   ActivityIndicator,
   TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -19,9 +23,20 @@ import {
   MapPin,
   Calendar,
   TrendingUp,
+  CheckCircle,
+  MessageSquare,
+  Send,
+  XCircle,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
-import { listPosts, type Post } from "../../services/postService";
+import { useNotifications } from "../../context/NotificationContext";
+import {
+  listPosts,
+  checkUserOffer,
+  createOffer,
+  type Post,
+} from "../../services/postService";
+import { supabase } from "../../lib/supabase";
 
 type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
@@ -32,11 +47,22 @@ const MarketPlaceScreen = () => {
   const navigation = useNavigation<NavProp>();
   const { language: globalLang } = useLanguage();
   const language = globalLang === "sinhala" ? "si" : "en";
+  const { sendNotification } = useNotifications();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [userOffers, setUserOffers] = useState<Map<string, boolean>>(new Map());
+
+  // 🔥 NEW: Quick offer modal state
+  const [showQuickOfferModal, setShowQuickOfferModal] = useState(false);
+  const [selectedPostForOffer, setSelectedPostForOffer] = useState<Post | null>(
+    null,
+  );
+  const [quickOfferPrice, setQuickOfferPrice] = useState<string>("");
+  const [isSubmittingQuickOffer, setIsSubmittingQuickOffer] = useState(false);
 
   const content = {
     si: {
@@ -46,6 +72,21 @@ const MarketPlaceScreen = () => {
       noResults: "ප්‍රතිඵල නොමැත",
       perKg: "කි.ග්‍රෑම් එකකට",
       loading: "පූරණය වෙමින්...",
+      active: "ක්‍රියාකාරී",
+      sold: "විකිණුණු",
+      yourOffer: "ඔබේ ඉදිරිපත්කරණ",
+      noOffers: "ඉදිරිපත්කරණ නැත",
+      // 🔥 NEW: Quick offer modal text
+      quickOffer: "ඉක්මන් ඉදිරිපත්කරණ",
+      enterOfferPrice: "ඉදිරිපත් මිල ඇතුලු කරන්න",
+      currentPrice: "වත්මන් මිල",
+      submitOffer: "ඉදිරිපත් කරන්න",
+      cancel: "අවලංගු කරන්න",
+      offerHint: "ඔබේ ඉදිරිපත් මිල ඇතුලු කරන්න",
+      offerSuccess: "ඉදිරිපත්කරණ සාර්ථකයි!",
+      offerError: "දෝෂයක් සිදු විය",
+      invalidPrice: "කරුණාකර වලංගු මිල ඇතුලු කරන්න",
+      alreadyOffered: "ඔබ පෙර ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත",
     },
     en: {
       title: "Harvest Marketplace",
@@ -54,15 +95,52 @@ const MarketPlaceScreen = () => {
       noResults: "No results found",
       perKg: "per kg",
       loading: "Loading...",
+      active: "Active",
+      sold: "Sold",
+      yourOffer: "Your offer",
+      noOffers: "No offers",
+      // 🔥 NEW: Quick offer modal text
+      quickOffer: "Quick Offer",
+      enterOfferPrice: "Enter offer price",
+      currentPrice: "Current price",
+      submitOffer: "Submit Offer",
+      cancel: "Cancel",
+      offerHint: "Enter your offer price",
+      offerSuccess: "Offer submitted!",
+      offerError: "An error occurred",
+      invalidPrice: "Please enter a valid price",
+      alreadyOffered: "You already offered on this post",
     },
   };
 
+  // Get current user
+  useEffect(() => {
+    const getUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    getUser();
+  }, []);
+
+  // Load posts
   const loadPosts = async () => {
     try {
       setIsLoading(true);
       const data = await listPosts();
       setPosts(data);
       setFilteredPosts(data);
+
+      // Check user offers for each post
+      if (currentUserId) {
+        const offerMap = new Map<string, boolean>();
+        for (const post of data) {
+          const userOffer = await checkUserOffer(post.id);
+          offerMap.set(post.id, !!userOffer);
+        }
+        setUserOffers(offerMap);
+      }
     } catch (error) {
       console.error("Load posts error:", error);
     } finally {
@@ -73,66 +151,179 @@ const MarketPlaceScreen = () => {
   useFocusEffect(
     React.useCallback(() => {
       loadPosts();
-    }, [])
+    }, [currentUserId]),
   );
 
+  // Filter posts
   useEffect(() => {
     const filtered = posts.filter(
       (post) =>
         post.seed_variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.district.toLowerCase().includes(searchQuery.toLowerCase())
+        post.district.toLowerCase().includes(searchQuery.toLowerCase()),
     );
     setFilteredPosts(filtered);
   }, [searchQuery, posts]);
 
-  const renderPostCard = ({ item }: { item: Post }) => (
-    <TouchableOpacity
-      style={styles.postCard}
-      onPress={() =>
-        navigation.navigate("PostDetailScreen", { postId: item.id })
-      }
-    >
-      <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.seedVariety}>{item.seed_variety}</Text>
-          <Text style={styles.farmer}>{item.farmer_name}</Text>
-        </View>
-        <View style={styles.priceBadge}>
-          <Text style={styles.priceValue}>
-            Rs {item.price_per_kg.toFixed(2)}
-          </Text>
-          <Text style={styles.priceUnit}>{content[language].perKg}</Text>
-        </View>
-      </View>
+  // 🔥 NEW: Handle quick offer submission
+  const handleQuickOfferSubmit = async () => {
+    if (!selectedPostForOffer) return;
 
-      <View style={styles.detailsRow}>
-        <View style={styles.detail}>
-          <Package size={16} color="#3B82F6" />
-          <Text style={styles.detailText}>
-            {item.quantity_kg.toFixed(0)} kg
-          </Text>
-        </View>
-        <View style={styles.detail}>
-          <MapPin size={16} color="#F59E0B" />
-          <Text style={styles.detailText}>{item.district}</Text>
-        </View>
-        <View style={styles.detail}>
-          <Calendar size={16} color="#10B981" />
-          <Text style={styles.detailText}>W{item.week}</Text>
-        </View>
-      </View>
+    const price = parseFloat(quickOfferPrice);
 
-      <View style={styles.totalValue}>
-        <TrendingUp size={16} color="#10B981" />
-        <Text style={styles.totalValueText}>
-          රු. {(item.quantity_kg * item.price_per_kg).toFixed(0)}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+    if (!quickOfferPrice || !Number.isFinite(price) || price <= 0) {
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        content[language].invalidPrice,
+      );
+      return;
+    }
+
+    try {
+      setIsSubmittingQuickOffer(true);
+
+      // Create offer
+      await createOffer(selectedPostForOffer.id, price);
+
+      // Show success
+      await sendNotification(
+        content[language].offerSuccess,
+        `Rs ${price.toFixed(2)}/kg`,
+        "offer",
+      );
+
+      // Reset modal
+      setShowQuickOfferModal(false);
+      setQuickOfferPrice("");
+      setSelectedPostForOffer(null);
+
+      // Reload posts
+      await loadPosts();
+    } catch (error) {
+      console.error("Quick offer error:", error);
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+    } finally {
+      setIsSubmittingQuickOffer(false);
+    }
+  };
+
+  const renderPostCard = ({ item }: { item: Post }) => {
+    const hasUserOffer = userOffers.get(item.id);
+
+    return (
+      <TouchableOpacity
+        style={[styles.postCard, item.status === "sold" && styles.postCardSold]}
+        onPress={() =>
+          navigation.navigate("PostDetailScreen", { postId: item.id })
+        }
+      >
+        {/* Header with status */}
+        <View style={styles.cardHeader}>
+          <View style={styles.cardLeft}>
+            <Text style={styles.seedVariety}>{item.seed_variety}</Text>
+            <Text style={styles.farmer}>{item.farmer_name}</Text>
+          </View>
+
+          <View style={styles.cardRight}>
+            {/* Status Badge */}
+            <View
+              style={[
+                styles.statusBadge,
+                item.status === "sold"
+                  ? styles.statusSold
+                  : styles.statusActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  item.status === "sold"
+                    ? styles.statusTextSold
+                    : styles.statusTextActive,
+                ]}
+              >
+                {item.status === "sold"
+                  ? content[language].sold
+                  : content[language].active}
+              </Text>
+            </View>
+
+            {/* Price */}
+            <View style={styles.priceBadge}>
+              <Text style={styles.priceValue}>
+                Rs {item.price_per_kg.toFixed(2)}
+              </Text>
+              <Text style={styles.priceUnit}>{content[language].perKg}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Details Row */}
+        <View style={styles.detailsRow}>
+          <View style={styles.detail}>
+            <Package size={14} color="#3B82F6" />
+            <Text style={styles.detailText}>
+              {item.quantity_kg.toFixed(0)} kg
+            </Text>
+          </View>
+          <View style={styles.detail}>
+            <MapPin size={14} color="#F59E0B" />
+            <Text style={styles.detailText}>{item.district}</Text>
+          </View>
+          <View style={styles.detail}>
+            <Calendar size={14} color="#8B5CF6" />
+            <Text style={styles.detailText}>W{item.week}</Text>
+          </View>
+        </View>
+
+        {/* Bottom Section: Total Value + Offer Button */}
+        <View style={styles.bottomSection}>
+          <View style={styles.totalValue}>
+            <TrendingUp size={14} color="#10B981" />
+            <Text style={styles.totalValueText}>
+              රු. {(item.quantity_kg * item.price_per_kg).toFixed(0)}
+            </Text>
+          </View>
+
+          {/* 🔥 NEW: Offer CTA Button */}
+          {currentUserId && item.status === "active" && (
+            <TouchableOpacity
+              style={[
+                styles.offerCTAButton,
+                hasUserOffer && styles.offerCTAButtonDisabled,
+              ]}
+              onPress={() => {
+                if (hasUserOffer) {
+                  // Go to detail if already offered
+                  navigation.navigate("PostDetailScreen", { postId: item.id });
+                } else {
+                  // Show quick offer modal
+                  setSelectedPostForOffer(item);
+                  setQuickOfferPrice(item.price_per_kg.toFixed(2));
+                  setShowQuickOfferModal(true);
+                }
+              }}
+            >
+              <MessageSquare size={14} color="#FFF" />
+              <Text style={styles.offerCTAButtonText}>
+                {hasUserOffer ? "View Offer" : "Make Offer"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Sold Status */}
+          {item.status === "sold" && (
+            <View style={styles.soldBadge}>
+              <Text style={styles.soldBadgeText}>Sold</Text>
+            </View>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -148,6 +339,7 @@ const MarketPlaceScreen = () => {
         </View>
       </View>
 
+      {/* Search */}
       <View style={styles.searchContainer}>
         <Search size={18} color="#6B7280" />
         <TextInput
@@ -159,6 +351,7 @@ const MarketPlaceScreen = () => {
         />
       </View>
 
+      {/* Content */}
       {isLoading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color="#10B981" />
@@ -177,6 +370,162 @@ const MarketPlaceScreen = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* 🔥 NEW: Quick Offer Modal */}
+      <Modal
+        visible={showQuickOfferModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowQuickOfferModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {/* Modal Header */}
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {content[language].quickOffer}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowQuickOfferModal(false)}
+                  style={styles.closeButton}
+                >
+                  <XCircle size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Modal Body */}
+              <View style={styles.modalBody}>
+                {/* Product Info */}
+                <View style={styles.productInfo}>
+                  <Text style={styles.productName}>
+                    {selectedPostForOffer?.seed_variety}
+                  </Text>
+                  <Text style={styles.productDetail}>
+                    {selectedPostForOffer?.quantity_kg.toFixed(0)} kg •{" "}
+                    {selectedPostForOffer?.district}
+                  </Text>
+                </View>
+
+                {/* Current Price */}
+                <View style={styles.currentPriceBox}>
+                  <Text style={styles.currentPriceLabel}>
+                    {content[language].currentPrice}
+                  </Text>
+                  <Text style={styles.currentPriceValue}>
+                    Rs {selectedPostForOffer?.price_per_kg.toFixed(2)}
+                  </Text>
+                </View>
+
+                {/* Offer Price Input */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {content[language].enterOfferPrice}
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={content[language].offerHint}
+                    placeholderTextColor="#9CA3AF"
+                    value={quickOfferPrice}
+                    onChangeText={setQuickOfferPrice}
+                    keyboardType="decimal-pad"
+                    editable={!isSubmittingQuickOffer}
+                  />
+                </View>
+
+                {/* Price Comparison */}
+                {quickOfferPrice && parseFloat(quickOfferPrice) > 0 && (
+                  <View
+                    style={[
+                      styles.priceComparison,
+                      {
+                        backgroundColor:
+                          parseFloat(quickOfferPrice) >
+                          (selectedPostForOffer?.price_per_kg || 0)
+                            ? "#D1FAE5"
+                            : "#FEF3C7",
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.comparisonText,
+                        {
+                          color:
+                            parseFloat(quickOfferPrice) >
+                            (selectedPostForOffer?.price_per_kg || 0)
+                              ? "#047857"
+                              : "#92400E",
+                        },
+                      ]}
+                    >
+                      {parseFloat(quickOfferPrice) >
+                      (selectedPostForOffer?.price_per_kg || 0)
+                        ? language === "si"
+                          ? "වත්මන් මිලට වඩා ඉහළ "
+                          : "Higher than asking"
+                        : language === "si"
+                          ? "වත්මන් මිලට වඩා අඩු"
+                          : "Lower than asking"}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.comparisonValue,
+                        {
+                          color:
+                            parseFloat(quickOfferPrice) >
+                            (selectedPostForOffer?.price_per_kg || 0)
+                              ? "#047857"
+                              : "#92400E",
+                        },
+                      ]}
+                    >
+                      Rs{" "}
+                      {Math.abs(
+                        parseFloat(quickOfferPrice) -
+                          (selectedPostForOffer?.price_per_kg || 0),
+                      ).toFixed(2)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Modal Footer */}
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowQuickOfferModal(false)}
+                  disabled={isSubmittingQuickOffer}
+                >
+                  <Text style={styles.modalCancelButtonText}>
+                    {content[language].cancel}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSubmitButton}
+                  onPress={handleQuickOfferSubmit}
+                  disabled={isSubmittingQuickOffer}
+                >
+                  {isSubmittingQuickOffer ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Send size={16} color="#FFFFFF" />
+                      <Text style={styles.modalSubmitButtonText}>
+                        {content[language].submitOffer}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
@@ -187,7 +536,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
   },
   header: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFF",
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 20,
@@ -200,7 +549,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#F0FDF4",
+    backgroundColor: "#ECFDF5",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -210,16 +559,15 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#1F2937",
   },
   headerSubtitle: {
     fontSize: 12,
     color: "#6B7280",
-    marginTop: 2,
   },
   searchContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFF",
     marginHorizontal: 16,
     marginVertical: 12,
     flexDirection: "row",
@@ -241,71 +589,140 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   postCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFF",
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: "#D1FAE5",
-    gap: 12,
+    gap: 10,
+  },
+  postCardSold: {
+    opacity: 0.6,
+    borderColor: "#FEE2E2",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    gap: 10,
+  },
+  cardLeft: {
+    flex: 1,
+  },
+  cardRight: {
+    alignItems: "flex-end",
+    gap: 6,
   },
   seedVariety: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 15,
+    fontWeight: "700",
     color: "#065F46",
   },
   farmer: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6B7280",
     marginTop: 2,
   },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  statusActive: {
+    backgroundColor: "#ECFDF5",
+  },
+  statusSold: {
+    backgroundColor: "#FEE2E2",
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  statusTextActive: {
+    color: "#10B981",
+  },
+  statusTextSold: {
+    color: "#DC2626",
+  },
   priceBadge: {
     backgroundColor: "#ECFDF5",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 8,
     alignItems: "flex-end",
   },
   priceValue: {
-    fontSize: 14,
-    fontWeight: "bold",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#10B981",
   },
   priceUnit: {
-    fontSize: 10,
+    fontSize: 9,
     color: "#6B7280",
-    marginTop: 2,
   },
   detailsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    gap: 6,
   },
   detail: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 4,
+    flex: 1,
   },
   detailText: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#6B7280",
     fontWeight: "500",
+  },
+  bottomSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    gap: 8,
   },
   totalValue: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
+    gap: 4,
+    flex: 1,
   },
   totalValueText: {
-    fontSize: 14,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "700",
     color: "#10B981",
+  },
+  offerCTAButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#0EA5E9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  offerCTAButtonDisabled: {
+    backgroundColor: "#10B981",
+    opacity: 0.7,
+  },
+  offerCTAButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  soldBadge: {
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  soldBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#DC2626",
   },
   loaderContainer: {
     flex: 1,
@@ -327,6 +744,161 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontWeight: "500",
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+
+  modalContent: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: "80%",
+  },
+
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+
+  modalBody: {
+    gap: 12,
+  },
+
+  modalFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+    gap: 10,
+  },
+
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#E5E7EB",
+    alignItems: "center",
+  },
+
+  modalCancelButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+  },
+
+  modalSubmitButton: {
+    flex: 1,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: "#10B981",
+  },
+
+  modalSubmitButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+
+  closeButton: {
+  padding: 4,
+},
+
+productInfo: {
+  backgroundColor: "#F9FAFB",
+  padding: 10,
+  borderRadius: 8,
+},
+
+productName: {
+  fontSize: 14,
+  fontWeight: "700",
+  color: "#065F46",
+},
+
+productDetail: {
+  fontSize: 11,
+  color: "#6B7280",
+  marginTop: 2,
+},
+
+currentPriceBox: {
+  backgroundColor: "#ECFDF5",
+  padding: 10,
+  borderRadius: 8,
+},
+
+currentPriceLabel: {
+  fontSize: 11,
+  color: "#6B7280",
+},
+
+currentPriceValue: {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#10B981",
+  marginTop: 2,
+},
+
+inputGroup: {
+  gap: 6,
+},
+
+inputLabel: {
+  fontSize: 12,
+  fontWeight: "600",
+  color: "#374151",
+},
+
+input: {
+  backgroundColor: "#F9FAFB",
+  borderWidth: 1,
+  borderColor: "#D1FAE5",
+  borderRadius: 8,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  fontSize: 13,
+  color: "#1F2937",
+},
+
+priceComparison: {
+  padding: 10,
+  borderRadius: 8,
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+},
+
+comparisonText: {
+  fontSize: 12,
+  fontWeight: "600",
+},
+
+comparisonValue: {
+  fontSize: 12,
+  fontWeight: "700",
+},
+
 });
 
 export default MarketPlaceScreen;

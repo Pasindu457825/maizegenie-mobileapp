@@ -1,6 +1,9 @@
 import { supabase } from "../lib/supabase";
 import type { PostDraft } from "../navigation/PriceForecastStack";
 
+/* =====================================================
+   TYPES
+===================================================== */
 export interface Post {
   id: string;
   farmer_id: string;
@@ -13,6 +16,7 @@ export interface Post {
   created_at: string;
   status: "active" | "sold";
   farmer_name?: string;
+  accepted_offer_id?: string | null;
 }
 
 export interface Offer {
@@ -20,8 +24,8 @@ export interface Offer {
   post_id: string;
   buyer_id: string;
   offer_price_per_kg: number;
-  created_at: string;
   status: "pending" | "accepted" | "rejected";
+  created_at: string;
   buyer_name?: string;
 }
 
@@ -29,7 +33,9 @@ export interface PostWithOffers extends Post {
   offers: Offer[];
 }
 
-// Create a new post
+/* =====================================================
+   CREATE POST
+===================================================== */
 export const createPost = async (postDraft: PostDraft): Promise<Post> => {
   const {
     data: { user },
@@ -45,17 +51,21 @@ export const createPost = async (postDraft: PostDraft): Promise<Post> => {
       price_per_kg: postDraft.pricePerKg,
       quantity_kg: postDraft.quantityKg,
       district: postDraft.district,
-      season: postDraft.season,
+      week:
+        postDraft.forecastWeek || parseInt(postDraft.forecastWeek as any) || 1,
+      season: postDraft.season || "Maha",
       status: "active",
     })
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+  return data as Post;
 };
 
-// Get all active posts
+/* =====================================================
+   LIST ACTIVE POSTS
+===================================================== */
 export const listPosts = async (filters?: {
   district?: string;
   minPrice?: number;
@@ -66,8 +76,8 @@ export const listPosts = async (filters?: {
     .select(
       `
       *,
-      profiles:farmer_id(full_name)
-    `
+      farmer:profiles!posts_farmer_id_fkey(full_name)
+    `,
     )
     .eq("status", "active")
     .order("created_at", { ascending: false });
@@ -90,32 +100,37 @@ export const listPosts = async (filters?: {
 
   return (data || []).map((post: any) => ({
     ...post,
-    farmer_name: post.profiles?.full_name || "Unknown Farmer",
-  }));
+    farmer_name: post.farmer?.full_name || "Unknown Farmer",
+  })) as Post[];
 };
 
-// Get single post with offers
+/* =====================================================
+   GET POST WITH OFFERS
+===================================================== */
 export const getPost = async (postId: string): Promise<PostWithOffers> => {
+  // 1. Get post
   const { data: post, error: postError } = await supabase
     .from("posts")
     .select(
       `
       *,
-      profiles:farmer_id(full_name)
-    `
+      farmer:profiles!posts_farmer_id_fkey(full_name)
+    `,
     )
     .eq("id", postId)
     .single();
 
   if (postError) throw postError;
+  if (!post) throw new Error("Post not found");
 
+  // 2. Get offers for this post
   const { data: offers, error: offersError } = await supabase
     .from("offers")
     .select(
       `
       *,
-      buyer_profile:profiles!offers_buyer_id_fkey(full_name)
-    `
+      buyer:profiles!offers_buyer_id_fkey(full_name)
+    `,
     )
     .eq("post_id", postId)
     .order("offer_price_per_kg", { ascending: false });
@@ -124,24 +139,58 @@ export const getPost = async (postId: string): Promise<PostWithOffers> => {
 
   return {
     ...post,
-    farmer_name: post.profiles?.full_name || "Unknown Farmer",
-    offers: (offers || []).map((offer: any) => ({
-      ...offer,
-      buyer_name: offer.buyer_profile?.full_name || "Anonymous Buyer",
-    })),
-  };
+    farmer_name: post.farmer?.full_name || "Unknown Farmer",
+    offers: (offers || []).map((o: any) => ({
+      ...o,
+      buyer_name: o.buyer?.full_name || "Anonymous",
+    })) as Offer[],
+  } as PostWithOffers;
 };
 
-// Create an offer
+/* =====================================================
+   CHECK IF USER ALREADY OFFERED
+===================================================== */
+export const checkUserOffer = async (postId: string): Promise<Offer | null> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("offers")
+    .select("*")
+    .eq("post_id", postId)
+    .eq("buyer_id", user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data as Offer) || null;
+};
+
+/* =====================================================
+   CREATE OFFER (One per user per post)
+===================================================== */
 export const createOffer = async (
   postId: string,
-  offerPrice: number
+  offerPrice: number,
 ): Promise<Offer> => {
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("User not authenticated");
+
+  // Check if user already has an offer
+  const existing = await checkUserOffer(postId);
+  if (existing) {
+    throw new Error("You have already submitted an offer for this post");
+  }
+
+  // Validate price
+  if (!Number.isFinite(offerPrice) || offerPrice <= 0) {
+    throw new Error("Offer price must be a positive number");
+  }
 
   const { data, error } = await supabase
     .from("offers")
@@ -154,13 +203,68 @@ export const createOffer = async (
     .select()
     .single();
 
-  if (error) throw error;
-  return data;
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("You have already submitted an offer for this post");
+    }
+    throw error;
+  }
+
+  return data as Offer;
 };
 
-// Accept an offer
+/* =====================================================
+   ACCEPT OFFER (Farmer only)
+===================================================== */
 export const acceptOffer = async (offerId: string): Promise<void> => {
-  // Get the offer first
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("User not authenticated");
+
+  // 1. Get the offer + post
+  const { data: offer, error: offerError } = await supabase
+    .from("offers")
+    .select("post_id, id")
+    .eq("id", offerId)
+    .single();
+
+  if (offerError) throw offerError;
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("farmer_id")
+    .eq("id", offer.post_id)
+    .single();
+
+  if (postError) throw postError;
+
+  // 2. Verify farmer ownership
+  if (post.farmer_id !== user.id) {
+    throw new Error("Only the post owner can accept offers");
+  }
+
+  // 3. Accept offer (trigger will reject others + mark post sold)
+  const { error: updateError } = await supabase
+    .from("offers")
+    .update({ status: "accepted", updated_at: new Date().toISOString() })
+    .eq("id", offerId);
+
+  if (updateError) throw updateError;
+};
+
+/* =====================================================
+   REJECT OFFER (Farmer only)
+===================================================== */
+export const rejectOffer = async (offerId: string): Promise<void> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("User not authenticated");
+
+  // 1. Get the offer + post
   const { data: offer, error: offerError } = await supabase
     .from("offers")
     .select("post_id")
@@ -169,39 +273,73 @@ export const acceptOffer = async (offerId: string): Promise<void> => {
 
   if (offerError) throw offerError;
 
-  // Update this offer to accepted
+  // 2. Verify farmer ownership
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .select("farmer_id")
+    .eq("id", offer.post_id)
+    .single();
+
+  if (postError) throw postError;
+
+  if (post.farmer_id !== user.id) {
+    throw new Error("Only the post owner can reject offers");
+  }
+
+  // 3. Reject offer
   const { error: updateError } = await supabase
     .from("offers")
-    .update({ status: "accepted" })
+    .update({ status: "rejected", updated_at: new Date().toISOString() })
     .eq("id", offerId);
 
   if (updateError) throw updateError;
-
-  // Reject all other offers for this post
-  await supabase
-    .from("offers")
-    .update({ status: "rejected" })
-    .eq("post_id", offer.post_id)
-    .neq("id", offerId);
-
-  // Mark post as sold
-  await supabase
-    .from("posts")
-    .update({ status: "sold" })
-    .eq("id", offer.post_id);
 };
 
-// Reject an offer
-export const rejectOffer = async (offerId: string): Promise<void> => {
-  const { error } = await supabase
+/* =====================================================
+   GET BEST OFFER
+===================================================== */
+export const getBestOffer = (offers: Offer[]): Offer | null => {
+  if (offers.length === 0) return null;
+  return offers.reduce((best, current) =>
+    current.offer_price_per_kg > best.offer_price_per_kg ? current : best,
+  );
+};
+
+/* =====================================================
+   GET USER OFFERS (for buyer dashboard)
+===================================================== */
+export const getUserOffers = async (): Promise<(Offer & { post: Post })[]> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("User not authenticated");
+
+  const { data, error } = await supabase
     .from("offers")
-    .update({ status: "rejected" })
-    .eq("id", offerId);
+    .select(
+      `
+      *,
+      post:posts(
+        id,
+        seed_variety,
+        district,
+        price_per_kg,
+        quantity_kg,
+        status
+      )
+    `,
+    )
+    .eq("buyer_id", user.id)
+    .order("created_at", { ascending: false });
 
   if (error) throw error;
+  return data as (Offer & { post: Post })[];
 };
 
-// Get user's posts
+/* =====================================================
+   GET USER POSTS (for farmer dashboard)
+===================================================== */
 export const getUserPosts = async (): Promise<Post[]> => {
   const {
     data: { user },
@@ -216,28 +354,5 @@ export const getUserPosts = async (): Promise<Post[]> => {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data || [];
-};
-
-// Get user's offers
-export const getUserOffers = async (): Promise<Offer[]> => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("User not authenticated");
-
-  const { data, error } = await supabase
-    .from("offers")
-    .select(
-      `
-      *,
-      post:posts(seed_variety, district, price_per_kg)
-    `
-    )
-    .eq("buyer_id", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return data || [];
+  return data as Post[];
 };

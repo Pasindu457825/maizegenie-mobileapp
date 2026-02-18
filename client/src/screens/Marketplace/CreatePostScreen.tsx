@@ -8,7 +8,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -17,7 +16,7 @@ import type {
   PostDraft,
   ForecastData,
 } from "../../navigation/PriceForecastStack";
-import { ArrowLeft, Package, Info } from "lucide-react-native";
+import { ArrowLeft, Package } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 
 type NavProp = StackNavigationProp<
@@ -38,116 +37,77 @@ const CreatePostScreen = () => {
 
   const { bestPrice, formData } = route.params as RouteParams;
 
-  /* =====================================================
-     STATE
-  ===================================================== */
   const [quantity, setQuantity] = useState<string>(
-    (formData?.expectedYield * formData?.farmArea || "").toString()
+    (formData?.expectedYield * formData?.farmArea || 0).toFixed(0)
   );
   const [price, setPrice] = useState<string>(bestPrice.toFixed(2));
   const [seedVariety, setSeedVariety] = useState<string>(
     formData?.seedVariety || ""
   );
 
-  // 🔮 Future feature: schedule post
-  const [publishAt] = useState<Date | null>(null);
-
-  /* =====================================================
-     COPY
-  ===================================================== */
   const content = {
     si: {
       title: "අස්වනු විකිණීම",
-      subtitle: "විකුණුම් විස්තර ඇතුලත් කරන්න",
+      subtitle: "අස්වනු විස්තර ඇතුලු කරන්න",
       quantity: "ප්‍රමාණය (කි.ග්‍රෑ)",
       seedVariety: "බීජ ප්‍රභේදය",
-      pricePerKg: "කිලෝවකට මිල (රු.)",
-      priceHint: "මෙම මිල AI පද්ධතිය මගින් යෝජනා කර ඇත",
-      district: "දිස්ත්‍රික්කය",
-      next: "ඊළඟ",
+      pricePerKg: "මිල (කි.ග්‍රෑම් එකකට)",
+      district: "දිස්ත්‍රිකිය",
+      week: "සතිය",
+      next: "ඊයත් ගිය",
       cancel: "අවලංගු කරන්න",
-      errors: {
-        fillAll: "කරුණාකර සියලු ක්ෂේත්‍ර පුරවන්න",
-        qtyInvalid: "ප්‍රමාණය 0ට වැඩි විය යුතුය",
-        priceInvalid: "මිල 0ට වැඩි විය යුතුය",
-      },
+      enterQuantity: "ප්‍රමාණය ඇතුලු කරන්න",
+      enterPrice: "මිල ඇතුලු කරන්න",
+      enterVariety: "බීජ ප්‍රභේදය ඇතුලු කරන්න",
     },
     en: {
       title: "Post Harvest",
-      subtitle: "Enter selling details",
+      subtitle: "Enter harvest details",
       quantity: "Quantity (kg)",
-      seedVariety: "Seed variety",
-      pricePerKg: "Price per kg (LKR)",
-      priceHint: "Price is auto-suggested by AI forecast",
+      seedVariety: "Seed Variety",
+      pricePerKg: "Price (per kg)",
       district: "District",
+      week: "Week",
       next: "Next",
       cancel: "Cancel",
-      errors: {
-        fillAll: "Please fill all fields",
-        qtyInvalid: "Quantity must be greater than 0",
-        priceInvalid: "Price must be greater than 0",
-      },
+      enterQuantity: "Enter quantity",
+      enterPrice: "Enter price",
+      enterVariety: "Enter seed variety",
     },
   };
 
-  /* =====================================================
-     VALIDATION + NAV
-  ===================================================== */
   const handleNext = () => {
-    const qty = Number(quantity);
-    const pr = Number(price);
-
     if (!quantity || !price || !seedVariety) {
-      Alert.alert(content[language].errors.fillAll);
-      return;
-    }
-
-    if (isNaN(qty) || qty <= 0) {
-      Alert.alert(content[language].errors.qtyInvalid);
-      return;
-    }
-
-    if (isNaN(pr) || pr <= 0) {
-      Alert.alert(content[language].errors.priceInvalid);
+      alert(
+        language === "si" ? "සියලු ක්ෂේත්‍ර පුරවන්න" : "Please fill all fields"
+      );
       return;
     }
 
     const postDraft: PostDraft = {
-      // Buyer-visible
       seedVariety,
-      pricePerKg: pr,
-      quantityKg: qty,
+      pricePerKg: parseFloat(price),
+      quantityKg: parseFloat(quantity),
       district: formData?.district || "Anuradhapura",
-
-      // 🔒 Internal metadata (not shown to buyers)
-      forecastWeek: formData?.week,
-      predictedPrice: bestPrice,
+      week: parseInt(formData?.week) || 1,
       season: formData?.season || "Maha",
-
-      // 🗓 future-ready
-      publishAt,
     };
 
     navigation.navigate("PostReviewScreen", { postDraft });
   };
 
-  /* =====================================================
-     UI
-  ===================================================== */
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={styles.container}
     >
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
           style={styles.backButton}
         >
-          <ArrowLeft color="#047857" size={22} />
+          <ArrowLeft color="#047857" size={24} />
         </TouchableOpacity>
-
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>
@@ -156,50 +116,50 @@ const CreatePostScreen = () => {
         </View>
       </View>
 
-      {/* Form */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        style={styles.scrollContainer}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.formCard}>
-          {/* Quantity */}
+          {/* Quantity Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].quantity}</Text>
             <TextInput
               style={styles.input}
+              placeholder={content[language].enterQuantity}
+              placeholderTextColor="#9CA3AF"
               value={quantity}
               onChangeText={setQuantity}
               keyboardType="decimal-pad"
-              placeholder="0"
             />
           </View>
 
-          {/* Seed variety */}
+          {/* Seed Variety Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety}</Text>
             <TextInput
               style={styles.input}
+              placeholder={content[language].enterVariety}
+              placeholderTextColor="#9CA3AF"
               value={seedVariety}
               onChangeText={setSeedVariety}
-              placeholder="JET-999"
             />
           </View>
 
-          {/* Price */}
+          {/* Price Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].pricePerKg}</Text>
             <TextInput
               style={styles.input}
+              placeholder={content[language].enterPrice}
+              placeholderTextColor="#9CA3AF"
               value={price}
               onChangeText={setPrice}
               keyboardType="decimal-pad"
             />
-            <View style={styles.hintRow}>
-              <Info size={14} color="#6B7280" />
-              <Text style={styles.hintText}>
-                {content[language].priceHint}
-              </Text>
-            </View>
           </View>
 
-          {/* District (read-only) */}
+          {/* District Display */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].district}</Text>
             <View style={styles.readOnlyInput}>
@@ -208,10 +168,17 @@ const CreatePostScreen = () => {
               </Text>
             </View>
           </View>
+
+          {/* Week Display */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>{content[language].week}</Text>
+            <View style={styles.readOnlyInput}>
+              <Text style={styles.readOnlyText}>{formData?.week || 1}</Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
 
-      {/* Footer */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.secondaryButton}
@@ -223,24 +190,21 @@ const CreatePostScreen = () => {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.primaryButton} onPress={handleNext}>
-          <Package size={18} color="#FFF" />
-          <Text style={styles.primaryButtonText}>
-            {content[language].next}
-          </Text>
+          <Package color="#FFFFFF" size={20} />
+          <Text style={styles.primaryButtonText}>{content[language].next}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
 };
 
-/* =====================================================
-   STYLES
-===================================================== */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F0FDF4" },
-
+  container: {
+    flex: 1,
+    backgroundColor: "#F0FDF4",
+  },
   header: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#FFFFFF",
     paddingTop: 50,
     paddingBottom: 16,
     paddingHorizontal: 20,
@@ -249,86 +213,109 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
-
   backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#ECFDF5",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
   },
-
-  headerCenter: { marginLeft: 12 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#1F2937" },
-  headerSubtitle: { fontSize: 12, color: "#6B7280" },
-
-  scrollContent: { padding: 20 },
-
+  headerCenter: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
   formCard: {
-    backgroundColor: "#FFF",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
-    gap: 18,
+    gap: 16,
   },
-
-  formGroup: { gap: 6 },
-  label: { fontSize: 14, fontWeight: "600", color: "#047857" },
-
+  formGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#047857",
+  },
   input: {
     backgroundColor: "#F9FAFB",
     borderWidth: 1,
     borderColor: "#D1FAE5",
     borderRadius: 10,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     fontSize: 14,
+    color: "#1F2937",
   },
-
   readOnlyInput: {
-    backgroundColor: "#ECFDF5",
-    borderRadius: 10,
-    padding: 12,
-  },
-
-  readOnlyText: { color: "#065F46", fontWeight: "600" },
-
-  hintRow: { flexDirection: "row", gap: 6, alignItems: "center" },
-  hintText: { fontSize: 11, color: "#6B7280" },
-
-  footer: {
-    flexDirection: "row",
-    gap: 12,
-    padding: 16,
-    backgroundColor: "#FFF",
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-  },
-
-  secondaryButton: {
-    flex: 1,
+    backgroundColor: "#F0FDF4",
     borderWidth: 1,
     borderColor: "#D1FAE5",
     borderRadius: 10,
-    padding: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  readOnlyText: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  footer: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 30,
+    flexDirection: "row",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  secondaryButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
     alignItems: "center",
   },
-
   secondaryButtonText: {
     color: "#047857",
+    fontSize: 16,
     fontWeight: "600",
   },
-
   primaryButton: {
     flex: 1,
     backgroundColor: "#10B981",
+    paddingVertical: 12,
     borderRadius: 10,
-    padding: 12,
     flexDirection: "row",
     justifyContent: "center",
+    alignItems: "center",
     gap: 8,
   },
-
-  primaryButtonText: { color: "#FFF", fontWeight: "700" },
+  primaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default CreatePostScreen;
