@@ -1103,6 +1103,30 @@ const PriceForecastScreen = () => {
               { borderLeftColor: getRecommendationColor() },
             ]}
           >
+            {/* 🔥 SELL HARVEST BUTTON */}
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: "#0EA5E9", marginBottom: 16 },
+              ]}
+              onPress={() => {
+                localNavigation.navigate("CreatePostScreen", {
+                  bestPrice:
+                    weeklyForecast[bestWeekIndex]?.ensemble ??
+                    predictedPrice ??
+                    0,
+                  formData,
+                });
+              }}
+            >
+              <Package color="#FFFFFF" size={20} />
+              <Text style={styles.primaryButtonText}>
+                {language === "si"
+                  ? "අස්වනු විකිණීමට දාන්න"
+                  : "Post Harvest for Sale"}
+              </Text>
+            </TouchableOpacity>
+
             <View style={styles.recommendationHeader}>
               <CheckCircle color={getRecommendationColor()} size={24} />
               <Text style={styles.recommendationTitle}>
@@ -2035,8 +2059,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#10B981",
   },
-
-  // ...rest of existing styles...
 });
 
 export default PriceForecastScreen;

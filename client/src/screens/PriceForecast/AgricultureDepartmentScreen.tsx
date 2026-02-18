@@ -237,7 +237,7 @@ out center tags;
       if (!officeType || !ALLOWED_TYPES.includes(officeType)) continue;
 
       const distKm = parseFloat(
-        calculateDistance(latitude, longitude, lat, lon)
+        calculateDistance(latitude, longitude, lat, lon),
       );
 
       if (isNaN(distKm) || distKm > searchRadius) continue;
@@ -270,7 +270,7 @@ out center tags;
       "Filtered:",
       results.length,
       "Radius:",
-      searchRadius
+      searchRadius,
     );
 
     return results;
@@ -285,7 +285,7 @@ out center tags;
       { id: "Extension Center", label: t.extensionCenter },
       { id: "CIC Office", label: t.cicOffice },
     ],
-    [t]
+    [t],
   );
 
   const ALLOWED_TYPES = [
@@ -301,7 +301,7 @@ out center tags;
     lat1: number | null,
     lon1: number | null,
     lat2: number | null,
-    lon2: number | null
+    lon2: number | null,
   ): string => {
     if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) {
       return "N/A";
@@ -341,7 +341,7 @@ out center tags;
       // optional cache
       await AsyncStorage.setItem(
         "deptCache",
-        JSON.stringify({ data: filtered, ts: Date.now() })
+        JSON.stringify({ data: filtered, ts: Date.now() }),
       );
     } catch (err) {
       const cached = await AsyncStorage.getItem("deptCache");
@@ -370,7 +370,7 @@ out center tags;
 
     Linking.openURL(url ?? "").catch(() => {
       const googleUrl = `https://maps.google.com/?q=${lat},${lon}&query=${encodeURIComponent(
-        name
+        name,
       )}`;
       Linking.openURL(googleUrl);
     });
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#fff",
-    padding: 20,
+    padding: 50,
     paddingBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",

@@ -201,13 +201,10 @@ export default function HomeScreen() {
             ? "ආසන්න කෘෂිකර්ම දෙපාර්තමේන්තු සොයන්න"
             : "Find nearby agriculture departments",
         color: "#059669",
-        route: {
-          parent: "PriceForecast",
-          screen: "AgricultureDepartmentScreen",
-        },
+        route: "AgricultureDepartmentScreen", // ✅ DIRECT
       },
     ],
-    [t]
+    [t],
   );
 
   return (
@@ -343,15 +340,7 @@ export default function HomeScreen() {
                 return (
                   <TouchableOpacity
                     key={index}
-                    onPress={() => {
-                      if (typeof feature.route === "string") {
-                        navigation.navigate(feature.route);
-                      } else {
-                        navigation.navigate(feature.route.parent, {
-                          screen: feature.route.screen,
-                        });
-                      }
-                    }}
+                    onPress={() => navigation.navigate(feature.route)}
                     activeOpacity={0.7}
                     style={styles.featureCardWrapper}
                   >
