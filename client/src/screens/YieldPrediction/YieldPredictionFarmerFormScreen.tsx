@@ -3,6 +3,7 @@ import {
     View,
     Text,
     TouchableOpacity,
+    Pressable,
     StyleSheet,
     ScrollView,
     TextInput,
@@ -29,6 +30,7 @@ import { SEASONAL_CLIMATE, getSeasonalClimate } from "../../constants/seasonalCl
 import { DISTRICTS as DISTRICT_LIST, LOCATIONS_BY_DISTRICT, LOCATION_COORDINATES as LOCATION_DATA, SOIL_TYPE_MAPPING, DISTRICTS_SINHALA, LOCATIONS_SINHALA } from "../../constants/locations";
 import { autoFillWeatherData } from "../../utils/seasonalClimateHelper";
 import SoilReportUploadModal from "../../components/SoilReportUploadModal";
+import SoilExtractionAnimation from "../../components/SoilExtractionAnimation";
 
 const getApiUrl = () => {
     if (Platform.OS === "android") {
@@ -479,27 +481,42 @@ const YieldPredictionFormScreen = () => {
     // Pick image from camera or gallery
     const pickImage = async () => {
         try {
-            // Request camera permissions
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status !== "granted") {
-                Alert.alert(
-                    language === "si" ? "අවසර අවශ්‍යයි" : "Permission Required",
-                    language === "si" ? "කැමරාව භාවිතා කිරීමට අවසර අවශ්‍යයි" : "Camera permission is required"
-                );
-                return;
+            if (Platform.OS === "web") {
+                // Web: camera not available, use image library picker
+                const result = await ImagePicker.launchImageLibraryAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    allowsEditing: true,
+                    quality: 1,
+                });
+
+                if (result.canceled) return;
+
+                const file = result.assets[0];
+                setUploadedFileName("Soil_Report_Photo.jpg");
+                await extractSoilDataFromFile(file.uri, file.mimeType || "image/jpeg");
+            } else {
+                // Native: use camera
+                const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                if (status !== "granted") {
+                    Alert.alert(
+                        language === "si" ? "අවසර අවශ්‍යයි" : "Permission Required",
+                        language === "si" ? "කැමරාව භාවිතා කිරීමට අවසර අවශ්‍යයි" : "Camera permission is required"
+                    );
+                    return;
+                }
+
+                const result = await ImagePicker.launchCameraAsync({
+                    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                    allowsEditing: true,
+                    quality: 1,
+                });
+
+                if (result.canceled) return;
+
+                const file = result.assets[0];
+                setUploadedFileName("Soil_Report_Photo.jpg");
+                await extractSoilDataFromFile(file.uri, "image/jpeg");
             }
-
-            const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 1,
-            });
-
-            if (result.canceled) return;
-
-            const file = result.assets[0];
-            setUploadedFileName("Soil_Report_Photo.jpg");
-            await extractSoilDataFromFile(file.uri, "image/jpeg");
         } catch (error) {
             console.error("Image picker error:", error);
             Alert.alert(
@@ -514,6 +531,9 @@ const YieldPredictionFormScreen = () => {
         setIsAnalyzingPDF(true);
         setSoilDataExtracted(false);
 
+        // Minimum display time for the animation (4.5 seconds to show all steps)
+        const minDisplayTime = new Promise(resolve => setTimeout(resolve, 4500));
+
         try {
             // Create FormData for file upload
             const formData = new FormData();
@@ -523,14 +543,17 @@ const YieldPredictionFormScreen = () => {
                 name: uploadedFileName || "soil_report",
             } as any);
 
-            // Call backend API to extract soil data
-            const response = await fetch(`${getApiUrl()}/api/v1/soil-data/extract`, {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            });
+            // Call backend API to extract soil data (+ wait for minimum display time)
+            const [response] = await Promise.all([
+                fetch(`${getApiUrl()}/api/v1/soil-data/extract`, {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                }),
+                minDisplayTime,
+            ]);
 
             if (!response.ok) {
                 const errorBody = await response.json().catch(() => null);
@@ -1221,9 +1244,13 @@ const YieldPredictionFormScreen = () => {
 
                         {/* Upload Soil Report Button */}
                         <TouchableOpacity
-                            style={styles.uploadButton}
+                            style={[
+                                styles.uploadButton,
+                                isAnalyzingPDF && { opacity: 0.7 },
+                            ]}
                             onPress={handleUploadSoilReport}
                             disabled={isAnalyzingPDF}
+                            activeOpacity={0.8}
                         >
                             <View style={styles.uploadButtonContent}>
                                 {isAnalyzingPDF ? (
@@ -1679,6 +1706,13 @@ const YieldPredictionFormScreen = () => {
                 onPickImage={() => pickImage()}
                 language={language}
             />
+
+            {/* Extraction Animation */}
+            <SoilExtractionAnimation
+                visible={isAnalyzingPDF}
+                language={language}
+                fileName={uploadedFileName}
+            />
         </View>
     );
 };
@@ -2043,6 +2077,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
+        ...(Platform.OS === "web" ? { cursor: "pointer" as any } : {}),
     },
     uploadButtonContent: {
         flexDirection: "row",
