@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Linking,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -33,6 +34,7 @@ import {
   Clock,
   AlertCircle,
   Send,
+  Phone,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -43,6 +45,7 @@ import {
   rejectOffer,
   checkUserOffer,
   getBestOffer,
+  getFarmerContact,
   type PostWithOffers,
   type Offer,
 } from "../../services/postService";
@@ -80,6 +83,9 @@ const PostDetailScreen = () => {
   const [selectedOfferForAccept, setSelectedOfferForAccept] =
     useState<Offer | null>(null);
   const [isAcceptingOffer, setIsAcceptingOffer] = useState(false);
+
+  // Phone number for accepted buyer — populated via secure RPC only
+  const [farmerPhone, setFarmerPhone] = useState<string | null>(null);
 
   const content = {
     si: {
@@ -123,6 +129,10 @@ const PostDetailScreen = () => {
       error: "දෝෂයක් සිදු විය",
       invalidPrice: "කරුණාකර වලංගු මිල ඇතුලු කරන්න",
       alreadyOffered: "ඔබ ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත",
+      contactFarmer: "ගොවිසරුවා සම්ගන්න",
+      callNow: "එකා කරන්න",
+      dealConfirmed:
+        "ඔබේ ඉදිරිපත්කරණ පිළිගන්නු ලේබී! ගෙනුදූම ව්‍යවහාරය සමග ගොවිසරුවා කතා කරන්න.",
     },
     en: {
       title: "Post Details",
@@ -164,6 +174,11 @@ const PostDetailScreen = () => {
       error: "An error occurred",
       invalidPrice: "Please enter a valid price",
       alreadyOffered: "You have already made an offer for this post",
+      contactFarmer: "Contact Farmer",
+      callNow: "Call Now",
+      dealConfirmed:
+        "Your offer was accepted! Contact the farmer to arrange" +
+        " the transaction.",
     },
   };
 
@@ -180,13 +195,22 @@ const PostDetailScreen = () => {
 
       if (user) {
         setCurrentUserId(user.id);
-        setIsFarmer(user.id === postData.farmer_id);
+        const isPostFarmer = user.id === postData.farmer_id;
+        setIsFarmer(isPostFarmer);
 
         // Check user's offer
         const userOfferData = postData.offers.find(
           (o) => o.buyer_id === user.id,
         );
         setUserOffer(userOfferData || null);
+
+        // Fetch farmer phone via secure RPC — returns null unless this
+        // user has an accepted offer. Farmers see their own phone in
+        // their profile; no need to show it here for them.
+        if (!isPostFarmer) {
+          const phone = await getFarmerContact(postId);
+          setFarmerPhone(phone);
+        }
       }
     } catch (error) {
       console.error("Load post error:", error);
@@ -534,6 +558,33 @@ const PostDetailScreen = () => {
                     userOffer.status.slice(1)}
                 </Text>
               </View>
+            </View>
+          )}
+
+          {/* ——— FARMER CONTACT CARD ———
+               Visible ONLY when the RPC confirms this buyer's offer
+               is accepted. farmerPhone is null for everyone else. */}
+          {!isFarmer && farmerPhone && (
+            <View style={styles.contactCard}>
+              <View style={styles.contactCardHeader}>
+                <CheckCircle size={18} color="#10B981" />
+                <Text style={styles.contactCardTitle}>
+                  {content[language].dealConfirmed}
+                </Text>
+              </View>
+              <View style={styles.contactRow}>
+                <Phone size={16} color="#047857" />
+                <Text style={styles.contactPhone}>{farmerPhone}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.callButton}
+                onPress={() => Linking.openURL(`tel:${farmerPhone}`)}
+              >
+                <Phone size={16} color="#FFFFFF" />
+                <Text style={styles.callButtonText}>
+                  {content[language].callNow}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -1068,6 +1119,57 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#9CA3AF",
     fontWeight: "500",
+  },
+  // Farmer contact card — only rendered for the accepted buyer
+  contactCard: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#6EE7B7",
+    padding: 16,
+    marginBottom: 12,
+    gap: 10,
+  },
+  contactCardHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  contactCardTitle: {
+    flex: 1,
+    fontSize: 13,
+    color: "#065F46",
+    fontWeight: "600",
+    lineHeight: 18,
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#D1FAE5",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  contactPhone: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#047857",
+    letterSpacing: 0.5,
+  },
+  callButton: {
+    backgroundColor: "#10B981",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  callButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
   footer: {
     backgroundColor: "#FFFFFF",

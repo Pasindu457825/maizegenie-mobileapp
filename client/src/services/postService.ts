@@ -16,6 +16,7 @@ export interface Post {
   created_at: string;
   status: "active" | "sold";
   farmer_name?: string;
+  farmer_phone?: string | null; // only populated for the accepted buyer via RPC
   accepted_offer_id?: string | null;
 }
 
@@ -149,6 +150,33 @@ export const getPost = async (postId: string): Promise<PostWithOffers> => {
       buyer_name: o.buyer?.full_name || "Anonymous",
     })) as Offer[],
   } as PostWithOffers;
+};
+
+/* =====================================================
+   GET FARMER CONTACT (accepted buyer only)
+   Calls a SECURITY DEFINER RPC — returns phone only when
+   auth.uid() has an accepted offer on this post. Otherwise null.
+===================================================== */
+export const getFarmerContact = async (
+  postId: string,
+): Promise<string | null> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .rpc("get_farmer_contact", { p_post_id: postId })
+    .single();
+
+  if (error) {
+    console.error("[getFarmerContact] RPC error:", error);
+    return null;
+  }
+
+  // data = { phone: "07xxxxxxxx" } or { phone: null }
+  return (data as { phone: string | null })?.phone ?? null;
 };
 
 /* =====================================================
