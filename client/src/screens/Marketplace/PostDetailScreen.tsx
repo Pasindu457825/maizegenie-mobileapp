@@ -103,6 +103,7 @@ const PostDetailScreen = () => {
 
   // ── Farmer: post deletion state ─────────────────────────────────
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [showDeletePostModal, setShowDeletePostModal] = useState(false);
 
   const content = {
     si: {
@@ -438,35 +439,32 @@ const PostDetailScreen = () => {
   // ── Delete post (farmer, active only) ────────────────────────────
   const handleDeletePost = () => {
     if (!post) return;
-    Alert.alert(
-      language === "si" ? "ඉදිරිපත්කිරීම ඉවත් කරන්න" : "Delete Post",
-      content[language].deletePostConfirm,
-      [
-        { text: language === "si" ? "නෑ" : "Cancel", style: "cancel" },
-        {
-          text: content[language].confirm,
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setIsDeletingPost(true);
-              await deletePost(post.id);
-              Alert.alert(
-                language === "si" ? "සාර්ථකයි" : "Done",
-                content[language].postDeleted,
-                [{ text: "OK", onPress: () => navigation.goBack() }],
-              );
-            } catch (error) {
-              console.error("[handleDeletePost]", error);
-              Alert.alert(
-                language === "si" ? "දෝෂයක්" : "Error",
-                String(error),
-              );
-              setIsDeletingPost(false);
-            }
-          },
-        },
-      ],
-    );
+    setShowDeletePostModal(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!post) return;
+    const postIdToDelete = post.id;
+    console.log("[confirmDeletePost] deleting post:", postIdToDelete);
+    try {
+      setIsDeletingPost(true);
+      setShowDeletePostModal(false);
+      await deletePost(postIdToDelete);
+      console.log("[confirmDeletePost] delete succeeded");
+      setTimeout(() => {
+        Alert.alert(
+          language === "si" ? "සාර්ථකයි" : "Done",
+          content[language].postDeleted,
+          [{ text: "OK", onPress: () => navigation.goBack() }],
+        );
+      }, 300);
+    } catch (error) {
+      console.error("[confirmDeletePost] FAILED:", error);
+      setIsDeletingPost(false);
+      setTimeout(() => {
+        Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      }, 300);
+    }
   };
 
   // Reject offer
@@ -1245,6 +1243,74 @@ const PostDetailScreen = () => {
                       <Trash2 size={16} color="#FFFFFF" />
                       <Text style={styles.modalSubmitButtonText}>
                         {content[language].deleteOffer}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Delete Post Confirmation Modal (farmer, active only) ─── */}
+      <Modal
+        visible={showDeletePostModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeletePostModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: "#DC2626" }]}>
+                  {language === "si"
+                    ? "ඉදිරිපත්කිරීම ඉවත් කරන්න"
+                    : "Delete Post"}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowDeletePostModal(false)}
+                  style={styles.closeButton}
+                >
+                  <XCircle size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalBody}>
+                <Text
+                  style={{ fontSize: 15, color: "#374151", lineHeight: 22 }}
+                >
+                  {content[language].deletePostConfirm}
+                </Text>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowDeletePostModal(false)}
+                  disabled={isDeletingPost}
+                >
+                  <Text style={styles.modalCancelButtonText}>
+                    {content[language].cancel}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalSubmitButton,
+                    { backgroundColor: "#DC2626" },
+                  ]}
+                  onPress={confirmDeletePost}
+                  disabled={isDeletingPost}
+                >
+                  {isDeletingPost ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Trash2 size={16} color="#FFFFFF" />
+                      <Text style={styles.modalSubmitButtonText}>
+                        {content[language].deletePost}
                       </Text>
                     </>
                   )}
