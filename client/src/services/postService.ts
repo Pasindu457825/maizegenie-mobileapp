@@ -34,6 +34,16 @@ export interface PostWithOffers extends Post {
   offers: Offer[];
 }
 
+/** Fields a farmer is allowed to change on an active post. */
+export interface PostUpdatePayload {
+  seed_variety?: string;
+  price_per_kg?: number;
+  quantity_kg?: number;
+  district?: string;
+  week?: number;
+  season?: string;
+}
+
 /* =====================================================
    CREATE POST
 ===================================================== */
@@ -486,4 +496,204 @@ export const getUserPosts = async (): Promise<Post[]> => {
 
   if (error) throw error;
   return data as Post[];
+};
+
+/* =====================================================
+   UPDATE OFFER (Buyer only, pending offers only)
+   RLS: "buyer_update_own_pending_offer"
+   Guards:
+     - Caller must be the offer owner
+     - Offer must still be pending (enforced at DB + here)
+     - New price must be a positive finite number
+===================================================== */
+export const updateOffer = async (
+  offerId: string,
+  newPricePerKg: number,
+): Promise<Offer> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not authenticated");
+
+  // Validate price
+  if (!Number.isFinite(newPricePerKg) || newPricePerKg <= 0) {
+    throw new Error("Offer price must be a positive number");
+  }
+
+  // Frontend guard: refuse before hitting the DB
+  const { data: existing, error: fetchErr } = await supabase
+    .from("offers")
+    .select("id, buyer_id, status")
+    .eq("id", offerId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  if (!existing) throw new Error("Offer not found");
+  if (existing.buyer_id !== user.id)
+    throw new Error("You can only edit your own offer");
+  if (existing.status !== "pending")
+    throw new Error(
+      `Offer cannot be edited — it has already been ${existing.status}`,
+    );
+
+  const { data, error } = await supabase
+    .from("offers")
+    .update({
+      offer_price_per_kg: newPricePerKg,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", offerId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  // RLS silently blocked (row not returned)
+  if (!data)
+    throw new Error(
+      "Update was blocked — offer may no longer be pending or you are not the owner",
+    );
+
+  return data as Offer;
+};
+
+/* =====================================================
+   DELETE OFFER (Buyer only, pending offers only)
+   RLS: "buyer_delete_own_pending_offer"
+   Guards:
+     - Caller must be the offer owner
+     - Offer must still be pending
+===================================================== */
+export const deleteOffer = async (offerId: string): Promise<void> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not authenticated");
+
+  // Frontend guard
+  const { data: existing, error: fetchErr } = await supabase
+    .from("offers")
+    .select("id, buyer_id, status")
+    .eq("id", offerId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  if (!existing) throw new Error("Offer not found");
+  if (existing.buyer_id !== user.id)
+    throw new Error("You can only delete your own offer");
+  if (existing.status !== "pending")
+    throw new Error(
+      `Offer cannot be deleted — it has already been ${existing.status}`,
+    );
+
+  const { error } = await supabase.from("offers").delete().eq("id", offerId);
+
+  if (error) throw error;
+};
+
+/* =====================================================
+   UPDATE POST (Farmer only, active posts only)
+   RLS: "farmer_update_own_active_post"
+   Guards:
+     - Caller must be the post owner
+     - Post must still be active (not sold)
+     - Validates each numeric field before hitting DB
+===================================================== */
+export const updatePost = async (
+  postId: string,
+  updates: PostUpdatePayload,
+): Promise<Post> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not authenticated");
+
+  // Validate numeric fields if provided
+  if (
+    updates.price_per_kg !== undefined &&
+    (!Number.isFinite(updates.price_per_kg) || updates.price_per_kg <= 0)
+  ) {
+    throw new Error("Price must be a positive number");
+  }
+  if (
+    updates.quantity_kg !== undefined &&
+    (!Number.isFinite(updates.quantity_kg) || updates.quantity_kg <= 0)
+  ) {
+    throw new Error("Quantity must be a positive number");
+  }
+  if (
+    updates.week !== undefined &&
+    (!Number.isInteger(updates.week) || updates.week < 1 || updates.week > 52)
+  ) {
+    throw new Error("Week must be between 1 and 52");
+  }
+
+  // Frontend guard
+  const { data: existing, error: fetchErr } = await supabase
+    .from("posts")
+    .select("id, farmer_id, status")
+    .eq("id", postId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  if (!existing) throw new Error("Post not found");
+  if (existing.farmer_id !== user.id)
+    throw new Error("You can only edit your own post");
+  if (existing.status !== "active")
+    throw new Error("Post cannot be edited — it has already been sold");
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update(updates)
+    .eq("id", postId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  if (!data)
+    throw new Error(
+      "Update was blocked — post may no longer be active or you are not the owner",
+    );
+
+  return data as Post;
+};
+
+/* =====================================================
+   DELETE POST (Farmer only, active posts only)
+   RLS: "farmer_delete_own_active_post"
+
+   DB-level: offers.post_id FK is ON DELETE CASCADE, so all
+   associated offers are automatically deleted by Postgres —
+   no separate offer cleanup needed in the service layer.
+
+   Guards:
+     - Caller must be the post owner
+     - Post must still be active
+===================================================== */
+export const deletePost = async (postId: string): Promise<void> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not authenticated");
+
+  // Frontend guard
+  const { data: existing, error: fetchErr } = await supabase
+    .from("posts")
+    .select("id, farmer_id, status")
+    .eq("id", postId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  if (!existing) throw new Error("Post not found");
+  if (existing.farmer_id !== user.id)
+    throw new Error("You can only delete your own post");
+  if (existing.status !== "active")
+    throw new Error(
+      "Sold posts cannot be deleted — the transaction record must be preserved",
+    );
+
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
+
+  if (error) throw error;
 };

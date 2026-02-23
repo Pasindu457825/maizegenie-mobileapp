@@ -35,6 +35,9 @@ import {
   AlertCircle,
   Send,
   Phone,
+  Edit2,
+  Trash2,
+  Save,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -46,6 +49,10 @@ import {
   checkUserOffer,
   getBestOffer,
   getFarmerContact,
+  updateOffer,
+  deleteOffer,
+  updatePost,
+  deletePost,
   type PostWithOffers,
   type Offer,
 } from "../../services/postService";
@@ -86,6 +93,15 @@ const PostDetailScreen = () => {
 
   // Phone number for accepted buyer — populated via secure RPC only
   const [farmerPhone, setFarmerPhone] = useState<string | null>(null);
+
+  // ── Buyer: offer edit/delete state ─────────────────────────────
+  const [showEditOfferModal, setShowEditOfferModal] = useState(false);
+  const [editOfferPrice, setEditOfferPrice] = useState("");
+  const [isEditingOffer, setIsEditingOffer] = useState(false);
+  const [isDeletingOffer, setIsDeletingOffer] = useState(false);
+
+  // ── Farmer: post deletion state ─────────────────────────────────
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
 
   const content = {
     si: {
@@ -133,6 +149,22 @@ const PostDetailScreen = () => {
       callNow: "එකා කරන්න",
       dealConfirmed:
         "ඔබේ ඉදිරිපත්කරණ පිළිගන්නු ලේබී! ගෙනුදූම ව්‍යවහාරය සමග ගොවිසරුවා කතා කරන්න.",
+      editOffer: "ඉදිරිපත්කරණ සංස්කරණය",
+      deleteOffer: "ඉදිරිපත්කරණ ඉවත් කරන්න",
+      editOfferTitle: "ඔබේ ඉදිරිපත් මිල යාවත්කාලීන කරන්න",
+      newOfferPrice: "නව ඉදිරිපත් මිල",
+      updateOffer: "ඉදිරිපත්කරණ යාවත් කරන්න",
+      deleteOfferConfirm:
+        "ඔබේ ඉදිරිපත්කරණ ඉවත් කිරීමට ඔබට විශ්වාසද? මෙය ව්‍යවහෘත කළ නොහැක.",
+      deletePostConfirm:
+        "ඔබේ ඉදිරිපත්කිරීම ඉවත් කිරීමට ඔබට විශ්වාසද? සියලු ඉදිරිපත්කරණ ද ඉවත් වේ.",
+      editPost: "ඉදිරිපත්කිරීම සංස්කරණය",
+      deletePost: "ඉදිරිපත්කිරීම ඉවත් කරන්න",
+      cannotEdit: "ස්ථිත ඉදිරිපත්කරණ සංස්කරණය කළ නොහැකිය",
+      offerUpdated: "ඉදිරිපත්කරණ යාවත්කාලීන කරන ලදී",
+      offerDeleted: "ඉදිරිපත්කරණ ඉවත් කරන ලදී",
+      postDeleted: "ඉදිරිපත්කිරීම ඉවත් කරන ලදී",
+      confirm: "තහවුරු",
     },
     en: {
       title: "Post Details",
@@ -179,6 +211,22 @@ const PostDetailScreen = () => {
       dealConfirmed:
         "Your offer was accepted! Contact the farmer to arrange" +
         " the transaction.",
+      editOffer: "Edit Offer",
+      deleteOffer: "Delete Offer",
+      editOfferTitle: "Update Your Offer Price",
+      newOfferPrice: "New Offer Price",
+      updateOffer: "Update Offer",
+      deleteOfferConfirm:
+        "Are you sure you want to delete your offer? This cannot be undone.",
+      deletePostConfirm:
+        "Are you sure you want to delete this post? All associated offers will also be removed.",
+      editPost: "Edit Post",
+      deletePost: "Delete Post",
+      cannotEdit: "Accepted/rejected offers cannot be edited",
+      offerUpdated: "Offer updated successfully",
+      offerDeleted: "Offer deleted",
+      postDeleted: "Post deleted successfully",
+      confirm: "Confirm",
     },
   };
 
@@ -297,6 +345,123 @@ const PostDetailScreen = () => {
     }
   };
 
+  // ── Update offer (buyer, pending only) ─────────────────────────
+  const handleEditOffer = async () => {
+    const newPrice = parseFloat(editOfferPrice);
+    if (!editOfferPrice || !Number.isFinite(newPrice) || newPrice <= 0) {
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        language === "si"
+          ? "කරුණාකර වලංගු මිල ඇතුලු කරන්න"
+          : "Please enter a valid price",
+      );
+      return;
+    }
+    try {
+      setIsEditingOffer(true);
+      const updated = await updateOffer(userOffer!.id, newPrice);
+      setUserOffer(updated);
+      setShowEditOfferModal(false);
+      setEditOfferPrice("");
+      Alert.alert(
+        language === "si" ? "සාර්ථකයි" : "Success",
+        content[language].offerUpdated,
+      );
+      await loadPost();
+    } catch (error) {
+      console.error("[handleEditOffer]", error);
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+    } finally {
+      setIsEditingOffer(false);
+    }
+  };
+
+  // ── Delete offer (buyer, pending only) ───────────────────────────
+  const handleDeleteOffer = () => {
+    if (!userOffer) return;
+    Alert.alert(
+      language === "si" ? "ඉදිරිපත්කරණ ඉවත් කරන්න" : "Delete Offer",
+      content[language].deleteOfferConfirm,
+      [
+        { text: language === "si" ? "නෑ" : "Cancel", style: "cancel" },
+        {
+          text: content[language].confirm,
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeletingOffer(true);
+              await deleteOffer(userOffer.id);
+              setUserOffer(null);
+              Alert.alert(
+                language === "si" ? "සාර්ථකයි" : "Done",
+                content[language].offerDeleted,
+              );
+              await loadPost();
+            } catch (error) {
+              console.error("[handleDeleteOffer]", error);
+              Alert.alert(
+                language === "si" ? "දෝෂයක්" : "Error",
+                String(error),
+              );
+            } finally {
+              setIsDeletingOffer(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // ── Edit post — navigate to EditPostScreen (farmer, active only) ─
+  const handleEditPost = () => {
+    if (!post) return;
+    navigation.navigate("EditPostScreen", {
+      postId: post.id,
+      currentData: {
+        seed_variety: post.seed_variety,
+        price_per_kg: post.price_per_kg,
+        quantity_kg: post.quantity_kg,
+        district: post.district,
+        week: post.week,
+        season: post.season,
+      },
+    });
+  };
+
+  // ── Delete post (farmer, active only) ────────────────────────────
+  const handleDeletePost = () => {
+    if (!post) return;
+    Alert.alert(
+      language === "si" ? "ඉදිරිපත්කිරීම ඉවත් කරන්න" : "Delete Post",
+      content[language].deletePostConfirm,
+      [
+        { text: language === "si" ? "නෑ" : "Cancel", style: "cancel" },
+        {
+          text: content[language].confirm,
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setIsDeletingPost(true);
+              await deletePost(post.id);
+              Alert.alert(
+                language === "si" ? "සාර්ථකයි" : "Done",
+                content[language].postDeleted,
+                [{ text: "OK", onPress: () => navigation.goBack() }],
+              );
+            } catch (error) {
+              console.error("[handleDeletePost]", error);
+              Alert.alert(
+                language === "si" ? "දෝෂයක්" : "Error",
+                String(error),
+              );
+              setIsDeletingPost(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   // Reject offer
   const handleRejectOffer = async (offerId: string) => {
     try {
@@ -400,32 +565,67 @@ const PostDetailScreen = () => {
         {/* Main Post Card */}
         <View style={styles.postCard}>
           <View style={styles.cardHeader}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.seedVariety}>{post.seed_variety}</Text>
               <View style={styles.farmerRow}>
                 <User size={14} color="#6B7280" />
                 <Text style={styles.farmer}>{post.farmer_name}</Text>
               </View>
             </View>
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor:
-                    post.status === "sold" ? "#FEE2E2" : "#ECFDF5",
-                },
-              ]}
-            >
-              <Text
+            <View style={styles.cardHeaderRight}>
+              <View
                 style={[
-                  styles.statusText,
-                  { color: post.status === "sold" ? "#DC2626" : "#10B981" },
+                  styles.statusBadge,
+                  {
+                    backgroundColor:
+                      post.status === "sold" ? "#FEE2E2" : "#ECFDF5",
+                  },
                 ]}
               >
-                {post.status === "sold"
-                  ? content[language].sold
-                  : content[language].active}
-              </Text>
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: post.status === "sold" ? "#DC2626" : "#10B981" },
+                  ]}
+                >
+                  {post.status === "sold"
+                    ? content[language].sold
+                    : content[language].active}
+                </Text>
+              </View>
+
+              {/* Farmer edit / delete — active posts only */}
+              {isFarmer && post.status === "active" && (
+                <View style={styles.postManageRow}>
+                  <TouchableOpacity
+                    style={styles.postEditButton}
+                    onPress={handleEditPost}
+                    disabled={isDeletingPost}
+                  >
+                    <Edit2 size={13} color="#047857" />
+                    <Text style={styles.postEditButtonText}>
+                      {content[language].editPost}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.postDeleteButton}
+                    onPress={handleDeletePost}
+                    disabled={isDeletingPost}
+                  >
+                    {isDeletingPost ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <>
+                        <Trash2 size={13} color="#DC2626" />
+                        <Text style={styles.postDeleteButtonText}>
+                          {content[language].deletePost}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
 
@@ -521,43 +721,90 @@ const PostDetailScreen = () => {
             </Text>
           </View>
 
-          {/* User's own offer */}
+          {/* User's own offer — with Edit / Delete when pending */}
           {!isFarmer && userOffer && (
             <View style={[styles.offerCard, styles.userOfferCard]}>
-              <Text style={styles.offerLabel}>Your Offer</Text>
-              <Text style={styles.offerPrice}>
-                Rs {userOffer.offer_price_per_kg.toFixed(2)}
-              </Text>
-              <View
-                style={[
-                  styles.offerStatusBadge,
-                  {
-                    backgroundColor:
-                      userOffer.status === "accepted"
-                        ? "#D1FAE5"
-                        : userOffer.status === "rejected"
-                          ? "#FEE2E2"
-                          : "#FEF3C7",
-                  },
-                ]}
-              >
-                <Text
+              <View style={styles.offerCardTopRow}>
+                <Text style={styles.offerLabel}>Your Offer</Text>
+                <View
                   style={[
-                    styles.offerStatusText,
+                    styles.offerStatusBadge,
                     {
-                      color:
+                      backgroundColor:
                         userOffer.status === "accepted"
-                          ? "#047857"
+                          ? "#D1FAE5"
                           : userOffer.status === "rejected"
-                            ? "#991B1B"
-                            : "#92400E",
+                            ? "#FEE2E2"
+                            : "#FEF3C7",
                     },
                   ]}
                 >
-                  {userOffer.status.charAt(0).toUpperCase() +
-                    userOffer.status.slice(1)}
-                </Text>
+                  <Text
+                    style={[
+                      styles.offerStatusText,
+                      {
+                        color:
+                          userOffer.status === "accepted"
+                            ? "#047857"
+                            : userOffer.status === "rejected"
+                              ? "#991B1B"
+                              : "#92400E",
+                      },
+                    ]}
+                  >
+                    {userOffer.status.charAt(0).toUpperCase() +
+                      userOffer.status.slice(1)}
+                  </Text>
+                </View>
               </View>
+
+              <Text style={styles.offerPrice}>
+                Rs {userOffer.offer_price_per_kg.toFixed(2)}
+              </Text>
+
+              {/* Edit / Delete — only available while offer is pending */}
+              {userOffer.status === "pending" && (
+                <View style={styles.offerManageRow}>
+                  <TouchableOpacity
+                    style={styles.offerEditButton}
+                    onPress={() => {
+                      setEditOfferPrice(
+                        userOffer.offer_price_per_kg.toFixed(2),
+                      );
+                      setShowEditOfferModal(true);
+                    }}
+                    disabled={isEditingOffer || isDeletingOffer}
+                  >
+                    <Edit2 size={14} color="#047857" />
+                    <Text style={styles.offerEditButtonText}>
+                      {content[language].editOffer}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.offerDeleteButton}
+                    onPress={handleDeleteOffer}
+                    disabled={isDeletingOffer || isEditingOffer}
+                  >
+                    {isDeletingOffer ? (
+                      <ActivityIndicator size="small" color="#DC2626" />
+                    ) : (
+                      <>
+                        <Trash2 size={14} color="#DC2626" />
+                        <Text style={styles.offerDeleteButtonText}>
+                          {content[language].deleteOffer}
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {userOffer.status !== "pending" && (
+                <Text style={styles.offerLockedNote}>
+                  {content[language].cannotEdit}
+                </Text>
+              )}
             </View>
           )}
 
@@ -834,6 +1081,96 @@ const PostDetailScreen = () => {
           </View>
         </View>
       </Modal>
+
+      {/* ── Edit Offer Modal (buyer, pending only) ─────────────── */}
+      <Modal
+        visible={showEditOfferModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditOfferModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalContainer}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  {content[language].editOfferTitle}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowEditOfferModal(false)}
+                  style={styles.closeButton}
+                >
+                  <XCircle size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalBody}>
+                <View style={styles.currentPriceBox}>
+                  <Text style={styles.currentPriceLabel}>
+                    {language === "si"
+                      ? "වත්මන් ඔබේ මිල"
+                      : "Your Current Offer"}
+                  </Text>
+                  <Text style={styles.currentPriceValue}>
+                    Rs {userOffer?.offer_price_per_kg.toFixed(2)}
+                  </Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    {content[language].newOfferPrice}
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={
+                      language === "si"
+                        ? "නව මිල ඇතුලු කරන්න"
+                        : "Enter new price"
+                    }
+                    placeholderTextColor="#9CA3AF"
+                    value={editOfferPrice}
+                    onChangeText={setEditOfferPrice}
+                    keyboardType="decimal-pad"
+                    editable={!isEditingOffer}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowEditOfferModal(false)}
+                  disabled={isEditingOffer}
+                >
+                  <Text style={styles.modalCancelButtonText}>
+                    {content[language].cancel}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSubmitButton}
+                  onPress={handleEditOffer}
+                  disabled={isEditingOffer}
+                >
+                  {isEditingOffer ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Save size={16} color="#FFFFFF" />
+                      <Text style={styles.modalSubmitButtonText}>
+                        {content[language].updateOffer}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
@@ -889,6 +1226,47 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+  },
+  cardHeaderRight: {
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  postManageRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 4,
+  },
+  postEditButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    backgroundColor: "#F0FDF4",
+  },
+  postEditButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#047857",
+  },
+  postDeleteButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    backgroundColor: "#FFF1F2",
+  },
+  postDeleteButtonText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#DC2626",
   },
   seedVariety: {
     fontSize: 20,
@@ -1032,6 +1410,57 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0FDF4",
     borderColor: "#D1FAE5",
     marginBottom: 12,
+  },
+  offerCardTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  offerManageRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+  },
+  offerEditButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    backgroundColor: "#FFFFFF",
+  },
+  offerEditButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#047857",
+  },
+  offerDeleteButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+    backgroundColor: "#FFF1F2",
+  },
+  offerDeleteButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#DC2626",
+  },
+  offerLockedNote: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+    marginTop: 6,
   },
   acceptedOfferCard: {
     backgroundColor: "#ECFDF5",

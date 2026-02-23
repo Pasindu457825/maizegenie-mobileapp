@@ -13,6 +13,7 @@ import CreatePostScreen from "../screens/Marketplace/CreatePostScreen";
 import PostReviewScreen from "../screens/Marketplace/PostReviewScreen";
 import MarketPlaceScreen from "../screens/Marketplace/MarketPlaceScreen";
 import PostDetailScreen from "../screens/Marketplace/PostDetailScreen";
+import EditPostScreen from "../screens/Marketplace/EditPostScreen";
 
 export interface PostDraft {
   // Buyer-visible fields
@@ -74,6 +75,17 @@ export type PriceForecastStackParamList = {
   ProAdvisorFollowScreen: {
     formData: any;
   };
+  EditPostScreen: {
+    postId: string;
+    currentData: {
+      seed_variety: string;
+      price_per_kg: number;
+      quantity_kg: number;
+      district: string;
+      week: number;
+      season: string;
+    };
+  };
 };
 
 const Stack = createStackNavigator<PriceForecastStackParamList>();
@@ -133,6 +145,7 @@ const PriceForecastStack = () => {
         name="ProAdvisorFollowScreen"
         component={ProAdvisorFollowScreen}
       />
+      <Stack.Screen name="EditPostScreen" component={EditPostScreen} />
     </Stack.Navigator>
   );
 };
