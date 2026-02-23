@@ -564,17 +564,25 @@ const PostDetailScreen = () => {
                     {offer.status === "pending" && (
                       <>
                         <TouchableOpacity
-                          style={styles.rejectButton}
+                          style={[
+                            styles.rejectButton,
+                            post.status === "sold" && { opacity: 0.4 },
+                          ]}
                           onPress={() => handleRejectOffer(offer.id)}
+                          disabled={post.status === "sold"}
                         >
                           <Text style={styles.rejectButtonText}>Reject</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                          style={styles.acceptButton}
+                          style={[
+                            styles.acceptButton,
+                            post.status === "sold" && { opacity: 0.4 },
+                          ]}
                           onPress={() => {
                             setSelectedOfferForAccept(offer);
                             setShowAcceptModal(true);
                           }}
+                          disabled={post.status === "sold"}
                         >
                           <Text style={styles.acceptButtonText}>Accept</Text>
                         </TouchableOpacity>

@@ -223,35 +223,116 @@ export const acceptOffer = async (offerId: string): Promise<void> => {
 
   if (!user) throw new Error("User not authenticated");
 
-  // 1. Get the offer + post
+  // 1. Get the offer to extract post_id
   const { data: offer, error: offerError } = await supabase
     .from("offers")
-    .select("post_id, id")
+    .select("post_id, id, status")
     .eq("id", offerId)
     .single();
 
-  if (offerError) throw offerError;
+  if (offerError) {
+    console.error("[acceptOffer] Failed to fetch offer:", offerError);
+    throw offerError;
+  }
+  if (!offer) throw new Error("Offer not found");
 
+  console.log("[acceptOffer] Fetched offer:", offer);
+
+  // 2. Get the post to verify farmer ownership + status
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("farmer_id")
+    .select("farmer_id, status")
     .eq("id", offer.post_id)
     .single();
 
-  if (postError) throw postError;
+  if (postError) {
+    console.error("[acceptOffer] Failed to fetch post:", postError);
+    throw postError;
+  }
 
-  // 2. Verify farmer ownership
+  console.log("[acceptOffer] Fetched post:", post);
+  console.log("[acceptOffer] Current user:", user.id);
+
+  // 3. Guard: farmer ownership + post not already sold
   if (post.farmer_id !== user.id) {
     throw new Error("Only the post owner can accept offers");
   }
+  if (post.status === "sold") {
+    throw new Error("Post is already sold");
+  }
+  if (offer.status !== "pending") {
+    throw new Error(`Offer is already ${offer.status} and cannot be accepted`);
+  }
 
-  // 3. Accept offer (trigger will reject others + mark post sold)
-  const { error: updateError } = await supabase
+  // 4. Accept the selected offer — use .select() to confirm the row was updated
+  const { data: acceptedRow, error: acceptError } = await supabase
     .from("offers")
     .update({ status: "accepted", updated_at: new Date().toISOString() })
-    .eq("id", offerId);
+    .eq("id", offerId)
+    .select("id, status")
+    .single();
 
-  if (updateError) throw updateError;
+  if (acceptError) {
+    console.error(
+      "[acceptOffer] RLS or DB error on accept update:",
+      acceptError,
+    );
+    throw acceptError;
+  }
+
+  // If RLS silently blocked the update, acceptedRow will be null
+  if (!acceptedRow) {
+    throw new Error(
+      "Accept update was blocked — check your Supabase RLS policy for UPDATE on offers (farmer must be allowed to update offers on their own posts)",
+    );
+  }
+
+  console.log("[acceptOffer] Offer successfully accepted:", acceptedRow);
+
+  // 5. Reject all other pending offers for this post
+  const { data: rejectedRows, error: rejectOthersError } = await supabase
+    .from("offers")
+    .update({ status: "rejected", updated_at: new Date().toISOString() })
+    .eq("post_id", offer.post_id)
+    .eq("status", "pending")
+    .neq("id", offerId)
+    .select("id");
+
+  if (rejectOthersError) {
+    console.error(
+      "[acceptOffer] Failed to reject other offers:",
+      rejectOthersError,
+    );
+    throw rejectOthersError;
+  }
+
+  console.log(
+    `[acceptOffer] Rejected ${rejectedRows?.length ?? 0} other pending offer(s)`,
+  );
+
+  // 6. Mark the post as sold — use .select() to confirm
+  const { data: updatedPost, error: postUpdateError } = await supabase
+    .from("posts")
+    .update({ status: "sold" })
+    .eq("id", offer.post_id)
+    .select("id, status")
+    .single();
+
+  if (postUpdateError) {
+    console.error(
+      "[acceptOffer] Failed to mark post as sold:",
+      postUpdateError,
+    );
+    throw postUpdateError;
+  }
+
+  if (!updatedPost) {
+    throw new Error(
+      "Post status update was blocked — check your Supabase RLS policy for UPDATE on posts (farmer must be allowed to update their own posts)",
+    );
+  }
+
+  console.log("[acceptOffer] Post marked as sold:", updatedPost);
 };
 
 /* =====================================================
@@ -273,10 +354,10 @@ export const rejectOffer = async (offerId: string): Promise<void> => {
 
   if (offerError) throw offerError;
 
-  // 2. Verify farmer ownership
+  // 2. Verify farmer ownership and post status
   const { data: post, error: postError } = await supabase
     .from("posts")
-    .select("farmer_id")
+    .select("farmer_id, status")
     .eq("id", offer.post_id)
     .single();
 
@@ -284,6 +365,10 @@ export const rejectOffer = async (offerId: string): Promise<void> => {
 
   if (post.farmer_id !== user.id) {
     throw new Error("Only the post owner can reject offers");
+  }
+
+  if (post.status === "sold") {
+    throw new Error("Cannot reject offers on a post that is already sold");
   }
 
   // 3. Reject offer
