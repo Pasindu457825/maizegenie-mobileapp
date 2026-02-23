@@ -565,20 +565,28 @@ export const updateOffer = async (
      - Offer must still be pending
 ===================================================== */
 export const deleteOffer = async (offerId: string): Promise<void> => {
+  console.log("[deleteOffer] start", offerId);
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
+  console.log("[deleteOffer] auth uid:", user.id);
 
-  // Frontend guard
+  // Pre-flight: read the offer so we can give a clear error before the delete.
+  // NOTE: your SELECT RLS policy must allow buyers to read their own offers.
+  // If this returns null/error the SELECT policy is too restrictive.
   const { data: existing, error: fetchErr } = await supabase
     .from("offers")
     .select("id, buyer_id, status")
     .eq("id", offerId)
     .single();
 
+  console.log("[deleteOffer] pre-flight fetch:", existing, fetchErr);
+
   if (fetchErr) throw fetchErr;
-  if (!existing) throw new Error("Offer not found");
+  if (!existing)
+    throw new Error("Offer not found — check SELECT RLS on offers");
   if (existing.buyer_id !== user.id)
     throw new Error("You can only delete your own offer");
   if (existing.status !== "pending")
@@ -586,9 +594,29 @@ export const deleteOffer = async (offerId: string): Promise<void> => {
       `Offer cannot be deleted — it has already been ${existing.status}`,
     );
 
-  const { error } = await supabase.from("offers").delete().eq("id", offerId);
+  // .select("id") is required: without it Supabase returns
+  // { data: null, error: null } regardless of rows affected,
+  // so an RLS-blocked delete looks identical to a successful one.
+  const { data: deleted, error } = await supabase
+    .from("offers")
+    .delete()
+    .eq("id", offerId)
+    .select("id");
+
+  console.log("[deleteOffer] delete result:", deleted, error);
 
   if (error) throw error;
+
+  if (!deleted || deleted.length === 0) {
+    throw new Error(
+      "Delete was blocked by RLS — run the migration SQL in Supabase:\n" +
+        'CREATE POLICY "buyer_delete_own_pending_offer" ON offers ' +
+        "FOR DELETE TO authenticated " +
+        "USING (buyer_id = auth.uid() AND status = 'pending');",
+    );
+  }
+
+  console.log("[deleteOffer] success — deleted row:", deleted[0].id);
 };
 
 /* =====================================================

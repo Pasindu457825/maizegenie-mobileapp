@@ -99,6 +99,7 @@ const PostDetailScreen = () => {
   const [editOfferPrice, setEditOfferPrice] = useState("");
   const [isEditingOffer, setIsEditingOffer] = useState(false);
   const [isDeletingOffer, setIsDeletingOffer] = useState(false);
+  const [showDeleteOfferModal, setShowDeleteOfferModal] = useState(false);
 
   // ── Farmer: post deletion state ─────────────────────────────────
   const [isDeletingPost, setIsDeletingPost] = useState(false);
@@ -378,38 +379,44 @@ const PostDetailScreen = () => {
 
   // ── Delete offer (buyer, pending only) ───────────────────────────
   const handleDeleteOffer = () => {
-    if (!userOffer) return;
-    Alert.alert(
-      language === "si" ? "ඉදිරිපත්කරණ ඉවත් කරන්න" : "Delete Offer",
-      content[language].deleteOfferConfirm,
-      [
-        { text: language === "si" ? "නෑ" : "Cancel", style: "cancel" },
-        {
-          text: content[language].confirm,
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setIsDeletingOffer(true);
-              await deleteOffer(userOffer.id);
-              setUserOffer(null);
-              Alert.alert(
-                language === "si" ? "සාර්ථකයි" : "Done",
-                content[language].offerDeleted,
-              );
-              await loadPost();
-            } catch (error) {
-              console.error("[handleDeleteOffer]", error);
-              Alert.alert(
-                language === "si" ? "දෝෂයක්" : "Error",
-                String(error),
-              );
-            } finally {
-              setIsDeletingOffer(false);
-            }
-          },
-        },
-      ],
+    console.log(
+      "[handleDeleteOffer] button pressed, userOffer:",
+      userOffer?.id,
+      "status:",
+      userOffer?.status,
     );
+    if (!userOffer) {
+      console.warn("[handleDeleteOffer] userOffer is null — aborting");
+      return;
+    }
+    setShowDeleteOfferModal(true);
+  };
+
+  const confirmDeleteOffer = async () => {
+    if (!userOffer) return;
+    const offerIdToDelete = userOffer.id;
+    console.log("[confirmDeleteOffer] deleting offer:", offerIdToDelete);
+    try {
+      setIsDeletingOffer(true);
+      setShowDeleteOfferModal(false);
+      await deleteOffer(offerIdToDelete);
+      console.log("[confirmDeleteOffer] delete succeeded, clearing state");
+      setUserOffer(null);
+      await loadPost();
+      setTimeout(() => {
+        Alert.alert(
+          language === "si" ? "සාර්ථකයි" : "Done",
+          content[language].offerDeleted,
+        );
+      }, 300);
+    } catch (error) {
+      console.error("[confirmDeleteOffer] FAILED:", error);
+      setTimeout(() => {
+        Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      }, 300);
+    } finally {
+      setIsDeletingOffer(false);
+    }
   };
 
   // ── Edit post — navigate to EditPostScreen (farmer, active only) ─
@@ -783,7 +790,15 @@ const PostDetailScreen = () => {
 
                   <TouchableOpacity
                     style={styles.offerDeleteButton}
-                    onPress={handleDeleteOffer}
+                    onPress={() => {
+                      console.log(
+                        "[DeleteButton] tap registered, isDeletingOffer:",
+                        isDeletingOffer,
+                        "isEditingOffer:",
+                        isEditingOffer,
+                      );
+                      handleDeleteOffer();
+                    }}
                     disabled={isDeletingOffer || isEditingOffer}
                   >
                     {isDeletingOffer ? (
@@ -1170,6 +1185,74 @@ const PostDetailScreen = () => {
             </View>
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── Delete Offer Confirmation Modal (buyer, pending only) ── */}
+      <Modal
+        visible={showDeleteOfferModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteOfferModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: "#DC2626" }]}>
+                  {language === "si"
+                    ? "ඉදිරිපත්කරණ ඉවත් කරන්න"
+                    : "Delete Offer"}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowDeleteOfferModal(false)}
+                  style={styles.closeButton}
+                >
+                  <XCircle size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.modalBody}>
+                <Text
+                  style={{ fontSize: 15, color: "#374151", lineHeight: 22 }}
+                >
+                  {content[language].deleteOfferConfirm}
+                </Text>
+              </View>
+
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowDeleteOfferModal(false)}
+                  disabled={isDeletingOffer}
+                >
+                  <Text style={styles.modalCancelButtonText}>
+                    {content[language].cancel}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalSubmitButton,
+                    { backgroundColor: "#DC2626" },
+                  ]}
+                  onPress={confirmDeleteOffer}
+                  disabled={isDeletingOffer}
+                >
+                  {isDeletingOffer ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <>
+                      <Trash2 size={16} color="#FFFFFF" />
+                      <Text style={styles.modalSubmitButtonText}>
+                        {content[language].deleteOffer}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
       </Modal>
     </View>
   );
