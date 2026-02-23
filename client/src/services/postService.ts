@@ -234,15 +234,24 @@ export const createOffer = async (
     throw new Error("Offer price must be a positive number");
   }
 
-  // Guard: do not allow offers on a sold post
+  // Guard: fetch post for both status + self-offer checks in one query
   const { data: targetPost, error: postCheckError } = await supabase
     .from("posts")
-    .select("status")
+    .select("status, farmer_id")
     .eq("id", postId)
     .single();
 
   if (postCheckError) throw postCheckError;
-  if (targetPost?.status === "sold") {
+  if (!targetPost) throw new Error("Post not found");
+
+  // Block a farmer from placing an offer on their own post.
+  // This mirrors the RLS WITH CHECK so the error message is clear even if
+  // the DB-level policy somehow fires first with a generic 403.
+  if (targetPost.farmer_id === user.id) {
+    throw new Error("You cannot place an offer on your own post");
+  }
+
+  if (targetPost.status === "sold") {
     throw new Error(
       "This post has already been sold and is no longer accepting offers",
     );

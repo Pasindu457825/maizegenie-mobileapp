@@ -176,6 +176,18 @@ const MarketPlaceScreen = () => {
   const handleQuickOfferSubmit = async () => {
     if (!selectedPostForOffer) return;
 
+    // Block farmer from offering on their own post
+    if (currentUserId === selectedPostForOffer.farmer_id) {
+      Alert.alert(
+        language === "si" ? "දෝෂයක්" : "Error",
+        language === "si"
+          ? "ඔබගේම ඉදිරිපත්කිරීමකට ඉදිරිපත්කරණ ඉදිරිපත් කළ නොහැකිය"
+          : "You cannot place an offer on your own post",
+      );
+      setShowQuickOfferModal(false);
+      return;
+    }
+
     const price = parseFloat(quickOfferPrice);
 
     if (!quickOfferPrice || !Number.isFinite(price) || price <= 0) {
@@ -292,31 +304,35 @@ const MarketPlaceScreen = () => {
             </Text>
           </View>
 
-          {/* 🔥 NEW: Offer CTA Button */}
-          {currentUserId && item.status === "active" && (
-            <TouchableOpacity
-              style={[
-                styles.offerCTAButton,
-                hasUserOffer && styles.offerCTAButtonDisabled,
-              ]}
-              onPress={() => {
-                if (hasUserOffer) {
-                  // Go to detail if already offered
-                  navigation.navigate("PostDetailScreen", { postId: item.id });
-                } else {
-                  // Show quick offer modal
-                  setSelectedPostForOffer(item);
-                  setQuickOfferPrice(item.price_per_kg.toFixed(2));
-                  setShowQuickOfferModal(true);
-                }
-              }}
-            >
-              <MessageSquare size={14} color="#FFF" />
-              <Text style={styles.offerCTAButtonText}>
-                {hasUserOffer ? "View Offer" : "Make Offer"}
-              </Text>
-            </TouchableOpacity>
-          )}
+          {/* 🔥 NEW: Offer CTA Button — hidden for the post's own farmer */}
+          {currentUserId &&
+            item.status === "active" &&
+            currentUserId !== item.farmer_id && (
+              <TouchableOpacity
+                style={[
+                  styles.offerCTAButton,
+                  hasUserOffer && styles.offerCTAButtonDisabled,
+                ]}
+                onPress={() => {
+                  if (hasUserOffer) {
+                    // Go to detail if already offered
+                    navigation.navigate("PostDetailScreen", {
+                      postId: item.id,
+                    });
+                  } else {
+                    // Show quick offer modal
+                    setSelectedPostForOffer(item);
+                    setQuickOfferPrice(item.price_per_kg.toFixed(2));
+                    setShowQuickOfferModal(true);
+                  }
+                }}
+              >
+                <MessageSquare size={14} color="#FFF" />
+                <Text style={styles.offerCTAButtonText}>
+                  {hasUserOffer ? "View Offer" : "Make Offer"}
+                </Text>
+              </TouchableOpacity>
+            )}
 
           {/* Sold Status */}
           {item.status === "sold" && (

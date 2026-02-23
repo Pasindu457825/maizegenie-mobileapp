@@ -279,6 +279,18 @@ const PostDetailScreen = () => {
   // Create offer
   const handleMakeOffer = async () => {
     try {
+      // Belt-and-suspenders: the button is already hidden for farmers via
+      // !isFarmer, but guard here too in case state is stale.
+      if (isFarmer || currentUserId === post?.farmer_id) {
+        Alert.alert(
+          language === "si" ? "දෝෂයක්" : "Error",
+          language === "si"
+            ? "ඔබගේම ඉදිරිපත්කිරීමකට ඉදිරිපත්කරණ ඉදිරිපත් කළ නොහැකිය"
+            : "You cannot place an offer on your own post",
+        );
+        return;
+      }
+
       const price = parseFloat(offerPrice);
 
       if (!offerPrice || !Number.isFinite(price) || price <= 0) {
