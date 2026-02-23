@@ -71,6 +71,10 @@ export const listPosts = async (filters?: {
   minPrice?: number;
   maxPrice?: number;
 }): Promise<Post[]> => {
+  // Show ALL posts (active + sold) so sold posts remain visible in the
+  // marketplace with a SOLD badge instead of disappearing.
+  // Sort: active posts first (status ASC: "active" < "sold" alphabetically),
+  // then newest-first within each group.
   let query = supabase
     .from("posts")
     .select(
@@ -79,8 +83,8 @@ export const listPosts = async (filters?: {
       farmer:profiles!posts_farmer_id_fkey(full_name)
     `,
     )
-    .eq("status", "active")
-    .order("created_at", { ascending: false });
+    .order("status", { ascending: true }) // active before sold
+    .order("created_at", { ascending: false }); // newest first within each group
 
   if (filters?.district) {
     query = query.eq("district", filters.district);
@@ -190,6 +194,20 @@ export const createOffer = async (
   // Validate price
   if (!Number.isFinite(offerPrice) || offerPrice <= 0) {
     throw new Error("Offer price must be a positive number");
+  }
+
+  // Guard: do not allow offers on a sold post
+  const { data: targetPost, error: postCheckError } = await supabase
+    .from("posts")
+    .select("status")
+    .eq("id", postId)
+    .single();
+
+  if (postCheckError) throw postCheckError;
+  if (targetPost?.status === "sold") {
+    throw new Error(
+      "This post has already been sold and is no longer accepting offers",
+    );
   }
 
   const { data, error } = await supabase

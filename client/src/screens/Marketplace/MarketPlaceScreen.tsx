@@ -55,6 +55,7 @@ const MarketPlaceScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [userOffers, setUserOffers] = useState<Map<string, boolean>>(new Map());
+  const [activeCount, setActiveCount] = useState(0);
 
   // 🔥 NEW: Quick offer modal state
   const [showQuickOfferModal, setShowQuickOfferModal] = useState(false);
@@ -131,6 +132,7 @@ const MarketPlaceScreen = () => {
       const data = await listPosts();
       setPosts(data);
       setFilteredPosts(data);
+      setActiveCount(data.filter((p) => p.status === "active").length);
 
       // Check user offers for each post
       if (currentUserId) {
@@ -154,13 +156,19 @@ const MarketPlaceScreen = () => {
     }, [currentUserId]),
   );
 
-  // Filter posts
+  // Filter posts — always keep active posts before sold posts
   useEffect(() => {
-    const filtered = posts.filter(
-      (post) =>
-        post.seed_variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        post.district.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    const filtered = posts
+      .filter(
+        (post) =>
+          post.seed_variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          post.district.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+      .sort((a, b) => {
+        // active = 0, sold = 1 — active comes first
+        if (a.status === b.status) return 0;
+        return a.status === "active" ? -1 : 1;
+      });
     setFilteredPosts(filtered);
   }, [searchQuery, posts]);
 
@@ -334,7 +342,10 @@ const MarketPlaceScreen = () => {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>
-            {content[language].subtitle}
+            {activeCount} {language === "si" ? "ක්‍රියාකාරී" : "active"}
+            {posts.length - activeCount > 0
+              ? ` · ${posts.length - activeCount} ${language === "si" ? "විකිණී" : "sold"}`
+              : ""}
           </Text>
         </View>
       </View>
@@ -821,84 +832,83 @@ const styles = StyleSheet.create({
   },
 
   closeButton: {
-  padding: 4,
-},
+    padding: 4,
+  },
 
-productInfo: {
-  backgroundColor: "#F9FAFB",
-  padding: 10,
-  borderRadius: 8,
-},
+  productInfo: {
+    backgroundColor: "#F9FAFB",
+    padding: 10,
+    borderRadius: 8,
+  },
 
-productName: {
-  fontSize: 14,
-  fontWeight: "700",
-  color: "#065F46",
-},
+  productName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#065F46",
+  },
 
-productDetail: {
-  fontSize: 11,
-  color: "#6B7280",
-  marginTop: 2,
-},
+  productDetail: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginTop: 2,
+  },
 
-currentPriceBox: {
-  backgroundColor: "#ECFDF5",
-  padding: 10,
-  borderRadius: 8,
-},
+  currentPriceBox: {
+    backgroundColor: "#ECFDF5",
+    padding: 10,
+    borderRadius: 8,
+  },
 
-currentPriceLabel: {
-  fontSize: 11,
-  color: "#6B7280",
-},
+  currentPriceLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+  },
 
-currentPriceValue: {
-  fontSize: 16,
-  fontWeight: "700",
-  color: "#10B981",
-  marginTop: 2,
-},
+  currentPriceValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#10B981",
+    marginTop: 2,
+  },
 
-inputGroup: {
-  gap: 6,
-},
+  inputGroup: {
+    gap: 6,
+  },
 
-inputLabel: {
-  fontSize: 12,
-  fontWeight: "600",
-  color: "#374151",
-},
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#374151",
+  },
 
-input: {
-  backgroundColor: "#F9FAFB",
-  borderWidth: 1,
-  borderColor: "#D1FAE5",
-  borderRadius: 8,
-  paddingHorizontal: 12,
-  paddingVertical: 8,
-  fontSize: 13,
-  color: "#1F2937",
-},
+  input: {
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: "#1F2937",
+  },
 
-priceComparison: {
-  padding: 10,
-  borderRadius: 8,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-},
+  priceComparison: {
+    padding: 10,
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
 
-comparisonText: {
-  fontSize: 12,
-  fontWeight: "600",
-},
+  comparisonText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
 
-comparisonValue: {
-  fontSize: 12,
-  fontWeight: "700",
-},
-
+  comparisonValue: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
 });
 
 export default MarketPlaceScreen;
