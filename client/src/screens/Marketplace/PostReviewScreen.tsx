@@ -25,7 +25,10 @@ import {
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { createPost } from "../../services/postService";
-import { useNotifications } from "../../context/NotificationContext";
+import {
+  useNotifications,
+  NOTIFICATION_TYPE,
+} from "../../context/NotificationContext";
 
 type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
@@ -63,8 +66,7 @@ const PostReviewScreen = () => {
       totalValue: "මුළු අගය",
       district: "දිස්ත්‍රික්කය",
       warningTitle: "අවවාදයයි",
-      warningText:
-        "මෙය ප්‍රකාශනය කිරීමෙන් පසු පහසුවෙන් සංස්කරණය කළ නොහැක.",
+      warningText: "මෙය ප්‍රකාශනය කිරීමෙන් පසු පහසුවෙන් සංස්කරණය කළ නොහැක.",
       publishNow: "දැන් ප්‍රකාශනය කරන්න",
       schedule: "පසුවට සකසන්න",
       pickDate: "දිනය තෝරන්න",
@@ -84,8 +86,7 @@ const PostReviewScreen = () => {
       totalValue: "Total value",
       district: "District",
       warningTitle: "Important",
-      warningText:
-        "Once published, this post cannot be easily edited.",
+      warningText: "Once published, this post cannot be easily edited.",
       publishNow: "Publish now",
       schedule: "Schedule later",
       pickDate: "Pick publish date",
@@ -108,9 +109,7 @@ const PostReviewScreen = () => {
 
     if (publishMode === "later" && !publishAt) {
       Alert.alert(
-        language === "si"
-          ? "දිනයක් තෝරන්න"
-          : "Please select a publish date"
+        language === "si" ? "දිනයක් තෝරන්න" : "Please select a publish date",
       );
       return;
     }
@@ -128,7 +127,7 @@ const PostReviewScreen = () => {
         publishMode === "later"
           ? content[language].scheduledMsg
           : content[language].successMsg,
-        "marketplace"
+        NOTIFICATION_TYPE.MARKETPLACE,
       );
 
       navigation.reset({
@@ -223,9 +222,7 @@ const PostReviewScreen = () => {
               }}
             >
               <Calendar size={16} color="#047857" />
-              <Text style={styles.modeText}>
-                {content[language].schedule}
-              </Text>
+              <Text style={styles.modeText}>{content[language].schedule}</Text>
             </TouchableOpacity>
           </View>
 
@@ -233,8 +230,7 @@ const PostReviewScreen = () => {
           {publishMode === "later" && publishAt && (
             <View style={styles.scheduleBox}>
               <Text style={styles.scheduleText}>
-                {content[language].pickDate} :{" "}
-                {publishAt.toDateString()}
+                {content[language].pickDate} : {publishAt.toDateString()}
               </Text>
             </View>
           )}
@@ -298,19 +294,11 @@ const Detail = ({
   value: string;
   highlight?: boolean;
 }) => (
-  <View
-    style={[
-      styles.detailItem,
-      highlight && styles.detailItemHighlight,
-    ]}
-  >
+  <View style={[styles.detailItem, highlight && styles.detailItemHighlight]}>
     {icon}
     <Text style={styles.detailLabel}>{label}</Text>
     <Text
-      style={[
-        styles.detailValue,
-        highlight && styles.detailValueHighlight,
-      ]}
+      style={[styles.detailValue, highlight && styles.detailValueHighlight]}
     >
       {value}
     </Text>

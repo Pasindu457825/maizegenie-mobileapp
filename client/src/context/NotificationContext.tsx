@@ -5,13 +5,35 @@ import { supabase } from "../lib/supabase";
    TYPES
 ======================= */
 
+/**
+ * Single source of truth for notification types.
+ * - The `as const` assertion makes each value a literal type,
+ *   not just `string`, giving full autocomplete and exhaustive checks.
+ * - Adding a new type here automatically widens NotificationType everywhere.
+ * - Remember to keep the DB constraint / ENUM in sync (see migration).
+ */
+export const NOTIFICATION_TYPE = {
+  PRICE: "price",
+  WEATHER: "weather",
+  SYSTEM: "system",
+  OFFER: "offer",
+  MESSAGE: "message",
+  MARKETPLACE: "marketplace",
+} as const;
+
+/** Derives the union type from the object — no duplication. */
 export type NotificationType =
-  | "price"
-  | "weather"
-  | "system"
-  | "offer"
-  | "message"
-  | "marketplace";
+  (typeof NOTIFICATION_TYPE)[keyof typeof NOTIFICATION_TYPE];
+
+/** Runtime set for validating values coming from the DB or API. */
+export const VALID_NOTIFICATION_TYPES = new Set<string>(
+  Object.values(NOTIFICATION_TYPE),
+);
+
+/** Type guard — narrows an unknown string to NotificationType. */
+export function isNotificationType(value: unknown): value is NotificationType {
+  return typeof value === "string" && VALID_NOTIFICATION_TYPES.has(value);
+}
 
 export type AppNotification = {
   id: string;
@@ -134,6 +156,17 @@ export const NotificationProvider = ({
     message: string,
     type: NotificationType,
   ) => {
+    // Runtime guard: catches any value that slipped past TypeScript,
+    // e.g. a raw string from an API response or a future refactor mistake,
+    // before it reaches Supabase and triggers a constraint violation.
+    if (!isNotificationType(type)) {
+      console.error(
+        `❌ sendNotification: invalid type "${type}". ` +
+          `Allowed: ${[...VALID_NOTIFICATION_TYPES].join(", ")}`,
+      );
+      return;
+    }
+
     const {
       data: { user },
     } = await supabase.auth.getUser();

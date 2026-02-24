@@ -40,7 +40,10 @@ import {
   Save,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
-import { useNotifications } from "../../context/NotificationContext";
+import {
+  useNotifications,
+  NOTIFICATION_TYPE,
+} from "../../context/NotificationContext";
 import {
   getPost,
   createOffer,
@@ -328,7 +331,7 @@ const PostDetailScreen = () => {
       await sendNotification(
         language === "si" ? "ඉදිරිපත්කරණ සාර්ථක" : "Offer Submitted",
         `Rs ${price.toFixed(2)}/kg`,
-        "offer",
+        NOTIFICATION_TYPE.OFFER,
       );
 
       await loadPost();
@@ -350,7 +353,7 @@ const PostDetailScreen = () => {
       await sendNotification(
         language === "si" ? "ඉදිරිපත්කරණ පිළිගනු ලැබුවි" : "Offer Accepted",
         `Rs ${offer.offer_price_per_kg.toFixed(2)}/kg`,
-        "offer",
+        NOTIFICATION_TYPE.OFFER,
       );
 
       setShowAcceptModal(false);
