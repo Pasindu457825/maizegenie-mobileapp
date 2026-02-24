@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -104,6 +104,9 @@ const PostDetailScreen = () => {
   // ── Farmer: post deletion state ─────────────────────────────────
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const [showDeletePostModal, setShowDeletePostModal] = useState(false);
+
+  // Prevent useFocusEffect from reloading after a successful post deletion
+  const postDeletedRef = useRef(false);
 
   const content = {
     si: {
@@ -272,6 +275,8 @@ const PostDetailScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      // Skip reload if this screen is still mounted after a successful deletion
+      if (postDeletedRef.current) return;
       loadPost();
     }, [postId, language]),
   );
@@ -457,19 +462,19 @@ const PostDetailScreen = () => {
   const confirmDeletePost = async () => {
     if (!post) return;
     const postIdToDelete = post.id;
-    console.log("[confirmDeletePost] deleting post:", postIdToDelete);
     try {
       setIsDeletingPost(true);
       setShowDeletePostModal(false);
       await deletePost(postIdToDelete);
-      console.log("[confirmDeletePost] delete succeeded");
-      setTimeout(() => {
-        Alert.alert(
-          language === "si" ? "සාර්ථකයි" : "Done",
-          content[language].postDeleted,
-          [{ text: "OK", onPress: () => navigation.goBack() }],
-        );
-      }, 300);
+
+      // 1. Mark as deleted to block any useFocusEffect reload
+      postDeletedRef.current = true;
+      // 2. Clear stale post state so nothing stale renders during the transition
+      setPost(null);
+      setIsDeletingPost(false);
+      // 3. Navigate back — MarketPlaceScreen's useFocusEffect will
+      //    automatically reload its list when it regains focus.
+      navigation.goBack();
     } catch (error) {
       console.error("[confirmDeletePost] FAILED:", error);
       setIsDeletingPost(false);
