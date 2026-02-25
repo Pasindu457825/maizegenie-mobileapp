@@ -142,6 +142,51 @@ const translations: Record<
   },
 };
 
+// ─── Overpass API helper ────────────────────────────────────────────────────
+/** HTTP status codes that are safe to retry (transient server-side errors). */
+const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
+
+/**
+ * Retries a fetch on transient HTTP errors (429, 502, 503, 504) using
+ * exponential back-off.  AbortError is re-thrown immediately so deliberate
+ * cancellations are never retried.
+ *
+ * Back-off schedule (baseDelay = 2 000 ms, retries = 3):
+ *   attempt 1 fail → wait 2 s → attempt 2
+ *   attempt 2 fail → wait 4 s → attempt 3
+ *   attempt 3 fail → wait 8 s → throw
+ */
+const fetchWithRetry = async (
+  url: string,
+  options: RequestInit,
+  retries = 3,
+  baseDelay = 2000,
+): Promise<Response> => {
+  try {
+    const res = await fetch(url, options);
+
+    if (RETRYABLE_STATUSES.has(res.status)) {
+      if (retries === 0) {
+        throw new Error(`Overpass API error: HTTP ${res.status}`);
+      }
+      // Use a longer wait for gateway errors vs. rate-limit errors
+      const delay = baseDelay * Math.pow(2, 3 - retries); // 2 s → 4 s → 8 s
+      await new Promise<void>((r) => setTimeout(r, delay));
+      return fetchWithRetry(url, options, retries - 1, baseDelay);
+    }
+
+    return res;
+  } catch (err: unknown) {
+    // Never retry a deliberate cancellation
+    if (err instanceof Error && err.name === "AbortError") throw err;
+    if (retries === 0) throw err;
+    const delay = baseDelay * Math.pow(2, 3 - retries);
+    await new Promise<void>((r) => setTimeout(r, delay));
+    return fetchWithRetry(url, options, retries - 1, baseDelay);
+  }
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 const AgricultureDepartmentScreen = () => {
   const { language: lang } = useLanguage();
 
@@ -167,17 +212,37 @@ const AgricultureDepartmentScreen = () => {
   const [searchRadius, setSearchRadius] = useState(5); // Larger radius for departments
   const [selectedType, setSelectedType] = useState("all");
 
-  const fetchAgriOfficesFromOSM = async (): Promise<
-    AgricultureDepartment[]
-  > => {
+  // ─── Request-management refs ──────────────────────────────────────────────
+  /** Debounce timer — cleared on every dep change, fired after 2 s of quiet. */
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** True while a network request is in flight; prevents duplicate calls. */
+  const isRequestInFlightRef = useRef<boolean>(false);
+  /**
+   * In-memory cache keyed by `"<lat>_<lon>_<radiusKm>"`.  Stores the raw
+   * (unfiltered) list so type-filter changes never need a new network call.
+   */
+  const requestCacheRef = useRef<Map<string, AgricultureDepartment[]>>(
+    new Map(),
+  );
+  /** AbortController for the currently in-flight fetch — cancelled on re-try. */
+  const abortControllerRef = useRef<AbortController | null>(null);
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const fetchAgriOfficesFromOSM = async (
+    signal: AbortSignal,
+  ): Promise<AgricultureDepartment[]> => {
     if (!latitude || !longitude) return [];
 
     const radiusMeters = searchRadius * 1000;
 
     const delta = searchRadius / 111; // approx km → lat/lon
 
+    // Scale the Overpass server-side timeout with the search area so large
+    // radii (25–50 km) don't cause a 504 before the query finishes.
+    const overpassTimeout = Math.min(20 + searchRadius, 90); // 25 s … 90 s
+
     const query = `
-[out:json][timeout:25];
+[out:json][timeout:${overpassTimeout}];
 (
   node["name"~"govijan|agrarian|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
     (${latitude - delta},${longitude - delta},${latitude + delta},${
@@ -191,11 +256,15 @@ const AgricultureDepartmentScreen = () => {
 out center tags;
 `;
 
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: query,
-    });
+    const res = await fetchWithRetry(
+      "https://overpass-api.de/api/interpreter",
+      {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: query,
+        signal,
+      },
+    );
 
     const json = await res.json();
 
@@ -388,12 +457,42 @@ out center tags;
     return distance.toFixed(1);
   };
 
-  const loadDepartments = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      setError(null);
+  const loadDepartments = async (forceRefresh = false): Promise<void> => {
+    if (!latitude || !longitude) return;
 
-      const liveData = await fetchAgriOfficesFromOSM();
+    // ── 1. Prevent duplicate parallel requests (unless user explicitly refreshes)
+    if (!forceRefresh && isRequestInFlightRef.current) return;
+
+    // ── 2. Build a stable cache key (4 decimal places ≈ ~11 m precision)
+    const cacheKey = `${latitude.toFixed(4)}_${longitude.toFixed(4)}_${searchRadius}`;
+
+    // ── 3. Serve from in-memory cache when available (skip on force-refresh)
+    if (!forceRefresh && requestCacheRef.current.has(cacheKey)) {
+      const cachedRaw = requestCacheRef.current.get(cacheKey)!;
+      const filtered =
+        selectedType === "all"
+          ? cachedRaw
+          : cachedRaw.filter((d) => d.type === selectedType);
+      setDepartments(filtered);
+      setRefreshing(false);
+      return;
+    }
+
+    // ── 4. Cancel any still-running request before starting a new one
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+
+    isRequestInFlightRef.current = true;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const liveData = await fetchAgriOfficesFromOSM(
+        abortControllerRef.current.signal,
+      );
+
+      // Cache the raw (unfiltered) results so type changes never re-fetch
+      requestCacheRef.current.set(cacheKey, liveData);
 
       const filtered =
         selectedType === "all"
@@ -402,19 +501,23 @@ out center tags;
 
       setDepartments(filtered);
 
-      // optional cache
+      // Persist to disk as offline fallback
       await AsyncStorage.setItem(
         "deptCache",
         JSON.stringify({ data: filtered, ts: Date.now() }),
       );
-    } catch (err) {
-      const cached = await AsyncStorage.getItem("deptCache");
-      if (cached) {
-        setDepartments(JSON.parse(cached).data);
+    } catch (err: unknown) {
+      // Silently ignore deliberate cancellations — a new request is already queued
+      if (err instanceof Error && err.name === "AbortError") return;
+
+      const diskCache = await AsyncStorage.getItem("deptCache");
+      if (diskCache) {
+        setDepartments(JSON.parse(diskCache).data);
       } else {
         setDepartments([]);
       }
     } finally {
+      isRequestInFlightRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
@@ -422,7 +525,8 @@ out center tags;
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadDepartments();
+    // Pass forceRefresh=true to bypass in-memory cache and the in-flight guard
+    loadDepartments(true);
   };
 
   const openInMaps = (lat: number, lon: number, name: string): void => {
@@ -461,9 +565,20 @@ out center tags;
   };
 
   useEffect(() => {
-    if (latitude && longitude) {
+    if (!latitude || !longitude) return;
+
+    // Clear any previously scheduled call
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    // Wait 2 s of quiet before hitting the Overpass API — this collapses rapid
+    // changes to radius / type / location into a single network request.
+    debounceTimerRef.current = setTimeout(() => {
       loadDepartments();
-    }
+    }, 2000);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
   }, [latitude, longitude, searchRadius, selectedType]);
 
   if (locationLoading) {
@@ -555,7 +670,10 @@ out center tags;
           <Text style={styles.noResults}>{t.noResults}</Text>
           <Text style={styles.noResultsSub}>{t.noResultsSub}</Text>
 
-          <TouchableOpacity style={styles.retryBtn} onPress={loadDepartments}>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => loadDepartments()}
+          >
             <MaterialIcons name="refresh" size={20} color="#fff" />
             <Text style={styles.retryBtnText}>{t.retry}</Text>
           </TouchableOpacity>
