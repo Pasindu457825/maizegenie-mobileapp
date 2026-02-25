@@ -7,10 +7,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ScrollView,
   StatusBar,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { supabaseNew as supabase } from "@lib/supabase_new";
 
 type Feedback = {
@@ -25,44 +27,24 @@ type Feedback = {
   }[];
 };
 
-// ✅ Helper to get user that works with ANY Supabase version
 async function getUserSafely() {
   try {
-    // Method 1: Direct user() call (Supabase v1)
-    if (typeof (supabase.auth as any).user === "function") {
+    if (typeof (supabase.auth as any).user === "function")
       return (supabase.auth as any).user();
-    }
-
-    // Method 2: session().user (Supabase v1)
-    if (typeof (supabase.auth as any).session === "function") {
-      const session = (supabase.auth as any).session();
-      return session?.user ?? null;
-    }
-
-    // Method 3: Direct property access
-    if ((supabase.auth as any).currentUser) {
+    if (typeof (supabase.auth as any).session === "function")
+      return (supabase.auth as any).session()?.user ?? null;
+    if ((supabase.auth as any).currentUser)
       return (supabase.auth as any).currentUser;
-    }
-
-    // Method 4: getUser() (Supabase v2)
     if (typeof (supabase.auth as any).getUser === "function") {
       const { data } = await (supabase.auth as any).getUser();
       return data?.user ?? null;
     }
-
-    // Method 5: getSession() (Supabase v2)
     if (typeof (supabase.auth as any).getSession === "function") {
       const { data } = await (supabase.auth as any).getSession();
       return data?.session?.user ?? null;
     }
-
-    console.error(
-      "No auth method found. Available methods:",
-      Object.keys(supabase.auth)
-    );
     return null;
-  } catch (error) {
-    console.error("Error getting user:", error);
+  } catch {
     return null;
   }
 }
@@ -71,114 +53,66 @@ export default function PestFeedbackScreen() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [message, setMessage] = useState("");
   const [pestType, setPestType] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
-  // 🔹 Load approved feedback
   const loadFeedbacks = async () => {
     const { data, error } = await supabase
       .from("pest_feedback")
-      .select(
-        `
-        id,
-        pest_type,
-        message,
-        district,
-        created_at,
-        pest_officer_replies (
-          reply,
-          created_at
-        )
-      `
-      )
+      .select(`
+        id, pest_type, message, district, created_at,
+        pest_officer_replies ( reply, created_at )
+      `)
       .eq("status", "approved")
       .order("created_at", { ascending: false });
 
     if (!error && data) setFeedbacks(data as any);
+    setFetching(false);
+    setRefreshing(false);
   };
 
-  useEffect(() => {
-    loadFeedbacks();
-  }, []);
+  useEffect(() => { loadFeedbacks(); }, []);
 
-  // 🔹 Submit feedback (Farmer)
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadFeedbacks();
+  };
+
   const submitFeedback = async () => {
-    if (!pestType || !message) {
-      Alert.alert("Missing fields", "Please fill all fields");
+    if (!pestType.trim() || !message.trim()) {
+      Alert.alert("Missing fields", "Please fill in all fields.");
       return;
     }
-
-    setLoading(true);
-
+    setSubmitting(true);
     try {
-      // ✅ Get user using universal method
       const user = await getUserSafely();
-
       if (!user) {
-        setLoading(false);
-        Alert.alert("Error", "User not logged in. Please login again.");
+        Alert.alert("Error", "Please login again.");
         return;
       }
-
-      // ✅ Insert feedback
-      const { error: insertError } = await supabase
-        .from("pest_feedback")
-        .insert({
-          farmer_id: user.id,
-          pest_type: pestType,
-          message: message,
-          status: "pending",
-        });
-
-      setLoading(false);
-
-      if (insertError) {
-        Alert.alert("Error", insertError.message);
+      const { error } = await supabase.from("pest_feedback").insert({
+        farmer_id: user.id,
+        pest_type: pestType.trim(),
+        message: message.trim(),
+        status: "pending",
+      });
+      if (error) {
+        Alert.alert("Error", error.message);
       } else {
-        Alert.alert("✅ Submitted", "Your feedback has been sent for review");
+        Alert.alert("Submitted", "Your post is under review by our officer.");
         setMessage("");
         setPestType("");
         setShowForm(false);
       }
-    } catch (err) {
-      setLoading(false);
-      Alert.alert("Error", "Something went wrong. Please try again.");
-      console.error(err);
+    } catch {
+      Alert.alert("Error", "Something went wrong.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  // 🔹 React (Helpful / Not Helpful)
-  const reactToFeedback = async (
-    feedbackId: string,
-    reaction: "helpful" | "not_helpful"
-  ) => {
-    try {
-      // ✅ Get user using universal method
-      const user = await getUserSafely();
-
-      if (!user) {
-        Alert.alert("Error", "Please login first");
-        return;
-      }
-
-      const { error } = await supabase.from("pest_reactions").insert({
-        feedback_id: feedbackId,
-        user_id: user.id,
-        reaction: reaction,
-      });
-
-      if (error) {
-        Alert.alert("Error", error.message);
-      } else {
-        Alert.alert("🙏 Thank you", "Your reaction has been recorded");
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Failed to record reaction");
-    }
-  };
-
-  // 🔹 Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -186,461 +120,393 @@ export default function PestFeedbackScreen() {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
   };
 
-  return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a7a5e" />
+  const renderItem = ({ item }: { item: Feedback }) => (
+    <View style={styles.card}>
+      {/* Pest type + time */}
+      <View style={styles.cardRow}>
+        <View style={styles.pestTag}>
+          <Text style={styles.pestTagText}>{item.pest_type}</Text>
+        </View>
+        <Text style={styles.timeText}>{formatDate(item.created_at)}</Text>
+      </View>
 
-      {/* Header */}
-      <LinearGradient
-        colors={["#2d9d78", "#1a7a5e"]}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>🌾 Pest Forum</Text>
-        <Text style={styles.headerSubtitle}>
-          Community discussions & expert advice
-        </Text>
-      </LinearGradient>
+      {/* Message */}
+      <Text style={styles.messageText}>{item.message}</Text>
 
-      {/* Create Post Button */}
-      {!showForm && (
-        <TouchableOpacity
-          style={styles.createPostBtn}
-          onPress={() => setShowForm(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.createPostIcon}>✏️</Text>
-          <Text style={styles.createPostText}>Share Your Experience</Text>
-        </TouchableOpacity>
-      )}
+      {/* District */}
+      {item.district ? (
+        <Text style={styles.districtText}>📍 {item.district}</Text>
+      ) : null}
 
-      {/* 🔹 Submit Form */}
-      {showForm && (
-        <View style={styles.formCard}>
-          <View style={styles.formHeader}>
-            <Text style={styles.formTitle}>Create New Post</Text>
-            <TouchableOpacity onPress={() => setShowForm(false)}>
-              <Text style={styles.closeBtn}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.label}>Pest Type</Text>
-          <TextInput
-            placeholder="e.g., Fall Armyworm, Aphids, Corn Borer"
-            value={pestType}
-            onChangeText={setPestType}
-            style={styles.input}
-            placeholderTextColor="#9CA3AF"
-          />
-
-          <Text style={styles.label}>Your Message</Text>
-          <TextInput
-            placeholder="Describe the issue, your experience, or ask for advice..."
-            value={message}
-            onChangeText={setMessage}
-            style={[styles.input, styles.textArea]}
-            multiline
-            numberOfLines={4}
-            textAlignVertical="top"
-            placeholderTextColor="#9CA3AF"
-          />
-
-          <View style={styles.formActions}>
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={() => {
-                setShowForm(false);
-                setPestType("");
-                setMessage("");
-              }}
-            >
-              <Text style={styles.cancelBtnText}>Cancel</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.submitBtn}
-              onPress={submitFeedback}
-              disabled={loading}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.submitText}>
-                {loading ? "Posting..." : "Post"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.noteText}>
-            💡 Your post will be reviewed before appearing in the forum
+      {/* Officer reply */}
+      {item.pest_officer_replies && item.pest_officer_replies.length > 0 && (
+        <View style={styles.replyBox}>
+          <Text style={styles.replyLabel}>Officer Reply</Text>
+          <Text style={styles.replyText}>
+            {item.pest_officer_replies[0].reply}
+          </Text>
+          <Text style={styles.replyTime}>
+            {formatDate(item.pest_officer_replies[0].created_at)}
           </Text>
         </View>
       )}
+    </View>
+  );
 
-      {/* 🔹 Approved Feedback List */}
-      <View style={styles.listHeader}>
-        <Text style={styles.listTitle}>
-          Community Discussions ({feedbacks.length})
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Pest Forum</Text>
+        <Text style={styles.headerSub}>
+          Community discussions & expert advice
         </Text>
       </View>
 
       <FlatList
         data={feedbacks}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        renderItem={renderItem}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            {/* Post Header */}
-            <View style={styles.cardHeader}>
-              <View style={styles.pestBadge}>
-                <Text style={styles.pestBadgeText}>🐛 {item.pest_type}</Text>
-              </View>
-              <Text style={styles.timeText}>{formatDate(item.created_at)}</Text>
-            </View>
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#2d9d78"
+          />
+        }
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View>
+            {/* Post form or button */}
+            {showForm ? (
+              <View style={styles.form}>
+                <View style={styles.formTopRow}>
+                  <Text style={styles.formTitle}>New Post</Text>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowForm(false);
+                      setPestType("");
+                      setMessage("");
+                    }}
+                  >
+                    <Text style={styles.closeText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
 
-            {/* Post Content */}
-            <Text style={styles.messageText}>{item.message}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Pest type (e.g. Fall Armyworm)"
+                  placeholderTextColor="#bbb"
+                  value={pestType}
+                  onChangeText={setPestType}
+                />
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  placeholder="Describe the issue or ask a question..."
+                  placeholderTextColor="#bbb"
+                  value={message}
+                  onChangeText={setMessage}
+                  multiline
+                  textAlignVertical="top"
+                />
 
-            {/* District Badge */}
-            {item.district && (
-              <View style={styles.districtBadge}>
-                <Text style={styles.districtText}>📍 {item.district}</Text>
+                <View style={styles.formBtns}>
+                  <TouchableOpacity
+                    style={styles.cancelBtn}
+                    onPress={() => {
+                      setShowForm(false);
+                      setPestType("");
+                      setMessage("");
+                    }}
+                  >
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.postBtn, submitting && { opacity: 0.6 }]}
+                    onPress={submitFeedback}
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.postText}>Post</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.noteText}>
+                  Your post will be reviewed before appearing.
+                </Text>
               </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.newPostBtn}
+                onPress={() => setShowForm(true)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.newPostText}>＋ Share Your Experience</Text>
+              </TouchableOpacity>
             )}
 
-            {/* Officer Reply */}
-            {item.pest_officer_replies?.length ? (
-              <View style={styles.replyContainer}>
-                <View style={styles.replyHeader}>
-                  <Text style={styles.replyIcon}>👨‍🌾</Text>
-                  <Text style={styles.replyTitle}>Expert Advice</Text>
-                </View>
-                <Text style={styles.replyText}>
-                  {item.pest_officer_replies[0].reply}
-                </Text>
-                <Text style={styles.replyTime}>
-                  {formatDate(item.pest_officer_replies[0].created_at)}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* Reactions */}
-            <View style={styles.reactionRow}>
-              <TouchableOpacity
-                style={styles.reactionBtn}
-                onPress={() => reactToFeedback(item.id, "helpful")}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.reactionIcon}>👍</Text>
-                <Text style={styles.reactionLabel}>Helpful</Text>
-              </TouchableOpacity>
-
-              <View style={styles.reactionDivider} />
-
-              <TouchableOpacity
-                style={styles.reactionBtn}
-                onPress={() => reactToFeedback(item.id, "not_helpful")}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.reactionIcon}>👎</Text>
-                <Text style={styles.reactionLabel}>Not Helpful</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>💬</Text>
-            <Text style={styles.emptyTitle}>No discussions yet</Text>
-            <Text style={styles.emptyText}>
-              Be the first to share your experience!
-            </Text>
+            {/* Section title */}
+            {!fetching && (
+              <Text style={styles.sectionTitle}>
+                Discussions ({feedbacks.length})
+              </Text>
+            )}
           </View>
         }
+        ListEmptyComponent={
+          fetching ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color="#2d9d78" />
+            </View>
+          ) : (
+            <View style={styles.centered}>
+              <Text style={styles.emptyEmoji}>💬</Text>
+              <Text style={styles.emptyTitle}>No posts yet</Text>
+              <Text style={styles.emptyText}>Be the first to share!</Text>
+            </View>
+          )
+        }
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#f6f6f6",
   },
+
+  // ── Header ────────────────────────────────────────────────────────────────
   header: {
-    paddingTop: 50,
-    paddingBottom: 20,
+    backgroundColor: "#fff",
+    paddingTop: 54,
+    paddingBottom: 14,
     paddingHorizontal: 20,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#efefef",
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#FFF",
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#D1FAE5",
-  },
-  createPostBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 8,
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#E5E7EB",
-    borderStyle: "dashed",
-  },
-  createPostIcon: {
     fontSize: 24,
-    marginRight: 12,
+    fontWeight: "800",
+    color: "#111",
+    letterSpacing: -0.3,
   },
-  createPostText: {
-    fontSize: 16,
-    color: "#6B7280",
-    fontWeight: "600",
+  headerSub: {
+    fontSize: 13,
+    color: "#999",
+    marginTop: 2,
   },
-  formCard: {
-    backgroundColor: "#FFF",
-    marginHorizontal: 16,
+
+  // ── List padding ──────────────────────────────────────────────────────────
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 40,
+  },
+
+  // ── New post button ───────────────────────────────────────────────────────
+  newPostBtn: {
     marginTop: 16,
-    marginBottom: 8,
-    padding: 20,
-    borderRadius: 16,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginBottom: 4,
+    backgroundColor: "#2d9d78",
+    borderRadius: 12,
+    paddingVertical: 15,
+    alignItems: "center",
   },
-  formHeader: {
+  newPostText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+
+  // ── Form ──────────────────────────────────────────────────────────────────
+  form: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    marginTop: 16,
+    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  formTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 14,
   },
   formTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111",
+  },
+  closeText: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#1F2937",
-  },
-  closeBtn: {
-    fontSize: 24,
-    color: "#9CA3AF",
-    fontWeight: "bold",
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
+    color: "#bbb",
+    lineHeight: 22,
   },
   input: {
+    backgroundColor: "#f9f9f9",
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: "#e8e8e8",
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
-    backgroundColor: "#F9FAFB",
-    fontSize: 15,
-    color: "#1F2937",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: "#222",
+    marginBottom: 10,
   },
   textArea: {
     height: 100,
-    paddingTop: 12,
+    paddingTop: 11,
   },
-  formActions: {
+  formBtns: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 12,
+    gap: 10,
+    marginBottom: 10,
   },
   cancelBtn: {
     flex: 1,
-    padding: 14,
+    paddingVertical: 13,
     borderRadius: 10,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#f0f0f0",
     alignItems: "center",
   },
-  cancelBtnText: {
-    color: "#6B7280",
+  cancelText: {
+    color: "#666",
     fontWeight: "600",
-    fontSize: 15,
+    fontSize: 14,
   },
-  submitBtn: {
+  postBtn: {
     flex: 1,
-    padding: 14,
+    paddingVertical: 13,
     borderRadius: 10,
-    backgroundColor: "#16A34A",
+    backgroundColor: "#2d9d78",
     alignItems: "center",
-    elevation: 2,
   },
-  submitText: {
-    color: "#FFF",
-    fontWeight: "bold",
-    fontSize: 15,
+  postText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
   },
   noteText: {
-    fontSize: 12,
-    color: "#6B7280",
+    fontSize: 11,
+    color: "#bbb",
     textAlign: "center",
-    fontStyle: "italic",
   },
-  listHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+
+  // ── Section title ─────────────────────────────────────────────────────────
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#333",
+    marginTop: 20,
+    marginBottom: 10,
   },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#1F2937",
-  },
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
+
+  // ── Card ──────────────────────────────────────────────────────────────────
   card: {
-    backgroundColor: "#FFF",
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-    elevation: 2,
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 15,
+    marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.04,
     shadowRadius: 3,
+    elevation: 1,
   },
-  cardHeader: {
+  cardRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
-  pestBadge: {
-    backgroundColor: "#FEF3C7",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  pestBadgeText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#92400E",
-  },
-  timeText: {
-    fontSize: 12,
-    color: "#9CA3AF",
-  },
-  messageText: {
-    fontSize: 15,
-    color: "#374151",
-    lineHeight: 22,
-    marginBottom: 12,
-  },
-  districtBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#EFF6FF",
+  pestTag: {
+    backgroundColor: "#fef3c7",
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 12,
+    borderRadius: 7,
+  },
+  pestTagText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#92400e",
+  },
+  timeText: {
+    fontSize: 11,
+    color: "#bbb",
+  },
+  messageText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 21,
   },
   districtText: {
     fontSize: 12,
-    color: "#1E40AF",
-    fontWeight: "500",
+    color: "#3b82f6",
+    marginTop: 7,
   },
-  replyContainer: {
-    backgroundColor: "#ECFDF5",
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 8,
-    marginBottom: 12,
+
+  // ── Reply ─────────────────────────────────────────────────────────────────
+  replyBox: {
+    marginTop: 12,
+    backgroundColor: "#f0fdf6",
     borderLeftWidth: 3,
-    borderLeftColor: "#10B981",
+    borderLeftColor: "#2d9d78",
+    borderRadius: 8,
+    padding: 12,
   },
-  replyHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  replyIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  replyTitle: {
-    fontWeight: "bold",
-    color: "#047857",
-    fontSize: 14,
+  replyLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#2d9d78",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 5,
   },
   replyText: {
     fontSize: 14,
-    color: "#065F46",
+    color: "#065f46",
     lineHeight: 20,
-    marginBottom: 6,
   },
   replyTime: {
     fontSize: 11,
-    color: "#059669",
+    color: "#6ee7b7",
+    marginTop: 5,
   },
-  reactionRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: 12,
-    marginTop: 8,
-  },
-  reactionBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 8,
-  },
-  reactionIcon: {
-    fontSize: 18,
-    marginRight: 6,
-  },
-  reactionLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  reactionDivider: {
-    width: 1,
-    backgroundColor: "#E5E7EB",
-  },
-  emptyState: {
-    alignItems: "center",
-    justifyContent: "center",
+
+  // ── Empty / Loading ───────────────────────────────────────────────────────
+  centered: {
     paddingVertical: 60,
+    alignItems: "center",
   },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
+  emptyEmoji: { fontSize: 44, marginBottom: 12 },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#374151",
-    marginBottom: 8,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#555",
+    marginBottom: 4,
   },
-  emptyText: {
-    fontSize: 14,
-    color: "#9CA3AF",
-  },
+  emptyText: { fontSize: 13, color: "#aaa" },
 });
