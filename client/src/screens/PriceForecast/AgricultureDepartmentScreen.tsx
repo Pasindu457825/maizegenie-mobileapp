@@ -179,11 +179,11 @@ const AgricultureDepartmentScreen = () => {
     const query = `
 [out:json][timeout:25];
 (
-  node["name"~"govijan|agrarian|seva|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
+  node["name"~"govijan|agrarian|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
     (${latitude - delta},${longitude - delta},${latitude + delta},${
       longitude + delta
     });
-  way["name"~"govijan|agrarian|seva|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
+  way["name"~"govijan|agrarian|fertilizer|cic|agriculture|agri|කෘෂි|ගොවි|සේවා",i]
     (${latitude - delta},${longitude - delta},${latitude + delta},${
       longitude + delta
     });
@@ -210,29 +210,93 @@ out center tags;
       const tags = el.tags || {};
       const name = (tags.name || "").toLowerCase();
 
-      // ❌ Skip banks / finance
-      if (
-        name.includes("bank") ||
-        name.includes("finance") ||
-        name.includes("insurance")
-      ) {
-        continue;
-      }
+      // ❌ Global blacklist — always skip regardless of any other matching
+      const GLOBAL_BLACKLIST = [
+        "bank",
+        "finance",
+        "insurance",
+        "cicra",
+        "hotel",
+        "bakery",
+        "restaurant",
+        "guest house",
+        "lodge",
+        "road",
+        "street",
+        "mawatha",
+        "campus",
+        "university",
+        "school",
+        "college",
+        "training",
+        "academy",
+      ];
+      if (GLOBAL_BLACKLIST.some((w) => name.includes(w))) continue;
+
+      // ✅ Tag-based gate — must have at least one recognised official tag
+      const isTaggedOfficial =
+        tags.office === "government" ||
+        tags.office === "agriculture" ||
+        tags.shop === "agricultural" ||
+        tags.shop === "fertilizer" ||
+        tags.amenity === "agricultural_supplies";
 
       let officeType: string | null = null;
 
-      if (name.includes("cic")) officeType = "CIC Office";
-      else if (name.includes("research") || name.includes("පර්යේෂණ"))
+      // ✅ CIC Office — word-boundary "cic" + whitelist to exclude CICRA and similar
+      const CIC_WHITELIST = [
+        "cic agri",
+        "cic seeds",
+        "cic fertilizer",
+        "cic agribusiness",
+        "cic holdings",
+      ];
+      const hasCicWord = /\bcic\b/.test(name);
+      if (hasCicWord && CIC_WHITELIST.some((w) => name.includes(w))) {
+        officeType = "CIC Office";
+      }
+
+      // ✅ Research Institute
+      if (
+        !officeType &&
+        (name.includes("research") || name.includes("පර්යේෂණ"))
+      ) {
         officeType = "Research Institute";
-      else if (name.includes("extension") || name.includes("සහය"))
+      }
+
+      // ✅ Extension Center
+      if (!officeType && (name.includes("extension") || name.includes("සහය"))) {
         officeType = "Extension Center";
-      else if (name.includes("head")) officeType = "Head Office";
-      else if (
-        name.includes("agriculture") ||
-        name.includes("agri") ||
-        name.includes("කෘෂි")
-      )
-        officeType = "District Office";
+      }
+
+      // ✅ Head Office
+      if (
+        !officeType &&
+        (name.includes("head office") || name.includes("headquarters"))
+      ) {
+        officeType = "Head Office";
+      }
+
+      // ✅ District Office — requires BOTH a matching keyword AND a recognised OSM tag
+      if (!officeType) {
+        const AGRI_KEYWORDS = [
+          "agriculture",
+          "agricultural",
+          "agri",
+          "agrarian",
+          "fertilizer",
+          "seed",
+          "maize",
+          "corn",
+          "කෘෂි",
+          "ගොවි",
+          "මක",
+          "govijan",
+          "සේවා",
+        ];
+        const hasAgriKeyword = AGRI_KEYWORDS.some((w) => name.includes(w));
+        if (hasAgriKeyword && isTaggedOfficial) officeType = "District Office";
+      }
 
       if (!officeType || !ALLOWED_TYPES.includes(officeType)) continue;
 
