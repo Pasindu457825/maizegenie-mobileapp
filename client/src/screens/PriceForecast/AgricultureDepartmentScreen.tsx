@@ -12,6 +12,7 @@ import {
   Alert,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNavigation } from "@react-navigation/native";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import {
   MaterialIcons,
@@ -188,6 +189,7 @@ const fetchWithRetry = async (
 // ─────────────────────────────────────────────────────────────────────────────
 
 const AgricultureDepartmentScreen = () => {
+  const navigation = useNavigation();
   const { language: lang } = useLanguage();
 
   // ✅ Ensure language is properly tracked
@@ -584,7 +586,7 @@ out center tags;
   if (locationLoading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2d5016" />
+        <ActivityIndicator size="large" color="#0faa76" />
         <Text style={styles.loadingText}>{t.locating}</Text>
       </View>
     );
@@ -594,9 +596,18 @@ out center tags;
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <FontAwesome5 name="landmark" size={24} color="#2d5016" />
-        <Text style={styles.headerTitle}>{t.title}</Text>
-        <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#0faa76" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>{t.title}</Text>
+          <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+        </View>
+        {/* Right spacer keeps title centred */}
+        <View style={styles.backButton} />
       </View>
 
       {/* Controls */}
@@ -661,7 +672,7 @@ out center tags;
       {/* Content */}
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#2d5016" />
+          <ActivityIndicator size="large" color="#0faa76" />
           <Text style={styles.loadingText}>{t.loading}</Text>
         </View>
       ) : departments.length === 0 ? (
@@ -686,8 +697,8 @@ out center tags;
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={["#2d5016"]}
-              tintColor="#2d5016"
+              colors={["#0faa76"]}
+              tintColor="#0faa76"
             />
           }
           ListHeaderComponent={
@@ -705,11 +716,11 @@ out center tags;
               <View style={styles.deptHeader}>
                 <View style={styles.deptIcon}>
                   {item.type === "Head Office" ? (
-                    <FontAwesome5 name="building" size={20} color="#2d5016" />
+                    <FontAwesome5 name="building" size={20} color="#0faa76" />
                   ) : item.type === "Research Institute" ? (
-                    <FontAwesome5 name="flask" size={20} color="#2d5016" />
+                    <FontAwesome5 name="flask" size={20} color="#0faa76" />
                   ) : (
-                    <FontAwesome5 name="landmark" size={20} color="#2d5016" />
+                    <FontAwesome5 name="landmark" size={20} color="#0faa76" />
                   )}
                 </View>
                 <View style={styles.deptInfo}>
@@ -808,21 +819,35 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#fff",
-    padding: 50,
+    paddingTop: 50,
     paddingBottom: 15,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#e9ecef",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ecfdf5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerCenter: {
+    flex: 1,
     alignItems: "center",
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#2d5016",
-    marginTop: 10,
+    color: "#0faa76",
     textAlign: "center",
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#6b7280",
     marginTop: 2,
   },
@@ -855,8 +880,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   typeBtnActive: {
-    backgroundColor: "#2d5016",
-    borderColor: "#225015",
+    backgroundColor: "#10B981",
+    borderColor: "#0faa76",
   },
   typeBtnText: {
     fontSize: 14,
@@ -890,8 +915,8 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   radiusBtnActive: {
-    backgroundColor: "#2d5016",
-    borderColor: "#225015",
+    backgroundColor: "#10B981",
+    borderColor: "#0faa76",
   },
   radiusBtnText: {
     fontSize: 14,
@@ -924,7 +949,7 @@ const styles = StyleSheet.create({
   retryBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#2d5016",
+    backgroundColor: "#10B981",
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 8,
@@ -974,12 +999,12 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#f0fdf4",
+    backgroundColor: "#ecfdf5",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
     borderWidth: 1,
-    borderColor: "#dcfce7",
+    borderColor: "#d1fae5",
   },
   deptInfo: {
     flex: 1,
@@ -996,7 +1021,7 @@ const styles = StyleSheet.create({
   },
   deptType: {
     fontSize: 14,
-    color: "#059669",
+    color: "#10B981",
     fontWeight: "500",
   },
   deptDistance: {
@@ -1053,7 +1078,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#10b981",
+    backgroundColor: "#10B981",
     padding: 10,
     borderRadius: 6,
     gap: 6,
@@ -1063,7 +1088,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2d5016",
+    backgroundColor: "#0faa76",
     padding: 10,
     borderRadius: 6,
     gap: 6,
