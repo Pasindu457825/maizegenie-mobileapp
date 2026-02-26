@@ -165,6 +165,7 @@ const PriceForecastScreen = () => {
   const [recommendation, setRecommendation] = useState<
     "sell_now" | "sell_immediately" | "storage" | "sell_later"
   >("sell_later");
+  const [noStorageSuggestion, setNoStorageSuggestion] = useState<string | null>(null);
 
   const [savedForm, setSavedForm] = useState<any>(null);
   const [savedAuto, setSavedAuto] = useState<any>(null);
@@ -623,17 +624,23 @@ const PriceForecastScreen = () => {
       // ✅ REMOVED hardcoded setConfidenceScore(85)
       // Confidence is now set from API above
 
-      // Recommendation logic
-      const changePct = currentPriceNumeric
-        ? ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100
-        : 0;
-
-      if (changePct > 8) {
+      // Recommendation logic — driven by bestIdx and hasStorage
+      if (bestIdx === 0) {
+        // Best price is this week → sell now
         setRecommendation("sell_now");
-      } else if (changePct > 0) {
-        setRecommendation(formData?.hasStorage ? "storage" : "sell_now");
+        setNoStorageSuggestion(null);
+      } else if (formData?.hasStorage) {
+        // Better price ahead AND farmer has storage → hold
+        setRecommendation("storage");
+        setNoStorageSuggestion(null);
       } else {
-        setRecommendation("sell_later");
+        // Better price ahead BUT no storage → recommend sell now with a tip
+        setRecommendation("sell_now");
+        setNoStorageSuggestion(
+          language === "si"
+            ? `හොඳම මිල ලැබෙන්නේ ${bestIdx + 1} වන සතිය තුළය. ඔබට ගබඩා පහසුකම් නොමැත. කෙසේ වෙතත්, තාවකාලික ගබඩාවක් සොයාගැනීමට හෝ විකිණීම ප්‍රමාද කළ හොත් ඒ සතිය තුළ වැඩි ලාභයක් ලැබිය හැකිය.`
+            : `Although the best price is expected in week ${bestIdx + 1}, you do not have storage. If you can arrange temporary storage or delay selling, you may gain higher profit in that week.`
+        );
       }
     } catch (err) {
       console.log("Forecast error:", err);
@@ -1180,6 +1187,14 @@ const PriceForecastScreen = () => {
                   {language === "si"
                     ? "ඔබට ගබඩා පහසුකම් ඇත - මිල වැඩිවන තුරු රඳවා තබන්න"
                     : "You have storage - hold until price increases"}
+                </Text>
+              </View>
+            )}
+            {noStorageSuggestion && (
+              <View style={[styles.storageNote, { backgroundColor: "#FEF3C7", borderColor: "#F59E0B", borderWidth: 1, borderRadius: 8, marginTop: 8 }]}>
+                <Package color="#D97706" size={16} />
+                <Text style={[styles.storageNoteText, { color: "#92400E" }]}>
+                  {noStorageSuggestion}
                 </Text>
               </View>
             )}
