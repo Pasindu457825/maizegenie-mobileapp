@@ -860,7 +860,7 @@ const PostDetailScreen = () => {
           {/* ——— FARMER CONTACT CARD ———
                Visible ONLY when the RPC confirms this buyer's offer
                is accepted. farmerPhone is null for everyone else. */}
-          {!isFarmer && farmerPhone && (
+          {!isFarmer && farmerPhone != null && farmerPhone !== "" && (
             <View style={styles.contactCard}>
               <View style={styles.contactCardHeader}>
                 <CheckCircle size={18} color="#10B981" />

@@ -336,6 +336,18 @@ const MarketPlaceScreen = () => {
           </View>
         </View>
 
+        {/* ✅ Accepted Offer Banner — only for the buyer whose offer was accepted */}
+        {item.status === "sold" && hasUserOffer && (
+          <View style={styles.acceptedOfferBanner}>
+            <CheckCircle size={16} color="#065F46" />
+            <Text style={styles.acceptedOfferBannerText}>
+              {language === "si"
+                ? "ඔබගේ ඉදිරිපත්කරණය පිළිගෙන ඇත"
+                : "Your offer was accepted"}
+            </Text>
+          </View>
+        )}
+
         {/* Bottom Section: Total Value + Offer / Post Now Button */}
         <View style={styles.bottomSection}>
           <View style={styles.totalValue}>
@@ -824,6 +836,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#DC2626",
+  },
+  acceptedOfferBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  acceptedOfferBannerText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#065F46",
+    flexShrink: 1,
   },
   postNowButton: {
     flexDirection: "row",
