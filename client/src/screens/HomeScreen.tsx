@@ -221,11 +221,18 @@ export default function HomeScreen() {
       },
       {
         icon: MapPin,
-        title: language === "si" ? "කෘෂිකර්ම කාර්යාල" : "Agriculture Offices",
+        title:
+          language === "si"
+            ? "කෘෂිකර්ම කාර්යාල"
+            : language === "ta"
+              ? "விவசாய அலுவலகங்கள்"
+              : "Agriculture Offices",
         description:
           language === "si"
             ? "ආසන්න කෘෂිකර්ම දෙපාර්තමේන්තු සොයන්න"
-            : "Find nearby agriculture departments",
+            : language === "ta"
+              ? "அருகிலுள்ள விவசாய திணைக்களங்களை கண்டறியுங்கள்"
+              : "Find nearby agriculture departments",
         color: "#059669",
         route: "AgricultureDepartmentScreen", // ✅ DIRECT
       },
