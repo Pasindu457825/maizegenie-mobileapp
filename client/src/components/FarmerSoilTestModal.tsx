@@ -31,9 +31,9 @@ const FarmerSoilTestModal: React.FC<FarmerSoilTestModalProps> = ({
 }) => {
   const content = {
     si: {
-      title: "පස් පරීක්ෂණ දත්ත",
-      subtitle: "නිවැරදි අස්වැන්න පුරෝකථනයක් සඳහා පස් පරීක්ෂණ දත්ත අවශ්‍ය වේ",
-      requiredData: "අවශ්‍ය දත්ත:",
+      title: "පස් පරීක්ෂණ වාර්තාව",
+      subtitle: "ඔබට පරීක්ෂා කළ පස් වාර්තාවක් තිබේද? ඔබට දැන් පස් වාර්තාවක් උඩුගත කළ හැකිය",
+      requiredData: "වාර්තාවේ ඇතුළත් දත්ත:",
       dataItems: [
         {
           title: "පස් pH මට්ටම",
@@ -56,15 +56,15 @@ const FarmerSoilTestModal: React.FC<FarmerSoilTestModalProps> = ({
           description: "සමස්ත පස් සාරවත්කම මට්ටම (0-1 පරාසය)"
         }
       ],
-      question: "ඔබ මෙම දත්ත ලබා ගෙන තිබේද?",
+      question: "පස් වාර්තාව ඔබ සතුව තිබේද?",
       noButton: "නැත",
       yesButton: "ඔව්",
       importance: "මෙම දත්ත නොමැතිව පුරෝකථනය අඩු නිවැරදි වනු ඇත"
     },
     en: {
-      title: "Soil Test Data",
-      subtitle: "Soil test data is required for accurate yield prediction",
-      requiredData: "Required Data:",
+      title: "Soil Test Report",
+      subtitle: "Do you have a tested soil report? You can upload your soil report now to auto-fill the data",
+      requiredData: "Report Data Includes:",
       dataItems: [
         {
           title: "Soil pH Level",
@@ -87,7 +87,7 @@ const FarmerSoilTestModal: React.FC<FarmerSoilTestModalProps> = ({
           description: "Overall soil fertility level (0-1 range)"
         }
       ],
-      question: "Do you have this data?",
+      question: "Would you like to upload your soil report?",
       noButton: "No",
       yesButton: "Yes",
       importance: "Without this data, predictions will be less accurate"
@@ -130,13 +130,13 @@ const FarmerSoilTestModal: React.FC<FarmerSoilTestModalProps> = ({
             </View>
 
             {/* Scrollable Content */}
-            <ScrollView 
+            <ScrollView
               style={styles.scrollContainer}
               showsVerticalScrollIndicator={false}
             >
               {/* Required Data Section */}
               <Text style={styles.requiredDataTitle}>{text.requiredData}</Text>
-              
+
               {text.dataItems.map((item, index) => (
                 <View key={index} style={styles.dataItem}>
                   <View style={styles.dataHeader}>
