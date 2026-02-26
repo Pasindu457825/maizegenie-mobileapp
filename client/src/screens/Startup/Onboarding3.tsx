@@ -86,6 +86,35 @@ const translations = {
         proFeature5: "Pro Disease Identification",
         proFeature6: "Send Images to Agri Officers",
     },
+    tamil: {
+        title: "உங்கள் திட்டத்தைத் தேர்வு செய்யுங்கள்",
+        subtitle: "உங்கள் விவசாயத் தேவைகளுக்கு ஏற்ற பொதியை தேர்வு செய்யுங்கள்",
+        free: "இலவசம்",
+        pro: "Pro",
+        perMonth: "மாதந்தோறும்",
+        perYear: "வருடந்தோறும்",
+        monthlyPrice: "ரூ. 300",
+        annualPrice: "ரூ. 2,500",
+        getStarted: "தொடங்குங்கள்",
+        upgradeToPro: "Pro க்கு மேம்படுத்து",
+        mostPopular: "மிகவும் பிரபலமானது",
+        limitedOffer: "வரையறுக்கப்பட்ட சலுகை",
+
+        // Free Features
+        freeFeature1: "அடிப்படை விளைச்சல் மதிப்பீடு",
+        freeFeature2: "பூச்சி கண்டறிதல்",
+        freeFeature3: "வானிலை தகவல்",
+        freeFeature4: "சந்தை விலைகள்",
+        freeFeature5: "அடிப்படை உர குறிப்புகள்",
+
+        // Pro Features
+        proFeature1: "நிபுணர் ஆலோசனை",
+        proFeature2: "விரிவான அறிக்கைகள்",
+        proFeature3: "மண் பரிசோதனை கோரிக்கை",
+        proFeature4: "விளம்பரமில்லா அனுபவம்",
+        proFeature5: "Pro நோய் அடையாளம்",
+        proFeature6: "விவசாய அதிகாரிகளுக்கு படங்களை அனுப்புக",
+    },
 };
 
 type LanguageKey = keyof typeof translations;

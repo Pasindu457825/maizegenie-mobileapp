@@ -44,7 +44,7 @@ const translations = {
     perYear: "වාර්ෂිකව",
     upgradeToPro: "Pro වෙත උත්ශ්‍රේණි කරන්න",
     maybeLater: "පසුව",
-    
+
     // Pro Features
     feature1: "විශේෂඥ උපදෙස්",
     feature2: "සවිස්තර වාර්තා",
@@ -63,7 +63,7 @@ const translations = {
     perYear: "per year",
     upgradeToPro: "Upgrade to Pro",
     maybeLater: "Maybe Later",
-    
+
     // Pro Features
     feature1: "Expert Consultation",
     feature2: "Detailed Reports",
@@ -71,6 +71,24 @@ const translations = {
     feature4: "Ad-Free Experience",
     feature5: "Pro Disease Identification",
     feature6: "Send Images to Agri Officers",
+  },
+  // Tamil fallback (uses Tamil translations)
+  tamil: {
+    title: "MaizeGenie Pro க்கு மேம்படுத்து",
+    subtitle: "பிரீமியம் அம்சங்கள் மற்றும் நன்மைகளை அணுகுங்கள்",
+    limitedOffer: "வரையறுக்கப்பட்ட சலுகை",
+    monthlyPrice: "ரூ. 300",
+    annualPrice: "ரூ. 2,500",
+    perMonth: "மாதந்தோறும்",
+    perYear: "வருடந்தோறும்",
+    upgradeToPro: "Pro க்கு மேம்படுத்து",
+    maybeLater: "பின்னர்",
+    feature1: "நிபுணர் ஆலோசனை",
+    feature2: "விரிவான அறிக்கைகள்",
+    feature3: "மண் பரிசோதனை கோரிக்கை",
+    feature4: "விளம்பரமில்லா அனுபவம்",
+    feature5: "Pro நோய் அடையாளம்",
+    feature6: "விவசாய அதிகாரிகளுக்கு படங்களை அனுப்புக",
   },
 };
 
