@@ -618,41 +618,41 @@ const PostDetailScreen = () => {
                     : content[language].active}
                 </Text>
               </View>
-
-              {/* Farmer edit / delete — active posts only */}
-              {isFarmer && post.status === "active" && (
-                <View style={styles.postManageRow}>
-                  <TouchableOpacity
-                    style={styles.postEditButton}
-                    onPress={handleEditPost}
-                    disabled={isDeletingPost}
-                  >
-                    <Edit2 size={13} color="#047857" />
-                    <Text style={styles.postEditButtonText}>
-                      {content[language].editPost}
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.postDeleteButton}
-                    onPress={handleDeletePost}
-                    disabled={isDeletingPost}
-                  >
-                    {isDeletingPost ? (
-                      <ActivityIndicator size="small" color="#DC2626" />
-                    ) : (
-                      <>
-                        <Trash2 size={13} color="#DC2626" />
-                        <Text style={styles.postDeleteButtonText}>
-                          {content[language].deletePost}
-                        </Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
           </View>
+
+          {/* Farmer edit / delete — active posts only */}
+          {isFarmer && post.status === "active" && (
+            <View style={styles.postManageRow}>
+              <TouchableOpacity
+                style={styles.postEditButton}
+                onPress={handleEditPost}
+                disabled={isDeletingPost}
+              >
+                <Edit2 size={13} color="#047857" />
+                <Text style={styles.postEditButtonText}>
+                  {content[language].editPost}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.postDeleteButton}
+                onPress={handleDeletePost}
+                disabled={isDeletingPost}
+              >
+                {isDeletingPost ? (
+                  <ActivityIndicator size="small" color="#DC2626" />
+                ) : (
+                  <>
+                    <Trash2 size={13} color="#DC2626" />
+                    <Text style={styles.postDeleteButtonText}>
+                      {content[language].deletePost}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Price Highlight */}
           <View style={styles.priceHighlight}>
@@ -1403,13 +1403,14 @@ const styles = StyleSheet.create({
   postManageRow: {
     flexDirection: "row",
     gap: 6,
-    marginTop: 4,
   },
   postEditButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 4,
-    paddingVertical: 5,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
@@ -1422,10 +1423,12 @@ const styles = StyleSheet.create({
     color: "#047857",
   },
   postDeleteButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     gap: 4,
-    paddingVertical: 5,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
