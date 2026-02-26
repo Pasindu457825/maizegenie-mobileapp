@@ -61,6 +61,7 @@ const MarketPlaceScreen = () => {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [userOffers, setUserOffers] = useState<Map<string, boolean>>(new Map());
   const [activeCount, setActiveCount] = useState(0);
+  const [statusFilter, setStatusFilter] = useState<"not_sold" | "sold">("not_sold");
 
   // 🔥 NEW: Quick offer modal state
   const [showQuickOfferModal, setShowQuickOfferModal] = useState(false);
@@ -180,11 +181,15 @@ const MarketPlaceScreen = () => {
           (post.seed_variety
             .toLowerCase()
             .includes(searchQuery.toLowerCase()) ||
-            post.district.toLowerCase().includes(searchQuery.toLowerCase())),
+            post.district.toLowerCase().includes(searchQuery.toLowerCase())) &&
+          // Status filter: "sold" shows only sold; "not_sold" hides sold
+          (statusFilter === "sold"
+            ? post.status === "sold"
+            : post.status !== "sold"),
       )
       .sort((a, b) => statusOrder(a.status) - statusOrder(b.status));
     setFilteredPosts(filtered);
-  }, [searchQuery, posts, currentUserId]);
+  }, [searchQuery, posts, currentUserId, statusFilter]);
 
   // Handle "Post Now" for scheduled posts
   const handlePublishNow = async (postId: string) => {
@@ -449,6 +454,42 @@ const MarketPlaceScreen = () => {
               </Text>
             </View>
           )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Status Filter Pills */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            statusFilter === "not_sold" && styles.filterPillActive,
+          ]}
+          onPress={() => setStatusFilter("not_sold")}
+        >
+          <Text
+            style={[
+              styles.filterPillText,
+              statusFilter === "not_sold" && styles.filterPillTextActive,
+            ]}
+          >
+            {language === "si" ? "නොවිකිණුණු" : "Not Sold"}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            statusFilter === "sold" && styles.filterPillActive,
+          ]}
+          onPress={() => setStatusFilter("sold")}
+        >
+          <Text
+            style={[
+              styles.filterPillText,
+              statusFilter === "sold" && styles.filterPillTextActive,
+            ]}
+          >
+            {language === "si" ? "විකිණුණු" : "Sold"}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -1085,6 +1126,33 @@ const styles = StyleSheet.create({
   comparisonValue: {
     fontSize: 12,
     fontWeight: "700",
+  },
+  filterRow: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  filterPill: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#D1D5DB",
+    backgroundColor: "#F9FAFB",
+  },
+  filterPillActive: {
+    backgroundColor: "#10B981",
+    borderColor: "#10B981",
+  },
+  filterPillText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: "#6B7280",
+  },
+  filterPillTextActive: {
+    color: "#FFFFFF",
   },
 });
 
