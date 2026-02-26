@@ -13,6 +13,7 @@ export type Prediction = {
   class_id: number;
   class_name: string;
   confidence: number;
+  box_xyxy?: number[];
 };
 
 export type DiseaseIdentifyStackParamList = {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -64,6 +64,7 @@ interface Prediction {
   class_id: number;
   class_name: string;
   confidence: number;
+  box_xyxy?: number[];
 }
 
 export default function SeverityDetailsScreen({ route }: Props) {
@@ -350,6 +351,86 @@ export default function SeverityDetailsScreen({ route }: Props) {
   };
 
   const diseaseType = getDiseaseType();
+  const [displayImageSize, setDisplayImageSize] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [sourceImageSize, setSourceImageSize] = useState({
+    width: 0,
+    height: 0,
+  });
+
+  useEffect(() => {
+    if (!image) return;
+    Image.getSize(
+      image,
+      (width, height) => setSourceImageSize({ width, height }),
+      () => setSourceImageSize({ width: 0, height: 0 })
+    );
+  }, [image]);
+
+  const impactBoxes = useMemo(() => {
+    if (
+      !displayImageSize.width ||
+      !displayImageSize.height ||
+      !sourceImageSize.width ||
+      !sourceImageSize.height
+    ) {
+      return [];
+    }
+
+    const scaleX = displayImageSize.width / sourceImageSize.width;
+    const scaleY = displayImageSize.height / sourceImageSize.height;
+
+    return predictions
+      .map((prediction, index) => {
+        const box = prediction.box_xyxy;
+        if (!Array.isArray(box) || box.length < 4) return null;
+
+        const [x1, y1, x2, y2] = box.map(Number);
+        if ([x1, y1, x2, y2].some((v) => !Number.isFinite(v))) return null;
+
+        const left = Math.max(
+          0,
+          Math.min(displayImageSize.width, Math.min(x1, x2) * scaleX)
+        );
+        const top = Math.max(
+          0,
+          Math.min(displayImageSize.height, Math.min(y1, y2) * scaleY)
+        );
+        const right = Math.max(
+          0,
+          Math.min(displayImageSize.width, Math.max(x1, x2) * scaleX)
+        );
+        const bottom = Math.max(
+          0,
+          Math.min(displayImageSize.height, Math.max(y1, y2) * scaleY)
+        );
+        const width = right - left;
+        const height = bottom - top;
+
+        if (width <= 1 || height <= 1) return null;
+
+        return {
+          key: `impact-box-${index}`,
+          left,
+          top,
+          width,
+          height,
+        };
+      })
+      .filter(
+        (
+          box
+        ): box is {
+          key: string;
+          left: number;
+          top: number;
+          width: number;
+          height: number;
+        } => box !== null
+      );
+  }, [displayImageSize, predictions, sourceImageSize]);
 
   return (
     <View style={styles.container}>
@@ -390,12 +471,35 @@ export default function SeverityDetailsScreen({ route }: Props) {
         {image && (
           <View style={styles.imageSection}>
             <View style={styles.imageCard}>
-              <Image
-                source={{ uri: image }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-              <View style={styles.imageOverlay}></View>
+              <View
+                style={styles.imageContainer}
+                onLayout={(event) => {
+                  const { width, height } = event.nativeEvent.layout;
+                  setDisplayImageSize({ width, height });
+                }}
+              >
+                <Image
+                  source={{ uri: image }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+                <View pointerEvents="none" style={styles.imageOverlay}>
+                  {impactBoxes.map((box) => (
+                    <View
+                      key={box.key}
+                      style={[
+                        styles.impactBox,
+                        {
+                          left: box.left,
+                          top: box.top,
+                          width: box.width,
+                          height: box.height,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -1134,9 +1238,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  imagePreview: {
+  imageContainer: {
     width: "100%",
     height: 220,
+    position: "relative",
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
   },
   imageOverlay: {
     position: "absolute",
@@ -1144,8 +1253,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: "flex-end",
-    padding: 16,
+  },
+  impactBox: {
+    position: "absolute",
+    borderWidth: 2,
+    borderColor: "#EF4444",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderRadius: 4,
   },
   imageLabel: {
     flexDirection: "row",
