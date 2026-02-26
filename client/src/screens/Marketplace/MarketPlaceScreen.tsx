@@ -61,7 +61,9 @@ const MarketPlaceScreen = () => {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [userOffers, setUserOffers] = useState<Map<string, boolean>>(new Map());
   const [activeCount, setActiveCount] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<"not_sold" | "sold">("not_sold");
+  const [statusFilter, setStatusFilter] = useState<"not_sold" | "sold">(
+    "not_sold",
+  );
 
   // 🔥 NEW: Quick offer modal state
   const [showQuickOfferModal, setShowQuickOfferModal] = useState(false);
