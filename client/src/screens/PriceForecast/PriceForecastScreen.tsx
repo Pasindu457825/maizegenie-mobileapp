@@ -165,7 +165,9 @@ const PriceForecastScreen = () => {
   const [recommendation, setRecommendation] = useState<
     "sell_now" | "sell_immediately" | "storage" | "sell_later"
   >("sell_later");
-  const [noStorageSuggestion, setNoStorageSuggestion] = useState<string | null>(null);
+  const [noStorageSuggestion, setNoStorageSuggestion] = useState<string | null>(
+    null,
+  );
 
   const [savedForm, setSavedForm] = useState<any>(null);
   const [savedAuto, setSavedAuto] = useState<any>(null);
@@ -639,7 +641,7 @@ const PriceForecastScreen = () => {
         setNoStorageSuggestion(
           language === "si"
             ? `හොඳම මිල ලැබෙන්නේ ${bestIdx + 1} වන සතිය තුළය. ඔබට ගබඩා පහසුකම් නොමැත. කෙසේ වෙතත්, තාවකාලික ගබඩාවක් සොයාගැනීමට හෝ විකිණීම ප්‍රමාද කළ හොත් ඒ සතිය තුළ වැඩි ලාභයක් ලැබිය හැකිය.`
-            : `Although the best price is expected in week ${bestIdx + 1}, you do not have storage. If you can arrange temporary storage or delay selling, you may gain higher profit in that week.`
+            : `Although the best price is expected in week ${bestIdx + 1}, you do not have storage. If you can arrange temporary storage or delay selling, you may gain higher profit in that week.`,
         );
       }
     } catch (err) {
@@ -1191,7 +1193,18 @@ const PriceForecastScreen = () => {
               </View>
             )}
             {noStorageSuggestion && (
-              <View style={[styles.storageNote, { backgroundColor: "#FEF3C7", borderColor: "#F59E0B", borderWidth: 1, borderRadius: 8, marginTop: 8 }]}>
+              <View
+                style={[
+                  styles.storageNote,
+                  {
+                    backgroundColor: "#FEF3C7",
+                    borderColor: "#F59E0B",
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    marginTop: 8,
+                  },
+                ]}
+              >
                 <Package color="#D97706" size={16} />
                 <Text style={[styles.storageNoteText, { color: "#92400E" }]}>
                   {noStorageSuggestion}
