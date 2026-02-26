@@ -164,7 +164,8 @@ export default function OfficialNewsScreen() {
 
   const { user } = useApp();
   const { language: globalLang } = useLanguage();
-  const language: LanguageType = globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
+  const language: LanguageType =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const t = translations[language];
 
   // Role-based authentication using Supabase user data
@@ -192,7 +193,7 @@ export default function OfficialNewsScreen() {
         },
         () => {
           fetchNews();
-        }
+        },
       )
       .subscribe();
 
@@ -215,18 +216,23 @@ export default function OfficialNewsScreen() {
 
       const res = await axios.get(endpoint);
 
-      const data = res.data.filter((n: OfficialNews) => {
-        // ❌ Deleted news → never show to anyone (farmer & officer)
-        if (!n.is_active) return false;
+      const data = res.data
+        .filter((n: OfficialNews) => {
+          // ❌ Deleted news → never show to anyone (farmer & officer)
+          if (!n.is_active) return false;
 
-        // 👨‍🌾 Farmer: only visible news
-        if (isFarmer) {
-          return n.is_visible_to_farmers === true;
-        }
+          // 👨‍🌾 Farmer: only visible news
+          if (isFarmer) {
+            return n.is_visible_to_farmers === true;
+          }
 
-        // 👮 Officer: see all active (even hidden)
-        return true;
-      });
+          // 👮 Officer: see all active (even hidden)
+          return true;
+        })
+        .sort(
+          (a: OfficialNews, b: OfficialNews) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        );
 
       setNews(data || []);
     } catch (err) {
@@ -234,7 +240,7 @@ export default function OfficialNewsScreen() {
       setError(
         language === "si"
           ? "පුවත් ලබාගැනීමට නොහැකි විය"
-          : "Unable to fetch news"
+          : "Unable to fetch news",
       );
     } finally {
       setLoading(false);
@@ -502,7 +508,11 @@ export default function OfficialNewsScreen() {
 
               <Text style={styles.dateText}>
                 {new Date(item.created_at).toLocaleDateString(
-                  language === "si" ? "si-LK" : language === "ta" ? "ta-LK" : "en-US"
+                  language === "si"
+                    ? "si-LK"
+                    : language === "ta"
+                      ? "ta-LK"
+                      : "en-US",
                 )}
               </Text>
             </View>
@@ -542,8 +552,8 @@ export default function OfficialNewsScreen() {
                       {language === "si"
                         ? "Farmersට Hidden"
                         : language === "ta"
-                        ? "விவசாயிகளிடம் மறைக்கப்பட்டது"
-                        : "Hidden from Farmers"}
+                          ? "விவசாயிகளிடம் மறைக்கப்பட்டது"
+                          : "Hidden from Farmers"}
                     </Text>
                   </View>
                 )}
