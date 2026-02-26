@@ -12,6 +12,9 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  TextInput,
+  SafeAreaView,
+  StatusBar,
 } from "react-native";
 import { createAdviceRequest } from "../../services/adviceRequestApi";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -28,6 +31,8 @@ import {
   Wind,
   Home,
   MessageSquare,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -59,6 +64,9 @@ const YieldPredictionResultsScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
   const [showAdviceModal, setShowAdviceModal] = useState(false);
+  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(true);
+  const [expectedYieldInput, setExpectedYieldInput] = useState("");
+  const [yieldUnit, setYieldUnit] = useState<"kg" | "tons" | "bushels">("kg");
 
   React.useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -96,6 +104,24 @@ const YieldPredictionResultsScreen = () => {
       predictionMethod: "පුරෝකථන ක්‍රමය",
       mlModel: "ML මාදිලිය",
       ruleBased: "නීති පදනම්",
+      varietyComparison: "බීජ වර්ග සැසඳීම",
+      currentVariety: "වත්මන් බීජ වර්ගය",
+      suggestedVariety: "යෝජිත බීජ වර්ගය",
+      potentialYield: "විභව අස්වැන්න",
+      yieldIncrease: "අස්වැන්න වැඩිවීම",
+      irrigationComparison: "වාරිමාර්ග සැසඳීම",
+      currentIrrigation: "වත්මන් වාරිමාර්ග",
+      suggestedIrrigation: "යෝජිත වාරිමාර්ග",
+      harvestCalculator: "අස්වනු ගණකය",
+      landSize: "ඉඩම් ප්‍රමාණය",
+      totalHarvest: "මුළු අස්වැන්න",
+      hectares: "හෙක්ටයාර්",
+      kilograms: "කිලෝග්‍රෑම්",
+      tons: "ටොන්",
+      yieldConverter: "අස්වැන්න පරිවර්තකය",
+      enterExpectedYield: "අපේක්ෂිත අස්වැන්න ඇතුළත් කරන්න",
+      convertTo: "පරිවර්තනය කරන්න",
+      bushels: "බුෂල්",
     },
     en: {
       title: "Yield Prediction",
@@ -124,6 +150,24 @@ const YieldPredictionResultsScreen = () => {
       predictionMethod: "Prediction Method",
       mlModel: "ML Model",
       ruleBased: "Rule-Based",
+      varietyComparison: "Seed Variety Comparison",
+      currentVariety: "Current Variety",
+      suggestedVariety: "Suggested Variety",
+      potentialYield: "Potential Yield",
+      yieldIncrease: "Yield Increase",
+      irrigationComparison: "Irrigation Comparison",
+      currentIrrigation: "Current Irrigation",
+      suggestedIrrigation: "Suggested Irrigation",
+      harvestCalculator: "Harvest Calculator",
+      landSize: "Land Size",
+      totalHarvest: "Total Harvest",
+      hectares: "hectares",
+      kilograms: "kilograms",
+      tons: "tons",
+      yieldConverter: "Yield Converter",
+      enterExpectedYield: "Enter Expected Yield",
+      convertTo: "Convert To",
+      bushels: "Bushels",
     },
   };
 
@@ -232,27 +276,83 @@ const YieldPredictionResultsScreen = () => {
     }
   };
 
-  // Extract data with fallbacks
+  // Extract data with fallbacks - matching officer's structure
   const prediction = data?.prediction || {};
-  const yieldKgHa = prediction.predicted_yield_kg_per_ha || 0;
-  const yieldTonsHa = prediction.predicted_yield_tons_per_ha || (yieldKgHa / 1000);
-  const confidenceLevel = prediction.confidence_level || "Medium";
-  const confidenceScore = prediction.confidence_score || 0;
-  const yieldLower = prediction.yield_lower_bound || yieldKgHa * 0.85;
-  const yieldUpper = prediction.yield_upper_bound || yieldKgHa * 1.15;
+  
+  // Primary yield data
+  const predictedYield = prediction.predicted_yield || prediction.predicted_yield_kg_per_ha || 0;
+  const yieldKgHa = predictedYield;
+  const yieldTonsHa = (predictedYield / 1000);
+  
+  // Confidence data - Fix: handle both decimal (0.6) and percentage (60) formats
+  const rawConfidenceScore = prediction.confidence_score || 0;
+  const confidenceScore = rawConfidenceScore > 1 ? rawConfidenceScore / 100 : rawConfidenceScore;
+  const confidenceLevel = prediction.confidence_level || 
+    (confidenceScore >= 0.8 ? "High" : confidenceScore >= 0.6 ? "Medium" : "Low");
+  
+  // Yield bounds
+  const yieldLower = prediction.yield_lower_bound || predictedYield * 0.85;
+  const yieldUpper = prediction.yield_upper_bound || predictedYield * 1.15;
+  
+  // Prediction method
+  const predictionMethod = prediction.prediction_method || "rule_based";
+  const isPredictionML = predictionMethod === "ml_model" || predictionMethod === "ML";
+  
+  // Analysis data
+  const analysisData = data?.analysis_data || {};
+  const yieldComparison = data?.yield_comparison || analysisData.yield_comparison || null;
+  
+  // Impact factors - extract from analysis_data
   const impactFactors = data?.impact_factors || [];
+  
+  // Recommendations
   const recommendations = data?.recommendations || [];
+  
+  // Summary text
   const summaryText = language === "si" 
     ? (data?.summary_sinhala || data?.summary_english || "")
     : (data?.summary_english || data?.summary_sinhala || "");
   
-  // Extract comparison data
-  const yieldComparison = data?.yield_comparison || null;
-  const predictionMethod = prediction.prediction_method || "rule_based";
-  const isPredictionML = predictionMethod === "ml_model" || predictionMethod === "ML";
+  // Variety comparison data
+  const varietyComparison = data?.variety_comparison || null;
+  const currentVariety = farmerInput?.variety || "Unknown";
+  const suggestedVariety = varietyComparison?.suggested_variety || null;
+  const varietyPotentialYield = varietyComparison?.potential_yield || null;
+  const varietyYieldIncrease = varietyComparison?.yield_increase_percentage || null;
+  
+  // Irrigation comparison data
+  const irrigationComparison = data?.irrigation_comparison || null;
+  const currentIrrigation = farmerInput?.irrigation_type || "Unknown";
+  const suggestedIrrigation = irrigationComparison?.suggested_irrigation || null;
+  const irrigationPotentialYield = irrigationComparison?.potential_yield || null;
+  const irrigationYieldIncrease = irrigationComparison?.yield_increase_percentage || null;
+  
+  // Harvest calculator
+  const landSizeHa = farmerInput?.field_size_ha || 0;
+  const totalHarvestKg = landSizeHa * yieldKgHa;
+  const totalHarvestTons = totalHarvestKg / 1000;
+
+  // Yield converter - real-time conversion
+  // 1 bushel of maize = 25.4 kg (56 lbs)
+  const convertYield = (value: number, fromUnit: "kg" | "tons" | "bushels") => {
+    let kg = 0;
+    if (fromUnit === "kg") kg = value;
+    else if (fromUnit === "tons") kg = value * 1000;
+    else if (fromUnit === "bushels") kg = value * 25.4;
+    
+    return {
+      kg: kg,
+      tons: kg / 1000,
+      bushels: kg / 25.4,
+    };
+  };
+
+  const expectedYieldValue = parseFloat(expectedYieldInput) || 0;
+  const convertedYields = convertYield(expectedYieldValue, yieldUnit);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#10b981" />
       {/* Header */}
       <LinearGradient
         colors={["#10b981", "#059669"]}
@@ -260,15 +360,22 @@ const YieldPredictionResultsScreen = () => {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-          <ArrowLeft color="#ffffff" size={24} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>
-            {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
-          </Text>
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
+            <ArrowLeft color="#ffffff" size={24} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>
+              {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
+            </Text>
+            {farmerInput && (farmerInput.district || farmerInput.variety) && (
+              <Text style={styles.headerSubtitle}>
+                {farmerInput.district || ""} {farmerInput.district && farmerInput.variety && "•"} {farmerInput.variety || ""}
+              </Text>
+            )}
+          </View>
+          <View style={{ width: 24 }} />
         </View>
-        <View style={{ width: 24 }} />
       </LinearGradient>
 
       <ScrollView
@@ -313,40 +420,6 @@ const YieldPredictionResultsScreen = () => {
             </Text>
           </View>
 
-          {/* Confidence Card */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <CheckCircle color="#10B981" size={20} />
-              </View>
-              <Text style={styles.sectionTitle}>
-                {content[language].confidence}
-              </Text>
-            </View>
-
-            <View style={styles.confidenceCard}>
-              <View style={styles.confidenceHeader}>
-                <Text style={styles.confidenceLabel}>
-                  {getConfidenceLabel(confidenceLevel)}
-                </Text>
-                <Text style={styles.confidenceScore}>
-                  {confidenceScore.toFixed(0)}%
-                </Text>
-              </View>
-              <View style={styles.progressBarContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    {
-                      width: `${confidenceScore}%`,
-                      backgroundColor: getConfidenceColor(confidenceLevel),
-                    },
-                  ]}
-                />
-              </View>
-            </View>
-          </View>
-
           {/* Yield Comparison Table */}
           {yieldComparison && (
             <View style={styles.section}>
@@ -363,137 +436,316 @@ const YieldPredictionResultsScreen = () => {
                 <View style={styles.comparisonRow}>
                   <Text style={styles.comparisonLabel}>{content[language].yourPrediction}</Text>
                   <Text style={styles.comparisonValue}>
-                    {(yieldComparison.predicted_yield_kg_ha / 1000).toFixed(2)} {content[language].tonsPerHa}
+                    {((yieldComparison.predicted_yield_kg_ha || yieldComparison.predicted || predictedYield) / 1000).toFixed(2)} {content[language].tonsPerHa}
                   </Text>
                 </View>
                 <View style={styles.comparisonRow}>
                   <Text style={styles.comparisonLabel}>{content[language].districtOptimal}</Text>
                   <Text style={styles.comparisonValue}>
-                    {(yieldComparison.district_optimal_kg_ha / 1000).toFixed(2)} {content[language].tonsPerHa}
+                    {((yieldComparison.district_optimal_kg_ha || yieldComparison.district_optimal || yieldComparison.district_average || 0) / 1000).toFixed(2)} {content[language].tonsPerHa}
                   </Text>
                 </View>
                 <View style={[styles.comparisonRow, styles.comparisonRowHighlight]}>
                   <Text style={styles.comparisonLabelBold}>{content[language].difference}</Text>
                   <Text style={[
                     styles.comparisonValueBold,
-                    { color: yieldComparison.percentage_difference >= 0 ? "#10B981" : "#EF4444" }
+                    { color: (yieldComparison.percentage_difference || 0) >= 0 ? "#10B981" : "#EF4444" }
                   ]}>
-                    {yieldComparison.percentage_difference >= 0 ? "+" : ""}{yieldComparison.percentage_difference.toFixed(1)}%
+                    {(yieldComparison.percentage_difference || 0) >= 0 ? "+" : ""}{(yieldComparison.percentage_difference || 0).toFixed(1)}%
                   </Text>
                 </View>
               </View>
-            </View>
-          )}
-
-          {/* Impact Factors */}
-          {impactFactors.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Leaf color="#10B981" size={20} />
-                </View>
-                <Text style={styles.sectionTitle}>
-                  {content[language].impactFactors}
-                </Text>
-              </View>
-
-              {impactFactors.map((factor: any, index: number) => (
-                <View key={index} style={styles.factorCard}>
-                  <View style={styles.factorHeader}>
-                    <View style={styles.factorIconContainer}>
-                      {factor.factor?.toLowerCase().includes("soil") && (
-                        <Droplets color="#10B981" size={18} />
-                      )}
-                      {factor.factor?.toLowerCase().includes("weather") && (
-                        <Sun color="#10B981" size={18} />
-                      )}
-                      {factor.factor?.toLowerCase().includes("irrigation") && (
-                        <Droplets color="#10B981" size={18} />
-                      )}
-                      {!factor.factor?.toLowerCase().includes("soil") &&
-                        !factor.factor?.toLowerCase().includes("weather") &&
-                        !factor.factor?.toLowerCase().includes("irrigation") && (
-                          <Wind color="#10B981" size={18} />
-                        )}
-                    </View>
-                    <Text style={styles.factorName}>
-                      {language === "si" && factor.factor_sinhala
-                        ? factor.factor_sinhala
-                        : factor.factor}
-                    </Text>
-                  </View>
-                  <Text style={styles.factorDescription}>
-                    {language === "si" && factor.description_sinhala
-                      ? factor.description_sinhala
-                      : factor.description_english}
-                  </Text>
-                  <View style={styles.factorImpactContainer}>
-                    <View
-                      style={[
-                        styles.factorImpactBar,
-                        {
-                          width: `${Math.abs((factor.weight || 0) * 100)}%`,
-                          backgroundColor:
-                            factor.impact === 'positive'
-                              ? "#10B981"
-                              : factor.impact === 'negative'
-                              ? "#EF4444"
-                              : "#F59E0B",
-                        },
-                      ]}
-                    />
-                    <Text
-                      style={[
-                        styles.factorImpactText,
-                        {
-                          color:
-                            factor.impact === 'positive'
-                              ? "#10B981"
-                              : factor.impact === 'negative'
-                              ? "#EF4444"
-                              : "#F59E0B",
-                        },
-                      ]}
-                    >
-                      {((factor.weight || 0) * 100).toFixed(0)}%
-                    </Text>
-                  </View>
-                </View>
-              ))}
             </View>
           )}
 
           {/* Recommendations */}
           {recommendations.length > 0 && (
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
+              <TouchableOpacity 
+                style={styles.sectionHeader}
+                onPress={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
+                activeOpacity={0.7}
+              >
                 <View style={styles.sectionIconContainer}>
                   <AlertCircle color="#10B981" size={20} />
                 </View>
                 <Text style={styles.sectionTitle}>
                   {content[language].recommendations}
                 </Text>
-              </View>
+                {isRecommendationsExpanded ? (
+                  <ChevronDown color="#10B981" size={20} />
+                ) : (
+                  <ChevronUp color="#10B981" size={20} />
+                )}
+              </TouchableOpacity>
 
-              {recommendations.map((rec: any, index: number) => (
+              {isRecommendationsExpanded && recommendations.map((rec: any, index: number) => (
                 <View key={index} style={styles.recommendationCard}>
                   <View style={styles.recommendationHeader}>
                     <View style={styles.recommendationBullet} />
                     <Text style={styles.recommendationTitle}>
-                      {language === "si" && rec.title_sinhala
-                        ? rec.title_sinhala
-                        : rec.title_english}
+                      {language === "si" 
+                        ? (rec.title_sinhala || rec.title_si || rec.title_english || rec.title_en || rec.title)
+                        : (rec.title_english || rec.title_en || rec.title_sinhala || rec.title_si || rec.title)}
                     </Text>
                   </View>
                   <Text style={styles.recommendationText}>
-                    {language === "si" && rec.description_sinhala
-                      ? rec.description_sinhala
-                      : rec.description_english}
+                    {language === "si" 
+                      ? (rec.description_sinhala || rec.description_si || rec.description_english || rec.description_en || rec.description)
+                      : (rec.description_english || rec.description_en || rec.description_sinhala || rec.description_si || rec.description)}
                   </Text>
+                  {rec.priority && (
+                    <View style={[
+                      styles.priorityBadge,
+                      {
+                        backgroundColor:
+                          rec.priority === "high" || rec.priority === "High"
+                            ? "#FEE2E2"
+                            : rec.priority === "medium" || rec.priority === "Medium"
+                            ? "#FEF3C7"
+                            : "#DBEAFE",
+                      },
+                    ]}>
+                      <Text style={[
+                        styles.priorityText,
+                        {
+                          color:
+                            rec.priority === "high" || rec.priority === "High"
+                              ? "#EF4444"
+                              : rec.priority === "medium" || rec.priority === "Medium"
+                              ? "#F59E0B"
+                              : "#3B82F6",
+                        },
+                      ]}>
+                        {rec.priority.toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
                 </View>
               ))}
             </View>
           )}
+
+          {/* Seed Variety Comparison */}
+          {suggestedVariety && varietyPotentialYield && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Leaf color="#10B981" size={20} />
+                </View>
+                <Text style={styles.sectionTitle}>
+                  {content[language].varietyComparison}
+                </Text>
+              </View>
+
+              <View style={styles.comparisonTable}>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].currentVariety}</Text>
+                  <Text style={styles.comparisonValue}>{currentVariety}</Text>
+                </View>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].suggestedVariety}</Text>
+                  <Text style={[styles.comparisonValue, { color: "#10B981", fontWeight: "700" }]}>{suggestedVariety}</Text>
+                </View>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].potentialYield}</Text>
+                  <Text style={styles.comparisonValue}>
+                    {(varietyPotentialYield / 1000).toFixed(2)} {content[language].tonsPerHa}
+                  </Text>
+                </View>
+                <View style={[styles.comparisonRow, styles.comparisonRowHighlight]}>
+                  <Text style={styles.comparisonLabelBold}>{content[language].yieldIncrease}</Text>
+                  <Text style={[styles.comparisonValueBold, { color: "#10B981" }]}>
+                    +{varietyYieldIncrease?.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.infoBox}>
+                <AlertCircle color="#10B981" size={16} />
+                <Text style={styles.infoBoxText}>
+                  {language === "si" 
+                    ? `${suggestedVariety} භාවිතා කිරීමෙන් ඔබට අස්වැන්න ${varietyYieldIncrease?.toFixed(1)}% කින් වැඩි කර ගත හැකිය`
+                    : `By using ${suggestedVariety}, you can increase yield by ${varietyYieldIncrease?.toFixed(1)}%`}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Irrigation System Comparison */}
+          {suggestedIrrigation && irrigationPotentialYield && currentIrrigation !== suggestedIrrigation && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Droplets color="#10B981" size={20} />
+                </View>
+                <Text style={styles.sectionTitle}>
+                  {content[language].irrigationComparison}
+                </Text>
+              </View>
+
+              <View style={styles.comparisonTable}>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].currentIrrigation}</Text>
+                  <Text style={styles.comparisonValue}>{currentIrrigation}</Text>
+                </View>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].suggestedIrrigation}</Text>
+                  <Text style={[styles.comparisonValue, { color: "#10B981", fontWeight: "700" }]}>{suggestedIrrigation}</Text>
+                </View>
+                <View style={styles.comparisonRow}>
+                  <Text style={styles.comparisonLabel}>{content[language].potentialYield}</Text>
+                  <Text style={styles.comparisonValue}>
+                    {(irrigationPotentialYield / 1000).toFixed(2)} {content[language].tonsPerHa}
+                  </Text>
+                </View>
+                <View style={[styles.comparisonRow, styles.comparisonRowHighlight]}>
+                  <Text style={styles.comparisonLabelBold}>{content[language].yieldIncrease}</Text>
+                  <Text style={[styles.comparisonValueBold, { color: "#10B981" }]}>
+                    +{irrigationYieldIncrease?.toFixed(1)}%
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.infoBox}>
+                <AlertCircle color="#10B981" size={16} />
+                <Text style={styles.infoBoxText}>
+                  {language === "si" 
+                    ? `${suggestedIrrigation} වාරිමාර්ග භාවිතා කිරීමෙන් අස්වැන්න ${irrigationYieldIncrease?.toFixed(1)}% කින් වැඩි කර ගත හැකිය`
+                    : `By using ${suggestedIrrigation} irrigation, you can increase yield by ${irrigationYieldIncrease?.toFixed(1)}%`}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Harvest Calculator */}
+          {landSizeHa > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <TrendingUp color="#10B981" size={20} />
+                </View>
+                <Text style={styles.sectionTitle}>
+                  {content[language].harvestCalculator}
+                </Text>
+              </View>
+
+              <View style={styles.harvestCard}>
+                <View style={styles.harvestRow}>
+                  <Text style={styles.harvestLabel}>{content[language].landSize}:</Text>
+                  <Text style={styles.harvestValue}>
+                    {landSizeHa.toFixed(2)} {content[language].hectares}
+                  </Text>
+                </View>
+                <View style={styles.harvestRow}>
+                  <Text style={styles.harvestLabel}>{content[language].predictedYield}:</Text>
+                  <Text style={styles.harvestValue}>
+                    {yieldTonsHa.toFixed(2)} {content[language].tonsPerHa}
+                  </Text>
+                </View>
+                <View style={[styles.harvestRow, styles.harvestRowTotal]}>
+                  <Text style={styles.harvestLabelBold}>{content[language].totalHarvest}:</Text>
+                  <View>
+                    <Text style={styles.harvestValueBold}>
+                      {totalHarvestTons.toFixed(2)} {content[language].tons}
+                    </Text>
+                    <Text style={styles.harvestValueSub}>
+                      {totalHarvestKg.toFixed(0)} {content[language].kilograms}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Yield Converter - Real-time Calculator */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionIconContainer}>
+                <TrendingUp color="#10B981" size={20} />
+              </View>
+              <Text style={styles.sectionTitle}>
+                {content[language].yieldConverter}
+              </Text>
+            </View>
+
+            <View style={styles.converterCard}>
+              {/* Input Section */}
+              <View style={styles.converterInputSection}>
+                <Text style={styles.converterLabel}>
+                  {content[language].enterExpectedYield}:
+                </Text>
+                <View style={styles.converterInputRow}>
+                  <TextInput
+                    style={styles.converterInput}
+                    value={expectedYieldInput}
+                    onChangeText={setExpectedYieldInput}
+                    keyboardType="decimal-pad"
+                    placeholder="0"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                  
+                  {/* Unit Selector */}
+                  <View style={styles.unitSelector}>
+                    <TouchableOpacity
+                      style={[styles.unitButton, yieldUnit === "kg" && styles.unitButtonActive]}
+                      onPress={() => setYieldUnit("kg")}
+                    >
+                      <Text style={[styles.unitButtonText, yieldUnit === "kg" && styles.unitButtonTextActive]}>
+                        {content[language].kilograms}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.unitButton, yieldUnit === "tons" && styles.unitButtonActive]}
+                      onPress={() => setYieldUnit("tons")}
+                    >
+                      <Text style={[styles.unitButtonText, yieldUnit === "tons" && styles.unitButtonTextActive]}>
+                        {content[language].tons}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.unitButton, yieldUnit === "bushels" && styles.unitButtonActive]}
+                      onPress={() => setYieldUnit("bushels")}
+                    >
+                      <Text style={[styles.unitButtonText, yieldUnit === "bushels" && styles.unitButtonTextActive]}>
+                        {content[language].bushels}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {/* Conversion Results */}
+              {expectedYieldValue > 0 && (
+                <View style={styles.converterResults}>
+                  <Text style={styles.converterResultsTitle}>
+                    {content[language].convertTo}:
+                  </Text>
+                  
+                  <View style={styles.converterResultRow}>
+                    <View style={styles.converterResultItem}>
+                      <Text style={styles.converterResultLabel}>{content[language].kilograms}</Text>
+                      <Text style={styles.converterResultValue}>
+                        {convertedYields.kg.toFixed(2)}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.converterResultItem}>
+                      <Text style={styles.converterResultLabel}>{content[language].tons}</Text>
+                      <Text style={styles.converterResultValue}>
+                        {convertedYields.tons.toFixed(3)}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.converterResultItem}>
+                      <Text style={styles.converterResultLabel}>{content[language].bushels}</Text>
+                      <Text style={styles.converterResultValue}>
+                        {convertedYields.bushels.toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+          </View>
 
           {/* Summary */}
           {summaryText && (
@@ -639,7 +891,7 @@ const YieldPredictionResultsScreen = () => {
           </View>
         </TouchableOpacity>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -649,11 +901,17 @@ flex: 1,
 backgroundColor: "#F0FDF4",
 },
 header: {
-paddingTop: 50,
-paddingBottom: 20,
+paddingTop: 16,
+paddingBottom: 24,
 paddingHorizontal: 20,
 borderBottomLeftRadius: 24,
 borderBottomRightRadius: 24,
+minHeight: 100,
+},
+headerContent: {
+flexDirection: "row",
+alignItems: "center",
+justifyContent: "space-between",
 },
 backButton: {
 marginRight: 12,
@@ -664,10 +922,18 @@ alignItems: "center",
 justifyContent: "center",
 },
 headerTitle: {
-fontSize: 20,
+fontSize: 22,
 fontWeight: "700",
 color: "#ffffff",
 textAlign: "center",
+letterSpacing: 0.5,
+},
+headerSubtitle: {
+fontSize: 14,
+fontWeight: "500",
+color: "#D1FAE5",
+textAlign: "center",
+marginTop: 4,
 },
 langButton: {
 backgroundColor: "#D1FAE5",
@@ -755,6 +1021,7 @@ sectionHeader: {
 flexDirection: "row",
 alignItems: "center",
 marginBottom: 12,
+flex: 1,
 },
 sectionIconContainer: {
 width: 36,
@@ -769,6 +1036,7 @@ sectionTitle: {
 fontSize: 18,
 fontWeight: "700",
 color: "#065F46",
+flex: 1,
 },
 confidenceCard: {
 backgroundColor: "#FFFFFF",
@@ -891,6 +1159,18 @@ recommendationHeader: {
     color: "#6B7280",
     lineHeight: 18,
     paddingLeft: 20,
+  },
+  priorityBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginTop: 8,
+    marginLeft: 20,
+  },
+  priorityText: {
+    fontSize: 11,
+    fontWeight: "700",
   },
   summaryCard: {
     backgroundColor: "#FFFFFF",
@@ -1101,6 +1381,174 @@ recommendationHeader: {
     fontSize: 15,
     fontWeight: "600",
     color: "#6B7280",
+  },
+  infoBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#D1FAE5",
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 12,
+    gap: 8,
+  },
+  infoBoxText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#065F46",
+    lineHeight: 18,
+  },
+  harvestCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  harvestRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  harvestRowTotal: {
+    backgroundColor: "#F0FDF4",
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    marginBottom: -16,
+    paddingBottom: 16,
+    paddingTop: 16,
+    borderBottomWidth: 0,
+    borderRadius: 12,
+    marginTop: 8,
+  },
+  harvestLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  harvestValue: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  harvestLabelBold: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#065F46",
+  },
+  harvestValueBold: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#10B981",
+    textAlign: "right",
+  },
+  harvestValueSub: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "right",
+    marginTop: 2,
+  },
+  converterCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  converterInputSection: {
+    marginBottom: 16,
+  },
+  converterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 12,
+  },
+  converterInputRow: {
+    gap: 12,
+  },
+  converterInput: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 12,
+  },
+  unitSelector: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  unitButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+  },
+  unitButtonActive: {
+    backgroundColor: "#10B981",
+    borderColor: "#10B981",
+  },
+  unitButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  unitButtonTextActive: {
+    color: "#FFFFFF",
+  },
+  converterResults: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  converterResultsTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#065F46",
+    marginBottom: 12,
+  },
+  converterResultRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  converterResultItem: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 8,
+    padding: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+  },
+  converterResultLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    fontWeight: "600",
+  },
+  converterResultValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#10B981",
   },
 });
 
