@@ -34,6 +34,15 @@ const translations = {
     feature3: "📸 Photo Analysis",
     feature4: "🎯 95% Accuracy",
   },
+  tamil: {
+    title: "பூச்சிகள் & நோய்களை உடனடியாக அடையாளம் காணுங்கள்",
+    description: "AI-இயக்கப்படும் நிகழ்நேர கண்டறிதல் பெறுங்கள்",
+    next: "அடுத்து",
+    feature1: "⚡ பூச்சி கண்டறிதல்",
+    feature2: "🦠 நோய் கண்டறிதல்",
+    feature3: "📸 புகைப்பட பகுப்பாய்வு",
+    feature4: "🎯 95% துல்லியம்",
+  },
 };
 
 type LanguageKey = keyof typeof translations;

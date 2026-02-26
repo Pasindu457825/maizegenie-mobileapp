@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 
-type Language = "sinhala" | "english";
+type Language = "sinhala" | "english" | "tamil";
 
 interface LangContextType {
   language: Language;
@@ -9,7 +9,7 @@ interface LangContextType {
 
 const LanguageContext = createContext<LangContextType>({
   language: "sinhala",
-  setLanguage: () => {},
+  setLanguage: () => { },
 });
 
 export const LanguageProvider = ({ children }: any) => {

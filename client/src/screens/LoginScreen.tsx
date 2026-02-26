@@ -20,13 +20,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width, height } = Dimensions.get('window');
 
 // ✨ Type definition for language
-type LanguageType = "si" | "en";
+type LanguageType = "si" | "en" | "ta";
 
 export default function LoginScreen({ navigation, route }: any) {
   const { signIn, loading } = useApp();
 
   const { language: lang } = useLanguage();
-  const language: LanguageType = lang === "sinhala" ? "si" : "en";
+  const language: LanguageType = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -98,6 +98,25 @@ export default function LoginScreen({ navigation, route }: any) {
       loginFailed: "Login Failed",
       invalidCredentials: "Invalid email or password",
     },
+    ta: {
+      welcomeTitle: "வரவேற்கிறோம் 🌱",
+      welcomeSubtitle: "உங்கள் விவசாயப் பயணத்தை தொடருங்கள்",
+      emailLabel: "மின்னஞ்சல் முகவரி",
+      emailPlaceholder: "your.email@example.com",
+      passwordLabel: "கடவுச்சொல்",
+      passwordPlaceholder: "உங்கள் கடவுச்சொல்லை உள்ளிடுக",
+      loginButton: "உள்நுழைக",
+      signingInButton: "உள்நுழைகிறது...",
+      forgotPassword: "கடவுச்சொல் மறந்துவிட்டீர்களா?",
+      appTitle: "MaizeGenie",
+      appSubtitle: "உங்கள் திறமையான விவசாய தோழன்",
+      empoweringText: "இலங்கை சோள விவசாயிகளுக்காக",
+      madeWithText: "Made with 💚 for our farming community",
+      missingFields: "தவறான தகவல்கள்",
+      missingFieldsMessage: "தயவுசெய்து மின்னஞ்சல் மற்றும் கடவுச்சொல்லை உள்ளிடுக.",
+      loginFailed: "உள்நுழைவு தோல்வியடைந்தது",
+      invalidCredentials: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
+    },
   };
 
   const t = translations[language];
@@ -152,11 +171,11 @@ export default function LoginScreen({ navigation, route }: any) {
   return (
     <View style={{ flex: 1, backgroundColor: '#0A8754' }}>
       {/* Top curved background with gradient */}
-      <View style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
         height: height * 0.45,
         backgroundColor: '#0A8754',
       }}>
@@ -170,7 +189,7 @@ export default function LoginScreen({ navigation, route }: any) {
         }}>
           <Text style={{ fontSize: 48, opacity: 0.2 }}>🌽</Text>
         </Animated.View>
-        
+
         <Animated.View style={{
           position: 'absolute',
           top: 80,
@@ -361,7 +380,7 @@ export default function LoginScreen({ navigation, route }: any) {
               </View>
 
               {/* Forgot Password */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ alignSelf: 'flex-end', marginBottom: 24 }}
                 disabled={loading}
               >
