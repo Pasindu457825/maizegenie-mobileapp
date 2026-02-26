@@ -11,6 +11,7 @@ import BollwormControl from "@screens/PestIdentification/BollwormControl";
 import AsianCornBorerControl from "@screens/PestIdentification/AsianCornBorerControl";
 import PestFeedbackScreen from "@screens/PestIdentification/PestFeedbackScreen";
 import AdminPestForum from "@screens/PestIdentification/AdminPestForum";
+import PestFrequencyAnalysisScreen from "@screens/PestIdentification/PestFrequencyAnalysisScreen";
 export type PestIdentifyStackParamList = {
     pesthome: undefined;
     PestIdentifyLoading: undefined;
@@ -23,6 +24,7 @@ export type PestIdentifyStackParamList = {
     AsianCornBorerControl: undefined;
     PestFeedback: undefined;
     AdminPestForum: undefined;
+    PestFrequencyAnalysis: undefined;
     // add other screens here, e.g.:
     // PestIdentifyResult: { id: string };
 };
@@ -80,6 +82,10 @@ export default function PestIdentifyStack() {
             <Stack.Screen 
                 name="AdminPestForum" 
                 component={AdminPestForum} 
+            />
+            <Stack.Screen
+                name="PestFrequencyAnalysis"
+                component={PestFrequencyAnalysisScreen}
             />
         </Stack.Navigator>
     );
