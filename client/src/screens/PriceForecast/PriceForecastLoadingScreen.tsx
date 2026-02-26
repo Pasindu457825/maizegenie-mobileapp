@@ -79,7 +79,7 @@ type RootStackParamList = {
   MarketPlaceScreen: undefined;
 };
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type Content = {
   [key in Language]: {
     title: string;
@@ -110,7 +110,8 @@ const PriceForecastLoadingScreen = () => {
   const localNavigation = useNavigation<NavProp>();
   const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const { language: globalLang } = useLanguage();
-  const language: Language = globalLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const navigation = useNavigation<NavProp>();
   const [progress, setProgress] = useState(0);
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -163,6 +164,19 @@ const PriceForecastLoadingScreen = () => {
       priceDesc: "Get Best Prices",
       weatherDesc: "Today and the Next 7-Day Forecast",
     },
+    ta: {
+      title: "🌱 நவீன விவசாயம்",
+      subtitle: "விவசாய தொழில்நுட்பம்",
+      mainText: "உங்கள் பண்ணைக்காக",
+      description: "நவீன தொழில்நுட்ப ஆதரவு",
+      loading: "அமைப்பு தயாராகிறது",
+      priceButton: "விலை மதிப்பீடு",
+      weatherButton: "வானிலை",
+      priceTitle: "🌽 சோள விலைகள்",
+      weatherTitle: "🌦️ வானிலை",
+      priceDesc: "சிறந்த விலைகளை அறியுங்கள்",
+      weatherDesc: "இன்றும் அடுத்த 7 நாள் மதிப்பீடும்",
+    },
   };
 
   const headerContent = {
@@ -174,11 +188,17 @@ const PriceForecastLoadingScreen = () => {
       title: "Smart Farming",
       subtitle: "Agricultural Advisor",
     },
+    ta: {
+      title: "நவீன விவசாயம்",
+      subtitle: "விவசாய ஆலோசகர்",
+    },
   };
 
   const getTranslatedLocation = (rawName: string | null, lang: Language) => {
-    if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+    if (!rawName)
+      return lang === "si" ? "ස්ථානය" : lang === "ta" ? "இடம்" : "Location";
     if (lang === "en") return rawName;
+    if (lang === "ta") return rawName;
 
     let enName = rawName.trim();
 
@@ -406,34 +426,71 @@ const PriceForecastLoadingScreen = () => {
     condition: string | null,
     lang: Language,
   ): string => {
-    if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
+    if (!condition)
+      return lang === "si" ? "කාලගුණය" : lang === "ta" ? "வானிலை" : "Weather";
 
     const c = condition.toLowerCase();
 
     if (c.includes("shower rain") || c.includes("light intensity shower"))
-      return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
+      return lang === "si"
+        ? "සෙමෙන් වැසි"
+        : lang === "ta"
+          ? "இலேசான மழை"
+          : "Light Shower Rain";
     if (c.includes("light rain"))
-      return lang === "si" ? "සැහැල්ලු වැසි" : "Light Rain";
+      return lang === "si"
+        ? "සැහැල්ලු වැසි"
+        : lang === "ta"
+          ? "சிறு மழை"
+          : "Light Rain";
     if (c.includes("moderate rain"))
-      return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
+      return lang === "si"
+        ? "මධ්‍යම වැසි"
+        : lang === "ta"
+          ? "மிதமான மழை"
+          : "Moderate Rain";
     if (c.includes("heavy") && c.includes("rain"))
-      return lang === "si" ? "බර වැසි" : "Heavy Rain";
+      return lang === "si" ? "බර වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
     if (c.includes("clear"))
-      return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
+      return lang === "si"
+        ? "පිරිසිදු අහස"
+        : lang === "ta"
+          ? "தெளிவான வானம்"
+          : "Clear Sky";
     if (c.includes("few clouds"))
-      return lang === "si" ? "සුළු වලාකුළු" : "Few Clouds";
+      return lang === "si"
+        ? "සුළු වලාකුළු"
+        : lang === "ta"
+          ? "சிறிய மேகங்கள்"
+          : "Few Clouds";
     if (c.includes("scattered"))
-      return lang === "si" ? "විසිරුණු වලාකුළු" : "Scattered Clouds";
+      return lang === "si"
+        ? "විසිරුණු වලාකුළු"
+        : lang === "ta"
+          ? "சிதறிய மேகங்கள்"
+          : "Scattered Clouds";
     if (c.includes("broken"))
-      return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
+      return lang === "si"
+        ? "කැබලි වලාකුළු"
+        : lang === "ta"
+          ? "உடைந்த மேகங்கள்"
+          : "Broken Clouds";
     if (c.includes("overcast"))
-      return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
+      return lang === "si"
+        ? "තද වලාකුළු"
+        : lang === "ta"
+          ? "மேகமூட்டம்"
+          : "Overcast Clouds";
     if (c.includes("thunder"))
-      return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
+      return lang === "si"
+        ? "අකුණු සහිත වැසි"
+        : lang === "ta"
+          ? "இடியுடன் மழை"
+          : "Thunderstorm";
     if (c.includes("mist") || c.includes("fog") || c.includes("haze"))
-      return lang === "si" ? "මීදුම" : "Mist";
+      return lang === "si" ? "මීදුම" : lang === "ta" ? "மூடுபனி" : "Mist";
 
-    return lang === "si" ? "කාලගුණය" : condition;
+    return lang === "si" ? "කාලගුණය" : lang === "ta" ? "வானிலை" : condition;
   };
 
   return (
@@ -651,12 +708,16 @@ const PriceForecastLoadingScreen = () => {
                   <Text style={styles.cardTitle}>
                     {language === "si"
                       ? "🌱 වගා උපදෙස්"
-                      : "🌱 Cultivation Advisor"}
+                      : language === "ta"
+                        ? "🌱 பயிர் வழிகாட்டுதல்"
+                        : "🌱 Cultivation Advisor"}
                   </Text>
                   <Text style={styles.cardDescription}>
                     {language === "si"
                       ? "වගාව ආරම්භ කිරීමට අවශ්‍ය මූලික උපදෙස්"
-                      : "Essential guidance to start cultivation"}
+                      : language === "ta"
+                        ? "பயிரிடத் தேவையான அடிப்படை வழிகாட்டுதல்"
+                        : "Essential guidance to start cultivation"}
                   </Text>
                 </View>
                 <View style={styles.cardArrow}>
@@ -679,12 +740,16 @@ const PriceForecastLoadingScreen = () => {
                     <Text style={styles.cardTitle}>
                       {language === "si"
                         ? "මිල තොරතුරු එකතු කරන්න"
-                        : "Add Price Details"}
+                        : language === "ta"
+                          ? "விலை விவரங்களை சேர்க்க"
+                          : "Add Price Details"}
                     </Text>
                     <Text style={styles.cardDescription}>
                       {language === "si"
                         ? "නිලධාරීන් සඳහා මිල දත්ත ඇතුළත් කිරීම"
-                        : "Officer-only price data entry"}
+                        : language === "ta"
+                          ? "அலுவலர்களுக்கான விலை தரவு உள்ளீடு"
+                          : "Officer-only price data entry"}
                     </Text>
                   </View>
                   <View style={styles.cardArrow}>
@@ -714,12 +779,16 @@ const PriceForecastLoadingScreen = () => {
                     <Text style={styles.cardTitle}>
                       {language === "si"
                         ? "Pro Advisor උපදෙස් එකතු කරන්න"
-                        : "Add Pro Advisor Guidance"}
+                        : language === "ta"
+                          ? "Pro Advisor வழிகாட்டுதல் சேர்க்க"
+                          : "Add Pro Advisor Guidance"}
                     </Text>
                     <Text style={styles.cardDescription}>
                       {language === "si"
                         ? "Pro Advisor උපදෙස් කළමනාකරණය කිරීම"
-                        : "Manage Pro Advisor guidance"}
+                        : language === "ta"
+                          ? "Pro Advisor வழிகாட்டுதலை நிர்வகிக்க"
+                          : "Manage Pro Advisor guidance"}
                     </Text>
                   </View>
 
@@ -745,12 +814,18 @@ const PriceForecastLoadingScreen = () => {
                 </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardTitle}>
-                    {language === "si" ? "🛒 වෙළඳපල" : "🛒 Marketplace"}
+                    {language === "si"
+                      ? "🛒 වෙළඳපල"
+                      : language === "ta"
+                        ? "🛒 சந்தை"
+                        : "🛒 Marketplace"}
                   </Text>
                   <Text style={styles.cardDescription}>
                     {language === "si"
                       ? "අස්වනු මිලදී ගැනීම සහ ඉදිරිපත්කරණ"
-                      : "Buy harvest & send offers"}
+                      : language === "ta"
+                        ? "அறுவடை வாங்க மற்றும் சலுகைகள் அனுப்ப"
+                        : "Buy harvest & send offers"}
                   </Text>
                 </View>
                 <View style={styles.cardArrow}>
