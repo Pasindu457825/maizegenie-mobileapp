@@ -1,5 +1,5 @@
 from io import BytesIO
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Tuple
 import base64
 import numpy as np
 import cv2
@@ -7,235 +7,293 @@ from PIL import Image
 
 from .model import get_model
 
-# Confidence thresholds
-MIN_CONFIDENCE_THRESHOLD = 0.4  # Increased minimum confidence
-
+# =============================================================================
+# IMAGE HELPERS
+# =============================================================================
 def _read_image_bytes(image_bytes: bytes) -> np.ndarray:
-    """Convert uploaded image bytes into an RGB numpy array."""
-    try:
-        img = Image.open(BytesIO(image_bytes)).convert("RGB")
-        return np.array(img)
-    except Exception as e:
-        raise ValueError(f"Failed to read image: {e}")
+    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+    return np.array(img)
+
 
 def _encode_img_b64(img_bgr: np.ndarray) -> str:
-    """Convert a BGR image into base64 JPEG string."""
-    try:
-        success, buffer = cv2.imencode(".jpg", img_bgr)
-        if not success:
-            raise ValueError("Failed to encode image to JPEG")
-        return base64.b64encode(buffer).decode('utf-8')
-    except Exception as e:
-        raise ValueError(f"Failed to encode image: {e}")
+    ok, buffer = cv2.imencode(".jpg", img_bgr)
+    if not ok:
+        raise ValueError("Failed to encode image")
+    return base64.b64encode(buffer).decode("utf-8")
 
+
+# =============================================================================
+# IMAGE QUALITY VALIDATION
+# =============================================================================
 def validate_image_quality(image: np.ndarray) -> Tuple[bool, str]:
-    """
-    Validate if image is suitable for disease detection
-    """
-    try:
-        # Check image dimensions
-        height, width = image.shape[:2]
-        if height < 200 or width < 200:
-            return False, "Image too small. Please upload a higher resolution image."
-        
-        # Check if image is too blurry
-        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        blur_value = cv2.Laplacian(gray, cv2.CV_64F).var()
-        
-        if blur_value < 30:
-            return False, "Image is too blurry. Please upload a clearer image."
-        
-        # Check if image is mostly one color (could be invalid)
-        std_dev = np.std(image)
-        if std_dev < 10:
-            return False, "Image lacks detail. Please upload a proper plant image."
-            
-        return True, "Image quality acceptable"
-        
-    except Exception as e:
-        return False, f"Image validation error: {str(e)}"
+    h, w = image.shape[:2]
+    if h < 200 or w < 200:
+        return False, "Image too small"
 
-def get_class_confidence_threshold(class_name: str) -> float:
-    """
-    Return minimum confidence threshold based on class type
-    Higher thresholds for classes that cause false positives
-    """
-    confidence_map = {
-        # Diseases - moderate confidence
-        "common_rust": 0.5,
-        "northern_leaf_blight": 0.5,
-        "gray_leaf_spot": 0.5,
-        "southern_leaf_blight": 0.5,
-        
-        # Healthy - higher confidence to avoid false negatives
-        "healthy": 0.6,
-        "no_disease": 0.6,
-        
-        # Default for unknown classes
-        "default": 0.5
-    }
-    return confidence_map.get(class_name, confidence_map["default"])
+    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    blur = cv2.Laplacian(gray, cv2.CV_64F).var()
+    if blur < 30:
+        return False, "Image too blurry"
 
+    if np.std(image) < 10:
+        return False, "Low image detail"
+
+    return True, "OK"
+
+
+# =============================================================================
+# CONFIDENCE FILTERING
+# =============================================================================
 def apply_confidence_filtering(predictions: List[Dict]) -> List[Dict]:
-    """
-    Apply class-specific confidence thresholds and filtering
-    """
-    filtered_predictions = []
-    
-    for pred in predictions:
-        class_name = pred["class_name"].lower()
-        confidence = pred["confidence"]
-        
-        # Get class-specific threshold
-        min_confidence = get_class_confidence_threshold(class_name)
-        
-        # Apply threshold
-        if confidence >= min_confidence:
-            filtered_predictions.append(pred)
-    
-    return filtered_predictions
+    thresholds = {
+        "blight": 0.25,
+        "gray_spot": 0.20,
+        "common_rust": 0.30,
+    }
 
-def remove_duplicate_detections(predictions: List[Dict]) -> List[Dict]:
-    """
-    Remove duplicate detections of the same class with high overlap
-    """
-    if len(predictions) <= 1:
-        return predictions
-    
-    # Sort by confidence (highest first)
-    predictions.sort(key=lambda x: x['confidence'], reverse=True)
-    
-    filtered = []
-    for current_pred in predictions:
-        is_duplicate = False
-        
-        for kept_pred in filtered:
-            # If same class and boxes overlap significantly, consider duplicate
-            if (current_pred['class_name'] == kept_pred['class_name'] and
-                boxes_overlap(current_pred.get('box_xyxy', []), kept_pred.get('box_xyxy', []))):
-                is_duplicate = True
-                break
-        
-        if not is_duplicate:
-            filtered.append(current_pred)
-    
-    return filtered
+    return [
+        p for p in predictions
+        if p["class_name"].lower() in thresholds
+        and p["confidence"] >= thresholds[p["class_name"].lower()]
+    ]
 
-def boxes_overlap(box1: List[float], box2: List[float], overlap_threshold: float = 0.6) -> bool:
-    """
-    Check if two bounding boxes overlap significantly
-    """
-    if not box1 or not box2 or len(box1) != 4 or len(box2) != 4:
-        return False
-    
-    x1_1, y1_1, x2_1, y2_1 = box1
-    x1_2, y1_2, x2_2, y2_2 = box2
-    
-    # Calculate intersection area
-    xi1 = max(x1_1, x1_2)
-    yi1 = max(y1_1, y1_2)
-    xi2 = min(x2_1, x2_2)
-    yi2 = min(y2_1, y2_2)
-    
-    inter_area = max(0, xi2 - xi1) * max(0, yi2 - yi1)
-    
-    # Calculate box areas
-    box1_area = (x2_1 - x1_1) * (y2_1 - y1_1)
-    box2_area = (x2_2 - x1_2) * (y2_2 - y1_2)
-    
-    # Calculate overlap ratio
-    overlap_ratio = inter_area / min(box1_area, box2_area) if min(box1_area, box2_area) > 0 else 0
-    
-    return overlap_ratio > overlap_threshold
 
-def predict_disease_enhanced(
-    image_bytes: bytes, 
-    conf: float = 0.5, 
-    return_image: bool = False
-) -> Dict[str, Any]:
-    """
-    Enhanced disease detection with validation and filtering
-    """
-    # Load model (cached)
-    model = get_model()
+# =============================================================================
+# DUPLICATE REMOVAL
+# =============================================================================
+def boxes_overlap(b1, b2, thr=0.6):
+    x1, y1, x2, y2 = b1
+    x3, y3, x4, y4 = b2
 
-    # Convert uploaded bytes to numpy array
-    img_rgb = _read_image_bytes(image_bytes)
-    
-    # Validate image quality
-    is_valid, quality_message = validate_image_quality(img_rgb)
-    if not is_valid:
-        return {
-            "predictions": [{
-                "class_id": -2,
-                "class_name": "invalid_image",
-                "confidence": 0.0,
-                "message": quality_message
-            }],
-            "annotated_image_b64": None,
-            "validation_passed": False
-        }
+    xi1, yi1 = max(x1, x3), max(y1, y3)
+    xi2, yi2 = min(x2, x4), min(y2, y4)
 
-    # Run YOLOv8 inference with user-provided confidence
-    results = model.predict(
-        source=img_rgb, 
-        conf=conf, 
-        verbose=False, 
-        save=False
+    inter = max(0, xi2 - xi1) * max(0, yi2 - yi1)
+    a1 = max(1, (x2 - x1) * (y2 - y1))
+    a2 = max(1, (x4 - x3) * (y4 - y3))
+
+    return inter / min(a1, a2) > thr
+
+
+def remove_duplicate_detections(preds: List[Dict]) -> List[Dict]:
+    preds.sort(key=lambda x: x["confidence"], reverse=True)
+    final = []
+
+    for p in preds:
+        if not any(
+            p["class_name"] == q["class_name"]
+            and boxes_overlap(p["box_xyxy"], q["box_xyxy"])
+            for q in final
+        ):
+            final.append(p)
+
+    return final
+
+
+# =============================================================================
+# SEVERITY
+# =============================================================================
+
+def calculate_severity(preds, image):
+    """
+    FINAL calibrated severity:
+    rust_pixels / actual leaf pixels
+    (aligned with maize-leaf validation)
+    """
+
+    if image is None or image.size == 0:
+        return 0.0, "None"
+
+    lab = cv2.cvtColor(image, cv2.COLOR_RGB2LAB)
+    L, A, B = cv2.split(lab)
+
+    # --------------------------------------------------
+    # 1️⃣ LEAF MASK — MATCH VALIDATION LOGIC
+    # --------------------------------------------------
+    # Include green, yellow, and rusted leaf tissue
+    leaf_mask = (
+        (L > 25) &
+        (B > 95) &          # allow dark yellow / brown leaf
+        (A < 210)           # allow severe rust tissue
     )
 
-    predictions = []
-    annotated_b64 = None
+    leaf_mask = leaf_mask.astype(np.uint8) * 255
+    leaf_mask = cv2.medianBlur(leaf_mask, 7)
+    leaf_mask = cv2.morphologyEx(
+        leaf_mask,
+        cv2.MORPH_CLOSE,
+        np.ones((13, 13), np.uint8)
+    )
+    leaf_mask = leaf_mask > 0
 
-    for result in results:
-        class_names = result.names
-        
-        # Collect all predictions
-        for box in result.boxes:
-            class_id = int(box.cls[0])
-            confidence = float(box.conf[0])
-            class_name = class_names.get(class_id, f"class_{class_id}")
-            
-            # Get bounding box coordinates
-            bbox = box.xyxy[0].tolist()
-            
-            predictions.append({
-                "class_id": class_id,
-                "class_name": class_name,
-                "confidence": round(confidence, 3),
-                "box_xyxy": [round(float(coord), 2) for coord in bbox],
+    leaf_pixels = int(np.sum(leaf_mask))
+    if leaf_pixels == 0:
+        return 0.0, "None"
+
+    # --------------------------------------------------
+    # 2️⃣ RUST / BROWN MASK — WIDE & REALISTIC
+    # --------------------------------------------------
+    rust_mask = (
+        (A > 125) &          # reddish/brown
+        (B > 95) &           # include dark brown rust
+        (L > 30)             # allow shaded rust
+    )
+
+    rust_pixels = int(np.sum(rust_mask & leaf_mask))
+
+    # --------------------------------------------------
+    # 3️⃣ SEVERITY (NO ARTIFICIAL DAMPENING)
+    # --------------------------------------------------
+    severity = rust_pixels / leaf_pixels
+    severity = float(np.clip(severity, 0.0, 1.0))
+
+    if severity < 0.10:
+        label = "Low"
+    elif severity < 0.30:
+        label = "Medium"
+    else:
+        label = "High"
+
+    return round(severity, 3), label
+
+# =============================================================================
+# ERROR RESPONSE
+# =============================================================================
+def _return_error(code, msg):
+    return {
+        "success": True,
+        "predictions": [{
+            "class_id": -1,
+            "class_name": code,
+            "confidence": 0.0,
+            "message": msg
+        }],
+        "annotated_image_b64": None,
+        "validation_passed": False,
+        "severity_score": 0.0,
+        "severity_label": "None",
+        "total_detections": 0
+    }
+
+# =============================================================================
+# MAIZE LEAF VALIDATION (CRITICAL FIX)
+# =============================================================================
+def validate_maize_leaf(image: np.ndarray) -> bool:
+    """
+    Returns True only if the image likely contains a maize leaf.
+    Prevents landscapes, buildings, hands, etc.
+    """
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    h, s, v = cv2.split(hsv)
+
+    # Green color dominance (maize leaves)
+    green_mask = (h > 25) & (h < 95) & (s > 40) & (v > 40)
+    green_ratio = np.sum(green_mask) / green_mask.size
+
+    # Maize leaves are strongly green
+    return green_ratio > 0.15
+
+# =============================================================================
+# MAIN — FINAL & CLEAN
+# =============================================================================
+def predict_disease_enhanced(image_bytes: bytes, conf=0.4, return_image=False):
+    model = get_model()
+    img = _read_image_bytes(image_bytes)
+
+    # 1️⃣ Image quality check
+    ok, msg = validate_image_quality(img)
+    if not ok:
+        return _return_error("invalid_image", msg)
+
+    # 2️⃣ 🚫 MAIZE LEAF VALIDATION (HARD GATE)
+    if not validate_maize_leaf(img):
+        return _return_error(
+            "invalid_image",
+            "This image is not a maize leaf. Please upload a damaged maize leaf with visible disease symptoms."
+        )
+
+    # 3️⃣ YOLO inference (ONLY after validation)
+    results = model.predict(
+        source=img,
+        imgsz=640,
+        conf=conf,
+        verbose=False
+    )
+
+    raw_preds = []
+    annotated = None
+
+    for r in results:
+        names = r.names
+        for b in r.boxes:
+            cid = int(b.cls[0])
+            raw_preds.append({
+                "class_id": cid,
+                "class_name": names[cid],
+                "confidence": float(b.conf[0]),
+                "box_xyxy": [float(v) for v in b.xyxy[0]]
             })
 
-        # Generate annotated image if requested
-        if return_image and hasattr(result, 'plot'):
-            try:
-                annotated_img = result.plot()
-                annotated_b64 = _encode_img_b64(annotated_img)
-            except Exception as e:
-                print(f"Warning: Could not generate annotated image: {e}")
+        if return_image:
+            annotated = _encode_img_b64(r.plot())
 
-    # Apply post-processing
-    if predictions:
-        # Filter by confidence thresholds
-        filtered_predictions = apply_confidence_filtering(predictions)
-        
-        # Remove duplicates
-        final_predictions = remove_duplicate_detections(filtered_predictions)
-    else:
-        final_predictions = []
+    # 🚫 NOTHING detected → INVALID (NO DISEASE / NO HEALTH)
+    if not raw_preds:
+        return _return_error(
+            "invalid_image",
+            "No visible disease symptoms detected. Please upload a damaged maize leaf."
+        )
 
-    # Handle no valid detections
-    if not final_predictions:
-        final_predictions = [{
-            "class_id": -1,
-            "class_name": "no_disease",
-            "confidence": 0.0,
-            "message": "No diseases detected at current confidence level"
-        }]
+    disease_classes = {"gray_spot", "blight", "common_rust"}
 
-    return {
-        "predictions": final_predictions,
-        "annotated_image_b64": annotated_b64,
-        "validation_passed": True,
-        "total_detections": len(final_predictions)
-    }
+    disease_preds = [
+        p for p in raw_preds
+        if p["class_name"].lower() in disease_classes
+    ]
+
+    health_preds = [
+        p for p in raw_preds
+        if p["class_name"].lower() == "health"
+    ]
+
+    # 4️⃣ DISEASE HAS HIGHEST PRIORITY
+    if disease_preds:
+        filtered = apply_confidence_filtering(disease_preds)
+        filtered = remove_duplicate_detections(filtered)
+        if not filtered:
+            filtered = disease_preds
+
+        sev, label = calculate_severity(filtered, img)   # ✅ not img.shape
+
+
+        return {
+            "success": True,
+            "predictions": filtered,
+            "annotated_image_b64": annotated,
+            "validation_passed": True,
+            "severity_score": round(sev, 3),
+            "severity_label": label,
+            "total_detections": len(filtered),
+        }
+
+    # 5️⃣ HEALTH ONLY IF YOLO EXPLICITLY SAYS HEALTH
+    if health_preds:
+        return {
+            "success": True,
+            "predictions": [{
+                "class_id": -2,
+                "class_name": "health",
+                "confidence": max(p["confidence"] for p in health_preds),
+            }],
+            "annotated_image_b64": None,
+            "validation_passed": True,
+            "severity_score": 0.0,
+            "severity_label": "None",
+            "total_detections": 0
+        }
+
+    # 6️⃣ EVERYTHING ELSE → INVALID
+    return _return_error(
+        "invalid_image",
+        "Unclear image. Please upload a damaged maize leaf with visible disease symptoms."
+    )

@@ -4,64 +4,82 @@
 
 from datetime import datetime, timedelta
 from typing import Dict, List
-from .ml_model import predict_yield_ml, USE_ML
+import logging
 
+# Import new ML prediction service
+try:
+    from .ml_prediction_service import get_ml_prediction, MODEL_LOADED
+    ML_AVAILABLE = MODEL_LOADED
+except ImportError as e:
+    logging.warning(f"ML prediction service not available: {e}")
+    ML_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # RULE-BASED FALLBACK LOGIC
 # ============================================================
-def rule_based_yield(data: Dict) -> float:
+def rule_based_yield(data: Dict) -> tuple[float, Dict[str, float]]:
     """
     Fallback logic when ML model is not available.
-    Returns yield in tons per hectare (t/ha)
-    """
-    # Base yield in t/ha
-    base_yield = 4.5
+    Returns (yield in kg/ha, multipliers dict)
     
-    # Variety multipliers
+    Based on Sri Lankan maize yield data:
+    - Local Average: 3.58 t/ha
+    - Potential (Hybrid): 6-7 t/ha
+    - Smallholder Reality: 3.7-6.2 t/ha
+    - Factors: Management, seed type, season, water, fertilizer, pests
+    """
+    # Base yield in t/ha (Sri Lankan local average)
+    base_yield = 3.6
+    
+    # Variety multipliers (Hybrid seeds offer much higher potential)
     variety_multipliers = {
-        "Jet 999": 1.1,
-        "Pacific 808": 1.05,
-        "GT 709": 0.95,
-        "GT200": 1.0,
-        "Commando": 1.08,
+        "Jet 999": 1.5,        # High-yield hybrid (can reach 5.4 t/ha)
+        "Pacific 808": 1.45,   # High-yield hybrid (can reach 5.2 t/ha)
+        "Commando": 1.4,       # Popular hybrid (can reach 5.0 t/ha)
+        "GT 709": 1.2,         # Medium hybrid (can reach 4.3 t/ha)
+        "GT200": 1.15,         # Medium hybrid (can reach 4.1 t/ha)
+        "Local Variety": 0.9,  # Local seeds (around 3.2 t/ha)
     }
     variety_mult = variety_multipliers.get(data.get("variety", ""), 1.0)
     
-    # Soil condition multipliers
+    # Soil condition multipliers (Good soil = better yield)
     soil_multipliers = {
-        "Well-Drained Loamy": 1.15,
-        "Clay Loam": 1.0,
-        "Sandy Loam": 0.95,
-        "Heavy Clay": 0.85,
-        "Sandy": 0.8,
+        "Good": 1.15,    # Well-managed, fertile soil
+        "Medium": 1.0,   # Average soil condition
+        "Poor": 0.75,    # Degraded or problematic soil
     }
     soil_mult = soil_multipliers.get(data.get("soil_condition", ""), 1.0)
     
-    # Irrigation multipliers
+    # Irrigation multipliers (Water management is critical)
     irrigation_multipliers = {
-        "Drip Irrigation": 1.2,
-        "Sprinkler": 1.1,
-        "Flood Irrigation": 1.05,
-        "Rainfed": 0.85,
+        "Irrigated": 1.25,  # Proper water supply (can boost to 6+ t/ha)
+        "Mixed": 1.1,       # Partial irrigation
+        "Rainfed": 0.85,    # Dependent on rainfall (lower yields)
     }
     irrigation_mult = irrigation_multipliers.get(data.get("irrigation_type", ""), 1.0)
     
-    # Rainfall multipliers
+    # Rainfall condition multipliers
     rainfall_multipliers = {
-        "Adequate": 1.1,
-        "Moderate": 1.0,
-        "Low": 0.8,
-        "Excessive": 0.9,
+        "High": 1.1,     # Good rainfall (if not excessive)
+        "Normal": 1.0,   # Adequate rainfall
+        "Low": 0.75,     # Drought stress reduces yield significantly
     }
     rainfall_mult = rainfall_multipliers.get(data.get("rainfall_condition", ""), 1.0)
     
-    # Season multipliers
+    # Season multipliers (Maha season has better rainfall)
     season_multipliers = {
-        "Maha": 1.05,
+        "Maha Season": 1.15,  # Main season with better rainfall
+        "Maha": 1.15,
+        "Yala Season": 0.95,  # Off-season, drier conditions
         "Yala": 0.95,
     }
     season_mult = season_multipliers.get(data.get("season", ""), 1.0)
+    
+    # Management quality factor (based on soil quality as proxy)
+    # Proper nitrogen, pest control (fall armyworm), fertilizer management
+    management_quality = soil_multipliers.get(data.get("soil_quality", ""), 1.0)
     
     # Calculate final yield
     yield_t_ha = (
@@ -73,11 +91,28 @@ def rule_based_yield(data: Dict) -> float:
         * season_mult
     )
     
-    # Add small random variance
+    # Add realistic variance (±8% to simulate field conditions)
     import random
-    yield_t_ha *= (0.95 + random.random() * 0.1)  # ±5%
+    yield_t_ha *= (0.92 + random.random() * 0.16)  # ±8%
     
-    return max(yield_t_ha, 0.5)  # Minimum 0.5 t/ha
+    # Constrain to realistic Sri Lankan ranges
+    # Minimum: 2.5 t/ha (poor conditions)
+    # Maximum: 7.0 t/ha (excellent hybrid + management)
+    yield_t_ha = max(2.5, min(yield_t_ha, 7.0))
+    
+    # Convert to kg/ha for frontend
+    yield_kg_ha = yield_t_ha * 1000
+    
+    # Return yield and actual multipliers used
+    multipliers = {
+        "variety": variety_mult,
+        "soil": soil_mult,
+        "irrigation": irrigation_mult,
+        "rainfall": rainfall_mult,
+        "season": season_mult,
+    }
+    
+    return yield_kg_ha, multipliers
 
 
 # ============================================================
@@ -115,7 +150,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     rainfall_mult = multipliers.get("rainfall", 1.0)
     factors.append({
         "name": "Rainfall Condition",
-        "impact": "High" if rainfall_mult >= 1.05 else "Medium" if rainfall_mult >= 0.9 else "Low",
+        "impact": "positive" if rainfall_mult >= 1.05 else "neutral" if rainfall_mult >= 0.9 else "negative",
         "value": rainfall_mult
     })
     
@@ -123,7 +158,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     soil_mult = multipliers.get("soil", 1.0)
     factors.append({
         "name": "Soil Condition",
-        "impact": "High" if soil_mult >= 1.1 else "Medium" if soil_mult >= 0.95 else "Low",
+        "impact": "positive" if soil_mult >= 1.1 else "neutral" if soil_mult >= 0.95 else "negative",
         "value": soil_mult
     })
     
@@ -131,7 +166,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     variety_mult = multipliers.get("variety", 1.0)
     factors.append({
         "name": "Variety",
-        "impact": "High" if variety_mult >= 1.05 else "Medium" if variety_mult >= 0.98 else "Low",
+        "impact": "positive" if variety_mult >= 1.3 else "neutral" if variety_mult >= 1.0 else "negative",
         "value": variety_mult
     })
     
@@ -139,7 +174,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     irrigation_mult = multipliers.get("irrigation", 1.0)
     factors.append({
         "name": "Irrigation Type",
-        "impact": "High" if irrigation_mult >= 1.1 else "Medium" if irrigation_mult >= 0.95 else "Low",
+        "impact": "positive" if irrigation_mult >= 1.1 else "neutral" if irrigation_mult >= 0.95 else "negative",
         "value": irrigation_mult
     })
     
@@ -147,7 +182,7 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
     season_mult = multipliers.get("season", 1.0)
     factors.append({
         "name": "Season",
-        "impact": "Medium",
+        "impact": "positive" if season_mult >= 1.1 else "neutral" if season_mult >= 0.98 else "negative",
         "value": season_mult
     })
     
@@ -159,35 +194,53 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
 # ============================================================
 def predict_yield_service(data: Dict) -> Dict:
     """
-    Main prediction service.
+    Main prediction service with ML-first approach.
     Returns format that matches frontend expectations EXACTLY.
+    
+    Strategy:
+    1. Try ML model first (XGBoost) - most accurate
+    2. Fallback to rule-based if ML fails
+    3. Return comprehensive prediction with impact factors
     
     Frontend expects:
     {
-      "yield_prediction_t_ha": float,
-      "confidence": "High" | "Medium" | "Low",
-      "harvest_window": { "start": str, "end": str, "target": str },
-      "calendar_event": { "title": str, "date": str },
-      "factors": [ { "name": str, "impact": str, "value": float } ]
+        "predicted_yield": float (kg/ha),
+        "predicted_yield_t_ha": float,
+        "confidence": "High" | "Medium" | "Low",
+        "confidence_score": float,
+        "harvest_window": { "start": str, "end": str, "target": str },
+        "calendar_event": { "title": str, "date": str },
+        "factors": [ { "name": str, "impact": str, "value": float } ],
+        "model_version": str,
+        "prediction_method": "ML" | "Rule-Based"
     }
     """
     
-    # Try ML model first
-    try:
-        if USE_ML:
-            yield_t_ha = predict_yield_ml(data)
-            confidence_score = 0.9
-        else:
-            raise RuntimeError("ML not available")
-    except Exception as e:
-        # Fallback to rule-based
-        print(f"[YieldService] Using rule-based prediction: {e}")
-        yield_t_ha = rule_based_yield(data)
-        confidence_score = 0.7
+    # Try ML prediction first (XGBoost model)
+    if ML_AVAILABLE:
+        try:
+            logger.info("🤖 Using ML prediction (XGBoost) for farmer")
+            response = get_ml_prediction(data)
+            logger.info(f"✅ ML prediction successful: {response['predicted_yield']:.2f} kg/ha")
+            return response
+        except Exception as e:
+            logger.warning(f"⚠️ ML prediction failed, falling back to rule-based: {e}")
+    else:
+        logger.info("⚠️ ML model not available, using rule-based prediction")
+    
+    # Fallback to rule-based prediction
+    logger.info("📊 Using rule-based prediction for farmer")
+    multipliers = {}
+    yield_kg_ha, multipliers = rule_based_yield(data)
+    confidence_score = 0.7
     
     # Determine confidence level
     if data.get("gps_lat") and data.get("gps_lng"):
         confidence_score += 0.05  # Bonus for GPS data
+    
+    # Adjust confidence based on data quality
+    if data.get("soil_condition") == "Good" and data.get("irrigation_type") == "Irrigated":
+        confidence_score += 0.05
     
     if confidence_score >= 0.85:
         confidence = "High"
@@ -202,21 +255,15 @@ def predict_yield_service(data: Dict) -> Dict:
         data.get("variety", "Unknown")
     )
     
-    # Build impact factors
-    # Store multipliers for factor display
-    multipliers = {
-        "rainfall": 1.0,
-        "soil": 1.0,
-        "variety": 1.0,
-        "irrigation": 1.0,
-        "season": 1.0,
-    }
+    # Build impact factors using actual multipliers
     factors = build_impact_factors(data, multipliers)
     
     # Build response in EXACT format frontend expects
     response = {
-        "yield_prediction_t_ha": round(yield_t_ha, 2),
+        "predicted_yield": round(yield_kg_ha, 2),  # kg/ha for frontend
+        "predicted_yield_t_ha": round(yield_kg_ha / 1000, 2),  # t/ha
         "confidence": confidence,
+        "confidence_score": round(confidence_score, 3),
         "harvest_window": {
             "start": start.strftime("%Y-%m-%d"),
             "end": end.strftime("%Y-%m-%d"),
@@ -227,6 +274,10 @@ def predict_yield_service(data: Dict) -> Dict:
             "date": target.strftime("%Y-%m-%d"),
         },
         "factors": factors,
+        "model_version": "Rule-Based_v1.0",
+        "prediction_method": "Rule-Based",
     }
+    
+    logger.info(f"✅ Rule-based prediction: {yield_kg_ha:.2f} kg/ha")
     
     return response

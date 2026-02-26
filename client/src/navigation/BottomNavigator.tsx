@@ -1,30 +1,31 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import HomeScreen from "../screens/HomeScreen";
+import ProfileScreen from "../screens/ProfileScreen";
 import PriceForecastStack from "./PriceForecastStack";
-import PredictYieldStack from "./PredictYieldStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
-import FertilizerAdvisorStack from "./FertilizerAdvisorStack";
-import AdminPanelScreen from "../screens/AdminPanel/PriceForecast/AdminPanelScreen"; 
+import YieldPredictionStack from "./YieldPredictionStack";
 import { ROUTES } from "../constants";
 
 export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
   [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
-  [ROUTES.TABS.FERTILIZERADVISOR]: undefined;
   [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.PRICEFORECAST]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
-  [ROUTES.TABS.ADMINPANEL]: undefined; // <-- NEW
+  [ROUTES.TABS.ADMINPANEL]: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabsParamList>();
 
 export default function BottomNavigator() {
+  const insets = useSafeAreaInsets();
+  
   return (
     <Tab.Navigator
       screenOptions={{
@@ -35,8 +36,8 @@ export default function BottomNavigator() {
           backgroundColor: "#ffffff",
           borderTopWidth: 1,
           borderTopColor: "#e2e8f0",
-          height: 60,
-          paddingBottom: 8,
+          height: 45 + insets.bottom,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -45,7 +46,6 @@ export default function BottomNavigator() {
         },
       }}
     >
-
       {/* 🏠 Home */}
       <Tab.Screen
         name={ROUTES.TABS.HOME}
@@ -82,26 +82,14 @@ export default function BottomNavigator() {
         }}
       />
 
-      {/* 🧪 Fertilizer */}
-      <Tab.Screen
-        name={ROUTES.TABS.FERTILIZERADVISOR}
-        component={FertilizerAdvisorStack}
-        options={{
-          tabBarLabel: "Fertilizer",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="leaf-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
-      {/* 🌾 Yield */}
+      {/* 🌽 Yield */}
       <Tab.Screen
         name={ROUTES.TABS.PREDICTYIELD}
-        component={PredictYieldStack}
+        component={YieldPredictionStack}
         options={{
           tabBarLabel: "Yield",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="analytics-outline" size={size} color={color} />
+            <Ionicons name="leaf-outline" size={size} color={color} />
           ),
         }}
       />
@@ -121,7 +109,7 @@ export default function BottomNavigator() {
       {/* 👤 Profile */}
       <Tab.Screen
         name={ROUTES.TABS.USERPROFILE}
-        component={HomeScreen}
+        component={ProfileScreen}
         options={{
           tabBarLabel: "Profile",
           tabBarIcon: ({ color, size }) => (
@@ -129,19 +117,6 @@ export default function BottomNavigator() {
           ),
         }}
       />
-
-      {/* 🛠 Admin Panel */}
-      <Tab.Screen
-        name={ROUTES.TABS.ADMINPANEL}
-        component={AdminPanelScreen}
-        options={{
-          tabBarLabel: "Admin",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="shield-checkmark-outline" size={size} color={color} />
-          ),
-        }}
-      />
-
     </Tab.Navigator>
   );
 }

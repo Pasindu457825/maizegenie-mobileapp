@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   Alert,
+  Image,
 } from "react-native";
 import {
   Sun,
@@ -18,7 +19,7 @@ import {
   CloudLightning,
   CloudFog,
 } from "lucide-react-native";
-
+import { useApp } from "../../context/AppContext";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
@@ -52,25 +53,28 @@ import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
-import { NotificationDropdown } from "../../components/NotificationDropdown";
+import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
+import { Modal } from "react-native";
 
 // 🔥 ADD THIS HERE (top of file, after imports)
 
 const VARIETIES = [
-  "Ruhunu 1",
-  "Ruhunu 2",
-  "Sampath",
-  "Sudu Maize",
-  "BW Hybrid",
-  "Jet 999",
-  "GT 709",
-  "GT 722",
-  "CIC Hybrid 808",
-  "CIC Hybrid 989",
-  "CIC Premium Gold",
-  "Imported Hybrid",
-  "Local Hybrid",
-  "Unknown Variety",
+  {
+    name: "Commando",
+    image: require("../../../assets/varieties/commando.png"),
+  },
+  { name: "GT200", image: require("../../../assets/varieties/gt200.png") },
+  { name: "GT 709", image: require("../../../assets/varieties/gt709.png") },
+  { name: "Jet 999", image: require("../../../assets/varieties/jet999.png") },
+  {
+    name: "Pacific 808",
+    image: require("../../../assets/varieties/pacific808.png"),
+  },
+  {
+    name: "Local Variety",
+    image: require("../../../assets/varieties/Unknown.png"),
+  },
 ];
 
 const LOCATION_TRANSLATIONS = {
@@ -95,6 +99,13 @@ type NavProp = StackNavigationProp<
   "PriceForecastFormScreen"
 >;
 
+type RootStackParamList = {
+  PriceForecastFormScreen: undefined;
+  WeatherForecastScreen: undefined;
+  PriceAdvisorScreen: { formData: any } | undefined;
+  Notifications: undefined;
+};
+
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
@@ -111,13 +122,14 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-
-
 const PriceForecastFormScreen = () => {
-  const [notifVisible, setNotifVisible] = useState(false);
-  const [notifMessages, setNotifMessages] = useState<string[]>([]);
+  const { unreadCount } = useNotifications();
+  type RootNavProp = StackNavigationProp<RootStackParamList>;
+  const rootNavigation = useNavigation<RootNavProp>();
   const navigation = useNavigation<NavProp>();
-  const [language, setLanguage] = useState<Language>("si");
+  // 🌐 Get global language & convert to "si" | "en"
+  const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
   const {
     locationName,
     temperature,
@@ -149,8 +161,12 @@ const PriceForecastFormScreen = () => {
   const [otherCosts, setOtherCosts] = useState("");
   const [hasStorage, setHasStorage] = useState(false);
   // Dropdown state
-  const [showVarietyPopup, setShowVarietyPopup] = useState(false);
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
+  const { user } = useApp();
+
+  const isFarmer = user?.role === "farmer";
+  const isOfficer = user?.role === "officer";
+  // user.role = "FARMER" | "OFFICER"
 
   // Content translations
   const content = {
@@ -166,7 +182,7 @@ const PriceForecastFormScreen = () => {
       weather: "කාලගුණය",
       fuelPrice: "ඉන්ධන මිල",
       importTax: "ආනයන බද්ද",
-      currentPrice: "වත්මන් මිල",
+      currentPrice: "පසුගිය සතියේ මිල",
       seedVariety: "බීජ වර්ගය",
       expectedYield: "අපේක්ෂිත අස්වැන්න (kg/අක්කරය)",
       farmArea: "ගොවිපල ප්‍රමාණය (අක්කර)",
@@ -196,7 +212,7 @@ const PriceForecastFormScreen = () => {
       weather: "Weather",
       fuelPrice: "Fuel Price",
       importTax: "Import Tax",
-      currentPrice: "Current Price",
+      currentPrice: "Last week’s price",
       seedVariety: "Seed Variety",
       expectedYield: "Expected Yield (kg/acre)",
       farmArea: "Farm Area (acres)",
@@ -268,6 +284,7 @@ const PriceForecastFormScreen = () => {
       Polonnaruwa: "පොලොන්නරුව",
       Badulla: "බදුල්ල",
       Monaragala: "මොණරාගල",
+      Thissamaharama: "තිස්සමහාරාමය",
       Ratnapura: "රත්නපුර",
       Kegalle: "කෑගල්ල",
     };
@@ -668,7 +685,15 @@ const PriceForecastFormScreen = () => {
       };
 
       // Navigate to next page
-      navigation.navigate("PriceForecastScreen", { data: forecastData });
+      if (isOfficer) {
+        navigation.navigate("OfficerPriceForecastScreen", {
+          data: forecastData,
+        });
+      } else {
+        navigation.navigate("PriceForecastScreen", {
+          data: forecastData,
+        });
+      }
     } catch (error) {
       console.log("Submit Error:", error);
     }
@@ -683,31 +708,59 @@ const PriceForecastFormScreen = () => {
       const today = new Date();
       const year = today.getFullYear();
 
-      const holidaysRes = await fetch(
-        `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3&country=LK&year=${year}&type=public`
-      );
+      // Calendarific – supported holiday types: national, local, religious, observance
+      const calendarificUrl =
+        `https://calendarific.com/api/v2/holidays?api_key=0TTNl4fXIobqjfegCz7yHxHEEo57WOi3` +
+        `&country=LK&year=${year}&type=national`;
 
-      const json = await holidaysRes.json();
+      let holidayDates: Date[] = [];
 
-      // Calendarific correct response object:
-      const holidays = json?.response?.holidays || [];
-
-      let festivalDetected = false;
-
-      holidays.forEach((h: any) => {
-        const hd = new Date(h.date.iso);
-        const diffDays =
-          Math.abs(today.getTime() - hd.getTime()) / (1000 * 60 * 60 * 24);
-
-        // +- 3 days rule for "festival week"
-        if (diffDays <= 3) {
-          festivalDetected = true;
+      // Force a JSON response and check status
+      try {
+        const holidaysRes = await fetch(calendarificUrl, {
+          headers: { Accept: "application/json" },
+        });
+        if (holidaysRes.ok) {
+          const json = await holidaysRes.json();
+          const holidays = json?.response?.holidays || [];
+          holidayDates = holidays.map((h: any) => new Date(h.date.iso));
+        } else {
+          console.warn(
+            `Calendarific responded with status ${holidaysRes.status}`
+          );
         }
-      });
+      } catch (calendarErr) {
+        console.warn("Calendarific fetch failed:", calendarErr);
+      }
 
-      setIsFestivalWeek(festivalDetected);
+      // fallback – use Nager.Date API if Calendarific fails
+      if (holidayDates.length === 0) {
+        try {
+          const fallback = await fetch(
+            `https://date.nager.at/api/v3/PublicHolidays/${year}/LK`
+          );
+          if (fallback.ok) {
+            const nagerHolidays = await fallback.json();
+            holidayDates = nagerHolidays.map((h: any) => new Date(h.date));
+          } else {
+            console.warn(`Nager API responded with status ${fallback.status}`);
+          }
+        } catch (nagerErr) {
+          console.warn("Nager API fetch failed:", nagerErr);
+        }
+      }
+
+      // Mark as festival week if within ±3 days of any holiday
+      let festival = false;
+      holidayDates.forEach((date) => {
+        const diffDays =
+          Math.abs(today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
+        if (diffDays <= 3) festival = true;
+      });
+      setIsFestivalWeek(festival);
     } catch (err) {
-      console.log("Festival week detect error:", err);
+      console.warn("Festival week detect error:", err);
+      setIsFestivalWeek(false);
     }
   };
 
@@ -726,19 +779,18 @@ const PriceForecastFormScreen = () => {
         </View>
         <View style={styles.headerRight}>
           <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => setNotifVisible(true)}
+            style={styles.headerIconButton}
+            onPress={() => rootNavigation.navigate("Notifications")}
           >
             <Bell color="#10B981" size={20} />
-          </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -889,11 +941,16 @@ const PriceForecastFormScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {showDistrictPopup && (
+          <Modal
+            visible={showDistrictPopup}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowDistrictPopup(false)}
+          >
             <View style={styles.popupContainer}>
               <View style={styles.popupBox}>
                 <ScrollView>
-                  {["Anuradhapura", "Monaragala", "Dambulla"].map((d) => (
+                  {["Anuradhapura", "Monaragala", "Tissamaharama"].map((d) => (
                     <TouchableOpacity
                       key={d}
                       style={styles.popupItem}
@@ -917,24 +974,37 @@ const PriceForecastFormScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
-          )}
+          </Modal>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety} *</Text>
 
-            <TouchableOpacity
-              style={styles.input}
-              onPress={() => setShowVarietyPopup(true)}
-            >
-              <Text
-                style={{
-                  color: seedVariety ? "#1F2937" : "#9CA3AF",
-                  fontSize: 15,
-                }}
-              >
-                {seedVariety || (language === "si" ? "තෝරන්න" : "Select")}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.varietyGrid}>
+              {VARIETIES.map((item) => {
+                const selected = seedVariety === item.name;
+
+                return (
+                  <TouchableOpacity
+                    key={item.name}
+                    style={[
+                      styles.varietyCard,
+                      selected && styles.varietyCardSelected,
+                    ]}
+                    onPress={() => setSeedVariety(item.name)}
+                  >
+                    <Image source={item.image} style={styles.varietyImage} />
+                    <Text
+                      style={[
+                        styles.varietyText,
+                        selected && styles.varietyTextSelected,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
 
           <View style={styles.formRow}>
@@ -1042,45 +1112,7 @@ const PriceForecastFormScreen = () => {
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
-        {showVarietyPopup && (
-          <View style={styles.popupContainer}>
-            <View style={styles.popupBox}>
-              <ScrollView>
-                {VARIETIES.map((v) => (
-                  <TouchableOpacity
-                    key={v}
-                    style={styles.popupItem}
-                    onPress={() => {
-                      setSeedVariety(v);
-                      setShowVarietyPopup(false);
-                    }}
-                  >
-                    <Text style={styles.popupText}>{v}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              <TouchableOpacity
-                style={styles.popupCancel}
-                onPress={() => setShowVarietyPopup(false)}
-              >
-                <Text style={styles.popupCancelText}>
-                  {language === "si" ? "අවලංගු" : "Cancel"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
       </ScrollView>
-      <NotificationDropdown
-        visible={notifVisible}
-        onClose={() => setNotifVisible(false)}
-        messages={
-          notifMessages.length > 0
-            ? notifMessages
-            : [language === "si" ? "නව දැනුම්දීමක් නොමැත" : "No notifications"]
-        }
-      />
     </View>
   );
 };
@@ -1411,6 +1443,74 @@ const styles = StyleSheet.create({
   popupCancelText: {
     textAlign: "center",
     color: "#B91C1C",
+    fontWeight: "bold",
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  badgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  varietyGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+
+  varietyCard: {
+    width: "30%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 10,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E5E7EB",
+  },
+
+  varietyCardSelected: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+
+  varietyImage: {
+    width: 70,
+    height: 70,
+    resizeMode: "contain",
+    marginBottom: 8,
+  },
+
+  varietyText: {
+    fontSize: 13,
+    color: "#374151",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+
+  varietyTextSelected: {
+    color: "#047857",
     fontWeight: "bold",
   },
 });

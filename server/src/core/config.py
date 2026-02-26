@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     PORT: int = 8000
     UPLOAD_DIR: str = "uploads"
 
-    # Supabase Configuration
     SUPABASE_URL: str
     SUPABASE_ANON_KEY: str
     SUPABASE_SERVICE_KEY: str

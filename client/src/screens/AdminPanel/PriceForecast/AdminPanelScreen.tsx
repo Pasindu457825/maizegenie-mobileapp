@@ -18,15 +18,18 @@ import {
   RefreshCw,
   CheckCircle,
   Calendar,
+  Sparkles,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Platform } from "react-native";
+import { useLanguage } from "../../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "sinhala" | "english";
 
 const AdminPanelScreen = () => {
   const navigation = useNavigation();
-  const [language, setLanguage] = useState<Language>("si");
+  const { language, setLanguage } = useLanguage();
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -36,15 +39,27 @@ const AdminPanelScreen = () => {
   const [farmGatePrice, setFarmGatePrice] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
-  const API_URL =
-    Platform.OS === "web"
-      ? "http://localhost:8000"
-      : "http://192.168.8.181:8000";
+  // 🔥 Dynamic API URL using .env + Platform detection
+  const getApiUrl = () => {
+    if (Platform.OS === "android") {
+      // Real Android Device → Uses .env
+      return process.env.EXPO_PUBLIC_API_BASE;
+    } else if (Platform.OS === "ios") {
+      // iOS simulator
+      return "http://localhost:8000";
+    } else {
+      // Expo Web fallback
+      return "http://localhost:8000";
+    }
+  };
 
+  const API_URL = getApiUrl();
+
+  // ✨ FIXED: Changed language type keys from "si"/"en" to "sinhala"/"english"
   const content = {
-    si: {
-      title: "පරිපාලන මධ්‍යස්ථානය",
-      subtitle: "🌾 MaizeGenie මිල කළමනාකරණය",
+    sinhala: {
+      title: "මිල යාවත්කාලීන කිරීම",
+      subtitle: "🌽 MaizeGenie",
       welcome: "ස්වාගතයි",
       description: "වත්මන් වෙළඳපොළ මිල සහ බද්ද යාවත්කාලීන කරන්න",
       fuelPrice: "ඉන්ධන මිල",
@@ -65,9 +80,9 @@ const AdminPanelScreen = () => {
       saving: "සුරකිමින්...",
       noData: "දත්ත තවම නැත",
     },
-    en: {
-      title: "Admin Dashboard",
-      subtitle: "🌾 MaizeGenie Price Management",
+    english: {
+      title: "Price Update",
+      subtitle: "🌽 MaizeGenie",
       welcome: "Welcome",
       description: "Update current market prices and taxes",
       fuelPrice: "Fuel Price",
@@ -109,7 +124,7 @@ const AdminPanelScreen = () => {
     } catch (error) {
       console.error("Error fetching data:", error);
       Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
+        language === "sinhala" ? "දෝෂයකි" : "Error",
         content[language].loadError
       );
     } finally {
@@ -121,7 +136,7 @@ const AdminPanelScreen = () => {
     // Validation
     if (!fuelPrice || !importTax || !farmGatePrice) {
       Alert.alert(
-        language === "si" ? "අවශ්‍යයි" : "Required",
+        language === "sinhala" ? "අවශ්‍යයි" : "Required",
         content[language].fillAll
       );
       return;
@@ -145,7 +160,7 @@ const AdminPanelScreen = () => {
 
       if (response.ok && data.success) {
         Alert.alert(
-          language === "si" ? "සාර්ථකයි ✓" : "Success ✓",
+          language === "sinhala" ? "සාර්ථකයි ✓" : "Success ✓",
           content[language].saveSuccess
         );
         fetchCurrentData(); // Refresh data
@@ -155,7 +170,7 @@ const AdminPanelScreen = () => {
     } catch (error) {
       console.error("Error saving data:", error);
       Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
+        language === "sinhala" ? "දෝෂයකි" : "Error",
         content[language].saveError
       );
     } finally {
@@ -165,29 +180,28 @@ const AdminPanelScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Enhanced Header */}
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <ArrowLeft color="#FFFFFF" size={22} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
-          >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
+            <ArrowLeft color="#059669" size={22} />
           </TouchableOpacity>
         </View>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>{content[language].title}</Text>
-          <Text style={styles.headerSubtitle}>
-            {content[language].subtitle}
-          </Text>
+          <View style={styles.titleRow}>
+            <View style={styles.iconBadge}>
+              <Sparkles size={20} color="#059669" />
+            </View>
+            <View style={styles.titleContainer}>
+              <Text style={styles.headerSubtitle}>
+                {content[language].subtitle}
+              </Text>
+              <Text style={styles.headerTitle}>{content[language].title}</Text>
+            </View>
+          </View>
           <Text style={styles.headerDescription}>
             {content[language].description}
           </Text>
@@ -201,7 +215,7 @@ const AdminPanelScreen = () => {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#10B981" />
+            <ActivityIndicator size="large" color="#059669" />
             <Text style={styles.loadingText}>{content[language].loading}</Text>
           </View>
         ) : (
@@ -218,7 +232,7 @@ const AdminPanelScreen = () => {
                   </Text>
                   <Text style={styles.updateValue}>
                     {new Date(lastUpdated).toLocaleString(
-                      language === "si" ? "si-LK" : "en-US",
+                      language === "sinhala" ? "si-LK" : "en-US",
                       {
                         dateStyle: "medium",
                         timeStyle: "short",
@@ -238,17 +252,19 @@ const AdminPanelScreen = () => {
 
             {/* Fuel Price Card */}
             <View style={styles.inputCard}>
-              <View style={styles.cardLabelRow}>
-                <View style={styles.iconWrapper}>
-                  <DollarSign color="#10B981" size={22} />
-                </View>
-                <View style={styles.labelContainer}>
-                  <Text style={styles.cardLabel}>
-                    {content[language].fuelPrice}
-                  </Text>
-                  <Text style={styles.cardSubLabel}>
-                    {content[language].fuelPriceUnit}
-                  </Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardLabelRow}>
+                  <View style={[styles.iconWrapper, styles.iconWrapperGreen]}>
+                    <DollarSign color="#059669" size={24} />
+                  </View>
+                  <View style={styles.labelContainer}>
+                    <Text style={styles.cardLabel}>
+                      {content[language].fuelPrice}
+                    </Text>
+                    <Text style={styles.cardSubLabel}>
+                      {content[language].fuelPriceUnit}
+                    </Text>
+                  </View>
                 </View>
               </View>
               <View style={styles.inputWrapper}>
@@ -266,17 +282,19 @@ const AdminPanelScreen = () => {
 
             {/* Import Tax Card */}
             <View style={styles.inputCard}>
-              <View style={styles.cardLabelRow}>
-                <View style={[styles.iconWrapper, styles.iconWrapperPurple]}>
-                  <Package color="#8B5CF6" size={22} />
-                </View>
-                <View style={styles.labelContainer}>
-                  <Text style={styles.cardLabel}>
-                    {content[language].importTax}
-                  </Text>
-                  <Text style={styles.cardSubLabel}>
-                    {content[language].importTaxUnit}
-                  </Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardLabelRow}>
+                  <View style={[styles.iconWrapper, styles.iconWrapperPurple]}>
+                    <Package color="#8B5CF6" size={24} />
+                  </View>
+                  <View style={styles.labelContainer}>
+                    <Text style={styles.cardLabel}>
+                      {content[language].importTax}
+                    </Text>
+                    <Text style={styles.cardSubLabel}>
+                      {content[language].importTaxUnit}
+                    </Text>
+                  </View>
                 </View>
               </View>
               <View style={styles.inputWrapper}>
@@ -294,17 +312,19 @@ const AdminPanelScreen = () => {
 
             {/* Farm Gate Price Card */}
             <View style={styles.inputCard}>
-              <View style={styles.cardLabelRow}>
-                <View style={[styles.iconWrapper, styles.iconWrapperGreen]}>
-                  <TrendingUp color="#10B981" size={22} />
-                </View>
-                <View style={styles.labelContainer}>
-                  <Text style={styles.cardLabel}>
-                    {content[language].farmGatePrice}
-                  </Text>
-                  <Text style={styles.cardSubLabel}>
-                    {content[language].farmGatePriceUnit}
-                  </Text>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardLabelRow}>
+                  <View style={[styles.iconWrapper, styles.iconWrapperEmerald]}>
+                    <TrendingUp color="#10B981" size={24} />
+                  </View>
+                  <View style={styles.labelContainer}>
+                    <Text style={styles.cardLabel}>
+                      {content[language].farmGatePrice}
+                    </Text>
+                    <Text style={styles.cardSubLabel}>
+                      {content[language].farmGatePriceUnit}
+                    </Text>
+                  </View>
                 </View>
               </View>
               <View style={styles.inputWrapper}>
@@ -350,6 +370,8 @@ const AdminPanelScreen = () => {
             </View>
           </>
         )}
+
+        <View style={styles.footer} />
       </ScrollView>
     </View>
   );
@@ -358,67 +380,84 @@ const AdminPanelScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#F8FAFC",
   },
   header: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#FFFFFF",
     paddingTop: 50,
     paddingBottom: 24,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 3,
   },
   headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
   },
   langButton: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
   },
   langText: {
-    color: "#10B981",
+    color: "#059669",
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   headerContent: {
-    marginTop: 8,
+    marginTop: 4,
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  iconBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#D1FAE5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  titleContainer: {
+    flex: 1,
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: "bold",
-    color: "#FFFFFF",
-    marginBottom: 4,
+    color: "#0F172A",
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: "#FEF3C7",
-    marginBottom: 8,
+    fontSize: 13,
+    color: "#059669",
     fontWeight: "600",
+    marginBottom: 2,
   },
   headerDescription: {
-    fontSize: 13,
-    color: "#FDE68A",
-    lineHeight: 18,
+    fontSize: 14,
+    color: "#64748B",
+    lineHeight: 20,
   },
   scrollContainer: {
     flex: 1,
@@ -436,7 +475,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: "#6B7280",
+    color: "#64748B",
     fontWeight: "500",
   },
   updateBanner: {
@@ -447,18 +486,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#6EE7B7",
+    borderColor: "#A7F3D0",
     gap: 12,
   },
   noDataBanner: {
     backgroundColor: "#FEF3C7",
-    borderColor: "#FCD34D",
+    borderColor: "#FDE68A",
     justifyContent: "center",
   },
   updateIcon: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
@@ -472,10 +511,11 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     textTransform: "uppercase",
     fontWeight: "600",
+    letterSpacing: 0.5,
   },
   updateValue: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "700",
     color: "#065F46",
   },
   noDataText: {
@@ -486,35 +526,39 @@ const styles = StyleSheet.create({
   },
   inputCard: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 20,
+    borderRadius: 18,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#F1F5F9",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
   },
+  cardHeader: {
+    marginBottom: 16,
+  },
   cardLabelRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
-    gap: 12,
+    gap: 14,
   },
   iconWrapper: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FEF3C7",
+    width: 52,
+    height: 52,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
+  },
+  iconWrapperGreen: {
+    backgroundColor: "#D1FAE5",
   },
   iconWrapperPurple: {
     backgroundColor: "#EDE9FE",
   },
-  iconWrapperGreen: {
+  iconWrapperEmerald: {
     backgroundColor: "#D1FAE5",
   },
   labelContainer: {
@@ -522,20 +566,21 @@ const styles = StyleSheet.create({
   },
   cardLabel: {
     fontSize: 17,
-    fontWeight: "bold",
-    color: "#1F2937",
-    marginBottom: 2,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 3,
   },
   cardSubLabel: {
-    fontSize: 12,
-    color: "#6B7280",
+    fontSize: 13,
+    color: "#64748B",
+    fontWeight: "500",
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#F8FAFC",
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: "#E2E8F0",
     borderRadius: 14,
     paddingHorizontal: 16,
     overflow: "hidden",
@@ -543,20 +588,20 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#6B7280",
+    color: "#64748B",
     marginRight: 8,
   },
   percentSymbol: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#6B7280",
+    color: "#64748B",
     marginLeft: 8,
   },
   input: {
     flex: 1,
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#1F2937",
+    fontWeight: "700",
+    color: "#0F172A",
     paddingVertical: 16,
   },
   buttonContainer: {
@@ -570,33 +615,41 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     paddingVertical: 16,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   refreshButtonText: {
-    color: "#4B5563",
+    color: "#475569",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   saveButton: {
-    backgroundColor: "#10B981",
+    backgroundColor: "#059669",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 10,
     paddingVertical: 18,
-    borderRadius: 16,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 6 },
+    borderRadius: 14,
+    shadowColor: "#059669",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 6,
   },
   saveButtonText: {
     color: "#FFFFFF",
     fontSize: 17,
-    fontWeight: "bold",
+    fontWeight: "700",
+  },
+  footer: {
+    height: 20,
   },
 });
 

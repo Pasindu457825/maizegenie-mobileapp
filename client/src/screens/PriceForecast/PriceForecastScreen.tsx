@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -45,6 +46,21 @@ import { getPriceForecast } from "../../services/priceForecastService";
 import type { WeekForecast } from "../../services/priceForecastService";
 import { LineChart } from "react-native-chart-kit";
 import { Platform } from "react-native";
+import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
+import type { RootStackParamList } from "../../navigation/index";
+import { supabase } from "../../lib/supabase";
+import {
+  generateVoiceSummary,
+  type VoiceSummaryParams,
+} from "../../utils/voiceSummaryGenerator";
+import * as Speech from "expo-speech";
+
+type RootNavProp = StackNavigationProp<RootStackParamList>;
+type LocalNavProp = StackNavigationProp<
+  PriceForecastStackParamList,
+  "PriceForecastScreen"
+>;
 
 // 🔥 Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -61,9 +77,6 @@ const getApiUrl = () => {
 };
 
 const API_URL = getApiUrl();
-
-
-
 
 const { width } = Dimensions.get("window");
 
@@ -92,12 +105,22 @@ interface ForecastData {
 }
 
 const PriceForecastScreen = () => {
+  const hasRunForecastRef = useRef(false);
   const [weeklyForecast, setWeeklyForecast] = useState<WeekForecast[]>([]);
+  const notificationSentRef = useRef(false);
+  const rootNavigation = useNavigation<RootNavProp>();
+  const localNavigation = useNavigation<LocalNavProp>();
   const [isLoadingForecast, setIsLoadingForecast] = useState(false);
-
-  const navigation = useNavigation<NavProp>();
+  const loadingOpacity = useRef(new Animated.Value(0)).current;
+  const loadingScale = useRef(new Animated.Value(0.8)).current;
+  const { unreadCount, sendNotification } = useNotifications();
   const route = useRoute();
-  const [language, setLanguage] = useState<Language>("si");
+  // Global language from context
+  const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
+
+  // Convert global language ("sinhala" | "english") to screen language ("si" | "en")
+  const language: Language = globalLang === "sinhala" ? "si" : "en";
+
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const {
@@ -105,6 +128,7 @@ const PriceForecastScreen = () => {
     temperature,
     weatherCondition,
     weatherIcon,
+    rainfallMm,
     isLoading,
   } = useUniversalLocation(language);
 
@@ -126,25 +150,6 @@ const PriceForecastScreen = () => {
     }
   };
 
-  useEffect(() => {
-    loadSavedDataFromStorage();
-
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        useNativeDriver: true,
-      }),
-    ]).start();
-
-    generateForecast();
-  }, []);
-
   // State for district and weather display
   const [district, setDistrict] = useState("");
   const [weather, setWeather] = useState("");
@@ -152,17 +157,23 @@ const PriceForecastScreen = () => {
   // Get data from route params (from form)
   const { data: formData } = route.params as { data: ForecastData };
 
-  // Forecast results (mock data - replace with ML prediction)
-  const [predictedPrice, setPredictedPrice] = useState(125.5);
-  const [priceChange, setPriceChange] = useState(15.2);
-  const [confidenceScore, setConfidenceScore] = useState(87);
-  const [recommendation, setRecommendation] = useState("sell_now");
+  // Forecast results
+  const [predictedPrice, setPredictedPrice] = useState<number | null>(null);
+  const [priceChange, setPriceChange] = useState<number>(0);
+  const [confidenceScore, setConfidenceScore] = useState<number>(0);
+  const [recommendation, setRecommendation] = useState<
+    "sell_now" | "sell_immediately" | "storage" | "sell_later"
+  >("sell_later");
 
   const [savedForm, setSavedForm] = useState<any>(null);
   const [savedAuto, setSavedAuto] = useState<any>(null);
   const [savedPrice, setSavedPrice] = useState<any>(null);
   const [savedLocation, setSavedLocation] = useState<any>(null);
   const [savedWeather, setSavedWeather] = useState<any>(null);
+
+  // 🔥 ADD THESE NEW STATE VARIABLES
+  const [voiceSummaryText, setVoiceSummaryText] = useState<string>("");
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   const content = {
     si: {
@@ -255,6 +266,68 @@ const PriceForecastScreen = () => {
     },
   };
 
+  // Convert ISO year + week number to date range
+  const getISOWeekRangeWithOffset = (
+    year: number,
+    baseWeek: number,
+    offset: number,
+    lang: "si" | "en"
+  ) => {
+    // Jan 4 is always in ISO Week 1
+    const jan4 = new Date(year, 0, 4);
+    const jan4Day = jan4.getDay() === 0 ? 7 : jan4.getDay();
+
+    // Monday of ISO Week 1
+    const week1Monday = new Date(jan4);
+    week1Monday.setDate(jan4.getDate() - (jan4Day - 1));
+
+    // Target week Monday (base + offset)
+    const weekStart = new Date(week1Monday);
+    weekStart.setDate(week1Monday.getDate() + (baseWeek - 1 + offset) * 7);
+
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const options: Intl.DateTimeFormatOptions = {
+      month: "short",
+      day: "numeric",
+    };
+
+    const start = weekStart.toLocaleDateString(
+      lang === "si" ? "si-LK" : "en-US",
+      options
+    );
+    const end = weekEnd.toLocaleDateString(
+      lang === "si" ? "si-LK" : "en-US",
+      options
+    );
+
+    return `${start} – ${end}`;
+  };
+
+  // ⭐ BEST WEEK INDEX (highest ensemble price)
+  const bestWeekIndex = React.useMemo(() => {
+    if (!weeklyForecast || weeklyForecast.length === 0) return -1;
+
+    return weeklyForecast.reduce((bestIdx, w, idx, arr) => {
+      return w.ensemble > arr[bestIdx].ensemble ? idx : bestIdx;
+    }, 0);
+  }, [weeklyForecast]);
+
+  const getBestWeekMessage = () => {
+    if (bestWeekIndex === -1) return null;
+
+    if (bestWeekIndex === 0) {
+      return language === "si"
+        ? "⭐ වත්මන් සතියේ මිල හොඳමය – දැන් විකිණීම වාසිදායකයි"
+        : "⭐ Current week has the highest price – best time to sell now";
+    }
+
+    return language === "si"
+      ? `⭐ හොඳම මිල ලැබෙන්නේ ඉදිරි සතිය ${bestWeekIndex + 1} තුළය`
+      : `⭐ Best price is expected in week ${bestWeekIndex + 1}`;
+  };
+
   // Enhanced weather translation mapping
   const getWeatherTranslation = (condition: string, lang: Language): string => {
     if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
@@ -332,7 +405,7 @@ const PriceForecastScreen = () => {
   useEffect(() => {
     // Set language from form data
     if (formData?.language) {
-      setLanguage(formData.language);
+      setAppLanguage(formData.language === "si" ? "sinhala" : "english");
     }
 
     // Animate on mount
@@ -348,9 +421,6 @@ const PriceForecastScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
-
-    // Generate forecast (mock - replace with API call)
-    generateForecast();
   }, []);
 
   // Update district and weather when location data changes
@@ -380,23 +450,104 @@ const PriceForecastScreen = () => {
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
 
+  const getSeasonFromWeek = (week: number): "Maha" | "Yala" => {
+    // Maha: Oct–Mar → ISO weeks 40–52, 1–13
+    if (week >= 40 || week <= 13) return "Maha";
+    return "Yala";
+  };
+
   const generateForecast = async () => {
     try {
+      // 🔥 RESET NOTIFICATION FLAG for new forecast
+      notificationSentRef.current = false;
+
       setIsLoadingForecast(true);
+
+      // 🔥 START LOADING ANIMATION
+      Animated.parallel([
+        Animated.timing(loadingOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(loadingScale, {
+          toValue: 1,
+          friction: 6,
+          useNativeDriver: true,
+        }),
+      ]).start();
 
       // current farm gate price (string -> number)
       const currentPriceNumeric = parseFloat(
         (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
       );
 
+      const weekNum = Number(formData.week);
+
+      // 🛡️ hard guard (prevents 422)
+      if (!Number.isFinite(weekNum)) {
+        throw new Error("Invalid week number");
+      }
+
+      const seasonCode = getSeasonFromWeek(weekNum);
+
+      // 🛡️ numeric sanitizers
+      const safeNumber = (v: any, fallback: number) => {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      const fuelPriceValue = safeNumber(
+        String(formData.fuelPrice).replace(/[^0-9.]/g, ""),
+        277
+      );
+
+      const lastPriceValue = safeNumber(
+        String(formData.farmGatePrice).replace(/[^0-9.]/g, ""),
+        160
+      );
+
+      const importTaxValue = safeNumber(
+        String(formData.cornImportTax).replace(/[^0-9.]/g, ""),
+        0
+      );
+
+      const rainfallValue =
+        rainfallMm && rainfallMm > 0
+          ? rainfallMm
+          : seasonCode === "Maha"
+          ? 30 // realistic Maha minimum
+          : 10;
+
+      let temperatureValue = safeNumber(
+        temperature,
+        seasonCode === "Maha" ? 26 : 28
+      );
+
+      // Sri Lanka invalid guard (0°C, negative, etc.)
+      if (temperatureValue < 10 || temperatureValue > 45) {
+        temperatureValue = seasonCode === "Maha" ? 26 : 28;
+      }
+
+      const demandIndexValue = seasonCode === "Maha" ? 0.85 : 0.7;
+
       const payload = {
-        year: formData.year,
-        week: formData.week,
-        district: formData.district,
-        season: formData.season,
-        productionCostPerKg: formData.productionCostPerKg,
+        year: safeNumber(formData.year, new Date().getFullYear()),
+        week: weekNum,
+        district: formData.district || "Anuradhapura",
+        season: seasonCode,
+
+        fuel_price: fuelPriceValue,
+        rainfall: rainfallValue,
+        temperature: temperatureValue,
+        demand_index: demandIndexValue,
+        import_tax: importTaxValue,
+        last_price: lastPriceValue,
+
         weeks_ahead: 4,
       };
+
+      console.log("📤 RF PAYLOAD (final):", payload);
 
       const res = await getPriceForecast(payload);
 
@@ -406,21 +557,65 @@ const PriceForecastScreen = () => {
 
       setWeeklyForecast(res.weeks);
 
-      // First week value use karala main card ekata price set karamu
       const first = res.weeks[0];
+      const firstWeek = res.weeks[0];
+
+      // ✅ USE ACTUAL CONFIDENCE FROM API (not hardcoded)
+      const actualConfidence = firstWeek?.confidence_pct ?? 70;
+      setConfidenceScore(actualConfidence);
 
       setPredictedPrice(first.ensemble);
 
-      if (currentPriceNumeric > 0) {
+      // AFTER setWeeklyForecast(res.weeks)
+      // ⭐ BEST WEEK INDEX (highest ensemble price)
+      const bestIdx = res.weeks.reduce(
+        (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
+        0
+      );
+
+      // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
+      if (!notificationSentRef.current) {
+        if (bestIdx === 0) {
+          await sendNotification(
+            language === "si"
+              ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
+              : "⭐ Best time to sell is this week",
+            language === "si"
+              ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
+              : "The current week has the highest predicted price",
+            "price"
+          );
+        } else {
+          const daysToSell = bestIdx * 7;
+
+          await sendNotification(
+            language === "si"
+              ? `🗓 දින ${daysToSell} කින් විකිණන්න`
+              : `🗓 Sell in ${daysToSell} days`,
+            language === "si"
+              ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
+              : "Best price expected in the selected week",
+            "price"
+          );
+        }
+
+        notificationSentRef.current = true;
+      }
+
+      if (Number.isFinite(lastPriceValue) && lastPriceValue >= 50) {
         const change =
-          ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100;
-        setPriceChange(change);
+          ((first.ensemble - lastPriceValue) / lastPriceValue) * 100;
+
+        // small-change visibility fix
+        const visibleChange = Math.abs(change) < 0.05 ? 0 : change;
+
+        setPriceChange(Math.max(Math.min(visibleChange, 100), -100));
       } else {
         setPriceChange(0);
       }
 
-      // simple fixed confidence (api eken enne naththam)
-      setConfidenceScore(85);
+      // ✅ REMOVED hardcoded setConfidenceScore(85)
+      // Confidence is now set from API above
 
       // Recommendation logic
       const changePct = currentPriceNumeric
@@ -439,16 +634,60 @@ const PriceForecastScreen = () => {
       // fallback – (optional) you can keep your old random logic here
     } finally {
       setIsLoadingForecast(false);
+
+      // 🔥 FADE OUT LOADING ANIMATION
+      Animated.timing(loadingOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     }
   };
+
+  useEffect(() => {
+    if (hasRunForecastRef.current) return;
+
+    if (!isLoading && temperature !== null && rainfallMm !== null) {
+      hasRunForecastRef.current = true;
+      generateForecast();
+    }
+  }, [isLoading, temperature, rainfallMm]);
 
   const calculateProfit = () => {
     if (!formData) return { revenue: 0, profit: 0, margin: 0 };
     const totalYield = formData.expectedYield * formData.farmArea;
-    const revenue = totalYield * predictedPrice;
+    const price = predictedPrice ?? 0;
+    const revenue = totalYield * price;
     const profit = revenue - formData.totalCost;
-    const margin = (profit / revenue) * 100;
+    const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
     return { revenue, profit, margin, totalYield };
+  };
+
+  const getBestWeekProfitDifference = () => {
+    if (
+      !weeklyForecast ||
+      weeklyForecast.length === 0 ||
+      predictedPrice === null
+    )
+      return null;
+
+    const totalYield = formData.expectedYield * formData.farmArea;
+
+    // current week profit
+    const currentRevenue = totalYield * predictedPrice;
+    const currentProfit = currentRevenue - formData.totalCost;
+
+    // best week price
+    const bestWeekPrice =
+      weeklyForecast[bestWeekIndex]?.ensemble ?? predictedPrice;
+    const bestRevenue = totalYield * bestWeekPrice;
+    const bestProfit = bestRevenue - formData.totalCost;
+
+    return {
+      currentProfit,
+      bestProfit,
+      difference: bestProfit - currentProfit,
+    };
   };
 
   const getRecommendationText = () => {
@@ -513,15 +752,71 @@ const PriceForecastScreen = () => {
   };
 
   const handleGoBack = () => {
-    navigation.goBack();
+    localNavigation.goBack();
   };
 
   const handleStartOver = () => {
-    navigation.navigate("PriceForecastLoadingScreen");
+    notificationSentRef.current = false; // ✅ RESET HERE
+    localNavigation.navigate("PriceForecastLoadingScreen");
   };
 
   const { revenue, profit, margin, totalYield } = calculateProfit();
   const trendAnalysis = getTrendAnalysis();
+  const bestWeekProfit = getBestWeekProfitDifference();
+
+  // 🔥 GENERATE VOICE SUMMARY when forecast is ready
+  useEffect(() => {
+    if (weeklyForecast.length > 0 && predictedPrice !== null) {
+      const summaryParams: VoiceSummaryParams = {
+        district: formData?.district || "Anuradhapura", // ✅ USE FORM DISTRICT
+        language,
+        currentPrice: predictedPrice,
+        weeklyForecast,
+        hasStorage: formData?.hasStorage ?? false,
+        recommendation,
+      };
+
+      const summary = generateVoiceSummary(summaryParams);
+      setVoiceSummaryText(summary);
+    }
+  }, [
+    weeklyForecast,
+    predictedPrice,
+    language,
+    recommendation,
+    formData?.district,
+  ]);
+
+  // 🔥 IMPROVED: HANDLE VOICE PLAYBACK with proper stop
+  const handlePlayVoice = async () => {
+    if (isSpeaking) {
+      // STOP SPEECH
+      try {
+        await Speech.stop();
+        setIsSpeaking(false);
+      } catch (error) {
+        console.error("Stop speech error:", error);
+        setIsSpeaking(false);
+      }
+    } else {
+      // START SPEECH
+      if (!voiceSummaryText) return;
+
+      try {
+        setIsSpeaking(true);
+        await Speech.speak(voiceSummaryText, {
+          language: language === "si" ? "si-LK" : "en-US",
+          pitch: 1,
+          rate: 0.85,
+          onDone: () => setIsSpeaking(false),
+          onError: () => setIsSpeaking(false),
+        });
+      } catch (error) {
+        console.error("Speech error:", error);
+        setIsSpeaking(false);
+      }
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -537,16 +832,17 @@ const PriceForecastScreen = () => {
           </Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Bell color="#10B981" size={20} />
-          </TouchableOpacity>
           <TouchableOpacity
-            style={styles.langButton}
-            onPress={() => setLanguage((prev) => (prev === "si" ? "en" : "si"))}
+            style={styles.iconButton}
+            onPress={() => rootNavigation.navigate("Notifications")}
           >
-            <Text style={styles.langText}>
-              {language === "si" ? "EN" : "සිං"}
-            </Text>
+            <Bell size={20} color="#047857" />
+
+            {unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{unreadCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -573,17 +869,6 @@ const PriceForecastScreen = () => {
           </View>
         </View>
       </View>
-      <Text style={styles.savedTitle}>
-        {language === "si" ? "සුරැකි දත්ත" : "Saved Data"}
-      </Text>
-
-      <Text style={styles.savedItem}>🌾 Variety: {savedForm?.seedVariety}</Text>
-      <Text style={styles.savedItem}>📅 Year: {savedAuto?.year}</Text>
-      <Text style={styles.savedItem}>🗓 Week: {savedAuto?.week}</Text>
-      <Text style={styles.savedItem}>🛢 Fuel: {savedPrice?.fuelPrice}</Text>
-      <Text style={styles.savedItem}>📍 District: {formData?.district}</Text>
-
-      <Text style={styles.savedItem}>☀ Weather: {savedWeather?.weather}</Text>
 
       <ScrollView
         style={styles.scrollContainer}
@@ -596,17 +881,60 @@ const PriceForecastScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
+          {/* 🔥 VOICE SUMMARY CARD - Only show when voice text is ready */}
+          {voiceSummaryText && (
+            <View style={styles.voiceSummaryCard}>
+              <View style={styles.voiceSummaryHeader}>
+                <Text style={styles.voiceSummaryTitle}>
+                  {language === "si" ? "🎧 ඔබට කිවීම" : "🎧 Listen"}
+                </Text>
+                <TouchableOpacity
+                  style={[
+                    styles.voicePlayButton,
+                    isSpeaking && styles.voicePlayButtonActive,
+                  ]}
+                  onPress={handlePlayVoice}
+                >
+                  <Text style={styles.voicePlayButtonIcon}>
+                    {isSpeaking ? "⏹" : "▶"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {/* 🔥 REMOVED: Voice text display */}
+              <Text style={styles.voiceSummaryHint}>
+                {isSpeaking
+                  ? language === "si"
+                    ? "(⏹ නැවතීමට ඔබ)"
+                    : "(⏹ Tap to stop)"
+                  : language === "si"
+                  ? "(▶ ටින්න අසන්න)"
+                  : "(Tap ▶ to listen)"}
+              </Text>
+            </View>
+          )}
+
           {/* Main Price Card */}
           <View style={styles.priceCard}>
             <View style={styles.priceIconCircle}>
               <DollarSign color="#10B981" size={32} />
             </View>
             <Text style={styles.priceLabel}>
-              {content[language].predictedPrice}
+              {content[language].predictedPrice} (
+              {getISOWeekRangeWithOffset(
+                Number(formData.year),
+                Number(formData.week),
+                0,
+                language
+              )}
+              )
             </Text>
+
             <Text style={styles.priceValue}>
-              රු. {predictedPrice.toFixed(2)}
+              {predictedPrice === null
+                ? "—"
+                : `රු. ${predictedPrice.toFixed(2)}`}
             </Text>
+
             <Text style={styles.priceUnit}>{content[language].perKg}</Text>
 
             <View
@@ -639,8 +967,16 @@ const PriceForecastScreen = () => {
             {/* Confidence Score */}
             <View style={styles.confidenceBar}>
               <Text style={styles.confidenceLabel}>
-                {content[language].confidence}
+                {content[language].confidence} •{" "}
+                {confidenceScore >= 75
+                  ? language === "si"
+                    ? "ඉහළ"
+                    : "High"
+                  : language === "si"
+                  ? "මධ්‍යම"
+                  : "Medium"}
               </Text>
+
               <View style={styles.progressBarContainer}>
                 <View
                   style={[
@@ -726,6 +1062,40 @@ const PriceForecastScreen = () => {
           )}
           {/* ========== END: PRICE TREND CHART ========== */}
 
+          {bestWeekProfit && (
+            <View style={styles.bestProfitCard}>
+              <Text style={styles.bestProfitTitle}>
+                📊{" "}
+                {language === "si"
+                  ? bestWeekIndex === 0
+                    ? "වත්මන් සතිය හොඳමය"
+                    : "හොඳම සතියේ අමතර ලාභය"
+                  : bestWeekIndex === 0
+                  ? "Current Week is the Best"
+                  : "Extra Profit in Best Week"}
+              </Text>
+
+              {bestWeekProfit.difference > 0 ? (
+                <>
+                  <Text style={styles.bestProfitValue}>
+                    රු. {bestWeekProfit.difference.toFixed(0)}
+                  </Text>
+                  <Text style={styles.bestProfitSub}>
+                    {language === "si"
+                      ? "වත්මන් සතියට වඩා හොඳම සතියේ විකිණුවොත් ලැබෙන අමතර ලාභය"
+                      : "Additional profit if you sell in the best week instead of this week"}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.bestProfitSub}>
+                  {language === "si"
+                    ? "වත්මන් සතියේ විකිණීමෙන් උපරිම ලාභය ලබාගත හැක"
+                    : "Selling in the current week gives the maximum profit"}
+                </Text>
+              )}
+            </View>
+          )}
+
           {/* Recommendation Card */}
           <View
             style={[
@@ -763,27 +1133,88 @@ const PriceForecastScreen = () => {
                   : "Next 4 Weeks Price Forecast"}
               </Text>
 
+              {/* ✅ Dynamic Best Week Message */}
+              {getBestWeekMessage() && (
+                <Text style={styles.bestWeekInfoText}>
+                  {getBestWeekMessage()}
+                </Text>
+              )}
+
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingRight: 20 }}
                 style={{ marginTop: 8 }}
               >
-                {weeklyForecast.map((w) => (
-                  <View key={w.week} style={styles.weekCard}>
-                    <Text style={styles.weekLabel}>
-                      {language === "si" ? `සතිය ${w.week}` : `Week ${w.week}`}
-                    </Text>
+                {weeklyForecast.map((w, index) => {
+                  const isBest = index === bestWeekIndex;
+                  // ✅ DEFINE VARIABLES HERE (JS scope)
+                  const confPct = w.confidence_pct ?? 70;
+                  const confTag = w.confidence_tag ?? "Medium";
 
-                    <Text style={styles.weekPrice}>
-                      Rs {w.ensemble.toFixed(2)}
-                    </Text>
+                  return (
+                    <View
+                      key={w.week}
+                      style={[styles.weekCard, isBest && styles.bestWeekCard]}
+                    >
+                      {/* ⭐ BEST WEEK BADGE */}
+                      {isBest && (
+                        <View style={styles.bestBadge}>
+                          <Text style={styles.bestBadgeText}>
+                            ⭐ {language === "si" ? "හොඳම සතිය" : "Best Week"}
+                          </Text>
+                        </View>
+                      )}
+                      {/* WEEK DATE RANGE */}
+                      <Text style={styles.weekLabel}>
+                        {getISOWeekRangeWithOffset(
+                          Number(formData.year),
+                          Number(formData.week),
+                          index,
+                          language
+                        )}
+                      </Text>
+                      {/* PRICE */}
+                      <Text style={styles.weekPrice}>
+                        Rs {w.ensemble.toFixed(2)}
+                      </Text>
+                      <View
+                        style={[
+                          styles.confBadge,
+                          {
+                            backgroundColor:
+                              confTag === "High" ? "#D1FAE5" : "#FEF3C7",
+                            borderColor:
+                              confTag === "High" ? "#10B981" : "#F59E0B",
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.confBadgeText,
+                            {
+                              color: confTag === "High" ? "#047857" : "#92400E",
+                            },
+                          ]}
+                        >
+                          {confTag === "High"
+                            ? language === "si"
+                              ? `ඉහළ • ${confPct.toFixed(0)}%`
+                              : `High • ${confPct.toFixed(0)}%`
+                            : language === "si"
+                            ? `මධ්‍යම • ${confPct.toFixed(0)}%`
+                            : `Medium • ${confPct.toFixed(0)}%`}
+                        </Text>
+                      </View>
 
-                    <Text style={styles.weekSub}>
-                      SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
-                      {w.ensemble.toFixed(1)}
-                    </Text>
-                  </View>
-                ))}
+                      {/* MODEL DETAILS 
+                      <Text style={styles.weekSub}>
+                        SARIMAX: {w.sarimax.toFixed(1)} | Ensemble:{" "}
+                        {w.ensemble.toFixed(1)}
+                      </Text> */}
+                    </View>
+                  );
+                })}
               </ScrollView>
             </View>
           )}
@@ -923,156 +1354,6 @@ const PriceForecastScreen = () => {
             </View>
           </View>
 
-          {/* ----------------------------- */}
-          {/* 🌾 Cultivation Advisor Section */}
-          {/* ----------------------------- */}
-
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              🌾 {language === "si" ? "වගා උපදෙස්" : "Cultivation Advisor"}
-            </Text>
-
-            {/* Calculate values */}
-            {(() => {
-              const varietyDurations: any = {
-                "Jet 999": 95,
-                "GT 709": 100,
-                "808": 90,
-                "Pacific 999": 95,
-                Unknown: 95,
-              };
-
-              const durationDays =
-                varietyDurations[formData?.seedVariety] ||
-                varietyDurations["Unknown"];
-              const durationWeeks = Math.round(durationDays / 7);
-
-              const plantingWeek = Number(formData?.week);
-              const harvestWeek = plantingWeek + durationWeeks;
-
-              const harvestDate = new Date();
-              harvestDate.setDate(harvestDate.getDate() + durationDays);
-              const harvestDateStr = harvestDate.toDateString();
-
-              const production = formData.expectedYield * formData.farmArea;
-              const revenue = production * predictedPrice;
-              const profit = revenue - formData.totalCost;
-
-              let signalColor = "#EF4444";
-              let signalText =
-                language === "si"
-                  ? "මෙම සතිය වගා කිරීමට සුදුසු නොවේ"
-                  : "Not suitable for cultivation this week";
-
-              if (profit > formData.totalCost * 0.5) {
-                signalColor = "#10B981";
-                signalText =
-                  language === "si"
-                    ? "මෙම සතිය වගා කිරීමට ඉතා හොඳයි"
-                    : "Excellent week for cultivation";
-              } else if (profit > 0) {
-                signalColor = "#F59E0B";
-                signalText =
-                  language === "si"
-                    ? "මධ්‍යම ලෙස ලාභදායී සතියක්"
-                    : "Moderately profitable week";
-              }
-
-              let weatherAlert =
-                language === "si"
-                  ? "කාලගුණය ස්ථාවරයි"
-                  : "Weather conditions are stable";
-
-              const wc = (weatherCondition || "").toLowerCase();
-
-              if (wc.includes("heavy rain")) {
-                weatherAlert =
-                  language === "si"
-                    ? "බර වැසි - දින 2–3ක් ප්‍රමාද කරන්න"
-                    : "Heavy rain — delay 2–3 days";
-              }
-              if (wc.includes("thunder")) {
-                weatherAlert =
-                  language === "si"
-                    ? "අකුණු සහිත වැසි - අද වගා නොකරන්න"
-                    : "Thunderstorm — avoid planting today";
-              }
-
-              return (
-                <>
-                  {/* Signal Card */}
-                  <View
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      borderLeftWidth: 5,
-                      borderLeftColor: signalColor,
-                      padding: 16,
-                      borderRadius: 12,
-                      marginBottom: 16,
-                      elevation: 3,
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 16,
-                        fontWeight: "bold",
-                        color: signalColor,
-                        marginBottom: 6,
-                      }}
-                    >
-                      {signalText}
-                    </Text>
-
-                    <Text style={{ color: "#374151", fontSize: 14 }}>
-                      {language === "si"
-                        ? `ප්රතිඵල: රු. ${profit.toFixed(0)} ලාභය`
-                        : `Profit: Rs. ${profit.toFixed(0)}`}
-                    </Text>
-                  </View>
-
-                  {/* Advisor Summary */}
-                  <View
-                    style={{
-                      backgroundColor: "#FFFFFF",
-                      padding: 18,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: "#D1FAE5",
-                      marginBottom: 16,
-                    }}
-                  >
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "වගා සතිය" : "Planting Week"}:{" "}
-                      {plantingWeek}
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "අස්වැන්න සතිය" : "Harvest Week"}:{" "}
-                      {harvestWeek}
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "අස්වැන්න දිනය" : "Harvest Date"}:{" "}
-                      {harvestDateStr}
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si" ? "මුළු අස්වැන්න" : "Total Yield"}:{" "}
-                      {production.toFixed(0)} kg
-                    </Text>
-
-                    <Text style={styles.detailItem}>
-                      {language === "si"
-                        ? "වාතාවරණ අතුරුදහන්"
-                        : "Weather Alert"}
-                      : {weatherAlert}
-                    </Text>
-                  </View>
-                </>
-              );
-            })()}
-          </View>
-
           {/* Action Buttons */}
           <TouchableOpacity
             style={styles.primaryButton}
@@ -1096,6 +1377,32 @@ const PriceForecastScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* 🔥 NEW: LOADING OVERLAY */}
+      {isLoadingForecast && (
+        <Animated.View
+          style={[
+            styles.loadingOverlay,
+            {
+              opacity: loadingOpacity,
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.loadingContent,
+              {
+                transform: [{ scale: loadingScale }],
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.loadingText}>
+              {language === "si" ? "විශ්ලේෂණය කරමින්..." : "Analyzing..."}
+            </Text>
+          </Animated.View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -1331,7 +1638,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  // END NEW CHART STYLES
   recommendationCard: {
     backgroundColor: "#ECFDF5",
     borderRadius: 16,
@@ -1525,7 +1831,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   weekCard: {
-    width: "100%",
+    width: width * 0.78,
     maxWidth: 320,
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
@@ -1555,6 +1861,182 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#6B7280",
   },
+  bestWeekCard: {
+    borderColor: "#10B981",
+    borderWidth: 2,
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+
+  bestBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#10B981",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 6,
+  },
+  bestBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "bold",
+  },
+  bestWeekInfoText: {
+    fontSize: 13,
+    color: "#047857",
+    fontWeight: "600",
+    marginBottom: 12,
+    backgroundColor: "#ECFDF5",
+    padding: 10,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: "#10B981",
+  },
+  bestProfitCard: {
+    backgroundColor: "#ECFDF5",
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#10B981",
+    alignItems: "center",
+  },
+
+  bestProfitTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#065F46",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+
+  bestProfitValue: {
+    fontSize: 26,
+    fontWeight: "bold",
+    color: "#10B981",
+    marginBottom: 6,
+  },
+
+  bestProfitSub: {
+    fontSize: 13,
+    color: "#047857",
+    textAlign: "center",
+  },
+  badge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: "#EF4444",
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    minWidth: 16,
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  confBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  confBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  // 🔥 NEW VOICE SUMMARY STYLES
+  voiceSummaryCard: {
+    backgroundColor: "#E0F2FE",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: "#0284C7",
+    shadowColor: "#0284C7",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  voiceSummaryHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  voiceSummaryTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#0C4A6E",
+  },
+  voicePlayButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#0284C7",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  voicePlayButtonActive: {
+    backgroundColor: "#F59E0B",
+  },
+  voicePlayButtonIcon: {
+    fontSize: 20,
+    color: "#FFFFFF",
+    fontWeight: "bold",
+  },
+  voiceSummaryText: {
+    fontSize: 15,
+    color: "#0C4A6E",
+    lineHeight: 24,
+    fontWeight: "500",
+    marginBottom: 10,
+  },
+  voiceSummaryHint: {
+    fontSize: 12,
+    color: "#0284C7",
+    fontStyle: "italic",
+    textAlign: "right",
+  },
+  // 🔥 NEW LOADING STYLES
+  loadingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 999,
+  },
+  loadingContent: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 40,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#10B981",
+  },
+
+  // ...rest of existing styles...
 });
 
 export default PriceForecastScreen;

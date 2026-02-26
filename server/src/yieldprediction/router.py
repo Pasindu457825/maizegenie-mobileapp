@@ -37,9 +37,14 @@ def predict_yield(body: YieldBody):
 @router.get("/health")
 def health_check():
     """Health check endpoint"""
-    from .ml_model import USE_ML
+    try:
+        from .ml_prediction_service import MODEL_LOADED
+        ml_loaded = MODEL_LOADED
+    except ImportError:
+        ml_loaded = False
+    
     return {
         "status": "ok",
         "service": "yield-prediction",
-        "ml_model_loaded": USE_ML
+        "ml_model_loaded": ml_loaded
     }
