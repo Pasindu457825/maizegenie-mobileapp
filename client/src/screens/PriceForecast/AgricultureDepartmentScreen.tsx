@@ -37,7 +37,7 @@ type AgricultureDepartment = {
   hours?: string;
 };
 
-type LanguageType = "si" | "en";
+type LanguageType = "si" | "en" | "ta";
 
 // ✨ Translations
 const translations: Record<
@@ -141,6 +141,40 @@ const translations: Record<
     title: "Agriculture Department",
     subtitle: "Sri Lanka",
   },
+  ta: {
+    locating: "உங்கள் இடத்தை கண்டறிகிறது...",
+    centerType: "மைய வகை:",
+    allCenters: "அனைத்தும்",
+    districtOffice: "மாவட்ட அலுவலகம்",
+    headOffice: "தலைமை அலுவலகம்",
+    researchInstitute: "ஆராய்ச்சி நிறுவனம்",
+    extensionCenter: "விரிவாக்க மையம்",
+    cicOffice: "CIC அலுவலகம்",
+    searchRadius: "தேடல் ஆரம்:",
+    loading: "மையங்களை ஏற்றுகிறது...",
+    noResults: "மையங்கள் எதுவும் கிடைக்கவில்லை",
+    noResultsSub: "தயவுசெய்து தேடல் ஆரத்தை அதிகரிக்கவும்",
+    retry: "மீண்டும் முயற்சிக்கவும்",
+    foundCenters: "கண்டறியப்பட்ட மையங்கள்:",
+    sortedByDistance:
+      "உங்கள் இடத்திலிருந்து தூரத்தின் அடிப்படையில் வரிசைப்படுத்தப்பட்டது",
+    services: "சேவைகள்:",
+    hours: "நேரம்",
+    call: "அழைப்பு",
+    email: "மின்னஞ்சல்",
+    directions: "வழிகாட்டுதல்",
+    callConfirm: "தொலைபேசி அழைப்பு",
+    callConfirmSub: "இந்த எண்ணை அழைக்கவா?",
+    cancel: "ரத்து செய்",
+    emailError: "பிழை",
+    emailErrorMessage: "மின்னஞ்சல் பயன்பாட்டை திறக்க முடியவில்லை",
+    source: "* தரவு மூலம்: இலங்கை வேளாண் திணைக்களம்",
+    tip: "குறிப்பு",
+    tipDescription:
+      "அருகில் உள்ள வேளாண் மையத்தைக் கண்டறிந்து சேவை கிடைக்கிறதா என்று உறுதிப்படுத்த அழைக்கவும்.",
+    title: "வேளாண் திணைக்களம்",
+    subtitle: "இலங்கை",
+  },
 };
 
 // ─── Overpass API helper ────────────────────────────────────────────────────
@@ -194,7 +228,7 @@ const AgricultureDepartmentScreen = () => {
 
   // ✅ Ensure language is properly tracked
   const language: LanguageType = useMemo(() => {
-    return lang === "sinhala" ? "si" : "en";
+    return lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
   }, [lang]);
 
   // ✅ Get translations based on language
