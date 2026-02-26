@@ -72,7 +72,7 @@ type NavigationProp = NativeStackNavigationProp<
 type CategoryKey = OfficialNews["category"] | "all";
 
 // ✅ Add language type
-type LanguageType = "si" | "en";
+type LanguageType = "si" | "en" | "ta";
 
 // ✅ Add translations
 const translations: Record<LanguageType, any> = {
@@ -126,6 +126,31 @@ const translations: Record<LanguageType, any> = {
     program: "Program",
     all: "All",
   },
+  ta: {
+    title: "அதிகாரப்பூர்வ செய்திகள்",
+    search: "தலைப்பு / சுருக்கம் / மாவட்டம் / ஆதாரம் தேடுங்கள்...",
+    filter: "தேடல் & வடிகட்டல்",
+    results: "முடிவுகள்",
+    reset: "மீட்டமை",
+    noNews: "அதிகாரப்பூர்வ செய்திகள் இல்லை",
+    noResults: "உங்கள் தேடல்/வடிகட்டலுக்கு செய்திகள் இல்லை",
+    loading: "செய்திகள் ஏற்றப்படுகின்றன...",
+    error: "செய்திகளை பெற முடியவில்லை",
+    retry: "மீண்டும் முயற்சிக்கவும்",
+    readMore: "மேலும் படிக்க",
+    edit: "திருத்து",
+    addNews: "செய்தி சேர்க்க",
+    price: "விலை",
+    weather: "வானிலை",
+    policy: "கொள்கை",
+    alert: "எச்சரிக்கை",
+    pest: "பூச்சி",
+    disease: "நோய்",
+    fertilizer: "உரம்",
+    cultivation: "சாகுபடி வழிகாட்டல்",
+    program: "திட்டம்",
+    all: "அனைத்தும்",
+  },
 };
 
 export default function OfficialNewsScreen() {
@@ -139,7 +164,7 @@ export default function OfficialNewsScreen() {
 
   const { user } = useApp();
   const { language: globalLang } = useLanguage();
-  const language: LanguageType = globalLang === "sinhala" ? "si" : "en";
+  const language: LanguageType = globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const t = translations[language];
 
   // Role-based authentication using Supabase user data
@@ -245,20 +270,7 @@ export default function OfficialNewsScreen() {
   };
 
   const getCategoryLabel = (category: string) => {
-    const categoryMap: Record<string, Record<LanguageType, string>> = {
-      price: { si: t.price, en: t.price },
-      weather: { si: t.weather, en: t.weather },
-      policy: { si: t.policy, en: t.policy },
-      alert: { si: t.alert, en: t.alert },
-      pest: { si: t.pest, en: t.pest },
-      disease: { si: t.disease, en: t.disease },
-      fertilizer: { si: t.fertilizer, en: t.fertilizer },
-      cultivation: { si: t.cultivation, en: t.cultivation },
-      program: { si: t.program, en: t.program },
-      all: { si: t.all, en: t.all },
-    };
-
-    return categoryMap[category]?.[language] || category;
+    return (t as any)[category] || category;
   };
 
   // =======================
@@ -490,7 +502,7 @@ export default function OfficialNewsScreen() {
 
               <Text style={styles.dateText}>
                 {new Date(item.created_at).toLocaleDateString(
-                  language === "si" ? "si-LK" : "en-US"
+                  language === "si" ? "si-LK" : language === "ta" ? "ta-LK" : "en-US"
                 )}
               </Text>
             </View>
@@ -529,6 +541,8 @@ export default function OfficialNewsScreen() {
                     <Text style={{ color: "#fff", fontSize: 12 }}>
                       {language === "si"
                         ? "Farmersට Hidden"
+                        : language === "ta"
+                        ? "விவசாயிகளிடம் மறைக்கப்பட்டது"
                         : "Hidden from Farmers"}
                     </Text>
                   </View>
