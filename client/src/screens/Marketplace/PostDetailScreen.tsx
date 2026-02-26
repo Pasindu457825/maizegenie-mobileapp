@@ -127,6 +127,7 @@ const PostDetailScreen = () => {
       status: "තත්ත්වය",
       active: "ක්‍රියාකාරී",
       sold: "විකිණුණු",
+      scheduled: "සකස් කළ",
       offers: "ඉදිරිපත්කරණ",
       noOffers: "ඉදිරිපත්කරණ නොමැත",
       makeOffer: "ඉදිරිපත්කරණ",
@@ -189,6 +190,7 @@ const PostDetailScreen = () => {
       status: "Status",
       active: "Active",
       sold: "Sold",
+      scheduled: "Scheduled",
       offers: "Offers",
       noOffers: "No offers yet",
       makeOffer: "Make an Offer",
@@ -603,56 +605,70 @@ const PostDetailScreen = () => {
                   styles.statusBadge,
                   {
                     backgroundColor:
-                      post.status === "sold" ? "#FEE2E2" : "#ECFDF5",
+                      post.status === "sold"
+                        ? "#FEE2E2"
+                        : post.status === "scheduled"
+                          ? "#FEF3C7"
+                          : "#ECFDF5",
                   },
                 ]}
               >
                 <Text
                   style={[
                     styles.statusText,
-                    { color: post.status === "sold" ? "#DC2626" : "#10B981" },
+                    {
+                      color:
+                        post.status === "sold"
+                          ? "#DC2626"
+                          : post.status === "scheduled"
+                            ? "#92400E"
+                            : "#10B981",
+                    },
                   ]}
                 >
                   {post.status === "sold"
                     ? content[language].sold
-                    : content[language].active}
+                    : post.status === "scheduled"
+                      ? `🕐 ${content[language].scheduled}`
+                      : content[language].active}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Farmer edit / delete — active posts only */}
-          {isFarmer && post.status === "active" && (
-            <View style={styles.postManageRow}>
-              <TouchableOpacity
-                style={styles.postEditButton}
-                onPress={handleEditPost}
-                disabled={isDeletingPost}
-              >
-                <Edit2 size={13} color="#047857" />
-                <Text style={styles.postEditButtonText}>
-                  {content[language].editPost}
-                </Text>
-              </TouchableOpacity>
+          {/* Farmer edit / delete — active AND scheduled posts */}
+          {isFarmer &&
+            (post.status === "active" || post.status === "scheduled") && (
+              <View style={styles.postManageRow}>
+                <TouchableOpacity
+                  style={styles.postEditButton}
+                  onPress={handleEditPost}
+                  disabled={isDeletingPost}
+                >
+                  <Edit2 size={13} color="#047857" />
+                  <Text style={styles.postEditButtonText}>
+                    {content[language].editPost}
+                  </Text>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.postDeleteButton}
-                onPress={handleDeletePost}
-                disabled={isDeletingPost}
-              >
-                {isDeletingPost ? (
-                  <ActivityIndicator size="small" color="#DC2626" />
-                ) : (
-                  <>
-                    <Trash2 size={13} color="#DC2626" />
-                    <Text style={styles.postDeleteButtonText}>
-                      {content[language].deletePost}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
+                <TouchableOpacity
+                  style={styles.postDeleteButton}
+                  onPress={handleDeletePost}
+                  disabled={isDeletingPost}
+                >
+                  {isDeletingPost ? (
+                    <ActivityIndicator size="small" color="#DC2626" />
+                  ) : (
+                    <>
+                      <Trash2 size={13} color="#DC2626" />
+                      <Text style={styles.postDeleteButtonText}>
+                        {content[language].deletePost}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
 
           {/* Price Highlight */}
           <View style={styles.priceHighlight}>

@@ -14,7 +14,9 @@ export interface Post {
   week: number;
   season: string;
   created_at: string;
-  status: "active" | "sold";
+  status: "active" | "sold" | "scheduled";
+  publish_at?: string | null;
+  visible?: boolean;
   farmer_name?: string;
   farmer_phone?: string | null; // only populated for the accepted buyer via RPC
   accepted_offer_id?: string | null;
@@ -54,6 +56,10 @@ export const createPost = async (postDraft: PostDraft): Promise<Post> => {
 
   if (!user) throw new Error("User not authenticated");
 
+  // Determine if this is a future-scheduled post
+  const isScheduled =
+    postDraft.publishAt != null && new Date(postDraft.publishAt) > new Date();
+
   const { data, error } = await supabase
     .from("posts")
     .insert({
@@ -65,7 +71,11 @@ export const createPost = async (postDraft: PostDraft): Promise<Post> => {
       week:
         postDraft.forecastWeek || parseInt(postDraft.forecastWeek as any) || 1,
       season: postDraft.season || "Maha",
-      status: "active",
+      status: isScheduled ? "scheduled" : "active",
+      visible: !isScheduled,
+      publish_at: isScheduled
+        ? new Date(postDraft.publishAt!).toISOString()
+        : null,
     })
     .select()
     .single();
@@ -82,10 +92,18 @@ export const listPosts = async (filters?: {
   minPrice?: number;
   maxPrice?: number;
 }): Promise<Post[]> => {
-  // Show ALL posts (active + sold) so sold posts remain visible in the
-  // marketplace with a SOLD badge instead of disappearing.
-  // Sort: active posts first (status ASC: "active" < "sold" alphabetically),
-  // then newest-first within each group.
+  // Trigger server-side auto-publish for any scheduled posts whose time has
+  // arrived. Errors are non-fatal — the client-side guard below is a fallback.
+  try {
+    await supabase.rpc("auto_publish_scheduled_posts");
+  } catch (_) {
+    // pg_cron may have already published them, or function not yet applied
+  }
+
+  // Show ALL posts:
+  //   • active + sold  → visible to everyone (RLS policy)
+  //   • scheduled      → visible only to owner (RLS policy)
+  // Sort: active first, scheduled second, sold last; newest-first within each.
   let query = supabase
     .from("posts")
     .select(
@@ -94,7 +112,7 @@ export const listPosts = async (filters?: {
       farmer:profiles!posts_farmer_id_fkey(full_name)
     `,
     )
-    .order("status", { ascending: true }) // active before sold
+    .order("status", { ascending: true }) // active < scheduled < sold alphabetically
     .order("created_at", { ascending: false }); // newest first within each group
 
   if (filters?.district) {
@@ -254,6 +272,12 @@ export const createOffer = async (
   if (targetPost.status === "sold") {
     throw new Error(
       "This post has already been sold and is no longer accepting offers",
+    );
+  }
+
+  if (targetPost.status === "scheduled") {
+    throw new Error(
+      "This post is not yet published and is not accepting offers",
     );
   }
 
@@ -676,7 +700,7 @@ export const updatePost = async (
   if (!existing) throw new Error("Post not found");
   if (existing.farmer_id !== user.id)
     throw new Error("You can only edit your own post");
-  if (existing.status !== "active")
+  if (existing.status === "sold")
     throw new Error("Post cannot be edited — it has already been sold");
 
   const { data, error } = await supabase
@@ -725,7 +749,7 @@ export const deletePost = async (postId: string): Promise<void> => {
   if (!existing) throw new Error("Post not found");
   if (existing.farmer_id !== user.id)
     throw new Error("You can only delete your own post");
-  if (existing.status !== "active")
+  if (existing.status === "sold")
     throw new Error(
       "Sold posts cannot be deleted — the transaction record must be preserved",
     );
@@ -733,4 +757,46 @@ export const deletePost = async (postId: string): Promise<void> => {
   const { error } = await supabase.from("posts").delete().eq("id", postId);
 
   if (error) throw error;
+};
+
+/* =====================================================
+   PUBLISH NOW (Farmer only — scheduled posts only)
+   Immediately activates a scheduled post.
+===================================================== */
+export const publishPostNow = async (postId: string): Promise<Post> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("User not authenticated");
+
+  // Frontend guard
+  const { data: existing, error: fetchErr } = await supabase
+    .from("posts")
+    .select("id, farmer_id, status")
+    .eq("id", postId)
+    .single();
+
+  if (fetchErr) throw fetchErr;
+  if (!existing) throw new Error("Post not found");
+  if (existing.farmer_id !== user.id)
+    throw new Error("You can only publish your own post");
+  if (existing.status !== "scheduled")
+    throw new Error("Only scheduled posts can be published immediately");
+
+  const { data, error } = await supabase
+    .from("posts")
+    .update({
+      status: "active",
+      visible: true,
+      publish_at: new Date().toISOString(),
+    })
+    .eq("id", postId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  if (!data)
+    throw new Error("Publish failed — RLS may have blocked the update");
+
+  return data as Post;
 };

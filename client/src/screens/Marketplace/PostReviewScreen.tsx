@@ -25,6 +25,7 @@ import {
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { createPost } from "../../services/postService";
+import CustomDatePicker from "../../components/CustomDatePicker";
 import {
   useNotifications,
   NOTIFICATION_TYPE,
@@ -218,7 +219,9 @@ const PostReviewScreen = () => {
               ]}
               onPress={() => {
                 setPublishMode("later");
-                setPublishAt(new Date(Date.now() + 86400000)); // +1 day default
+                if (!publishAt) {
+                  setPublishAt(new Date(Date.now() + 86400000)); // +1 day default
+                }
               }}
             >
               <Calendar size={16} color="#047857" />
@@ -226,13 +229,15 @@ const PostReviewScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Schedule Preview */}
-          {publishMode === "later" && publishAt && (
-            <View style={styles.scheduleBox}>
-              <Text style={styles.scheduleText}>
-                {content[language].pickDate} : {publishAt.toDateString()}
-              </Text>
-            </View>
+          {/* Schedule Date Picker */}
+          {publishMode === "later" && (
+            <CustomDatePicker
+              label={content[language].pickDate}
+              value={publishAt}
+              onSelect={(date) => setPublishAt(date)}
+              minimumDate={new Date(Date.now() + 86400000)}
+              required
+            />
           )}
 
           {/* Warning */}

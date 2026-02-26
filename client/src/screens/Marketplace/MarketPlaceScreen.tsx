@@ -34,6 +34,7 @@ import {
   listPosts,
   checkUserOffer,
   createOffer,
+  publishPostNow,
   type Post,
 } from "../../services/postService";
 import { supabase } from "../../lib/supabase";
@@ -64,6 +65,7 @@ const MarketPlaceScreen = () => {
   );
   const [quickOfferPrice, setQuickOfferPrice] = useState<string>("");
   const [isSubmittingQuickOffer, setIsSubmittingQuickOffer] = useState(false);
+  const [isPublishingNow, setIsPublishingNow] = useState<string | null>(null); // postId being published
 
   const content = {
     si: {
@@ -75,6 +77,8 @@ const MarketPlaceScreen = () => {
       loading: "පූරණය වෙමින්...",
       active: "ක්‍රියාකාරී",
       sold: "විකිණුණු",
+      scheduled: "සකස් කළ",
+      postNow: "දැන් ප්‍රකාශනය",
       yourOffer: "ඔබේ ඉදිරිපත්කරණ",
       noOffers: "ඉදිරිපත්කරණ නැත",
       // 🔥 NEW: Quick offer modal text
@@ -98,6 +102,8 @@ const MarketPlaceScreen = () => {
       loading: "Loading...",
       active: "Active",
       sold: "Sold",
+      scheduled: "Scheduled",
+      postNow: "Post Now",
       yourOffer: "Your offer",
       noOffers: "No offers",
       // 🔥 NEW: Quick offer modal text
@@ -156,21 +162,38 @@ const MarketPlaceScreen = () => {
     }, [currentUserId]),
   );
 
-  // Filter posts — always keep active posts before sold posts
+  // Filter posts — always keep active posts before scheduled before sold
   useEffect(() => {
+    const statusOrder = (s: string) =>
+      s === "active" ? 0 : s === "scheduled" ? 1 : 2;
+
     const filtered = posts
       .filter(
         (post) =>
-          post.seed_variety.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          post.district.toLowerCase().includes(searchQuery.toLowerCase()),
+          // Safety: never show another user's scheduled post client-side
+          // (RLS handles this on the DB side; this is a defence-in-depth guard)
+          !(post.status === "scheduled" && post.farmer_id !== currentUserId) &&
+          (post.seed_variety
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+            post.district.toLowerCase().includes(searchQuery.toLowerCase())),
       )
-      .sort((a, b) => {
-        // active = 0, sold = 1 — active comes first
-        if (a.status === b.status) return 0;
-        return a.status === "active" ? -1 : 1;
-      });
+      .sort((a, b) => statusOrder(a.status) - statusOrder(b.status));
     setFilteredPosts(filtered);
-  }, [searchQuery, posts]);
+  }, [searchQuery, posts, currentUserId]);
+
+  // Handle "Post Now" for scheduled posts
+  const handlePublishNow = async (postId: string) => {
+    try {
+      setIsPublishingNow(postId);
+      await publishPostNow(postId);
+      await loadPosts();
+    } catch (error) {
+      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+    } finally {
+      setIsPublishingNow(null);
+    }
+  };
 
   // 🔥 NEW: Handle quick offer submission
   const handleQuickOfferSubmit = async () => {
@@ -228,13 +251,20 @@ const MarketPlaceScreen = () => {
 
   const renderPostCard = ({ item }: { item: Post }) => {
     const hasUserOffer = userOffers.get(item.id);
+    const isScheduled = item.status === "scheduled";
+    const isOwner = currentUserId === item.farmer_id;
 
     return (
       <TouchableOpacity
-        style={[styles.postCard, item.status === "sold" && styles.postCardSold]}
+        style={[
+          styles.postCard,
+          item.status === "sold" && styles.postCardSold,
+          isScheduled && styles.postCardScheduled,
+        ]}
         onPress={() =>
           navigation.navigate("PostDetailScreen", { postId: item.id })
         }
+        activeOpacity={isScheduled ? 0.9 : 0.7}
       >
         {/* Header with status */}
         <View style={styles.cardHeader}>
@@ -244,28 +274,39 @@ const MarketPlaceScreen = () => {
           </View>
 
           <View style={styles.cardRight}>
-            {/* Status Badge */}
-            <View
-              style={[
-                styles.statusBadge,
-                item.status === "sold"
-                  ? styles.statusSold
-                  : styles.statusActive,
-              ]}
-            >
-              <Text
+            {/* Scheduled badge (owner only) */}
+            {isScheduled && isOwner && (
+              <View style={styles.statusBadgeScheduled}>
+                <Text style={styles.statusTextScheduled}>
+                  🕐 {content[language].scheduled}
+                </Text>
+              </View>
+            )}
+
+            {/* Active / Sold status badge */}
+            {!isScheduled && (
+              <View
                 style={[
-                  styles.statusText,
+                  styles.statusBadge,
                   item.status === "sold"
-                    ? styles.statusTextSold
-                    : styles.statusTextActive,
+                    ? styles.statusSold
+                    : styles.statusActive,
                 ]}
               >
-                {item.status === "sold"
-                  ? content[language].sold
-                  : content[language].active}
-              </Text>
-            </View>
+                <Text
+                  style={[
+                    styles.statusText,
+                    item.status === "sold"
+                      ? styles.statusTextSold
+                      : styles.statusTextActive,
+                  ]}
+                >
+                  {item.status === "sold"
+                    ? content[language].sold
+                    : content[language].active}
+                </Text>
+              </View>
+            )}
 
             {/* Price */}
             <View style={styles.priceBadge}>
@@ -295,7 +336,7 @@ const MarketPlaceScreen = () => {
           </View>
         </View>
 
-        {/* Bottom Section: Total Value + Offer Button */}
+        {/* Bottom Section: Total Value + Offer / Post Now Button */}
         <View style={styles.bottomSection}>
           <View style={styles.totalValue}>
             <TrendingUp size={14} color="#10B981" />
@@ -304,8 +345,26 @@ const MarketPlaceScreen = () => {
             </Text>
           </View>
 
-          {/* 🔥 NEW: Offer CTA Button — hidden for the post's own farmer */}
-          {currentUserId &&
+          {/* 🗓 Post Now button — owner's scheduled posts only */}
+          {isScheduled && isOwner && (
+            <TouchableOpacity
+              style={styles.postNowButton}
+              onPress={() => handlePublishNow(item.id)}
+              disabled={isPublishingNow === item.id}
+            >
+              {isPublishingNow === item.id ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.postNowButtonText}>
+                  ▶ {content[language].postNow}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
+
+          {/* 🔥 Offer CTA Button — hidden for scheduled posts and post's own farmer */}
+          {!isScheduled &&
+            currentUserId &&
             item.status === "active" &&
             currentUserId !== item.farmer_id && (
               <TouchableOpacity
@@ -315,12 +374,10 @@ const MarketPlaceScreen = () => {
                 ]}
                 onPress={() => {
                   if (hasUserOffer) {
-                    // Go to detail if already offered
                     navigation.navigate("PostDetailScreen", {
                       postId: item.id,
                     });
                   } else {
-                    // Show quick offer modal
                     setSelectedPostForOffer(item);
                     setQuickOfferPrice(item.price_per_kg.toFixed(2));
                     setShowQuickOfferModal(true);
@@ -627,6 +684,12 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     borderColor: "#FEE2E2",
   },
+  postCardScheduled: {
+    opacity: 0.75,
+    borderColor: "#F59E0B",
+    borderStyle: "dashed",
+    backgroundColor: "#FFFBEB",
+  },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -669,6 +732,17 @@ const styles = StyleSheet.create({
   },
   statusTextSold: {
     color: "#DC2626",
+  },
+  statusBadgeScheduled: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "#FEF3C7",
+  },
+  statusTextScheduled: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#92400E",
   },
   priceBadge: {
     backgroundColor: "#ECFDF5",
@@ -750,6 +824,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#DC2626",
+  },
+  postNowButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#F59E0B",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  postNowButtonText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFF",
   },
   loaderContainer: {
     flex: 1,
