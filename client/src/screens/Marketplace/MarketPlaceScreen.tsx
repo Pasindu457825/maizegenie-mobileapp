@@ -27,6 +27,7 @@ import {
   MessageSquare,
   Send,
   XCircle,
+  Bell,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -44,11 +45,14 @@ type NavProp = StackNavigationProp<
   "MarketPlaceScreen"
 >;
 
+type RootNavProp = StackNavigationProp<Record<string, object | undefined>>;
+
 const MarketPlaceScreen = () => {
   const navigation = useNavigation<NavProp>();
+  const rootNavigation = useNavigation<RootNavProp>();
   const { language: globalLang } = useLanguage();
   const language = globalLang === "sinhala" ? "si" : "en";
-  const { sendNotification } = useNotifications();
+  const { sendNotification, unreadCount } = useNotifications();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
@@ -433,6 +437,19 @@ const MarketPlaceScreen = () => {
               : ""}
           </Text>
         </View>
+        <TouchableOpacity
+          style={styles.notifButton}
+          onPress={() => rootNavigation.navigate("Notifications")}
+        >
+          <Bell color="#047857" size={22} />
+          {unreadCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -661,6 +678,35 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 12,
     color: "#6B7280",
+  },
+  notifButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    marginLeft: 8,
+  },
+  notifBadge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "#EF4444",
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: "#ECFDF5",
+  },
+  notifBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
   },
   searchContainer: {
     backgroundColor: "#FFF",
