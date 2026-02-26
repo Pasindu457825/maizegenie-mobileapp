@@ -23,6 +23,7 @@ import {
   BarChart3,
   MessageSquare,
   Bell,
+  MapPin,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -218,8 +219,18 @@ export default function HomeScreen() {
         color: "#8b5cf6",
         route: "PredictYield",
       },
+      {
+        icon: MapPin,
+        title: language === "si" ? "කෘෂිකර්ම කාර්යාල" : "Agriculture Offices",
+        description:
+          language === "si"
+            ? "ආසන්න කෘෂිකර්ම දෙපාර්තමේන්තු සොයන්න"
+            : "Find nearby agriculture departments",
+        color: "#059669",
+        route: "AgricultureDepartmentScreen", // ✅ DIRECT
+      },
     ],
-    [t]
+    [t],
   );
 
   return (

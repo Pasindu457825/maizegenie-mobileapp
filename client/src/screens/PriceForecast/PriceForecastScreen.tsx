@@ -8,6 +8,7 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -164,6 +165,9 @@ const PriceForecastScreen = () => {
   const [recommendation, setRecommendation] = useState<
     "sell_now" | "sell_immediately" | "storage" | "sell_later"
   >("sell_later");
+  const [noStorageSuggestion, setNoStorageSuggestion] = useState<string | null>(
+    null,
+  );
 
   const [savedForm, setSavedForm] = useState<any>(null);
   const [savedAuto, setSavedAuto] = useState<any>(null);
@@ -174,6 +178,11 @@ const PriceForecastScreen = () => {
   // 🔥 ADD THESE NEW STATE VARIABLES
   const [voiceSummaryText, setVoiceSummaryText] = useState<string>("");
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // 🔥 SELL POPUP STATE
+  const [showSellPopup, setShowSellPopup] = useState(false);
+  const popupAnim = useRef(new Animated.Value(0)).current;
+  const popupShownRef = useRef(false);
 
   const content = {
     si: {
@@ -271,7 +280,7 @@ const PriceForecastScreen = () => {
     year: number,
     baseWeek: number,
     offset: number,
-    lang: "si" | "en"
+    lang: "si" | "en",
   ) => {
     // Jan 4 is always in ISO Week 1
     const jan4 = new Date(year, 0, 4);
@@ -295,11 +304,11 @@ const PriceForecastScreen = () => {
 
     const start = weekStart.toLocaleDateString(
       lang === "si" ? "si-LK" : "en-US",
-      options
+      options,
     );
     const end = weekEnd.toLocaleDateString(
       lang === "si" ? "si-LK" : "en-US",
-      options
+      options,
     );
 
     return `${start} – ${end}`;
@@ -440,12 +449,12 @@ const PriceForecastScreen = () => {
     } else if (temperature !== null && weatherCondition) {
       const translatedCondition = getWeatherTranslation(
         weatherCondition,
-        language
+        language,
       );
       setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
     } else {
       setWeather(
-        language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
+        language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable",
       );
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
@@ -479,7 +488,7 @@ const PriceForecastScreen = () => {
 
       // current farm gate price (string -> number)
       const currentPriceNumeric = parseFloat(
-        (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, "")
+        (formData.farmGatePrice || "0").toString().replace(/[^0-9.]/g, ""),
       );
 
       const weekNum = Number(formData.week);
@@ -499,29 +508,29 @@ const PriceForecastScreen = () => {
 
       const fuelPriceValue = safeNumber(
         String(formData.fuelPrice).replace(/[^0-9.]/g, ""),
-        277
+        277,
       );
 
       const lastPriceValue = safeNumber(
         String(formData.farmGatePrice).replace(/[^0-9.]/g, ""),
-        160
+        160,
       );
 
       const importTaxValue = safeNumber(
         String(formData.cornImportTax).replace(/[^0-9.]/g, ""),
-        0
+        0,
       );
 
       const rainfallValue =
         rainfallMm && rainfallMm > 0
           ? rainfallMm
           : seasonCode === "Maha"
-          ? 30 // realistic Maha minimum
-          : 10;
+            ? 30 // realistic Maha minimum
+            : 10;
 
       let temperatureValue = safeNumber(
         temperature,
-        seasonCode === "Maha" ? 26 : 28
+        seasonCode === "Maha" ? 26 : 28,
       );
 
       // Sri Lanka invalid guard (0°C, negative, etc.)
@@ -570,7 +579,7 @@ const PriceForecastScreen = () => {
       // ⭐ BEST WEEK INDEX (highest ensemble price)
       const bestIdx = res.weeks.reduce(
         (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
-        0
+        0,
       );
 
       // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
@@ -583,7 +592,7 @@ const PriceForecastScreen = () => {
             language === "si"
               ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
               : "The current week has the highest predicted price",
-            "price"
+            "price",
           );
         } else {
           const daysToSell = bestIdx * 7;
@@ -595,7 +604,7 @@ const PriceForecastScreen = () => {
             language === "si"
               ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
               : "Best price expected in the selected week",
-            "price"
+            "price",
           );
         }
 
@@ -617,17 +626,23 @@ const PriceForecastScreen = () => {
       // ✅ REMOVED hardcoded setConfidenceScore(85)
       // Confidence is now set from API above
 
-      // Recommendation logic
-      const changePct = currentPriceNumeric
-        ? ((first.ensemble - currentPriceNumeric) / currentPriceNumeric) * 100
-        : 0;
-
-      if (changePct > 8) {
+      // Recommendation logic — driven by bestIdx and hasStorage
+      if (bestIdx === 0) {
+        // Best price is this week → sell now
         setRecommendation("sell_now");
-      } else if (changePct > 0) {
-        setRecommendation(formData?.hasStorage ? "storage" : "sell_now");
+        setNoStorageSuggestion(null);
+      } else if (formData?.hasStorage) {
+        // Better price ahead AND farmer has storage → hold
+        setRecommendation("storage");
+        setNoStorageSuggestion(null);
       } else {
-        setRecommendation("sell_later");
+        // Better price ahead BUT no storage → recommend sell now with a tip
+        setRecommendation("sell_now");
+        setNoStorageSuggestion(
+          language === "si"
+            ? `හොඳම මිල ලැබෙන්නේ ${bestIdx + 1} වන සතිය තුළය. ඔබට ගබඩා පහසුකම් නොමැත. කෙසේ වෙතත්, තාවකාලික ගබඩාවක් සොයාගැනීමට හෝ විකිණීම ප්‍රමාද කළ හොත් ඒ සතිය තුළ වැඩි ලාභයක් ලැබිය හැකිය.`
+            : `Although the best price is expected in week ${bestIdx + 1}, you do not have storage. If you can arrange temporary storage or delay selling, you may gain higher profit in that week.`,
+        );
       }
     } catch (err) {
       console.log("Forecast error:", err);
@@ -763,6 +778,35 @@ const PriceForecastScreen = () => {
   const { revenue, profit, margin, totalYield } = calculateProfit();
   const trendAnalysis = getTrendAnalysis();
   const bestWeekProfit = getBestWeekProfitDifference();
+
+  // 🔥 SHOW SELL POPUP after 7 seconds when forecast is ready
+  useEffect(() => {
+    if (
+      weeklyForecast.length > 0 &&
+      bestWeekIndex !== -1 &&
+      !popupShownRef.current
+    ) {
+      const timer = setTimeout(() => {
+        popupShownRef.current = true;
+        setShowSellPopup(true);
+        Animated.timing(popupAnim, {
+          toValue: 1,
+          duration: 350,
+          useNativeDriver: true,
+        }).start();
+      }, 7000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [weeklyForecast, bestWeekIndex]);
+
+  const closePopup = () => {
+    Animated.timing(popupAnim, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => setShowSellPopup(false));
+  };
 
   // 🔥 GENERATE VOICE SUMMARY when forecast is ready
   useEffect(() => {
@@ -907,8 +951,8 @@ const PriceForecastScreen = () => {
                     ? "(⏹ නැවතීමට ඔබ)"
                     : "(⏹ Tap to stop)"
                   : language === "si"
-                  ? "(▶ ටින්න අසන්න)"
-                  : "(Tap ▶ to listen)"}
+                    ? "(▶ ටින්න අසන්න)"
+                    : "(Tap ▶ to listen)"}
               </Text>
             </View>
           )}
@@ -924,7 +968,7 @@ const PriceForecastScreen = () => {
                 Number(formData.year),
                 Number(formData.week),
                 0,
-                language
+                language,
               )}
               )
             </Text>
@@ -973,8 +1017,8 @@ const PriceForecastScreen = () => {
                     ? "ඉහළ"
                     : "High"
                   : language === "si"
-                  ? "මධ්‍යම"
-                  : "Medium"}
+                    ? "මධ්‍යම"
+                    : "Medium"}
               </Text>
 
               <View style={styles.progressBarContainer}>
@@ -987,8 +1031,8 @@ const PriceForecastScreen = () => {
                         confidenceScore >= 80
                           ? "#10B981"
                           : confidenceScore >= 60
-                          ? "#F59E0B"
-                          : "#EF4444",
+                            ? "#F59E0B"
+                            : "#EF4444",
                     },
                   ]}
                 />
@@ -1071,8 +1115,8 @@ const PriceForecastScreen = () => {
                     ? "වත්මන් සතිය හොඳමය"
                     : "හොඳම සතියේ අමතර ලාභය"
                   : bestWeekIndex === 0
-                  ? "Current Week is the Best"
-                  : "Extra Profit in Best Week"}
+                    ? "Current Week is the Best"
+                    : "Extra Profit in Best Week"}
               </Text>
 
               {bestWeekProfit.difference > 0 ? (
@@ -1094,6 +1138,32 @@ const PriceForecastScreen = () => {
                 </Text>
               )}
             </View>
+          )}
+
+          {/* 🔥 SELL AT BEST PRICE BUTTON — after Best Profit card */}
+          {weeklyForecast.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: "#0EA5E9", marginBottom: 20 },
+              ]}
+              onPress={() => {
+                localNavigation.navigate("CreatePostScreen", {
+                  bestPrice:
+                    weeklyForecast[bestWeekIndex]?.ensemble ??
+                    predictedPrice ??
+                    0,
+                  formData,
+                });
+              }}
+            >
+              <Package color="#FFFFFF" size={20} />
+              <Text style={styles.primaryButtonText}>
+                {language === "si"
+                  ? "හොඳම මිලට දැන් විකිණීමට දාන්න"
+                  : "Sell at Best Price"}
+              </Text>
+            </TouchableOpacity>
           )}
 
           {/* Recommendation Card */}
@@ -1119,6 +1189,25 @@ const PriceForecastScreen = () => {
                   {language === "si"
                     ? "ඔබට ගබඩා පහසුකම් ඇත - මිල වැඩිවන තුරු රඳවා තබන්න"
                     : "You have storage - hold until price increases"}
+                </Text>
+              </View>
+            )}
+            {noStorageSuggestion && (
+              <View
+                style={[
+                  styles.storageNote,
+                  {
+                    backgroundColor: "#FEF3C7",
+                    borderColor: "#F59E0B",
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    marginTop: 8,
+                  },
+                ]}
+              >
+                <Package color="#D97706" size={16} />
+                <Text style={[styles.storageNoteText, { color: "#92400E" }]}>
+                  {noStorageSuggestion}
                 </Text>
               </View>
             )}
@@ -1171,7 +1260,7 @@ const PriceForecastScreen = () => {
                           Number(formData.year),
                           Number(formData.week),
                           index,
-                          language
+                          language,
                         )}
                       </Text>
                       {/* PRICE */}
@@ -1202,8 +1291,8 @@ const PriceForecastScreen = () => {
                               ? `ඉහළ • ${confPct.toFixed(0)}%`
                               : `High • ${confPct.toFixed(0)}%`
                             : language === "si"
-                            ? `මධ්‍යම • ${confPct.toFixed(0)}%`
-                            : `Medium • ${confPct.toFixed(0)}%`}
+                              ? `මධ්‍යම • ${confPct.toFixed(0)}%`
+                              : `Medium • ${confPct.toFixed(0)}%`}
                         </Text>
                       </View>
 
@@ -1377,6 +1466,72 @@ const PriceForecastScreen = () => {
           <View style={{ height: 40 }} />
         </Animated.View>
       </ScrollView>
+
+      {/* 🔥 SELL POPUP MODAL */}
+      <Modal
+        transparent
+        visible={showSellPopup}
+        animationType="none"
+        onRequestClose={closePopup}
+      >
+        <View style={styles.popupOverlay}>
+          <Animated.View
+            style={[
+              styles.popupBox,
+              {
+                opacity: popupAnim,
+                transform: [
+                  {
+                    scale: popupAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.88, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <Text style={styles.popupTitle}>
+              {language === "si"
+                ? "⭐ හොඳම විකිණීමේ අවස්ථාව!"
+                : "⭐ Best Selling Opportunity!"}
+            </Text>
+            <Text style={styles.popupMessage}>
+              {language === "si"
+                ? "හොඳම මිල ලැබෙන දිනයේ විකිණීමට දාන්න පුළුවන්."
+                : "You can sell on the best predicted price date."}
+            </Text>
+            <TouchableOpacity
+              style={styles.popupPrimaryBtn}
+              onPress={() => {
+                closePopup();
+                localNavigation.navigate("CreatePostScreen", {
+                  bestPrice:
+                    weeklyForecast[bestWeekIndex]?.ensemble ??
+                    predictedPrice ??
+                    0,
+                  formData,
+                });
+              }}
+            >
+              <Package color="#FFFFFF" size={18} />
+              <Text style={styles.popupPrimaryBtnText}>
+                {language === "si"
+                  ? "හොඳම මිලට දැන් විකිණීමට දාන්න"
+                  : "Sell at Best Price"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.popupSecondaryBtn}
+              onPress={closePopup}
+            >
+              <Text style={styles.popupSecondaryBtnText}>
+                {language === "si" ? "පසුව" : "Later"}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* 🔥 NEW: LOADING OVERLAY */}
       {isLoadingForecast && (
@@ -2035,8 +2190,67 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#10B981",
   },
-
-  // ...rest of existing styles...
+  // 🔥 POPUP STYLES
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  popupBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 28,
+    width: "100%",
+    maxWidth: 380,
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  popupTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#065F46",
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  popupMessage: {
+    fontSize: 15,
+    color: "#374151",
+    textAlign: "center",
+    lineHeight: 23,
+    marginBottom: 24,
+  },
+  popupPrimaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: "100%",
+    marginBottom: 10,
+  },
+  popupPrimaryBtnText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  popupSecondaryBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+  },
+  popupSecondaryBtnText: {
+    color: "#6B7280",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });
 
 export default PriceForecastScreen;

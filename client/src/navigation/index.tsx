@@ -25,7 +25,8 @@ import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
 import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
 import ProAdvisorAdminEditScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminEditScreen";
-import ProAdvisorFollowScreen from"../screens/PriceForecast/ProAdvisorFollowScreen";
+import ProAdvisorFollowScreen from "../screens/PriceForecast/ProAdvisorFollowScreen";
+import AgricultureDepartmentScreen from "@screens/PriceForecast/AgricultureDepartmentScreen";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -74,8 +75,9 @@ export type RootStackParamList = {
     advisorId: string;
   };
   ProAdvisorFollowScreen: {
-    formData: any;   
+    formData: any;
   };
+  AgricultureDepartmentScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -99,7 +101,6 @@ export default function RootNavigator() {
 
       {/* MAIN TABS */}
       <Stack.Screen name={ROUTES.ROOT.MAIN} component={BottomNavigator} />
-
 
       {/* CHAT SYSTEM */}
       <Stack.Screen name="Chat" component={ChatScreen} />
@@ -144,10 +145,14 @@ export default function RootNavigator() {
         component={ProAdvisorFollowScreen}
       />
 
-
       {/* PAYMENT */}
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+
+      <Stack.Screen
+        name="AgricultureDepartmentScreen"
+        component={AgricultureDepartmentScreen}
+      />
     </Stack.Navigator>
   );
 }
