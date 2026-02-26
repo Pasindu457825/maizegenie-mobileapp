@@ -65,6 +65,7 @@ interface Prediction {
   class_name: string;
   confidence: number;
   box_xyxy?: number[];
+  impact_boxes?: number[][];
 }
 
 export default function SeverityDetailsScreen({ route }: Props) {
@@ -383,41 +384,54 @@ export default function SeverityDetailsScreen({ route }: Props) {
     const scaleY = displayImageSize.height / sourceImageSize.height;
 
     return predictions
-      .map((prediction, index) => {
-        const box = prediction.box_xyxy;
-        if (!Array.isArray(box) || box.length < 4) return null;
+      .flatMap((prediction, predIndex) => {
+        const rawImpactBoxes = Array.isArray(prediction.impact_boxes)
+          ? prediction.impact_boxes
+          : [];
 
-        const [x1, y1, x2, y2] = box.map(Number);
-        if ([x1, y1, x2, y2].some((v) => !Number.isFinite(v))) return null;
+        return rawImpactBoxes.map((box, boxIndex) => {
+          if (!Array.isArray(box) || box.length < 4) return null;
 
-        const left = Math.max(
-          0,
-          Math.min(displayImageSize.width, Math.min(x1, x2) * scaleX)
-        );
-        const top = Math.max(
-          0,
-          Math.min(displayImageSize.height, Math.min(y1, y2) * scaleY)
-        );
-        const right = Math.max(
-          0,
-          Math.min(displayImageSize.width, Math.max(x1, x2) * scaleX)
-        );
-        const bottom = Math.max(
-          0,
-          Math.min(displayImageSize.height, Math.max(y1, y2) * scaleY)
-        );
-        const width = right - left;
-        const height = bottom - top;
+          const [x1, y1, x2, y2] = box.map(Number);
+          if ([x1, y1, x2, y2].some((v) => !Number.isFinite(v))) return null;
 
-        if (width <= 1 || height <= 1) return null;
+          const left = Math.max(
+            0,
+            Math.min(displayImageSize.width, Math.min(x1, x2) * scaleX)
+          );
+          const top = Math.max(
+            0,
+            Math.min(displayImageSize.height, Math.min(y1, y2) * scaleY)
+          );
+          const right = Math.max(
+            0,
+            Math.min(displayImageSize.width, Math.max(x1, x2) * scaleX)
+          );
+          const bottom = Math.max(
+            0,
+            Math.min(displayImageSize.height, Math.max(y1, y2) * scaleY)
+          );
+          const width = right - left;
+          const height = bottom - top;
 
-        return {
-          key: `impact-box-${index}`,
-          left,
-          top,
-          width,
-          height,
-        };
+          if (width <= 1 || height <= 1) return null;
+
+          // Safety guard: never render oversized boxes that look like whole-leaf marks.
+          if (
+            width > displayImageSize.width * 0.35 ||
+            height > displayImageSize.height * 0.35
+          ) {
+            return null;
+          }
+
+          return {
+            key: `impact-box-${predIndex}-${boxIndex}`,
+            left,
+            top,
+            width,
+            height,
+          };
+        });
       })
       .filter(
         (

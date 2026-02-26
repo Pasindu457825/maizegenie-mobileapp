@@ -14,6 +14,7 @@ export type Prediction = {
   class_name: string;
   confidence: number;
   box_xyxy?: number[];
+  impact_boxes?: number[][];
 };
 
 export type DiseaseIdentifyStackParamList = {

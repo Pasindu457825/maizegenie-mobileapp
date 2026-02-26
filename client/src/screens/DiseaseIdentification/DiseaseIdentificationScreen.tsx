@@ -62,6 +62,7 @@ interface Prediction {
   class_name: string;
   confidence: number;
   box_xyxy?: number[];
+  impact_boxes?: number[][];
 }
 
 const normalizePredictions = (raw: any): Prediction[] => {
