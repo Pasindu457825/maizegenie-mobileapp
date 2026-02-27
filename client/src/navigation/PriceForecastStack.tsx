@@ -47,7 +47,7 @@ export interface ForecastData {
   totalCost: number;
   productionCostPerKg: number;
   hasStorage: boolean;
-  language: "si" | "en";
+  language: "si" | "en" | "ta";
 }
 
 export type PriceForecastStackParamList = {

@@ -93,7 +93,7 @@ const LOCATION_TRANSLATIONS = {
   "Nuwara Eliya": "නුවර එලිය",
 };
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
   "PriceForecastFormScreen"
@@ -129,7 +129,8 @@ const PriceForecastFormScreen = () => {
   const navigation = useNavigation<NavProp>();
   // 🌐 Get global language & convert to "si" | "en"
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
-  const language: Language = globalLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const {
     locationName,
     temperature,
@@ -230,10 +231,41 @@ const PriceForecastFormScreen = () => {
       locationDetecting: "Detecting location...",
       weatherLoading: "Loading weather...",
     },
+    ta: {
+      title: "சோள விலை மதிப்பீடு",
+      subtitle: "தகவல்களை உள்ளிடவும்",
+      autoData: "தானாக பதிவான தரவு",
+      userInputs: "உங்கள் உள்ளீடுகள்",
+      year: "ஆண்டு",
+      week: "வாரம்",
+      district: "மாவட்டம்",
+      season: "பருவம்",
+      weather: "வானிலை",
+      fuelPrice: "எரிபொருள் விலை",
+      importTax: "இறக்குமதி வரி",
+      currentPrice: "கடந்த வாரத்தின் விலை",
+      seedVariety: "விதை வகை",
+      expectedYield: "எதிர்பார்க்கப்படும் மகசூல் (kg/ஏக்கர்)",
+      farmArea: "பண்ணை பரப்பு (ஏக்கர்)",
+      seedCost: "விதை செலவு (ரூ)",
+      fertilizerCost: "உர செலவு (ரூ)",
+      labourCost: "தொழிலாளர் செலவு (ரூ)",
+      otherCosts: "மற்ற செலவுகள் (ரூ)",
+      hasStorage: "உங்களுக்கு சேமிப்பு வசதி உள்ளதா?",
+      yes: "ஆம்",
+      no: "இல்லை",
+      submit: "மதிப்பீடு பெறுக",
+      back: "பின்செல்",
+      detecting: "கண்டறிகிறது...",
+      loading: "ஏற்றுகிறது...",
+      locationDetecting: "இடம் கண்டறிகிறது...",
+      weatherLoading: "வானிலை ஏற்றுகிறது...",
+    },
   };
   type LocationKey = keyof typeof LOCATION_TRANSLATIONS;
   const getTranslatedLocation = (rawName: string | null, lang: Language) => {
-    if (!rawName) return lang === "si" ? "ස්ථානය" : "Location";
+    if (!rawName)
+      return lang === "si" ? "ස්ථානය" : lang === "ta" ? "இடம்" : "Location";
     if (lang === "en") return rawName;
 
     let enName = rawName.trim();
@@ -244,7 +276,55 @@ const PriceForecastFormScreen = () => {
       .replace(/Province/i, "")
       .trim();
 
-    // Province mapping
+    if (lang === "ta") {
+      // Tamil province mapping
+      const taProvinceMap: Record<string, string> = {
+        Western: "மேற்கு மாகாணம்",
+        Southern: "தெற்கு மாகாணம்",
+        Central: "மத்திய மாகாணம்",
+        Northern: "வடக்கு மாகாணம்",
+        Eastern: "கிழக்கு மாகாணம்",
+        NorthWestern: "வடமேற்கு மாகாணம்",
+        NorthCentral: "வட மத்திய மாகாணம்",
+        Uva: "ஊவா மாகாணம்",
+        Sabaragamuwa: "சபரகமுவ மாகாணம்",
+      };
+      if (taProvinceMap[enName]) return taProvinceMap[enName];
+
+      // Tamil district mapping
+      const taDistrictMap: Record<string, string> = {
+        Colombo: "கொழும்பு",
+        Gampaha: "கம்பஹா",
+        Kalutara: "களுத்துறை",
+        Kandy: "கண்டி",
+        Matale: "மாத்தளை",
+        NuwaraEliya: "நுவரெலியா",
+        Galle: "காலி",
+        Matara: "மாத்தறை",
+        Hambantota: "அம்பாந்தோட்டை",
+        Jaffna: "யாழ்ப்பாணம்",
+        Kilinochchi: "கிளிநொச்சி",
+        Mannar: "மன்னார்",
+        Vavuniya: "வவுனியா",
+        Mullaitivu: "முல்லைத்தீவு",
+        Batticaloa: "மட்டக்களப்பு",
+        Ampara: "அம்பாறை",
+        Trincomalee: "திருகோணமலை",
+        Kurunegala: "குருநாகல்",
+        Puttalam: "புத்தளம்",
+        Anuradhapura: "அனுராதாபுரம்",
+        Polonnaruwa: "பொலன்னருவை",
+        Badulla: "பதுளை",
+        Monaragala: "மொணராகல",
+        Thissamaharama: "திஸ்ஸமஹாராம",
+        Ratnapura: "இரத்தினபுரி",
+        Kegalle: "கேகாலை",
+      };
+      if (taDistrictMap[enName]) return taDistrictMap[enName];
+      return rawName;
+    }
+
+    // Sinhala province mapping
     const provinceMap: Record<string, string> = {
       Western: "බස්නාහිර",
       Southern: "දකුණු",
@@ -259,7 +339,7 @@ const PriceForecastFormScreen = () => {
 
     if (provinceMap[enName]) return provinceMap[enName] + " පළාත";
 
-    // District mapping
+    // Sinhala district mapping
     const districtMap: Record<string, string> = {
       Colombo: "කොළඹ",
       Gampaha: "ගම්පහ",
@@ -297,53 +377,90 @@ const PriceForecastFormScreen = () => {
 
   // Enhanced weather translation mapping
   const getWeatherTranslation = (condition: string, lang: Language): string => {
-    if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
+    if (!condition)
+      return lang === "si" ? "කාලගුණය" : lang === "ta" ? "வானிலை" : "Weather";
 
     const c = condition.toLowerCase();
 
     // ---- RAIN ----
     if (c.includes("shower rain") || c.includes("light intensity shower")) {
-      return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
+      return lang === "si"
+        ? "සෙමෙන් වැසි"
+        : lang === "ta"
+          ? "இலகுவான மழை"
+          : "Light Shower Rain";
     }
     if (c.includes("light rain")) {
-      return lang === "si" ? "සැහැල්ලු වැසි" : "Light Rain";
+      return lang === "si"
+        ? "සැහැල්ලු වැසි"
+        : lang === "ta"
+          ? "சிறு மழை"
+          : "Light Rain";
     }
     if (c.includes("moderate rain")) {
-      return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
+      return lang === "si"
+        ? "මධ්‍යම වැසි"
+        : lang === "ta"
+          ? "மிதமான மழை"
+          : "Moderate Rain";
     }
     if (c.includes("heavy") && c.includes("rain")) {
-      return lang === "si" ? "බර වැසි" : "Heavy Rain";
+      return lang === "si" ? "බර වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
     }
 
     // ---- CLOUDS ----
     if (c.includes("clear")) {
-      return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
+      return lang === "si"
+        ? "පිරිසිදු අහස"
+        : lang === "ta"
+          ? "தெளிவான வானம்"
+          : "Clear Sky";
     }
     if (c.includes("few clouds")) {
-      return lang === "si" ? "සුළු වලාකුළු" : "Few Clouds";
+      return lang === "si"
+        ? "සුළු වලාකුළු"
+        : lang === "ta"
+          ? "சிறிய மேகங்கள்"
+          : "Few Clouds";
     }
     if (c.includes("scattered")) {
-      return lang === "si" ? "විසිරුණු වලාකුළු" : "Scattered Clouds";
+      return lang === "si"
+        ? "විසිරුණු වලාකුළු"
+        : lang === "ta"
+          ? "சிதறிய மேகங்கள்"
+          : "Scattered Clouds";
     }
     if (c.includes("broken")) {
-      return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
+      return lang === "si"
+        ? "කැබලි වලාකුළු"
+        : lang === "ta"
+          ? "உடைந்த மேகங்கள்"
+          : "Broken Clouds";
     }
     if (c.includes("overcast")) {
-      return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
+      return lang === "si"
+        ? "තද වලාකුළු"
+        : lang === "ta"
+          ? "மேகமூட்டம்"
+          : "Overcast Clouds";
     }
 
     // ---- THUNDER ----
     if (c.includes("thunder")) {
-      return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
+      return lang === "si"
+        ? "අකුණු සහිත වැසි"
+        : lang === "ta"
+          ? "இடியுடன் கூடிய மழை"
+          : "Thunderstorm";
     }
 
     // ---- MIST / FOG ----
     if (c.includes("mist") || c.includes("fog") || c.includes("haze")) {
-      return lang === "si" ? "මීදුම" : "Mist";
+      return lang === "si" ? "මීදුම" : lang === "ta" ? "மூடுபனி" : "Mist";
     }
 
     // DEFAULT
-    return lang === "si" ? "කාලගුණය" : condition;
+    return lang === "si" ? "කාලගුණය" : lang === "ta" ? "வானிலை" : condition;
   };
 
   const getWeatherIcon = (condition: string | null) => {
@@ -511,10 +628,12 @@ const PriceForecastFormScreen = () => {
     } catch (error) {
       console.error("Error capturing system data:", error);
       Alert.alert(
-        language === "si" ? "දෝෂයකි" : "Error",
+        language === "si" ? "දෝෂයකි" : language === "ta" ? "பிழை" : "Error",
         language === "si"
           ? "දත්ත ලබා ගැනීමේදී දෝෂයක් සිදුවිය"
-          : "Error capturing data"
+          : language === "ta"
+            ? "தரவு பெறுவதில் பிழை ஏற்பட்டது"
+            : "Error capturing data",
       );
     }
   };
@@ -522,12 +641,22 @@ const PriceForecastFormScreen = () => {
   useEffect(() => {
     // GPS LOCATION → ONLY UPDATE autoDistrict
     if (isLoading) {
-      setAutoDistrict(language === "si" ? "හඳුනාගනිමින්..." : "Detecting...");
+      setAutoDistrict(
+        language === "si"
+          ? "හඳුනාගනිමින්..."
+          : language === "ta"
+            ? "கண்டறிகிறது..."
+            : "Detecting...",
+      );
     } else if (locationName && locationName !== "Loading...") {
       setAutoDistrict(locationName);
     } else {
       setAutoDistrict(
-        language === "si" ? "ස්ථානය නොමැත" : "Location unavailable"
+        language === "si"
+          ? "ස්ථානය නොමැත"
+          : language === "ta"
+            ? "இடம் கிடைக்கவில்லை"
+            : "Location unavailable",
       );
     }
 
@@ -537,12 +666,16 @@ const PriceForecastFormScreen = () => {
     } else if (temperature !== null && weatherCondition) {
       const translatedCondition = getWeatherTranslation(
         weatherCondition,
-        language
+        language,
       );
       setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
     } else {
       setWeather(
-        language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable"
+        language === "si"
+          ? "කාලගුණ දත්ත නොමැත"
+          : language === "ta"
+            ? "வானிலை கிடைக்கவில்லை"
+            : "Weather unavailable",
       );
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
@@ -563,15 +696,23 @@ const PriceForecastFormScreen = () => {
     // Maha: Oct-Mar (10,11,12,1,2,3)
     // Yala: Apr-Sep (4,5,6,7,8,9)
     if (month >= 10 || month <= 3) {
-      return language === "si" ? "මහ කන්නය" : "Maha Season";
+      return language === "si"
+        ? "මහ කන්නය"
+        : language === "ta"
+          ? "மஹா பருவம்"
+          : "Maha Season";
     } else {
-      return language === "si" ? "යල කන්නය" : "Yala Season";
+      return language === "si"
+        ? "යල කන්නය"
+        : language === "ta"
+          ? "யால பருவம்"
+          : "Yala Season";
     }
   };
   useFocusEffect(
     useCallback(() => {
       fetchPriceDataFromAPI();
-    }, [])
+    }, []),
   );
   useEffect(() => {
     const now = new Date();
@@ -635,10 +776,12 @@ const PriceForecastFormScreen = () => {
         !labourCost
       ) {
         Alert.alert(
-          language === "si" ? "දෝෂයකි" : "Error",
+          language === "si" ? "දෝෂයකි" : language === "ta" ? "பிழை" : "Error",
           language === "si"
             ? "කරුණාකර සියලු අනිවාර්ය තොරතුරු පුරවන්න"
-            : "Please fill all required fields"
+            : language === "ta"
+              ? "அனைத்து தேவையான தகவல்களையும் நிரப்பவும்"
+              : "Please fill all required fields",
         );
         return;
       }
@@ -726,7 +869,7 @@ const PriceForecastFormScreen = () => {
           holidayDates = holidays.map((h: any) => new Date(h.date.iso));
         } else {
           console.warn(
-            `Calendarific responded with status ${holidaysRes.status}`
+            `Calendarific responded with status ${holidaysRes.status}`,
           );
         }
       } catch (calendarErr) {
@@ -737,7 +880,7 @@ const PriceForecastFormScreen = () => {
       if (holidayDates.length === 0) {
         try {
           const fallback = await fetch(
-            `https://date.nager.at/api/v3/PublicHolidays/${year}/LK`
+            `https://date.nager.at/api/v3/PublicHolidays/${year}/LK`,
           );
           if (fallback.ok) {
             const nagerHolidays = await fallback.json();
@@ -802,7 +945,11 @@ const PriceForecastFormScreen = () => {
 
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>
-              {language === "si" ? "ස්ථානය" : "Location"}
+              {language === "si"
+                ? "ස්ථානය"
+                : language === "ta"
+                  ? "இடம்"
+                  : "Location"}
             </Text>
             <Text style={styles.infoValue}>
               {getTranslatedLocation(autoDistrict, language)}
@@ -814,7 +961,11 @@ const PriceForecastFormScreen = () => {
           <CloudSun color="#10B981" size={18} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>
-              {language === "si" ? "කාලගුණය" : "Weather"}
+              {language === "si"
+                ? "කාලගුණය"
+                : language === "ta"
+                  ? "வானிலை"
+                  : "Weather"}
             </Text>
             <Text style={styles.infoValue}>{weather}</Text>
           </View>
@@ -899,16 +1050,24 @@ const PriceForecastFormScreen = () => {
               <Calendar color="#10B981" size={22} />
             </View>
             <Text style={styles.autoDataLabel}>
-              {language === "si" ? "උත්සව සතිය" : "Festival Week"}
+              {language === "si"
+                ? "උත්සව සතිය"
+                : language === "ta"
+                  ? "பண்டிகை வாரம்"
+                  : "Festival Week"}
             </Text>
             <Text style={styles.autoDataValue}>
               {isFestivalWeek
                 ? language === "si"
                   ? "ඔව්"
-                  : "Yes"
+                  : language === "ta"
+                    ? "ஆம்"
+                    : "Yes"
                 : language === "si"
-                ? "නැත"
-                : "No"}
+                  ? "නැත"
+                  : language === "ta"
+                    ? "இல்லை"
+                    : "No"}
             </Text>
           </View>
         </View>
@@ -936,7 +1095,12 @@ const PriceForecastFormScreen = () => {
                   fontSize: 15,
                 }}
               >
-                {district || (language === "si" ? "තෝරන්න" : "Select")}
+                {district ||
+                  (language === "si"
+                    ? "තෝරන්න"
+                    : language === "ta"
+                      ? "தேர்ந்தெடுக்கவும்"
+                      : "Select")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -969,7 +1133,11 @@ const PriceForecastFormScreen = () => {
                   onPress={() => setShowDistrictPopup(false)}
                 >
                   <Text style={styles.popupCancelText}>
-                    {language === "si" ? "අවලංගු" : "Cancel"}
+                    {language === "si"
+                      ? "අවලංගු"
+                      : language === "ta"
+                        ? "ரத்து செய்"
+                        : "Cancel"}
                   </Text>
                 </TouchableOpacity>
               </View>

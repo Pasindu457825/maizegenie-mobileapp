@@ -47,9 +47,9 @@ const SI_DISTRICTS: Record<string, string> = {
   Kegalle: "කෑගල්ල",
 };
 
-export default function useUniversalLocation(
-  lang: "si" | "en"
-): Result {
+type Lang = "si" | "en" | "ta";
+
+export default function useUniversalLocation(lang: Lang): Result {
   const [locationName, setLocationName] = useState("Loading...");
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
@@ -72,15 +72,14 @@ export default function useUniversalLocation(
   const clean = (v?: string | null) =>
     v ? v.replace(/District|Province/gi, "").trim() : undefined;
 
-  const toSinhalaDistrict = (d?: string) =>
-    d ? SI_DISTRICTS[d] || d : "";
+  const toSinhalaDistrict = (d?: string) => (d ? SI_DISTRICTS[d] || d : "");
 
   const fetchWeather = async (lat: number, lon: number) => {
     if (!WEATHER_KEY) return;
 
     try {
       const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_KEY}`
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_KEY}`,
       );
 
       if (!res.ok) return;
@@ -88,11 +87,11 @@ export default function useUniversalLocation(
       const json = await res.json();
 
       setTemperature(
-        typeof json.main?.temp === "number" ? json.main.temp : null
+        typeof json.main?.temp === "number" ? json.main.temp : null,
       );
 
       setHumidity(
-        typeof json.main?.humidity === "number" ? json.main.humidity : null
+        typeof json.main?.humidity === "number" ? json.main.humidity : null,
       );
 
       if (Array.isArray(json.weather) && json.weather.length > 0) {
@@ -105,8 +104,8 @@ export default function useUniversalLocation(
         typeof json?.rain?.["1h"] === "number"
           ? json.rain["1h"]
           : typeof json?.rain?.["3h"] === "number"
-          ? json.rain["3h"]
-          : 0;
+            ? json.rain["3h"]
+            : 0;
 
       setRainfallMm(rain);
     } catch {
@@ -127,8 +126,7 @@ export default function useUniversalLocation(
 
       try {
         // 1️⃣ Permission
-        const { status } =
-          await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status !== "granted") {
           setError("Permission Denied");
@@ -157,36 +155,29 @@ export default function useUniversalLocation(
             headers: {
               "User-Agent": "MaizeGenie-App",
             },
-          }
+          },
         );
 
         const data = await res.json();
         const a = data?.address || {};
 
         const place = clean(
-          a.neighbourhood ||
-            a.suburb ||
-            a.village ||
-            a.town ||
-            a.city
+          a.neighbourhood || a.suburb || a.village || a.town || a.city,
         );
 
-        const district = clean(
-          a.district || a.county || a.state
-        );
+        const district = clean(a.district || a.county || a.state);
 
         // 4️⃣ Build display name
         let display = "";
 
         if (lang === "si") {
           const siDistrict = toSinhalaDistrict(district);
-          display = place
-            ? `${place}, ${siDistrict}`
-            : siDistrict || "ස්ථානය";
+          display = place ? `${place}, ${siDistrict}` : siDistrict || "ස්ථානය";
         } else {
-          display = place && district
-            ? `${place}, ${district}`
-            : district || "Location";
+          display =
+            place && district
+              ? `${place}, ${district}`
+              : district || "Location";
         }
 
         setLocationName(display);
