@@ -54,11 +54,11 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   };
 
   const { language: lang } = useLanguage();
-  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
-  
+  const language: "si" | "en" | "ta" = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
+
   const [downloadingReport, setDownloadingReport] = useState(false);
   const [showConfidenceBreakdown, setShowConfidenceBreakdown] = useState(false);
-  
+
   // Get API URL based on platform
   const getApiUrl = () => {
     if (Platform.OS === 'android' || Platform.OS === 'ios') {
@@ -109,6 +109,22 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
       confidence: "Confidence",
       back: "Back",
     },
+    ta: {
+      title: "விளைச்சல் கணிப்பு",
+      subtitle: "அதிகாரி பகுப்பாய்வு",
+      predictedYield: "கணிக்கப்பட்ட விளைச்சல்",
+      yieldComparison: "விளைச்சல் ஒப்பீடு",
+      npkLevels: "NPK மட்டங்கள்",
+      environmentalFactors: "சூழல் காரணிகள்",
+      soilHealth: "மண் நலம்",
+      impactFactors: "பாதிப்பு காரணிகள்",
+      recommendations: "பரிந்துரைகள்",
+      predictionMethod: "கணிப்பு முறை",
+      mlModel: "ML மாதிரி",
+      ruleBased: "விதி அடிப்படை",
+      confidence: "நம்பகத்தன்மை",
+      back: "பின்",
+    },
   };
 
   // Extract data
@@ -119,11 +135,11 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   const confidenceScore = prediction.confidence_score || 0;
   const predictionMethod = prediction.prediction_method || "rule_based";
   const modelVersion = predictionMethod === "ml_model" ? "XGBoost v2.0" : "Rule-Based";
-  
+
   // State for comparison table and impact factor filter
   const [showComparisonTable, setShowComparisonTable] = useState(false);
   const [impactFilter, setImpactFilter] = useState<'all' | 'positive' | 'negative'>('all');
-  
+
   // Cross-platform alert function
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') {
@@ -136,29 +152,30 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   // Download report function with platform-specific logic
   const handleDownloadReport = async () => {
     setDownloadingReport(true);
-    
+
     try {
       // Get the original request data from route params
       const requestData = (route.params as any)?.requestData;
-      
+
       if (!requestData) {
         showAlert(
-          language === "si" ? "දෝෂයකි" : "Error",
-          language === "si" 
+          language === "si" ? "දෝෂයකි" : language === "ta" ? "பிழை" : "Error",
+          language === "si"
             ? "වාර්තාව බාගත කිරීමට අවශ්‍ය දත්ත නොමැත"
-            : "Required data not available for report generation"
+            : language === "ta" ? "அறிக்கை உருவாக்கத்திற்கு தேவையான தரவு கிடைக்கவில்லை"
+              : "Required data not available for report generation"
         );
         setDownloadingReport(false);
         return;
       }
-      
+
       // Generate filename
       const district = requestData?.soil_profile?.district || 'Unknown';
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
       const filename = `MaizeGenie_YieldReport_${district}_${timestamp}.pdf`;
-      
+
       const apiUrl = getApiUrl();
-      
+
       if (Platform.OS === 'web') {
         // Web-specific download using blob
         const response = await fetch(`${apiUrl}/api/v1/yield-prediction/officer/report`, {
@@ -168,13 +185,13 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
           },
           body: JSON.stringify(requestData),
         });
-        
+
         if (!response.ok) {
           throw new Error(`Report generation failed: ${response.status}`);
         }
-        
+
         const blob = await response.blob();
-        
+
         // Create download link
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -184,17 +201,17 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
+
         showAlert(
           language === "si" ? "සාර්ථකයි" : "Success",
-          language === "si" 
+          language === "si"
             ? "වාර්තාව සාර්ථකව බාගත කරන ලදී"
             : "Report downloaded successfully"
         );
       } else {
         // Mobile (iOS/Android) download using FileSystem and Sharing
         const fileUri = FileSystem.documentDirectory + filename;
-        
+
         // Use XMLHttpRequest for better React Native compatibility
         const downloadPDF = () => {
           return new Promise<void>((resolve, reject) => {
@@ -202,18 +219,18 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
             xhr.open('POST', `${apiUrl}/api/v1/yield-prediction/officer/report`);
             xhr.setRequestHeader('Content-Type', 'application/json');
             xhr.responseType = 'arraybuffer';
-            
+
             xhr.onload = async () => {
               if (xhr.status === 200) {
                 try {
                   // Convert array buffer to base64
                   const arrayBuffer = xhr.response;
                   const base64String = arrayBufferToBase64(arrayBuffer);
-                  
+
                   await FileSystem.writeAsStringAsync(fileUri, base64String, {
                     encoding: FileSystem.EncodingType.Base64,
                   });
-                  
+
                   resolve();
                 } catch (error) {
                   reject(error);
@@ -222,12 +239,12 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                 reject(new Error(`Report generation failed: ${xhr.status}`));
               }
             };
-            
+
             xhr.onerror = () => reject(new Error('Network request failed'));
             xhr.send(JSON.stringify(requestData));
           });
         };
-        
+
         // Helper function to convert ArrayBuffer to base64
         const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
           const bytes = new Uint8Array(buffer);
@@ -238,48 +255,49 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
           // Use btoa for base64 encoding
           return btoa(binary);
         };
-        
+
         await downloadPDF();
-        
+
         // Share the file
         const isAvailable = await Sharing.isAvailableAsync();
-        
+
         if (isAvailable) {
           await Sharing.shareAsync(fileUri, {
             mimeType: 'application/pdf',
-            dialogTitle: language === "si" ? "වාර්තාව බෙදාගන්න" : "Share Report",
+            dialogTitle: language === "si" ? "වාර්තාව බෙදාගන්න" : language === "ta" ? "அறிக்கையை பகிருங்கள்" : "Share Report",
             UTI: 'com.adobe.pdf',
           });
-          
+
           showAlert(
             language === "si" ? "සාර්ථකයි" : "Success",
-            language === "si" 
+            language === "si"
               ? "වාර්තාව සාර්ථකව ජනනය කරන ලදී"
               : "Report generated successfully"
           );
         } else {
           showAlert(
             language === "si" ? "සාර්ථකයි" : "Success",
-            language === "si" 
+            language === "si"
               ? `වාර්තාව සුරකින ලදී: ${fileUri}`
               : `Report saved to: ${fileUri}`
           );
         }
       }
-      
+
     } catch (error) {
       console.error('Report download error:', error);
       showAlert(
-        language === "si" ? "දෝෂයකි" : "Error",
-        language === "si" 
+        language === "si" ? "දෝෂයකි" : language === "ta" ? "பிழை" : "Error",
+        language === "si"
           ? "වාර්තාව බාගත කිරීමේදී දෝෂයක් ඇතිවිය"
-          : "Failed to download report. Please try again."
+          : language === "ta" ? "அறிக்கையை பதிவிறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+            : "Failed to download report. Please try again."
       );
     } finally {
       setDownloadingReport(false);
     }
   };
-  
+
   const analysisData = data?.analysis_data || {};
   const impactFactors = data?.impact_factors || [];
   const recommendations = data?.recommendations || [];
@@ -331,7 +349,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
       },
     ],
   };
-  
+
   const npkOptimalData = {
     labels: ["N (ppm)", "P (ppm)", "K (ppm)"],
     datasets: [
@@ -348,7 +366,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
   // Environmental Factors Progress Data with ideal ranges
   const envFactors = analysisData.environmental_factors || {};
   const idealRanges = envFactors.ideal_ranges || {};
-  
+
   // Calculate percentage based on ideal range
   const calculateEnvPercentage = (value: number, ideal: any) => {
     if (!ideal || !ideal.min || !ideal.max) return 0.5;
@@ -358,7 +376,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
     const percentage = Math.max(0, Math.min(1, 1 - (deviation / range)));
     return percentage;
   };
-  
+
   const envProgressData = {
     labels: ["Temp", "Humidity", "Rainfall", "Sunshine"],
     data: [
@@ -418,8 +436,8 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
             <Text style={styles.headerTitle}>{content[language].title}</Text>
             <Text style={styles.headerSubtitle}>{content[language].subtitle}</Text>
           </View>
-          <TouchableOpacity 
-            onPress={handleDownloadReport} 
+          <TouchableOpacity
+            onPress={handleDownloadReport}
             style={styles.downloadButton}
             disabled={downloadingReport}
           >
@@ -440,14 +458,14 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
         <Animated.View style={{ opacity: fadeAnim }}>
           {/* Predicted Yield Card */}
           <View style={styles.yieldCard}>
-            
+
             <Text style={styles.yieldLabel}>
               {content[language].predictedYield}
             </Text>
             <Text style={styles.yieldValue}>{predictedYieldTonnes}</Text>
             <Text style={styles.yieldUnit}>t/ha</Text>
             <Text style={styles.yieldSecondaryUnit}>({predictedYield.toFixed(0)} kg/ha)</Text>
-            
+
             <View style={styles.categoryBadge}>
               <View
                 style={[
@@ -465,7 +483,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
               <Text style={styles.confidenceValue}>
                 {(confidenceScore * 100).toFixed(0)}%
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.ejectButton}
                 onPress={() => setShowConfidenceBreakdown(true)}
                 activeOpacity={0.7}
@@ -480,19 +498,19 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                 </LinearGradient>
               </TouchableOpacity>
             </View>
-            
+
             {/* Model Version Badge - moved below confidence */}
             <View style={styles.methodBadgeContainer}>
               <View style={styles.methodBadge}>
                 <Text style={styles.methodBadgeText}>
-                  {predictionMethod === "ml_model" 
-                    ? (language === "si" ? "ML මාදිලිය" : "ML Model")
-                    : (language === "si" ? "නීති පදනම්" : "Rule-Based")}
+                  {predictionMethod === "ml_model"
+                    ? (language === "si" ? "ML මාදිලිය" : language === "ta" ? "ML மாதிரி" : "ML Model")
+                    : (language === "si" ? "නීති පදනම්" : language === "ta" ? "விதி அடிப்படை" : "Rule-Based")}
                 </Text>
               </View>
               <Text style={styles.modelVersionUnderBadge}>{modelVersion}</Text>
             </View>
-            
+
             {/* Input Summary Chips */}
             <View style={styles.inputChipsContainer}>
               <View style={styles.inputChip}>
@@ -544,31 +562,32 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
               />
               <View style={styles.comparisonNote}>
                 <Text style={styles.comparisonNoteText}>
-                  {language === "si" 
+                  {language === "si"
                     ? "ඔබේ පුරෝකථනය සහ දිස්ත්‍රික්කයේ ප්‍රශස්ත අස්වැන්න"
-                    : "Your Prediction vs Optimal District Yield"}
+                    : language === "ta" ? "உங்கள் கணிப்பு மற்றும் மாவட்டத்தின் உகந்த விளைச்சல்"
+                      : "Your Prediction vs Optimal District Yield"}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.seeMoreButton}
                   onPress={() => setShowComparisonTable(!showComparisonTable)}
                 >
                   <Text style={styles.seeMoreText}>
-                    {showComparisonTable 
-                      ? (language === "si" ? "අඩු කරන්න" : "See Less")
-                      : (language === "si" ? "තව බලන්න" : "See More")}
+                    {showComparisonTable
+                      ? (language === "si" ? "අඩු කරන්න" : language === "ta" ? "குறைக்கவும்" : "See Less")
+                      : (language === "si" ? "තව බලන්න" : language === "ta" ? "மேலும் பார்க்கவும்" : "See More")}
                   </Text>
                 </TouchableOpacity>
               </View>
-              
+
               {/* Comparison Table */}
               {showComparisonTable && (
                 <View style={styles.comparisonTable}>
                   <Text style={styles.tableTitle}>
-                    {language === "si" 
+                    {language === "si"
                       ? "ආදාන කරුණු සහ ප්‍රශස්ත දිස්ත්‍රික් කරුණු සංසන්දනය"
                       : "Input Factors vs Optimal District Factors"}
                   </Text>
-                  
+
                   {/* Table Header */}
                   <View style={styles.tableRow}>
                     <Text style={[styles.tableCell, styles.tableHeader]}>
@@ -581,7 +600,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                       {language === "si" ? "ප්‍රශස්ත දිස්ත්‍රික්" : "Optimal District"}
                     </Text>
                   </View>
-                  
+
                   {/* District */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -590,7 +609,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     <Text style={styles.tableCell}>{inputSummary.district || "N/A"}</Text>
                     <Text style={styles.tableCell}>{inputSummary.district || "N/A"}</Text>
                   </View>
-                  
+
                   {/* Variety */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -599,7 +618,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     <Text style={styles.tableCell}>{inputSummary.variety || "N/A"}</Text>
                     <Text style={styles.tableCell}>Jet 999 / Pacific 808</Text>
                   </View>
-                  
+
                   {/* Season */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -608,7 +627,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     <Text style={styles.tableCell}>{inputSummary.season || "N/A"}</Text>
                     <Text style={styles.tableCell}>Maha</Text>
                   </View>
-                  
+
                   {/* Soil Fertility */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -619,7 +638,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     </Text>
                     <Text style={styles.tableCell}>≥70%</Text>
                   </View>
-                  
+
                   {/* NPK Levels */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -630,7 +649,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     </Text>
                     <Text style={styles.tableCell}>≥80 ppm</Text>
                   </View>
-                  
+
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
                       {language === "si" ? "පොස්පරස් (P)" : "Phosphorus (P)"}
@@ -640,7 +659,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     </Text>
                     <Text style={styles.tableCell}>≥40 ppm</Text>
                   </View>
-                  
+
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
                       {language === "si" ? "පොටෑසියම් (K)" : "Potassium (K)"}
@@ -650,7 +669,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     </Text>
                     <Text style={styles.tableCell}>≥200 ppm</Text>
                   </View>
-                  
+
                   {/* Temperature */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -661,7 +680,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                     </Text>
                     <Text style={styles.tableCell}>26-30°C</Text>
                   </View>
-                  
+
                   {/* Rainfall */}
                   <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>
@@ -763,9 +782,10 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                   hideLegend={false}
                 />
                 <Text style={styles.envSubtitle}>
-                  {language === "si" 
+                  {language === "si"
                     ? "පරමාදර්ශී බෝග වර්ධන පරාසය සමඟ සසඳන ලදී"
-                    : "Compared to ideal maize growth range"}
+                    : language === "ta" ? "இதமான சோள வளர்ச்சி வரம்புடன் ஒப்பிடப்பட்டது"
+                      : "Compared to ideal maize growth range"}
                 </Text>
                 <View style={styles.envDetails}>
                   <View style={styles.envItem}>
@@ -874,7 +894,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                   {content[language].impactFactors}
                 </Text>
               </View>
-              
+
               {/* Filter Buttons */}
               <View style={styles.filterContainer}>
                 <TouchableOpacity
@@ -911,121 +931,121 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                 })
                 .sort((a: any, b: any) => Math.abs(b.impact_percentage || 0) - Math.abs(a.impact_percentage || 0))
                 .map((factor: any, index: number) => (
-                <View key={index} style={[
-                  styles.factorCard,
-                  { borderLeftColor: (factor.impact_percentage || 0) >= 0 ? "#10B981" : "#EF4444" }
-                ]}>
-                  <View style={styles.factorHeader}>
-                    <View style={styles.factorNameContainer}>
-                      <Text style={styles.factorName}>{factor.factor}</Text>
-                      <View style={[
-                        styles.sourceTag,
-                        { backgroundColor: factor.source === 'ml_model' ? '#DBEAFE' : '#FEF3C7' }
-                      ]}>
-                        <Text style={[
-                          styles.sourceTagText,
-                          { color: factor.source === 'ml_model' ? '#1E40AF' : '#92400E' }
+                  <View key={index} style={[
+                    styles.factorCard,
+                    { borderLeftColor: (factor.impact_percentage || 0) >= 0 ? "#10B981" : "#EF4444" }
+                  ]}>
+                    <View style={styles.factorHeader}>
+                      <View style={styles.factorNameContainer}>
+                        <Text style={styles.factorName}>{factor.factor}</Text>
+                        <View style={[
+                          styles.sourceTag,
+                          { backgroundColor: factor.source === 'ml_model' ? '#DBEAFE' : '#FEF3C7' }
                         ]}>
-                          {factor.source === 'ml_model' 
-                            ? (language === "si" ? "ML මාදිලිය" : "ML Model")
-                            : (language === "si" ? "නීති ගුණකය" : "Rule multiplier")}
-                        </Text>
-                      </View>
-                    </View>
-                    <Text
-                      style={[
-                        styles.factorImpact,
-                        {
-                          color:
-                            (factor.impact_percentage || 0) >= 0
-                              ? "#10B981"
-                              : "#EF4444",
-                        },
-                      ]}
-                    >
-                      {factor.impact_percentage > 0 ? "+" : ""}
-                      {factor.impact_percentage?.toFixed(1)}%
-                    </Text>
-                  </View>
-                  <Text style={styles.factorDescription}>
-                    {factor.description}
-                  </Text>
-                  
-                  {/* Show dual bars if suggestion exists */}
-                  {factor.suggested_value ? (
-                    <View style={styles.suggestionContainer}>
-                      {/* Current value bar (grey/red) */}
-                      <View style={styles.barRow}>
-                        <Text style={styles.barLabel}>
-                          {language === "si" ? "වත්මන්" : "Current"}:
-                        </Text>
-                        <View style={styles.factorBarContainer}>
-                          <View
-                            style={[
-                              styles.factorBar,
-                              {
-                                width: `${Math.min(Math.abs(factor.impact_percentage || 0), 100)}%`,
-                                backgroundColor: "#9CA3AF",
-                              },
-                            ]}
-                          />
+                          <Text style={[
+                            styles.sourceTagText,
+                            { color: factor.source === 'ml_model' ? '#1E40AF' : '#92400E' }
+                          ]}>
+                            {factor.source === 'ml_model'
+                              ? (language === "si" ? "ML මාදිලිය" : "ML Model")
+                              : (language === "si" ? "නීති ගුණකය" : "Rule multiplier")}
+                          </Text>
                         </View>
-                        <Text style={styles.barValue}>{factor.impact_percentage?.toFixed(1)}%</Text>
                       </View>
-                      
-                      {/* Suggested value bar (green) */}
-                      <View style={styles.barRow}>
-                        <Text style={styles.barLabel}>
-                          {language === "si" ? "යෝජිත" : "Suggested"}:
-                        </Text>
-                        <View style={styles.factorBarContainer}>
-                          <View
-                            style={[
-                              styles.factorBar,
-                              {
-                                width: `${Math.min(Math.abs(factor.suggested_impact || 0), 100)}%`,
-                                backgroundColor: "#10B981",
-                              },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.barValue}>+{factor.suggested_impact?.toFixed(1)}%</Text>
-                      </View>
-                      
-                      {/* Improvement indicator */}
-                      <View style={styles.improvementBadge}>
-                        <Text style={styles.improvementText}>
-                          {language === "si" ? "වැඩිදියුණු කිරීම" : "Improvement"}: +{factor.difference?.toFixed(1)}%
-                        </Text>
-                      </View>
-                      
-                      {/* Suggested value display */}
-                      <View style={styles.suggestedValueBox}>
-                        <Text style={styles.suggestedValueLabel}>
-                          {language === "si" ? "යෝජිත" : "Suggested"}:
-                        </Text>
-                        <Text style={styles.suggestedValueText}>{factor.suggested_value}</Text>
-                      </View>
-                    </View>
-                  ) : (
-                    /* Standard single bar */
-                    <View style={styles.factorBarContainer}>
-                      <View
+                      <Text
                         style={[
-                          styles.factorBar,
+                          styles.factorImpact,
                           {
-                            width: `${Math.min(Math.abs(factor.impact_percentage || 0), 100)}%`,
-                            backgroundColor:
+                            color:
                               (factor.impact_percentage || 0) >= 0
                                 ? "#10B981"
                                 : "#EF4444",
                           },
                         ]}
-                      />
+                      >
+                        {factor.impact_percentage > 0 ? "+" : ""}
+                        {factor.impact_percentage?.toFixed(1)}%
+                      </Text>
                     </View>
-                  )}
-                </View>
-              ))}
+                    <Text style={styles.factorDescription}>
+                      {factor.description}
+                    </Text>
+
+                    {/* Show dual bars if suggestion exists */}
+                    {factor.suggested_value ? (
+                      <View style={styles.suggestionContainer}>
+                        {/* Current value bar (grey/red) */}
+                        <View style={styles.barRow}>
+                          <Text style={styles.barLabel}>
+                            {language === "si" ? "වත්මන්" : "Current"}:
+                          </Text>
+                          <View style={styles.factorBarContainer}>
+                            <View
+                              style={[
+                                styles.factorBar,
+                                {
+                                  width: `${Math.min(Math.abs(factor.impact_percentage || 0), 100)}%`,
+                                  backgroundColor: "#9CA3AF",
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.barValue}>{factor.impact_percentage?.toFixed(1)}%</Text>
+                        </View>
+
+                        {/* Suggested value bar (green) */}
+                        <View style={styles.barRow}>
+                          <Text style={styles.barLabel}>
+                            {language === "si" ? "යෝජිත" : "Suggested"}:
+                          </Text>
+                          <View style={styles.factorBarContainer}>
+                            <View
+                              style={[
+                                styles.factorBar,
+                                {
+                                  width: `${Math.min(Math.abs(factor.suggested_impact || 0), 100)}%`,
+                                  backgroundColor: "#10B981",
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.barValue}>+{factor.suggested_impact?.toFixed(1)}%</Text>
+                        </View>
+
+                        {/* Improvement indicator */}
+                        <View style={styles.improvementBadge}>
+                          <Text style={styles.improvementText}>
+                            {language === "si" ? "වැඩිදියුණු කිරීම" : "Improvement"}: +{factor.difference?.toFixed(1)}%
+                          </Text>
+                        </View>
+
+                        {/* Suggested value display */}
+                        <View style={styles.suggestedValueBox}>
+                          <Text style={styles.suggestedValueLabel}>
+                            {language === "si" ? "යෝජිත" : "Suggested"}:
+                          </Text>
+                          <Text style={styles.suggestedValueText}>{factor.suggested_value}</Text>
+                        </View>
+                      </View>
+                    ) : (
+                      /* Standard single bar */
+                      <View style={styles.factorBarContainer}>
+                        <View
+                          style={[
+                            styles.factorBar,
+                            {
+                              width: `${Math.min(Math.abs(factor.impact_percentage || 0), 100)}%`,
+                              backgroundColor:
+                                (factor.impact_percentage || 0) >= 0
+                                  ? "#10B981"
+                                  : "#EF4444",
+                            },
+                          ]}
+                        />
+                      </View>
+                    )}
+                  </View>
+                ))}
             </View>
           )}
 
@@ -1060,8 +1080,8 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                           rec.priority === "high"
                             ? "#FEE2E2"
                             : rec.priority === "medium"
-                            ? "#FEF3C7"
-                            : "#DBEAFE",
+                              ? "#FEF3C7"
+                              : "#DBEAFE",
                       },
                     ]}
                   >
@@ -1073,8 +1093,8 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
                             rec.priority === "high"
                               ? "#EF4444"
                               : rec.priority === "medium"
-                              ? "#F59E0B"
-                              : "#3B82F6",
+                                ? "#F59E0B"
+                                : "#3B82F6",
                         },
                       ]}
                     >
@@ -1094,7 +1114,7 @@ const YieldPredictionOfficerResultsScreenEnhanced = () => {
       <ConfidenceBreakdownModal
         visible={showConfidenceBreakdown}
         onClose={() => setShowConfidenceBreakdown(false)}
-        language={language}
+        language={language === "ta" ? "en" : language}
         confidenceScore={confidenceScore}
         predictionMethod={predictionMethod}
       />

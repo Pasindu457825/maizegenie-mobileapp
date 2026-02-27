@@ -49,7 +49,7 @@ import {
     CloudFog,
 } from "lucide-react-native";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type NavProp = StackNavigationProp<
     YieldPredictionStackParamList,
     "YieldPredictionFormScreen"
@@ -133,7 +133,7 @@ const YieldPredictionFormScreen = () => {
     };
 
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     // Use universal location hook for GPS and weather
     const {
@@ -143,7 +143,7 @@ const YieldPredictionFormScreen = () => {
         weatherCondition: autoWeatherCondition,
         weatherIcon: autoWeatherIcon,
         isLoading: locationLoading,
-    } = useUniversalLocation(language);
+    } = useUniversalLocation(language === "ta" ? "en" : language);
     const [district, setDistrict] = useState("");
     const [location, setLocation] = useState("");
     const [plantingDate, setPlantingDate] = useState<Date | null>(null);
@@ -738,6 +738,31 @@ const YieldPredictionFormScreen = () => {
             locationPlaceholder: "e.g., Medawachchiya",
             selectVariety: "Select a seed variety",
         },
+        ta: {
+            title: "விளைச்சல் கணிப்பு",
+            subtitle: "தகவல்களை உள்ளிடவும்",
+            yourInputs: "உங்கள் தரவுகள்",
+            district: "மாவட்டம்",
+            location: "இடம்",
+            plantingDate: "நடுகை திகதி",
+            season: "பருவகாலம்",
+            landSize: "நில அளவு",
+            landSizeUnit: "அலகு",
+            autoFill: "தானியங்கி நிரப்புதல்",
+            autoDetected: "தானியங்கி கண்டறியப்பட்டது",
+            rainfall30d: "மழையளவு 30d (mm)",
+            seasonalTemperature: "பருவகால வெப்பநிலை (°C)",
+            seasonalHumidity: "பருவகால ஈரப்பதன்மை (%)",
+            rainfallSeasonal: "பருவகால மழையளவு (mm)",
+            soilType: "மண் வகை",
+            soilCondition: "மண் நிலை",
+            irrigationType: "நீர்பாசன வகை",
+            seedVariety: "விதை வகை",
+            rainfallCondition: "மழையளவு நிலை",
+            submit: "கணிப்பை பெறுங்கள்",
+            locationPlaceholder: "உதா., மேதவாச்சியா",
+            selectVariety: "விதை வகையை தேர்ந்தெடுக்கவும்",
+        },
     };
 
     // Cross-platform alert function
@@ -1037,7 +1062,7 @@ const YieldPredictionFormScreen = () => {
             // Navigate to results with real data and farmer input
             navigation.navigate("YieldPredictionResultsScreen", {
                 data: response,
-                language,
+                language: language === "ta" ? "en" : language,
                 farmerInput: {
                     district: district,
                     location: location || '',
@@ -1704,13 +1729,13 @@ const YieldPredictionFormScreen = () => {
                 onClose={() => setShowUploadModal(false)}
                 onPickDocument={() => pickDocument()}
                 onPickImage={() => pickImage()}
-                language={language}
+                language={language === "ta" ? "en" : language}
             />
 
             {/* Extraction Animation */}
             <SoilExtractionAnimation
                 visible={isAnalyzingPDF}
-                language={language}
+                language={language === "ta" ? "en" : language}
                 fileName={uploadedFileName}
             />
         </View>

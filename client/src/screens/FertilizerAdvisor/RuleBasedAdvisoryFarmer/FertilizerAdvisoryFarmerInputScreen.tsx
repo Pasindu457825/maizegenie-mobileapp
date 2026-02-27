@@ -27,7 +27,7 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
     si: {
@@ -126,13 +126,61 @@ const content = {
         harvestTime: "Harvest time",
         harvestTimeSi: "අස්වනු නෙළීමේ කාලය",
     },
+    ta: {
+        title: "உர ஆலோசனை",
+        subtitle: "விதிமுறை அடிப்படை உதவியாளர்",
+        mainLabel: "உங்கள் பயிர் நிலையை உங்கள் சொந்த வார்த்தைகளில் விவரிக்கவும்",
+        plantingDateLabel: "நடுகை தேதி",
+        plantingDatePlaceholder: "YYYY-MM-DD",
+        plantingStageLabel: "தற்போதைய வளர்ச்சி நிலை",
+        plantingStageAuto: "தானியங்கியாக கணக்கிடப்பட்டது",
+        rainfallLabel: "மழையளவு நிலை",
+        rainfallPlaceholder: "மழையளவு நிலையைத் தேர்ந்தெடுக்கவும்",
+        rainfallLow: "குறைந்த மழையளவு / மழை இல்லை",
+        rainfallHigh: "அதிக மழையளவு / மிக அதிக மழை",
+        soilLabel: "மண் நிலை",
+        soilPlaceholder: "மண் நிலையைத் தேர்ந்தெடுக்கவும்",
+        soilDry: "வறண்ட மண்",
+        soilWet: "ஈரமான / நீர் நிறைந்த மண்",
+        selectDate: "தேதியைத் தேர்ந்தெடுக்கவும்",
+        cancel: "ரத்து செய்",
+        keywordsHelper: "வார்த்தை உதவி:",
+        getAdvice: "ஆலோசனை பெறுங்கள்",
+        gettingAdvice: "ஆலோசனை பெறப்படுகிறது...",
+        howItWorks: "இது எப்படி செயல்படுகிறது?",
+        howItWorksDesc:
+            "உங்கள் சொந்த வார்த்தைகளில் விவரிக்கவும். அமைப்பு உங்கள் மொழி (சிங்களம்/English) அடிப்படையில் உர ஆலோசனை வழங்குகிறது.",
+        details: "விரிவுகள்",
+        detailsDesc: "இந்த அமைப்பு இந்த காணக்கூடிய அறிகுறிகளை மட்டுமே கண்டறிகிறது:\n• மஞ்சள்/வெளிறிய இலைகள்\n• ஊதா இலைகள்\n• இலை நுனி/விளிம்பு எரிதல்\n• பலவீனமான செடிகள்\n• வளர்ச்சி குறைவு\n• அதிக மழை/குறைவான மழை\n• வறண்ட மண்/ஈரமான மண்",
+        exampleRotate1: "மஞ்சள் இலைகள். பலவீனமான செடிகள். வறண்ட மண்.",
+        exampleRotate2: "இலை விளிம்பு எரிதல். வளர்ச்சி குறைவு.",
+        exampleRotate3: "ஊதா இலைகள். அதிக மழை.",
+        plantingDateTooOld: "நடுகை தேதி 130 நாட்களுக்கு மேல் பழையதாக இருக்க முடியாது. சரியான தேதியை உள்ளிடவும்.",
+        growthStages: "வளர்ச்சி நிலைகள்",
+        growthStagesTitle: "வளர்ச்சி நிலைகள் (நடுகை நாட்களின் அடிப்படையில்)",
+        days: "நாட்கள்",
+        stageEnglish: "நிலை (ஆங்கிலம்)",
+        stageSinhala: "நிலை (சிங்களம்)",
+        seedlingStage: "Seedling stage",
+        seedlingStageSi: "பைங்கன் நிலை",
+        vegetativeStage: "Vegetative stage",
+        vegetativeStageSi: "தாவர வளர்ச்சி நிலை",
+        kneeHeightStage: "Knee-height stage",
+        kneeHeightStageSi: "முழங்கால் உயர நிலை",
+        tasselingStage: "Tasseling/Flowering stage",
+        tasselingStageSi: "பூக்கும் நிலை",
+        grainFillingStage: "Grain filling stage",
+        grainFillingStageSi: "தானிய நிரப்பும் நிலை",
+        harvestTime: "Harvest time",
+        harvestTimeSi: "அறுவடை நேரம்",
+    },
 };
 
 export default function RuleBasedAdvisoryInputScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
     const [inputText, setInputText] = useState("");
     const [plantingDate, setPlantingDate] = useState<string>("");
     const [plantingStage, setPlantingStage] = useState<string>("");
@@ -310,8 +358,8 @@ export default function RuleBasedAdvisoryInputScreen() {
 
             if (response.ok) {
                 navigation.navigate("RuleBasedAdvisoryResultsScreen", {
-                    data: { 
-                        ...result, 
+                    data: {
+                        ...result,
                         farmer_input: inputText.trim(),
                         planting_date: plantingDate || null,
                         planting_stage: plantingStage || null,
@@ -358,8 +406,8 @@ export default function RuleBasedAdvisoryInputScreen() {
                     <View style={styles.infoTextContainer}>
                         <Text style={styles.infoTitle}>{t.howItWorks}</Text>
                         <Text style={styles.infoDesc}>{t.howItWorksDesc}</Text>
-                        <TouchableOpacity 
-                            style={styles.detailsButton} 
+                        <TouchableOpacity
+                            style={styles.detailsButton}
                             onPress={() => setShowDetails(!showDetails)}
                         >
                             <Text style={styles.detailsButtonText}>{t.details}</Text>
@@ -405,8 +453,8 @@ export default function RuleBasedAdvisoryInputScreen() {
                             placeholderTextColor="#9CA3AF"
                             maxLength={10}
                         />
-                        <TouchableOpacity 
-                            style={styles.calendarButton} 
+                        <TouchableOpacity
+                            style={styles.calendarButton}
                             onPress={() => {
                                 // Show date picker with max date as today
                                 setShowDatePicker(true);
@@ -431,7 +479,7 @@ export default function RuleBasedAdvisoryInputScreen() {
 
                 {/* Growth Stages - Collapsible */}
                 <View style={styles.inputSection}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                         style={styles.growthStagesToggle}
                         onPress={() => setShowGrowthStages(!showGrowthStages)}
                         activeOpacity={0.7}
@@ -444,7 +492,7 @@ export default function RuleBasedAdvisoryInputScreen() {
                     {showGrowthStages && (
                         <View style={styles.growthStagesTable}>
                             <Text style={styles.growthStagesTitle}>{t.growthStagesTitle}</Text>
-                            
+
                             {/* Table Header */}
                             <View style={styles.tableHeader}>
                                 <Text style={[styles.tableHeaderCell, styles.tableDaysColumn]}>{t.days}</Text>
@@ -605,19 +653,19 @@ export default function RuleBasedAdvisoryInputScreen() {
                         if (Platform.OS === "android") {
                             setShowDatePicker(false);
                         }
-                        
+
                         if (event.type === "dismissed") {
                             setShowDatePicker(false);
                             return;
                         }
-                        
+
                         if (selectedDate) {
                             const year = selectedDate.getFullYear();
                             const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
                             const day = String(selectedDate.getDate()).padStart(2, "0");
                             const formattedDate = `${year}-${month}-${day}`;
                             setPlantingDate(formattedDate);
-                            
+
                             if (Platform.OS === "ios") {
                                 setShowDatePicker(false);
                             }
