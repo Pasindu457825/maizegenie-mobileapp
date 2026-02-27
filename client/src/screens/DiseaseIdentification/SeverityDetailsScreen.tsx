@@ -360,6 +360,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
     width: 0,
     height: 0,
   });
+  const previewResizeMode: "cover" = "cover";
 
   useEffect(() => {
     if (!image) return;
@@ -380,8 +381,22 @@ export default function SeverityDetailsScreen({ route }: Props) {
       return [];
     }
 
-    const scaleX = displayImageSize.width / sourceImageSize.width;
-    const scaleY = displayImageSize.height / sourceImageSize.height;
+    const displayW = displayImageSize.width;
+    const displayH = displayImageSize.height;
+    const sourceW = sourceImageSize.width;
+    const sourceH = sourceImageSize.height;
+
+    const scale =
+      previewResizeMode === "cover"
+        ? Math.max(displayW / sourceW, displayH / sourceH)
+        : Math.min(displayW / sourceW, displayH / sourceH);
+    const renderedW = sourceW * scale;
+    const renderedH = sourceH * scale;
+    const offsetX = (displayW - renderedW) / 2;
+    const offsetY = (displayH - renderedH) / 2;
+
+    const projectX = (x: number) => x * scale + offsetX;
+    const projectY = (y: number) => y * scale + offsetY;
 
     return predictions
       .flatMap((prediction, predIndex) => {
@@ -397,29 +412,29 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
           const left = Math.max(
             0,
-            Math.min(displayImageSize.width, Math.min(x1, x2) * scaleX)
+            Math.min(displayW, projectX(Math.min(x1, x2)))
           );
           const top = Math.max(
             0,
-            Math.min(displayImageSize.height, Math.min(y1, y2) * scaleY)
+            Math.min(displayH, projectY(Math.min(y1, y2)))
           );
           const right = Math.max(
             0,
-            Math.min(displayImageSize.width, Math.max(x1, x2) * scaleX)
+            Math.min(displayW, projectX(Math.max(x1, x2)))
           );
           const bottom = Math.max(
             0,
-            Math.min(displayImageSize.height, Math.max(y1, y2) * scaleY)
+            Math.min(displayH, projectY(Math.max(y1, y2)))
           );
           const width = right - left;
           const height = bottom - top;
 
           if (width <= 1 || height <= 1) return null;
 
-          // Safety guard: never render oversized boxes that look like whole-leaf marks.
+          // Guard against accidental full-image boxes from noisy masks.
           if (
-            width > displayImageSize.width * 0.35 ||
-            height > displayImageSize.height * 0.35
+            width > displayW * 0.8 ||
+            height > displayH * 0.8
           ) {
             return null;
           }
@@ -444,7 +459,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
           height: number;
         } => box !== null
       );
-  }, [displayImageSize, predictions, sourceImageSize]);
+  }, [displayImageSize, predictions, previewResizeMode, sourceImageSize]);
 
   return (
     <View style={styles.container}>
@@ -495,7 +510,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                 <Image
                   source={{ uri: image }}
                   style={styles.imagePreview}
-                  resizeMode="cover"
+                  resizeMode={previewResizeMode}
                 />
                 <View pointerEvents="none" style={styles.imageOverlay}>
                   {impactBoxes.map((box) => (
