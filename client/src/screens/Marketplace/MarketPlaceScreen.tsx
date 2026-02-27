@@ -28,6 +28,7 @@ import {
   Send,
   XCircle,
   Bell,
+  Clock,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -100,6 +101,8 @@ const MarketPlaceScreen = () => {
       offerError: "දෝෂයක් සිදු විය",
       invalidPrice: "කරුණාකර වලංගු මිල ඇතුලු කරන්න",
       alreadyOffered: "ඔබ පෙර ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත",
+      posted: "පළ කළ",
+      updated: "යාවත්කාලීන",
     },
     en: {
       title: "Harvest Marketplace",
@@ -125,6 +128,8 @@ const MarketPlaceScreen = () => {
       offerError: "An error occurred",
       invalidPrice: "Please enter a valid price",
       alreadyOffered: "You already offered on this post",
+      posted: "Posted",
+      updated: "Updated",
     },
     ta: {
       title: "அறுவடை சந்தை",
@@ -149,7 +154,27 @@ const MarketPlaceScreen = () => {
       offerError: "பிழை ஏற்பட்டது",
       invalidPrice: "சரியான விலையை உள்ளிடுக",
       alreadyOffered: "ஏற்கனவே சலிவு விலை சமர்ப்பித்துள்ளீர்கள்",
+      posted: "பதிவிடப்பட்டது",
+      updated: "புதுப்பிக்கப்பட்டது",
     },
+  };
+
+  // Format a UTC ISO timestamp to a short local date string e.g. "Feb 27, 2026"
+  const formatDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Returns true when updated_at is meaningfully later than created_at (>60s)
+  const wasUpdated = (created: string, updated?: string) => {
+    if (!updated) return false;
+    return new Date(updated).getTime() - new Date(created).getTime() > 60_000;
   };
 
   // Get current user
@@ -370,6 +395,19 @@ const MarketPlaceScreen = () => {
             <Calendar size={14} color="#8B5CF6" />
             <Text style={styles.detailText}>W{item.week}</Text>
           </View>
+        </View>
+
+        {/* Date Row */}
+        <View style={styles.dateRow}>
+          <Clock size={12} color="#9CA3AF" />
+          <Text style={styles.dateText}>
+            {content[language].posted}: {formatDate(item.created_at)}
+          </Text>
+          {wasUpdated(item.created_at, item.updated_at) && (
+            <Text style={styles.dateTextUpdated}>
+              · {content[language].updated}: {formatDate(item.updated_at!)}
+            </Text>
+          )}
         </View>
 
         {/* ✅ Accepted Offer Banner — only for the buyer whose offer was accepted */}
@@ -936,6 +974,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#6B7280",
     fontWeight: "500",
+  },
+  dateRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 5,
+    paddingTop: 2,
+  },
+  dateText: {
+    fontSize: 10,
+    color: "#9CA3AF",
+  },
+  dateTextUpdated: {
+    fontSize: 10,
+    color: "#6B7280",
+    fontStyle: "italic" as const,
   },
   bottomSection: {
     flexDirection: "row",

@@ -14,6 +14,7 @@ export interface Post {
   week: number;
   season: string;
   created_at: string;
+  updated_at?: string;
   status: "active" | "sold" | "scheduled";
   publish_at?: string | null;
   visible?: boolean;
@@ -44,6 +45,7 @@ export interface PostUpdatePayload {
   district?: string;
   week?: number;
   season?: string;
+  updated_at?: string; // set internally by updatePost — not exposed to the UI
 }
 
 /* =====================================================
@@ -717,7 +719,7 @@ export const updatePost = async (
 
   const { data, error } = await supabase
     .from("posts")
-    .update(updates)
+    .update({ ...updates, updated_at: new Date().toISOString() })
     .eq("id", postId)
     .select()
     .single();

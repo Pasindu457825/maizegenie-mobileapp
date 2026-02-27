@@ -164,9 +164,10 @@ const EditPostScreen = () => {
         season,
       });
 
-      Alert.alert(t.successTitle, t.success, [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      // Navigate back to PostDetailScreen first, then show the alert
+      // so useFocusEffect on PostDetailScreen can reload the fresh data.
+      navigation.navigate("PostDetailScreen", { postId });
+      Alert.alert(t.successTitle, t.success);
     } catch (error) {
       console.error("[EditPostScreen] updatePost:", error);
       Alert.alert(t.errorTitle, String(error));
