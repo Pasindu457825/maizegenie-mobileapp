@@ -41,7 +41,8 @@ const EditPostScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
   const { postId, currentData } = route.params as RouteParams;
 
@@ -82,6 +83,9 @@ const EditPostScreen = () => {
       success: "තනතුර යාවත්කාලීන කරන ලදී",
       soldNotice:
         "ⓘ  Sold posts cannot be edited. Only active posts may be changed.",
+      errorTitle: "දෝෂයක්",
+      validationErrorTitle: "දෝෂයක්",
+      successTitle: "සාර්ථකයි",
     },
     en: {
       title: "Edit Post",
@@ -102,6 +106,33 @@ const EditPostScreen = () => {
       success: "Post updated successfully",
       soldNotice:
         "ⓘ  Sold posts cannot be edited. Only active posts may be changed.",
+      errorTitle: "Error",
+      validationErrorTitle: "Validation Error",
+      successTitle: "Success",
+    },
+    ta: {
+      title: "பதிவு திருத்து",
+      subtitle: "உங்கள் செயலில் உள்ள அறுவடை பட்டியலை புதுப்பிக்கவும்",
+      seedVariety: "விதை வகை",
+      pricePerKg: "விலை (ஒரு கிலோவிட்டுக்கு)",
+      quantityKg: "அளவு (கிலோ)",
+      season: "பருவம்",
+      district: "மாவட்டம்",
+      week: "வாரம்",
+      readOnlyNote:
+        "மாவட்டம் & வாரம் உங்கள் அசல் முன்னறிவிப்போடு பூட்டப்பட்டுள்ளது",
+      save: "மாற்றங்களை சேமிக்க",
+      cancel: "ரத்து செய்க",
+      enterVariety: "விதை வகையை உள்ளிடுக",
+      enterPrice: "ஒரு கிலோவுக்கான விலையை உள்ளிடுக",
+      enterQuantity: "கிலோவில் அளவை உள்ளிடுக",
+      validationError: "அனைத்து புலங்களையும் சரியான மதிப்புகளுடன் நிரப்பவும்",
+      success: "பதிவு வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+      soldNotice:
+        "ⓘ  விற்கப்பட்ட பதிவுகளை திருத்த முடியாது. செயலில் உள்ள பதிவுகள் மட்டுமே மாற்றலாம்.",
+      errorTitle: "பிழை",
+      validationErrorTitle: "சரிபார்ப்பு பிழை",
+      successTitle: "வெற்றி",
     },
   };
   const t = T[language];
@@ -119,10 +150,7 @@ const EditPostScreen = () => {
   // ── Save handler ───────────────────────────────────────────────────
   const handleSave = async () => {
     if (!validate()) {
-      Alert.alert(
-        language === "si" ? "දෝෂයක්" : "Validation Error",
-        t.validationError,
-      );
+      Alert.alert(t.validationErrorTitle, t.validationError);
       return;
     }
 
@@ -136,12 +164,12 @@ const EditPostScreen = () => {
         season,
       });
 
-      Alert.alert(language === "si" ? "සාර්ථකයි" : "Success", t.success, [
+      Alert.alert(t.successTitle, t.success, [
         { text: "OK", onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
       console.error("[EditPostScreen] updatePost:", error);
-      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      Alert.alert(t.errorTitle, String(error));
     } finally {
       setIsSaving(false);
     }

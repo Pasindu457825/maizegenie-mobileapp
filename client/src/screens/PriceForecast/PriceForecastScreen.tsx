@@ -81,7 +81,7 @@ const API_URL = getApiUrl();
 
 const { width } = Dimensions.get("window");
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type NavProp = StackNavigationProp<
   PriceForecastStackParamList,
   "PriceForecastScreen"
@@ -119,8 +119,9 @@ const PriceForecastScreen = () => {
   // Global language from context
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
 
-  // Convert global language ("sinhala" | "english") to screen language ("si" | "en")
-  const language: Language = globalLang === "sinhala" ? "si" : "en";
+  // Convert global language ("sinhala" | "english" | "tamil") to screen language ("si" | "en" | "ta")
+  const language: Language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
@@ -273,6 +274,50 @@ const PriceForecastScreen = () => {
       priceDecreasing: "📉 Price is decreasing",
       priceStable: "↔️ Price is stable",
     },
+    ta: {
+      title: "விலை மதிப்பீடு",
+      subtitle: "உங்கள் மதிப்பீட்டு முடிவுகள்",
+      predictedPrice: "மதிப்பிடப்பட்ட விலை",
+      perKg: "ஒரு கிலோவுக்கு",
+      priceIncrease: "விலை அதிகரிப்பு",
+      priceDecrease: "விலை குறைப்பு",
+      vsCurrentPrice: "தற்போதைய விலையுடன் ஒப்பிட",
+      confidence: "நம்பகத்தன்மை",
+      recommendation: "பரிந்துரை",
+      marketConditions: "சந்தை நிலைமைகள்",
+      profitAnalysis: "லாப பகுப்பாய்வு",
+      totalYield: "மொத்த விளைச்சல்",
+      totalRevenue: "மொத்த வருவாய்",
+      totalCost: "மொத்த செலவு",
+      expectedProfit: "எதிர்பார்க்கப்படும் லாபம்",
+      profitMargin: "லாப வரம்பு",
+      sellNow: "இப்போது விற்பது நல்லது",
+      sellLater: "இன்னும் ஒரு வாரம் காத்திருங்கள்",
+      storageAdvice: "சேமித்து வைக்கவும்",
+      sellImmediately: "உடனே விற்கவும்",
+      marketFactors: "சந்தை காரணிகள்",
+      seasonEffect: "பருவகால தாக்கம்",
+      weatherEffect: "வானிலை தாக்கம்",
+      fuelEffect: "எரிபொருள் தாக்கம்",
+      importEffect: "இறக்குமதி தாக்கம்",
+      high: "அதிகம்",
+      medium: "நடுத்தரம்",
+      low: "குறைவு",
+      positive: "நேர்மறை",
+      negative: "எதிர்மறை",
+      neutral: "நடுநிலை",
+      newForecast: "புதிய மதிப்பீடு",
+      backToForm: "படிவத்திற்கு திரும்பு",
+      kg: "கி.கி",
+      detecting: "கண்டறிகிறது...",
+      loading: "ஏற்றுகிறது...",
+      locationDetecting: "இடத்தை கண்டறிகிறது...",
+      weatherLoading: "வானிலை ஏற்றுகிறது...",
+      priceTrend: "4-வார விலை போக்கு",
+      priceIncreasing: "📈 விலை உயர்கிறது",
+      priceDecreasing: "📉 விலை குறைகிறது",
+      priceStable: "↔️ விலை நிலையானது",
+    },
   };
 
   // Convert ISO year + week number to date range
@@ -280,7 +325,7 @@ const PriceForecastScreen = () => {
     year: number,
     baseWeek: number,
     offset: number,
-    lang: "si" | "en",
+    lang: Language,
   ) => {
     // Jan 4 is always in ISO Week 1
     const jan4 = new Date(year, 0, 4);
@@ -303,11 +348,11 @@ const PriceForecastScreen = () => {
     };
 
     const start = weekStart.toLocaleDateString(
-      lang === "si" ? "si-LK" : "en-US",
+      lang === "si" ? "si-LK" : lang === "ta" ? "ta-LK" : "en-US",
       options,
     );
     const end = weekEnd.toLocaleDateString(
-      lang === "si" ? "si-LK" : "en-US",
+      lang === "si" ? "si-LK" : lang === "ta" ? "ta-LK" : "en-US",
       options,
     );
 
@@ -329,63 +374,104 @@ const PriceForecastScreen = () => {
     if (bestWeekIndex === 0) {
       return language === "si"
         ? "⭐ වත්මන් සතියේ මිල හොඳමය – දැන් විකිණීම වාසිදායකයි"
-        : "⭐ Current week has the highest price – best time to sell now";
+        : language === "ta"
+          ? "⭐ இந்த வாரம் அதிக விலை உள்ளது – இப்போது விற்பதே சிறந்தது"
+          : "⭐ Current week has the highest price – best time to sell now";
     }
 
     return language === "si"
       ? `⭐ හොඳම මිල ලැබෙන්නේ ඉදිරි සතිය ${bestWeekIndex + 1} තුළය`
-      : `⭐ Best price is expected in week ${bestWeekIndex + 1}`;
+      : language === "ta"
+        ? `⭐ சிறந்த விலை ${bestWeekIndex + 1} வாரத்தில் எதிர்பார்க்கப்படுகிறது`
+        : `⭐ Best price is expected in week ${bestWeekIndex + 1}`;
   };
 
   // Enhanced weather translation mapping
   const getWeatherTranslation = (condition: string, lang: Language): string => {
-    if (!condition) return lang === "si" ? "කාලගුණය" : "Weather";
+    if (!condition)
+      return lang === "si" ? "කාලගුණය" : lang === "ta" ? "வானிலை" : "Weather";
 
     const c = condition.toLowerCase();
 
     // ---- RAIN ----
     if (c.includes("shower rain") || c.includes("light intensity shower")) {
-      return lang === "si" ? "සෙමෙන් වැසි" : "Light Shower Rain";
+      return lang === "si"
+        ? "සෙමෙන් වැසි"
+        : lang === "ta"
+          ? "இலேசான தூறல் மழை"
+          : "Light Shower Rain";
     }
     if (c.includes("light rain")) {
-      return lang === "si" ? "සැහැල්ලු වැසි" : "Light Rain";
+      return lang === "si"
+        ? "සැහැල්ලු වැසි"
+        : lang === "ta"
+          ? "இலேசான மழை"
+          : "Light Rain";
     }
     if (c.includes("moderate rain")) {
-      return lang === "si" ? "මධ්‍යම වැසි" : "Moderate Rain";
+      return lang === "si"
+        ? "මධ්‍යම වැසි"
+        : lang === "ta"
+          ? "மிதமான மழை"
+          : "Moderate Rain";
     }
     if (c.includes("heavy") && c.includes("rain")) {
-      return lang === "si" ? "බර වැසි" : "Heavy Rain";
+      return lang === "si" ? "බර වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
     }
 
     // ---- CLOUDS ----
     if (c.includes("clear")) {
-      return lang === "si" ? "පිරිසිදු අහස" : "Clear Sky";
+      return lang === "si"
+        ? "පිරිසිදු අහස"
+        : lang === "ta"
+          ? "தெளிவான வானம்"
+          : "Clear Sky";
     }
     if (c.includes("few clouds")) {
-      return lang === "si" ? "සුළු වලාකුළු" : "Few Clouds";
+      return lang === "si"
+        ? "සුළු වලාකුළු"
+        : lang === "ta"
+          ? "சில மேகங்கள்"
+          : "Few Clouds";
     }
     if (c.includes("scattered")) {
-      return lang === "si" ? "විසිරුණු වලාකුළු" : "Scattered Clouds";
+      return lang === "si"
+        ? "විසිරුණු වලාකුළු"
+        : lang === "ta"
+          ? "சிதறிய மேகங்கள்"
+          : "Scattered Clouds";
     }
     if (c.includes("broken")) {
-      return lang === "si" ? "කැබලි වලාකුළු" : "Broken Clouds";
+      return lang === "si"
+        ? "කැබලි වලාකුළු"
+        : lang === "ta"
+          ? "உடைந்த மேகங்கள்"
+          : "Broken Clouds";
     }
     if (c.includes("overcast")) {
-      return lang === "si" ? "තද වලාකුළු" : "Overcast Clouds";
+      return lang === "si"
+        ? "තද වලාකුළු"
+        : lang === "ta"
+          ? "மேகமூட்டமான வானம்"
+          : "Overcast Clouds";
     }
 
     // ---- THUNDER ----
     if (c.includes("thunder")) {
-      return lang === "si" ? "අකුණු සහිත වැසි" : "Thunderstorm";
+      return lang === "si"
+        ? "අකුණු සහිත වැසි"
+        : lang === "ta"
+          ? "இடியுடன் கூடிய மழை"
+          : "Thunderstorm";
     }
 
     // ---- MIST / FOG ----
     if (c.includes("mist") || c.includes("fog") || c.includes("haze")) {
-      return lang === "si" ? "මීදුම" : "Mist";
+      return lang === "si" ? "මීදුම" : lang === "ta" ? "மூடுபனி" : "Mist";
     }
 
     // DEFAULT
-    return lang === "si" ? "කාලගුණය" : condition;
+    return lang === "si" ? "කාලගුණය" : lang === "ta" ? "வானிலை" : condition;
   };
 
   const getWeatherIcon = (condition: string | null) => {
@@ -414,7 +500,13 @@ const PriceForecastScreen = () => {
   useEffect(() => {
     // Set language from form data
     if (formData?.language) {
-      setAppLanguage(formData.language === "si" ? "sinhala" : "english");
+      setAppLanguage(
+        formData.language === "si"
+          ? "sinhala"
+          : formData.language === "ta"
+            ? "tamil"
+            : "english",
+      );
     }
 
     // Animate on mount
@@ -440,7 +532,13 @@ const PriceForecastScreen = () => {
     } else if (locationName && locationName !== "Loading...") {
       setDistrict(locationName);
     } else {
-      setDistrict(language === "si" ? "ස්ථානය නොමැත" : "Location unavailable");
+      setDistrict(
+        language === "si"
+          ? "ස්ථානය නොමැත"
+          : language === "ta"
+            ? "இடம் கிடைக்கவில்லை"
+            : "Location unavailable",
+      );
     }
 
     // Update weather
@@ -454,7 +552,11 @@ const PriceForecastScreen = () => {
       setWeather(`${Math.round(temperature)}°C • ${translatedCondition}`);
     } else {
       setWeather(
-        language === "si" ? "කාලගුණ දත්ත නොමැත" : "Weather unavailable",
+        language === "si"
+          ? "කාලගුණ දත්ත නොමැත"
+          : language === "ta"
+            ? "வானிலை தகவல் கிடைக்கவில்லை"
+            : "Weather unavailable",
       );
     }
   }, [locationName, temperature, weatherCondition, isLoading, language]);
@@ -588,10 +690,14 @@ const PriceForecastScreen = () => {
           await sendNotification(
             language === "si"
               ? "⭐ මේ සතියේම විකිණීම වාසිදායකයි"
-              : "⭐ Best time to sell is this week",
+              : language === "ta"
+                ? "⭐ இந்த வாரமே விற்பது லாபகரமானது"
+                : "⭐ Best time to sell is this week",
             language === "si"
               ? "වත්මන් සතියේ ඉහළම මිලක් පුරෝකථනය කර ඇත"
-              : "The current week has the highest predicted price",
+              : language === "ta"
+                ? "இந்த வாரம் அதிக விலை எதிர்பார்க்கப்படுகிறது"
+                : "The current week has the highest predicted price",
             "price",
           );
         } else {
@@ -600,10 +706,14 @@ const PriceForecastScreen = () => {
           await sendNotification(
             language === "si"
               ? `🗓 දින ${daysToSell} කින් විකිණන්න`
-              : `🗓 Sell in ${daysToSell} days`,
+              : language === "ta"
+                ? `🗓 ${daysToSell} நாட்களில் விற்கவும்`
+                : `🗓 Sell in ${daysToSell} days`,
             language === "si"
               ? "හොඳම සතියේ ඉහළම මිල ලැබේ"
-              : "Best price expected in the selected week",
+              : language === "ta"
+                ? "தேர்ந்தெடுக்கப்பட்ட வாரத்தில் சிறந்த விலை எதிர்பார்க்கப்படுகிறது"
+                : "Best price expected in the selected week",
             "price",
           );
         }
@@ -641,7 +751,9 @@ const PriceForecastScreen = () => {
         setNoStorageSuggestion(
           language === "si"
             ? `හොඳම මිල ලැබෙන්නේ ${bestIdx + 1} වන සතිය තුළය. ඔබට ගබඩා පහසුකම් නොමැත. කෙසේ වෙතත්, තාවකාලික ගබඩාවක් සොයාගැනීමට හෝ විකිණීම ප්‍රමාද කළ හොත් ඒ සතිය තුළ වැඩි ලාභයක් ලැබිය හැකිය.`
-            : `Although the best price is expected in week ${bestIdx + 1}, you do not have storage. If you can arrange temporary storage or delay selling, you may gain higher profit in that week.`,
+            : language === "ta"
+              ? `சிறந்த விலை ${bestIdx + 1} வாரத்தில் எதிர்பார்க்கப்படினும், உங்களிடம் சேமிப்பு வசதி இல்லை. தற்காலிக சேமிப்பை ஏற்பாடு செய்தால் அல்லது விற்பதை தாமதித்தால் அதிக லாபம் கிடைக்கலாம்.`
+              : `Although the best price is expected in week ${bestIdx + 1}, you do not have storage. If you can arrange temporary storage or delay selling, you may gain higher profit in that week.`,
         );
       }
     } catch (err) {
@@ -849,7 +961,8 @@ const PriceForecastScreen = () => {
       try {
         setIsSpeaking(true);
         await Speech.speak(voiceSummaryText, {
-          language: language === "si" ? "si-LK" : "en-US",
+          language:
+            language === "si" ? "si-LK" : language === "ta" ? "ta-LK" : "en-US",
           pitch: 1,
           rate: 0.85,
           onDone: () => setIsSpeaking(false),
@@ -897,7 +1010,11 @@ const PriceForecastScreen = () => {
           {getWeatherIcon(weatherCondition)}
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>
-              {language === "si" ? "ස්ථානය" : "Location"}
+              {language === "si"
+                ? "ස්ථානය"
+                : language === "ta"
+                  ? "இடம்"
+                  : "Location"}
             </Text>
             <Text style={styles.infoValue}>{district}</Text>
           </View>
@@ -907,7 +1024,11 @@ const PriceForecastScreen = () => {
           <CloudSun color="#10B981" size={18} />
           <View style={styles.infoTextContainer}>
             <Text style={styles.infoLabel}>
-              {language === "si" ? "කාලගුණය" : "Weather"}
+              {language === "si"
+                ? "කාලගුණය"
+                : language === "ta"
+                  ? "வானிலை"
+                  : "Weather"}
             </Text>
             <Text style={styles.infoValue}>{weather}</Text>
           </View>
@@ -930,7 +1051,11 @@ const PriceForecastScreen = () => {
             <View style={styles.voiceSummaryCard}>
               <View style={styles.voiceSummaryHeader}>
                 <Text style={styles.voiceSummaryTitle}>
-                  {language === "si" ? "🎧 ඔබට කිවීම" : "🎧 Listen"}
+                  {language === "si"
+                    ? "🎧 ඔබට කිවීම"
+                    : language === "ta"
+                      ? "🎧 கேளுங்கள்"
+                      : "🎧 Listen"}
                 </Text>
                 <TouchableOpacity
                   style={[
@@ -949,10 +1074,14 @@ const PriceForecastScreen = () => {
                 {isSpeaking
                   ? language === "si"
                     ? "(⏹ නැවතීමට ඔබ)"
-                    : "(⏹ Tap to stop)"
+                    : language === "ta"
+                      ? "(⏹ நிறுத்த தட்டவும்)"
+                      : "(⏹ Tap to stop)"
                   : language === "si"
                     ? "(▶ ටින්න අසන්න)"
-                    : "(Tap ▶ to listen)"}
+                    : language === "ta"
+                      ? "(▶ கேட்க தட்டவும்)"
+                      : "(Tap ▶ to listen)"}
               </Text>
             </View>
           )}
@@ -1114,9 +1243,13 @@ const PriceForecastScreen = () => {
                   ? bestWeekIndex === 0
                     ? "වත්මන් සතිය හොඳමය"
                     : "හොඳම සතියේ අමතර ලාභය"
-                  : bestWeekIndex === 0
-                    ? "Current Week is the Best"
-                    : "Extra Profit in Best Week"}
+                  : language === "ta"
+                    ? bestWeekIndex === 0
+                      ? "இந்த வாரம் சிறந்தது"
+                      : "சிறந்த வாரத்தில் கூடுதல் லாபம்"
+                    : bestWeekIndex === 0
+                      ? "Current Week is the Best"
+                      : "Extra Profit in Best Week"}
               </Text>
 
               {bestWeekProfit.difference > 0 ? (
@@ -1127,14 +1260,18 @@ const PriceForecastScreen = () => {
                   <Text style={styles.bestProfitSub}>
                     {language === "si"
                       ? "වත්මන් සතියට වඩා හොඳම සතියේ විකිණුවොත් ලැබෙන අමතර ලාභය"
-                      : "Additional profit if you sell in the best week instead of this week"}
+                      : language === "ta"
+                        ? "சிறந்த வாரத்தில் விற்பதால் கிடைக்கும் கூடுதல் லாபம்"
+                        : "Additional profit if you sell in the best week instead of this week"}
                   </Text>
                 </>
               ) : (
                 <Text style={styles.bestProfitSub}>
                   {language === "si"
                     ? "වත්මන් සතියේ විකිණීමෙන් උපරිම ලාභය ලබාගත හැක"
-                    : "Selling in the current week gives the maximum profit"}
+                    : language === "ta"
+                      ? "இந்த வாரம் விற்பது அதிக லாபம் தரும்"
+                      : "Selling in the current week gives the maximum profit"}
                 </Text>
               )}
             </View>
@@ -1161,7 +1298,9 @@ const PriceForecastScreen = () => {
               <Text style={styles.primaryButtonText}>
                 {language === "si"
                   ? "හොඳම මිලට දැන් විකිණීමට දාන්න"
-                  : "Sell at Best Price"}
+                  : language === "ta"
+                    ? "சிறந்த விலையில் இப்போது விற்கவும்"
+                    : "Sell at Best Price"}
               </Text>
             </TouchableOpacity>
           )}
@@ -1188,7 +1327,9 @@ const PriceForecastScreen = () => {
                 <Text style={styles.storageNoteText}>
                   {language === "si"
                     ? "ඔබට ගබඩා පහසුකම් ඇත - මිල වැඩිවන තුරු රඳවා තබන්න"
-                    : "You have storage - hold until price increases"}
+                    : language === "ta"
+                      ? "உங்களிடம் சேமிப்பு உள்ளது - விலை உயரும் வரை வைத்திருங்கள்"
+                      : "You have storage - hold until price increases"}
                 </Text>
               </View>
             )}
@@ -1219,7 +1360,9 @@ const PriceForecastScreen = () => {
               <Text style={styles.sectionTitle}>
                 {language === "si"
                   ? "අලුත් සති 4 කට මිල පුරෝකථනය"
-                  : "Next 4 Weeks Price Forecast"}
+                  : language === "ta"
+                    ? "அடுத்த 4 வார விலை மதிப்பீடு"
+                    : "Next 4 Weeks Price Forecast"}
               </Text>
 
               {/* ✅ Dynamic Best Week Message */}
@@ -1289,10 +1432,14 @@ const PriceForecastScreen = () => {
                           {confTag === "High"
                             ? language === "si"
                               ? `ඉහළ • ${confPct.toFixed(0)}%`
-                              : `High • ${confPct.toFixed(0)}%`
+                              : language === "ta"
+                                ? `அதிகம் • ${confPct.toFixed(0)}%`
+                                : `High • ${confPct.toFixed(0)}%`
                             : language === "si"
                               ? `මධ්‍යම • ${confPct.toFixed(0)}%`
-                              : `Medium • ${confPct.toFixed(0)}%`}
+                              : language === "ta"
+                                ? `நடுத்தரம் • ${confPct.toFixed(0)}%`
+                                : `Medium • ${confPct.toFixed(0)}%`}
                         </Text>
                       </View>
 
@@ -1494,12 +1641,16 @@ const PriceForecastScreen = () => {
             <Text style={styles.popupTitle}>
               {language === "si"
                 ? "⭐ හොඳම විකිණීමේ අවස්ථාව!"
-                : "⭐ Best Selling Opportunity!"}
+                : language === "ta"
+                  ? "⭐ சிறந்த விற்பனை வாய்ப்பு!"
+                  : "⭐ Best Selling Opportunity!"}
             </Text>
             <Text style={styles.popupMessage}>
               {language === "si"
                 ? "හොඳම මිල ලැබෙන දිනයේ විකිණීමට දාන්න පුළුවන්."
-                : "You can sell on the best predicted price date."}
+                : language === "ta"
+                  ? "சிறந்த விலை கிடைக்கும் நாளில் விற்கலாம்."
+                  : "You can sell on the best predicted price date."}
             </Text>
             <TouchableOpacity
               style={styles.popupPrimaryBtn}
@@ -1518,7 +1669,9 @@ const PriceForecastScreen = () => {
               <Text style={styles.popupPrimaryBtnText}>
                 {language === "si"
                   ? "හොඳම මිලට දැන් විකිණීමට දාන්න"
-                  : "Sell at Best Price"}
+                  : language === "ta"
+                    ? "சிறந்த விலையில் இப்போது விற்கவும்"
+                    : "Sell at Best Price"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1526,7 +1679,11 @@ const PriceForecastScreen = () => {
               onPress={closePopup}
             >
               <Text style={styles.popupSecondaryBtnText}>
-                {language === "si" ? "පසුව" : "Later"}
+                {language === "si"
+                  ? "පසුව"
+                  : language === "ta"
+                    ? "பின்னர்"
+                    : "Later"}
               </Text>
             </TouchableOpacity>
           </Animated.View>
@@ -1553,7 +1710,11 @@ const PriceForecastScreen = () => {
           >
             <ActivityIndicator size="large" color="#10B981" />
             <Text style={styles.loadingText}>
-              {language === "si" ? "විශ්ලේෂණය කරමින්..." : "Analyzing..."}
+              {language === "si"
+                ? "විශ්ලේෂණය කරමින්..."
+                : language === "ta"
+                  ? "பகுப்பாய்வு செய்கிறது..."
+                  : "Analyzing..."}
             </Text>
           </Animated.View>
         </Animated.View>

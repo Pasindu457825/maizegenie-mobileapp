@@ -1,6 +1,6 @@
 import type { WeekForecast } from "../services/priceForecastService";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 export interface VoiceSummaryParams {
   district: string;
@@ -31,7 +31,15 @@ export const generateVoiceSummary = (params: VoiceSummaryParams): string => {
       currentPrice,
       weeklyForecast,
       hasStorage,
-      recommendation
+      recommendation,
+    );
+  } else if (language === "ta") {
+    return generateTamilSummary(
+      district,
+      currentPrice,
+      weeklyForecast,
+      hasStorage,
+      recommendation,
     );
   } else {
     return generateEnglishSummary(
@@ -39,7 +47,7 @@ export const generateVoiceSummary = (params: VoiceSummaryParams): string => {
       currentPrice,
       weeklyForecast,
       hasStorage,
-      recommendation
+      recommendation,
     );
   }
 };
@@ -50,7 +58,7 @@ const generateSinhalaSummary = (
   currentPrice: number,
   weeklyForecast: WeekForecast[],
   hasStorage: boolean,
-  recommendation: string
+  recommendation: string,
 ): string => {
   // Line 1: District greeting
   const line1 = `${district} දිස්ත්‍රික්කයේ ඉරිඟු වගා කරන ඔබට සුභ දවසක්.`;
@@ -119,7 +127,7 @@ const getBestWeekSinhala = (weeklyForecast: WeekForecast[]): string => {
 
   const bestIdx = weeklyForecast.reduce(
     (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
-    0
+    0,
   );
 
   const bestPrice = weeklyForecast[bestIdx].ensemble.toFixed(0);
@@ -152,13 +160,83 @@ const getOutlookSinhala = (weeklyForecast: WeekForecast[]): string => {
   }
 };
 
+// ============= TAMIL =============
+const generateTamilSummary = (
+  district: string,
+  currentPrice: number,
+  weeklyForecast: WeekForecast[],
+  hasStorage: boolean,
+  recommendation: string,
+): string => {
+  const line1 = `${district} மாவட்டத்தில் மக்காச்சோளம் பயிரிடும் உங்களுக்கு வணக்கம்.`;
+
+  const trendStatus = getTrendStatusTamil(weeklyForecast);
+  const currentWeekPrice =
+    weeklyForecast.length > 0
+      ? weeklyForecast[0].ensemble.toFixed(0)
+      : currentPrice.toFixed(0);
+  const line2 = `இந்த வாரம் மக்காச்சோளம் ஒரு கிலோவுக்கு ரூபாய் ${currentWeekPrice} விலை உள்ளது. போக்கு ${trendStatus}.`;
+
+  const bestWeekInfo = getBestWeekTamil(weeklyForecast);
+  const line3 = `வரும் வாரங்களில், ${bestWeekInfo}.`;
+
+  let line4 = "";
+  if (recommendation === "sell_now" || recommendation === "sell_immediately") {
+    line4 =
+      "இப்போது விற்பது நல்ல தீர்மானம். உடனே விற்பனை செய்வது லாபகரமாக இருக்கும்.";
+  } else if (recommendation === "storage") {
+    if (hasStorage) {
+      line4 =
+        "உங்களிடம் சேமிப்பு வசதி இருந்தால், இன்னும் ஒன்று அல்லது இரண்டு வாரம் காத்திருப்பது லாபகரமாக இருக்கும். விலை உயர வாய்ப்பு உள்ளது.";
+    } else {
+      line4 =
+        "பொருத்தமான இடத்தில் சேமித்து இன்னும் ஒரு வாரம் காத்திருங்கள். விலை உயர வாய்ப்பு உள்ளது.";
+    }
+  } else {
+    line4 =
+      "இன்னும் ஒன்று அல்லது இரண்டு வாரம் காத்திருந்தால் சிறந்த விலை கிடைக்கும். சந்தை பகுப்பாய்வின்படி வரும் வாரங்களில் விலை உயரும் வாய்ப்பு உள்ளது.";
+  }
+
+  const line5 = "உங்கள் தேவைக்கு ஏற்ப தீர்மானம் எடுங்கள். வாழ்த்துக்கள்.";
+
+  return `${line1} ${line2} ${line3} ${line4} ${line5}`;
+};
+
+const getTrendStatusTamil = (weeklyForecast: WeekForecast[]): string => {
+  if (weeklyForecast.length < 2) return "நிலையானது";
+
+  const first = weeklyForecast[0].ensemble;
+  const last = weeklyForecast[weeklyForecast.length - 1].ensemble;
+  const percentChange = ((last - first) / first) * 100;
+
+  if (percentChange > 3) return "உயர்கிறது";
+  if (percentChange < -3) return "குறைகிறது";
+  return "நிலையானது";
+};
+
+const getBestWeekTamil = (weeklyForecast: WeekForecast[]): string => {
+  if (weeklyForecast.length < 2) return "விலை ஒப்பீட்டளவில் நிலையாக உள்ளது";
+
+  const bestIdx = weeklyForecast.reduce(
+    (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
+    0,
+  );
+  const bestPrice = weeklyForecast[bestIdx].ensemble.toFixed(0);
+
+  if (bestIdx === 0) {
+    return `இந்த வாரம் சிறந்த விலை ஒரு கிலோவுக்கு ரூபாய் ${bestPrice}`;
+  } else {
+    return `${bestIdx + 1}வது வாரத்தில் சிறந்த விலை ரூபாய் ${bestPrice} கிலோவுக்கு கிடைக்கும். அது வரை காத்திருப்பது லாபகரமாகும்`;
+  }
+};
+
 // ============= ENGLISH =============
 const generateEnglishSummary = (
   district: string,
   currentPrice: number,
   weeklyForecast: WeekForecast[],
   hasStorage: boolean,
-  recommendation: string
+  recommendation: string,
 ): string => {
   // Line 1: District greeting
   const line1 = `Hello farmer in ${district} district. Here is your maize price update.`;
@@ -222,7 +300,7 @@ const getBestWeekEnglish = (weeklyForecast: WeekForecast[]): string => {
 
   const bestIdx = weeklyForecast.reduce(
     (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
-    0
+    0,
   );
 
   const bestPrice = weeklyForecast[bestIdx].ensemble.toFixed(0);

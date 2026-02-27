@@ -44,7 +44,8 @@ const PostReviewScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const { sendNotification } = useNotifications();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -55,7 +56,8 @@ const PostReviewScreen = () => {
 
   const { postDraft } = route.params as RouteParams;
 
-  const currency = language === "si" ? "රු." : "LKR";
+  const currency =
+    language === "si" ? "රු." : language === "ta" ? "ரூ." : "LKR";
 
   const content = {
     si: {
@@ -98,6 +100,27 @@ const PostReviewScreen = () => {
       scheduledMsg: "Your harvest has been scheduled successfully",
       error: "Something went wrong. Please try again.",
     },
+    ta: {
+      title: "இறுதி மதிப்பாய்வு",
+      subtitle: "பிரசுரித்ததற்கு முன் விவரங்களை உறுதி செய்க",
+      seedVariety: "விதை வகை",
+      quantity: "அளவு",
+      price: "ஒரு கிலோவிட்டு விலை",
+      totalValue: "மொத்த மதிப்யீடு",
+      district: "மாவட்டம்",
+      warningTitle: "முக்கியம்",
+      warningText:
+        "பிரசுரித்ததற்கு பிறகு, இந்த பதிவை எளிதில் திருத்த முடியாது.",
+      publishNow: "இப்போது பிரசுரிக்கவும்",
+      schedule: "பின்னர் திட்டமிடுக",
+      pickDate: "பிரசுரிப்பு தேதி தேர்ந்தெடுக",
+      back: "பின்பக்கம்",
+      publishing: "செயலாகிறது...",
+      successTitle: "வெற்றி!",
+      successMsg: "உங்கள் அறுவடை விற்பனை வெற்றிகரமாக பிரசுரிக்கப்பட்டது",
+      scheduledMsg: "உங்கள் அறுவடை விற்பனை வெற்றிகரமாக திட்டமிடப்பட்டது",
+      error: "பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+    },
   };
 
   const totalValue = postDraft.quantityKg * postDraft.pricePerKg;
@@ -110,7 +133,11 @@ const PostReviewScreen = () => {
 
     if (publishMode === "later" && !publishAt) {
       Alert.alert(
-        language === "si" ? "දිනයක් තෝරන්න" : "Please select a publish date",
+        language === "si"
+          ? "දිනයක් තෝරන්න"
+          : language === "ta"
+            ? "தேதி தேர்ந்தெடுக்கவும்"
+            : "Please select a publish date",
       );
       return;
     }

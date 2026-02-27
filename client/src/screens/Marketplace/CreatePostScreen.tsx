@@ -33,16 +33,17 @@ const CreatePostScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
   const { bestPrice, formData } = route.params as RouteParams;
 
   const [quantity, setQuantity] = useState<string>(
-    (formData?.expectedYield * formData?.farmArea || 0).toFixed(0)
+    (formData?.expectedYield * formData?.farmArea || 0).toFixed(0),
   );
   const [price, setPrice] = useState<string>(bestPrice.toFixed(2));
   const [seedVariety, setSeedVariety] = useState<string>(
-    formData?.seedVariety || ""
+    formData?.seedVariety || "",
   );
 
   const content = {
@@ -74,12 +75,30 @@ const CreatePostScreen = () => {
       enterPrice: "Enter price",
       enterVariety: "Enter seed variety",
     },
+    ta: {
+      title: "அறுவடை விற்பனை",
+      subtitle: "அறுவடை விவரங்களை உள்ளிடுக",
+      quantity: "அளவு (கி.கி)",
+      seedVariety: "விதை வகை",
+      pricePerKg: "விலை (கிலோவுக்கு)",
+      district: "மாவட்டம்",
+      week: "வாரம்",
+      next: "அடுத்து",
+      cancel: "ரத்து செய்க",
+      enterQuantity: "அளவை உள்ளிடுக",
+      enterPrice: "விலையை உள்ளிடுக",
+      enterVariety: "விதை வகையை உள்ளிடுக",
+    },
   };
 
   const handleNext = () => {
     if (!quantity || !price || !seedVariety) {
       alert(
-        language === "si" ? "සියලු ක්ෂේත්‍ර පුරවන්න" : "Please fill all fields"
+        language === "si"
+          ? "සියලු ක්ෂේත්‍ර පුරවන්න"
+          : language === "ta"
+            ? "அனைத்து புலங்களையும் நிரப்புக"
+            : "Please fill all fields",
       );
       return;
     }

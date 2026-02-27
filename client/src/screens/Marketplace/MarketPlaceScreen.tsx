@@ -51,7 +51,8 @@ const MarketPlaceScreen = () => {
   const navigation = useNavigation<NavProp>();
   const rootNavigation = useNavigation<RootNavProp>();
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const { sendNotification, unreadCount } = useNotifications();
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -124,6 +125,30 @@ const MarketPlaceScreen = () => {
       offerError: "An error occurred",
       invalidPrice: "Please enter a valid price",
       alreadyOffered: "You already offered on this post",
+    },
+    ta: {
+      title: "அறுவடை சந்தை",
+      subtitle: "வாங்கக் கிடைக்கும் அறுவடைகள்",
+      search: "தேடுக...",
+      noResults: "எதுவும் கிடைக்கவில்லை",
+      perKg: "ஒரு கிலோவிட்டுக்கு",
+      loading: "ஏற்றுகிறது...",
+      active: "சுறுசீரானது",
+      sold: "விற்பனையானது",
+      scheduled: "திட்டமிட்டது",
+      postNow: "இப்போது பிரசுரிக்கவும்",
+      yourOffer: "உங்கள் சலிவு விலை",
+      noOffers: "சலிவு விலை இல்லை",
+      quickOffer: "விரைவான விலை இடுக",
+      enterOfferPrice: "சலிவு விலையை உள்ளிடுக",
+      currentPrice: "தற்போதைய விலை",
+      submitOffer: "சலிவு சமர்ப்பிக்கவும்",
+      cancel: "ரத்து செய்க",
+      offerHint: "உங்கள் சலிவு விலையை உள்ளிடுக",
+      offerSuccess: "சலிவு விலை சமர்ப்பிக்கப்பட்டது!",
+      offerError: "பிழை ஏற்பட்டது",
+      invalidPrice: "சரியான விலையை உள்ளிடுக",
+      alreadyOffered: "ஏற்கனவே சலிவு விலை சமர்ப்பித்துள்ளீர்கள்",
     },
   };
 
@@ -354,7 +379,9 @@ const MarketPlaceScreen = () => {
             <Text style={styles.acceptedOfferBannerText}>
               {language === "si"
                 ? "ඔබගේ ඉදිරිපත්කරණය පිළිගෙන ඇත"
-                : "Your offer was accepted"}
+                : language === "ta"
+                  ? "உங்கள் சலிவு விலை ஏற்கப்பட்டது"
+                  : "Your offer was accepted"}
             </Text>
           </View>
         )}
@@ -409,7 +436,17 @@ const MarketPlaceScreen = () => {
               >
                 <MessageSquare size={14} color="#FFF" />
                 <Text style={styles.offerCTAButtonText}>
-                  {hasUserOffer ? "View Offer" : "Make Offer"}
+                  {hasUserOffer
+                    ? language === "si"
+                      ? "ඉදිරිපත්කරණ බලන්න"
+                      : language === "ta"
+                        ? "சலிவு விலை காண்க"
+                        : "View Offer"
+                    : language === "si"
+                      ? "ඉදිරිපත්කරණ ඉදිරිපත් කරන්න"
+                      : language === "ta"
+                        ? "சலிவு விலை இடுக"
+                        : "Make Offer"}
                 </Text>
               </TouchableOpacity>
             )}
@@ -417,7 +454,13 @@ const MarketPlaceScreen = () => {
           {/* Sold Status */}
           {item.status === "sold" && (
             <View style={styles.soldBadge}>
-              <Text style={styles.soldBadgeText}>Sold</Text>
+              <Text style={styles.soldBadgeText}>
+                {language === "si"
+                  ? "විකිණැද"
+                  : language === "ta"
+                    ? "விற்பனை"
+                    : "Sold"}
+              </Text>
             </View>
           )}
         </View>
@@ -438,9 +481,14 @@ const MarketPlaceScreen = () => {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
           <Text style={styles.headerSubtitle}>
-            {activeCount} {language === "si" ? "ක්‍රියාකාරී" : "active"}
+            {activeCount}{" "}
+            {language === "si"
+              ? "ක්‍රියාකාරී"
+              : language === "ta"
+                ? "சுறுசீரானது"
+                : "active"}
             {posts.length - activeCount > 0
-              ? ` · ${posts.length - activeCount} ${language === "si" ? "විකිණී" : "sold"}`
+              ? ` · ${posts.length - activeCount} ${language === "si" ? "විකිණී" : language === "ta" ? "விற்பனை" : "sold"}`
               : ""}
           </Text>
         </View>
@@ -474,7 +522,11 @@ const MarketPlaceScreen = () => {
               statusFilter === "not_sold" && styles.filterPillTextActive,
             ]}
           >
-            {language === "si" ? "නොවිකිණුණු" : "Not Sold"}
+            {language === "si"
+              ? "නොවිකිණුණු"
+              : language === "ta"
+                ? "விற்பனை ஆகாதது"
+                : "Not Sold"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -490,7 +542,11 @@ const MarketPlaceScreen = () => {
               statusFilter === "sold" && styles.filterPillTextActive,
             ]}
           >
-            {language === "si" ? "විකිණුණු" : "Sold"}
+            {language === "si"
+              ? "විකිණුණු"
+              : language === "ta"
+                ? "விற்பனையானது"
+                : "Sold"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -622,10 +678,14 @@ const MarketPlaceScreen = () => {
                       (selectedPostForOffer?.price_per_kg || 0)
                         ? language === "si"
                           ? "වත්මන් මිලට වඩා ඉහළ "
-                          : "Higher than asking"
+                          : language === "ta"
+                            ? "கேட்ட விலையை விட அதிகம்"
+                            : "Higher than asking"
                         : language === "si"
                           ? "වත්මන් මිලට වඩා අඩු"
-                          : "Lower than asking"}
+                          : language === "ta"
+                            ? "கேட்ட விலையை விட குறைவு"
+                            : "Lower than asking"}
                     </Text>
                     <Text
                       style={[

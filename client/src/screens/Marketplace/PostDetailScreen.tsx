@@ -74,7 +74,8 @@ const PostDetailScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const { sendNotification } = useNotifications();
 
   const { postId } = route.params as RouteParams;
@@ -174,6 +175,17 @@ const PostDetailScreen = () => {
       offerDeleted: "ඉදිරිපත්කරණ ඉවත් කරන ලදී",
       postDeleted: "ඉදිරිපත්කිරීම ඉවත් කරන ලදී",
       confirm: "තහවුරු",
+      errorTitle: "දෝෂයක්",
+      successTitle: "සාර්ථකයි",
+      doneTitle: "සාර්ථකයි",
+      offerSubmittedTitle: "ඉදිරිපත්කරණ සාර්ථක",
+      offerAcceptedTitle: "ඉදිරිපත්කරණ පිළිගනු ලැබුවි",
+      currentPriceLabel: "වත්මන් මිල",
+      yourCurrentOfferLabel: "වත්මන් ඔබේ මිල",
+      newPricePlaceholder: "නව මිල ඇතුලු කරන්න",
+      ownPostError: "ඔබගේම ඉදිරිපත්කිරීමකට ඉදිරිපත්කරණ ඉදිරිපත් කළ නොහැකිය",
+      higherThanCurrentPrice: "වත්මන් මිලට වඩා ඉහළ",
+      lowerThanCurrentPrice: "වත්මන් මිලට වඩා අඩු",
     },
     en: {
       title: "Post Details",
@@ -237,6 +249,90 @@ const PostDetailScreen = () => {
       offerDeleted: "Offer deleted",
       postDeleted: "Post deleted successfully",
       confirm: "Confirm",
+      errorTitle: "Error",
+      successTitle: "Success",
+      doneTitle: "Done",
+      offerSubmittedTitle: "Offer Submitted",
+      offerAcceptedTitle: "Offer Accepted",
+      currentPriceLabel: "Current Price",
+      yourCurrentOfferLabel: "Your Current Offer",
+      newPricePlaceholder: "Enter new price",
+      ownPostError: "You cannot place an offer on your own post",
+      higherThanCurrentPrice: "Higher than current price",
+      lowerThanCurrentPrice: "Lower than current price",
+    },
+    ta: {
+      title: "பயிர் விவரங்கள்",
+      seedVariety: "விதை வகை",
+      farmer: "விவசாயி",
+      price: "விலை",
+      perKg: "ஒரு கிலோவிட்டுக்கு",
+      quantity: "அளவு",
+      totalValue: "மொத்த மதிப்பு",
+      district: "மாவட்டம்",
+      week: "வாரம்",
+      season: "பருவம்",
+      postedOn: "பதிவிட்டது",
+      status: "நிலை",
+      active: "செயல்பாட்டில்",
+      sold: "விற்கப்பட்டது",
+      scheduled: "திட்டமிடப்பட்டது",
+      offers: "சலிவு விலைகள்",
+      noOffers: "சலிவு விலை இல்லை",
+      makeOffer: "சலிவு விலை இடுக",
+      offerPrice: "சலிவு விலை",
+      enterPrice: "உங்கள் விலையை உள்ளிடுக",
+      submit: "சமர்ப்பிக்கவும்",
+      cancel: "ரத்து செய்க",
+      yourOffer: "உங்கள் சலிவு விலை",
+      bestOffer: "சிறந்த சலிவு",
+      pending: "நிலுவையில்",
+      accepted: "ஏற்கப்பட்டது",
+      rejected: "நிராகரிக்கப்பட்டது",
+      accept: "ஏற்கவும்",
+      reject: "நிராகரிக்கவும்",
+      acceptConfirm:
+        "இந்த சலிவை ஏற்றுக்கொள்வது உங்கள் அறுவடையை இந்த விலையில் விற்க ஒப்புக்கொள்கிறீர்கள் என்று அர்த்தம்.",
+      confirmAccept: "மற்ற நிலுவை சலிவுகள் நிராகரிக்கப்படும். தொடரவும்?",
+      offerSubmitted: "சலிவு வெற்றிகரமாக சமர்ப்பிக்கப்பட்டது",
+      offerAccepted: "சலிவு வெற்றிகரமாக ஏற்கப்பட்டது",
+      offerRejected: "சலிவு நிராகரிக்கப்பட்டது",
+      buyerName: "வாங்குபவர் பெயர்",
+      loading: "ஏற்றுகிறது...",
+      error: "பிழை ஏற்பட்டது",
+      invalidPrice: "சரியான விலையை உள்ளிடுக",
+      alreadyOffered: "நீங்கள் ஏற்கனவே சலிவு இட்டுவிட்டீர்கள்",
+      contactFarmer: "விவசாயியைத் தொடர்புகொள்க",
+      callNow: "இப்போது அழைக்கவும்",
+      dealConfirmed:
+        "உங்கள் சலிவு ஏற்கப்பட்டது! பரிவர்த்தனையை ஒழுங்கமைக்க விவசாயியை தொடர்புகொள்க.",
+      editOffer: "சலிவு திருத்து",
+      deleteOffer: "சலிவு நீக்கு",
+      editOfferTitle: "உங்கள் சலிவு விலையை புதுப்பிக்கவும்",
+      newOfferPrice: "புதிய சலிவு விலை",
+      updateOffer: "சலிவு புதுப்பிக்கவும்",
+      deleteOfferConfirm:
+        "உங்கள் சலிவை நீக்க விரும்புகிறீர்களா? இதை மீண்டும் செய்ய முடியாது.",
+      deletePostConfirm:
+        "இந்த பதிவை நீக்க விரும்புகிறீர்களா? அனைத்து தொடர்புடைய சலிவுகளும் அகற்றப்படும்.",
+      editPost: "பதிவு திருத்து",
+      deletePost: "பதிவு நீக்கு",
+      cannotEdit: "ஏற்கப்பட்ட/நிராகரிக்கப்பட்ட சலிவுகளை திருத்த முடியாது",
+      offerUpdated: "சலிவு வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+      offerDeleted: "சலிவு நீக்கப்பட்டது",
+      postDeleted: "பதிவு வெற்றிகரமாக நீக்கப்பட்டது",
+      confirm: "உறுதிப்படுத்தவும்",
+      errorTitle: "பிழை",
+      successTitle: "வெற்றி",
+      doneTitle: "முடிந்தது",
+      offerSubmittedTitle: "சலிவு சமர்ப்பிக்கப்பட்டது",
+      offerAcceptedTitle: "சலிவு ஏற்கப்பட்டது",
+      currentPriceLabel: "தற்போதைய விலை",
+      yourCurrentOfferLabel: "உங்கள் தற்போதைய சலிவு",
+      newPricePlaceholder: "புதிய விலையை உள்ளிடுக",
+      ownPostError: "உங்கள் சொந்த பதிவில் சலிவு இட முடியாது",
+      higherThanCurrentPrice: "தற்போதைய விலையை விட அதிகம்",
+      lowerThanCurrentPrice: "தற்போதைய விலையை விட குறைவு",
     },
   };
 
@@ -272,7 +368,7 @@ const PostDetailScreen = () => {
       }
     } catch (error) {
       console.error("Load post error:", error);
-      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      Alert.alert(content[language].errorTitle, String(error));
     } finally {
       setIsLoading(false);
     }
@@ -293,10 +389,8 @@ const PostDetailScreen = () => {
       // !isFarmer, but guard here too in case state is stale.
       if (isFarmer || currentUserId === post?.farmer_id) {
         Alert.alert(
-          language === "si" ? "දෝෂයක්" : "Error",
-          language === "si"
-            ? "ඔබගේම ඉදිරිපත්කිරීමකට ඉදිරිපත්කරණ ඉදිරිපත් කළ නොහැකිය"
-            : "You cannot place an offer on your own post",
+          content[language].errorTitle,
+          content[language].ownPostError,
         );
         return;
       }
@@ -305,20 +399,16 @@ const PostDetailScreen = () => {
 
       if (!offerPrice || !Number.isFinite(price) || price <= 0) {
         Alert.alert(
-          language === "si" ? "දෝෂයක්" : "Error",
-          language === "si"
-            ? "කරුණාකර වලංගු මිල ඇතුලු කරන්න"
-            : "Please enter a valid price",
+          content[language].errorTitle,
+          content[language].invalidPrice,
         );
         return;
       }
 
       if (userOffer) {
         Alert.alert(
-          language === "si" ? "දෝෂයක්" : "Error",
-          language === "si"
-            ? "ඔබ පෙර ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත"
-            : "You have already submitted an offer",
+          content[language].errorTitle,
+          content[language].alreadyOffered,
         );
         return;
       }
@@ -331,7 +421,7 @@ const PostDetailScreen = () => {
       setOfferPrice("");
 
       await sendNotification(
-        language === "si" ? "ඉදිරිපත්කරණ සාර්ථක" : "Offer Submitted",
+        content[language].offerSubmittedTitle,
         `Rs ${price.toFixed(2)}/kg`,
         NOTIFICATION_TYPE.OFFER,
       );
@@ -339,7 +429,7 @@ const PostDetailScreen = () => {
       await loadPost();
     } catch (error) {
       console.error("Offer error:", error);
-      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      Alert.alert(content[language].errorTitle, String(error));
     } finally {
       setIsSubmittingOffer(false);
     }
@@ -353,7 +443,7 @@ const PostDetailScreen = () => {
       await acceptOffer(offer.id);
 
       await sendNotification(
-        language === "si" ? "ඉදිරිපත්කරණ පිළිගනු ලැබුවි" : "Offer Accepted",
+        content[language].offerAcceptedTitle,
         `Rs ${offer.offer_price_per_kg.toFixed(2)}/kg`,
         NOTIFICATION_TYPE.OFFER,
       );
@@ -363,7 +453,7 @@ const PostDetailScreen = () => {
       await loadPost();
     } catch (error) {
       console.error("Accept error:", error);
-      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      Alert.alert(content[language].errorTitle, String(error));
     } finally {
       setIsAcceptingOffer(false);
     }
@@ -373,12 +463,7 @@ const PostDetailScreen = () => {
   const handleEditOffer = async () => {
     const newPrice = parseFloat(editOfferPrice);
     if (!editOfferPrice || !Number.isFinite(newPrice) || newPrice <= 0) {
-      Alert.alert(
-        language === "si" ? "දෝෂයක්" : "Error",
-        language === "si"
-          ? "කරුණාකර වලංගු මිල ඇතුලු කරන්න"
-          : "Please enter a valid price",
-      );
+      Alert.alert(content[language].errorTitle, content[language].invalidPrice);
       return;
     }
     try {
@@ -388,13 +473,13 @@ const PostDetailScreen = () => {
       setShowEditOfferModal(false);
       setEditOfferPrice("");
       Alert.alert(
-        language === "si" ? "සාර්ථකයි" : "Success",
+        content[language].successTitle,
         content[language].offerUpdated,
       );
       await loadPost();
     } catch (error) {
       console.error("[handleEditOffer]", error);
-      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      Alert.alert(content[language].errorTitle, String(error));
     } finally {
       setIsEditingOffer(false);
     }
@@ -428,14 +513,14 @@ const PostDetailScreen = () => {
       await loadPost();
       setTimeout(() => {
         Alert.alert(
-          language === "si" ? "සාර්ථකයි" : "Done",
+          content[language].doneTitle,
           content[language].offerDeleted,
         );
       }, 300);
     } catch (error) {
       console.error("[confirmDeleteOffer] FAILED:", error);
       setTimeout(() => {
-        Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+        Alert.alert(content[language].errorTitle, String(error));
       }, 300);
     } finally {
       setIsDeletingOffer(false);
@@ -484,7 +569,7 @@ const PostDetailScreen = () => {
       console.error("[confirmDeletePost] FAILED:", error);
       setIsDeletingPost(false);
       setTimeout(() => {
-        Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+        Alert.alert(content[language].errorTitle, String(error));
       }, 300);
     }
   };
@@ -494,16 +579,12 @@ const PostDetailScreen = () => {
     try {
       await rejectOffer(offerId);
 
-      Alert.alert(
-        language === "si"
-          ? "ඉදිරිපත්කරණ ප්‍රතික්ෂේප කරන ලදි"
-          : "Offer Rejected",
-      );
+      Alert.alert(content[language].offerRejected);
 
       await loadPost();
     } catch (error) {
       console.error("Reject error:", error);
-      Alert.alert(language === "si" ? "දෝෂයක්" : "Error", String(error));
+      Alert.alert(content[language].errorTitle, String(error));
     }
   };
 
@@ -517,7 +598,7 @@ const PostDetailScreen = () => {
       minute: "2-digit",
     };
     return date.toLocaleDateString(
-      language === "si" ? "si-LK" : "en-US",
+      language === "si" ? "si-LK" : language === "ta" ? "ta-LK" : "en-US",
       options,
     );
   };
@@ -758,7 +839,7 @@ const PostDetailScreen = () => {
           <View style={styles.sectionHeader}>
             <MessageCircle size={20} color="#065F46" />
             <Text style={styles.sectionTitle}>
-              Offers ({post?.offers?.length || 0})
+              {content[language].offers} ({post?.offers?.length || 0})
             </Text>
           </View>
 
@@ -766,7 +847,9 @@ const PostDetailScreen = () => {
           {!isFarmer && userOffer && (
             <View style={[styles.offerCard, styles.userOfferCard]}>
               <View style={styles.offerCardTopRow}>
-                <Text style={styles.offerLabel}>Your Offer</Text>
+                <Text style={styles.offerLabel}>
+                  {content[language].yourOffer}
+                </Text>
                 <View
                   style={[
                     styles.offerStatusBadge,
@@ -889,7 +972,9 @@ const PostDetailScreen = () => {
             <View style={styles.bestOfferBanner}>
               <TrendingUp size={16} color="#10B981" />
               <View>
-                <Text style={styles.bestOfferTitle}>Best Offer</Text>
+                <Text style={styles.bestOfferTitle}>
+                  {content[language].bestOffer}
+                </Text>
                 <Text style={styles.bestOfferPrice}>
                   Rs {bestOffer.offer_price_per_kg.toFixed(2)}
                 </Text>
@@ -918,7 +1003,9 @@ const PostDetailScreen = () => {
                           onPress={() => handleRejectOffer(offer.id)}
                           disabled={post.status === "sold"}
                         >
-                          <Text style={styles.rejectButtonText}>Reject</Text>
+                          <Text style={styles.rejectButtonText}>
+                            {content[language].reject}
+                          </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={[
@@ -931,7 +1018,9 @@ const PostDetailScreen = () => {
                           }}
                           disabled={post.status === "sold"}
                         >
-                          <Text style={styles.acceptButtonText}>Accept</Text>
+                          <Text style={styles.acceptButtonText}>
+                            {content[language].accept}
+                          </Text>
                         </TouchableOpacity>
                       </>
                     )}
@@ -940,7 +1029,9 @@ const PostDetailScreen = () => {
               ))}
             </View>
           ) : !isFarmer ? null : (
-            <Text style={styles.noOffersText}>No offers yet</Text>
+            <Text style={styles.noOffersText}>
+              {content[language].noOffers}
+            </Text>
           )}
         </View>
       </ScrollView>
@@ -953,7 +1044,9 @@ const PostDetailScreen = () => {
             onPress={() => setShowOfferModal(true)}
           >
             <Send size={20} color="#FFF" />
-            <Text style={styles.makeOfferButtonText}>Make an Offer</Text>
+            <Text style={styles.makeOfferButtonText}>
+              {content[language].makeOffer}
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -986,7 +1079,7 @@ const PostDetailScreen = () => {
               <View style={styles.modalBody}>
                 <View style={styles.currentPriceBox}>
                   <Text style={styles.currentPriceLabel}>
-                    {language === "si" ? "වත්මන් මිල" : "Current Price"}
+                    {content[language].currentPriceLabel}
                   </Text>
                   <Text style={styles.currentPriceValue}>
                     Rs {post.price_per_kg.toFixed(2)}
@@ -1012,12 +1105,8 @@ const PostDetailScreen = () => {
                   <View style={styles.priceComparison}>
                     <Text style={styles.comparisonText}>
                       {parseFloat(offerPrice) > post.price_per_kg
-                        ? language === "si"
-                          ? "වත්මන් මිලට වඩා ඉහළ"
-                          : "Higher than current price"
-                        : language === "si"
-                          ? "වත්මන් මිලට වඩා අඩු"
-                          : "Lower than current price"}
+                        ? content[language].higherThanCurrentPrice
+                        : content[language].lowerThanCurrentPrice}
                     </Text>
                     <Text style={styles.comparisonValue}>
                       {Math.abs(
@@ -1159,9 +1248,7 @@ const PostDetailScreen = () => {
               <View style={styles.modalBody}>
                 <View style={styles.currentPriceBox}>
                   <Text style={styles.currentPriceLabel}>
-                    {language === "si"
-                      ? "වත්මන් ඔබේ මිල"
-                      : "Your Current Offer"}
+                    {content[language].yourCurrentOfferLabel}
                   </Text>
                   <Text style={styles.currentPriceValue}>
                     Rs {userOffer?.offer_price_per_kg.toFixed(2)}
@@ -1174,11 +1261,7 @@ const PostDetailScreen = () => {
                   </Text>
                   <TextInput
                     style={styles.input}
-                    placeholder={
-                      language === "si"
-                        ? "නව මිල ඇතුලු කරන්න"
-                        : "Enter new price"
-                    }
+                    placeholder={content[language].newPricePlaceholder}
                     placeholderTextColor="#9CA3AF"
                     value={editOfferPrice}
                     onChangeText={setEditOfferPrice}
@@ -1233,9 +1316,7 @@ const PostDetailScreen = () => {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: "#DC2626" }]}>
-                  {language === "si"
-                    ? "ඉදිරිපත්කරණ ඉවත් කරන්න"
-                    : "Delete Offer"}
+                  {content[language].deleteOffer}
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowDeleteOfferModal(false)}
@@ -1301,9 +1382,7 @@ const PostDetailScreen = () => {
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={[styles.modalTitle, { color: "#DC2626" }]}>
-                  {language === "si"
-                    ? "ඉදිරිපත්කිරීම ඉවත් කරන්න"
-                    : "Delete Post"}
+                  {content[language].deletePost}
                 </Text>
                 <TouchableOpacity
                   onPress={() => setShowDeletePostModal(false)}
