@@ -108,9 +108,16 @@ const CreatePostScreen = () => {
       pricePerKg: parseFloat(price),
       quantityKg: parseFloat(quantity),
       district: formData?.district || "Anuradhapura",
-      week: parseInt(formData?.week) || 1,
+      week: parseInt(formData?.week, 10) || 1,
       season: formData?.season || "Maha",
     };
+
+    console.log(
+      "[CreatePostScreen] formData.week:",
+      formData?.week,
+      "| postDraft.week:",
+      postDraft.week,
+    );
 
     navigation.navigate("PostReviewScreen", { postDraft });
   };

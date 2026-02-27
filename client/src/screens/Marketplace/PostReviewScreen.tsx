@@ -145,6 +145,10 @@ const PostReviewScreen = () => {
     try {
       setIsLoading(true);
 
+      console.log(
+        "[PostReviewScreen] postDraft.week before createPost:",
+        postDraft.week,
+      );
       await createPost({
         ...postDraft,
         publishAt: publishMode === "later" ? publishAt : null,

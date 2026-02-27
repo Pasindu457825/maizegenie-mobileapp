@@ -60,6 +60,18 @@ export const createPost = async (postDraft: PostDraft): Promise<Post> => {
   const isScheduled =
     postDraft.publishAt != null && new Date(postDraft.publishAt) > new Date();
 
+  // Resolve week: prefer the primary 'week' field, fall back to the optional
+  // 'forecastWeek' AI-metadata field, then default to 1.
+  const resolvedWeek = postDraft.week ?? postDraft.forecastWeek ?? 1;
+  console.log(
+    "[createPost] postDraft.week:",
+    postDraft.week,
+    "| postDraft.forecastWeek:",
+    postDraft.forecastWeek,
+    "| resolvedWeek:",
+    resolvedWeek,
+  );
+
   const { data, error } = await supabase
     .from("posts")
     .insert({
@@ -68,8 +80,7 @@ export const createPost = async (postDraft: PostDraft): Promise<Post> => {
       price_per_kg: postDraft.pricePerKg,
       quantity_kg: postDraft.quantityKg,
       district: postDraft.district,
-      week:
-        postDraft.forecastWeek || parseInt(postDraft.forecastWeek as any) || 1,
+      week: resolvedWeek,
       season: postDraft.season || "Maha",
       status: isScheduled ? "scheduled" : "active",
       visible: !isScheduled,
@@ -81,6 +92,7 @@ export const createPost = async (postDraft: PostDraft): Promise<Post> => {
     .single();
 
   if (error) throw error;
+  console.log("[createPost] inserted post week from DB:", (data as Post).week);
   return data as Post;
 };
 
