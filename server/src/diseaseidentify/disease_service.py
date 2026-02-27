@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import base64
 
-from .service import calculate_severity, _return_error
+from .service import calculate_severity, _return_error, attach_impact_boxes
 
 ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY")
 MODEL_ID = "corn-leaf-disease-hgosu-jvjwb/1"
@@ -115,6 +115,7 @@ def predict_disease_with_roboflow(image_bytes: bytes, conf=0.5):
             "No recognizable maize disease found"
         )
 
+    disease_preds = attach_impact_boxes(disease_preds, img)
     sev, label = calculate_severity(disease_preds, img)
 
 

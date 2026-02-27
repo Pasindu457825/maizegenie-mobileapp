@@ -22,20 +22,20 @@ const translations = {
     title: "ගෙවීම සාර්ථකයි!",
     subtitle: "ඔබේ Pro සාමාජිකත්වය සක්‍රිය කර ඇත",
     message: "MaizeGenie Pro වෙත සාදරයෙන් පිළිගනිමු! දැන් ඔබට සියලුම premium විශේෂාංග භුක්ති විඳිය හැකිය.",
-    
+
     features: "සක්‍රිය කළ විශේෂාංග:",
     feature1: "පස් පරීක්ෂණ ඉල්ලීම",
     feature2: "AI අස්වැන්න පුරෝකථනය",
     feature3: "විශේෂඥ උපදෙස්",
     feature4: "සවිස්තර වාර්තා",
     feature5: "දැන්වීම් රහිත අත්දැකීම",
-    
+
     orderDetails: "ඇණවුම් විස්තර:",
     orderId: "ඇණවුම් අංකය",
     plan: "සැලැස්ම",
     amount: "මුදල",
     date: "දිනය",
-    
+
     getStarted: "ආරම්භ කරමු",
     backToHome: "මුල් පිටුවට",
   },
@@ -43,24 +43,45 @@ const translations = {
     title: "Payment Successful!",
     subtitle: "Your Pro membership has been activated",
     message: "Welcome to MaizeGenie Pro! You now have access to all premium features.",
-    
+
     features: "Activated Features:",
     feature1: "Soil Test Request",
     feature2: "AI Yield Prediction",
     feature3: "Expert Consultation",
     feature4: "Detailed Reports",
     feature5: "Ad-Free Experience",
-    
+
     orderDetails: "Order Details:",
     orderId: "Order ID",
     plan: "Plan",
     amount: "Amount",
     date: "Date",
-    
+
     getStarted: "Get Started",
     backToHome: "Back to Home",
   },
-};
+  tamil: {
+    title: "கொடுப்பனவு வெற்றி!",
+    subtitle: "உங்கள் Pro உறுப்பினர் செயல்படுத்தப்பட்டது",
+    message: "MaizeGenie Pro க்கு வரவேற்கிறோம்! இப்போது உங்களுக்கு அனைத்து premium சிறப்பம்சங்களுக்கு அணுகல் உண்டு.",
+
+    features: "செயல்படுத்தப்பட்ட சிறப்பம்சங்கள்:",
+    feature1: "மண் பரிசோதனை கோரிக்கை",
+    feature2: "AI விளைச்சல் கணிப்பு",
+    feature3: "நிபுணர் ஆலோசனை",
+    feature4: "விரிவான அறிக்கைகள்",
+    feature5: "விளம்பரம் இல்லாத அனுபவம்",
+
+    orderDetails: "ஆர்டர் விரிவுகள்:",
+    orderId: "ஆர்டர் எண்",
+    plan: "திட்டம்",
+    amount: "தொகை",
+    date: "தேதி",
+
+    getStarted: "தொடங்குங்கள்",
+    backToHome: "முகப்புக்கு திரும்பு",
+  },
+} as Record<string, any>;
 
 export default function PaymentSuccessScreen({ navigation, route }: any) {
   const { language } = useLanguage();
@@ -145,26 +166,26 @@ export default function PaymentSuccessScreen({ navigation, route }: any) {
         {/* Order Details Card */}
         <View style={styles.detailsCard}>
           <Text style={styles.detailsTitle}>{t.orderDetails}</Text>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t.orderId}:</Text>
             <Text style={styles.detailValue}>{orderId}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t.plan}:</Text>
             <Text style={styles.detailValue}>MaizeGenie Pro</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t.amount}:</Text>
             <Text style={styles.detailValue}>රු. {amount.toLocaleString()}</Text>
           </View>
-          
+
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t.date}:</Text>
             <Text style={styles.detailValue}>
-              {new Date().toLocaleDateString(language === "sinhala" ? "si-LK" : "en-US")}
+              {new Date().toLocaleDateString(language === "sinhala" ? "si-LK" : language === "tamil" ? "ta-IN" : "en-US")}
             </Text>
           </View>
         </View>
@@ -175,7 +196,7 @@ export default function PaymentSuccessScreen({ navigation, route }: any) {
             <Sparkles size={20} color="#fbbf24" />
             <Text style={styles.featuresTitle}>{t.features}</Text>
           </View>
-          
+
           <View style={styles.featuresList}>
             <FeatureItem text={t.feature1} />
             <FeatureItem text={t.feature2} />

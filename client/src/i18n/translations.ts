@@ -16,4 +16,13 @@ export const t = {
     email: "Email",
     start: "Get Started",
   },
+
+  tamil: {
+    welcome: "வரவேற்கிறோம்",
+    next: "அடுத்து",
+    login: "உள்நுழைக",
+    password: "கடவுச்சொல்",
+    email: "மின்னஞ்சல்",
+    start: "தொடங்குங்கள்",
+  },
 };
