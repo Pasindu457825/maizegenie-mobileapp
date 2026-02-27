@@ -35,11 +35,17 @@ import {
   Sparkles,
   Smartphone,
   Cloud,
+  Bug,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../context/LanguageContext";
 
+// ✅ REMOVED: import { PestIdentifyStackParamList } from "../navigation/PestIdentifyStack";
+//    (was causing module-not-found error and was not needed here)
+
 const { width } = Dimensions.get("window");
+
+const PEST_OFFICER_EMAIL = "pestofficer@gmail.com";
 
 const ProfileScreen = () => {
   const { user, signOut, diseaseModel, setDiseaseModel } = useApp();
@@ -53,20 +59,19 @@ const ProfileScreen = () => {
   const slideAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Check if current user is the pest officer admin
+  const isPestOfficer =
+    user?.email?.toLowerCase() === PEST_OFFICER_EMAIL.toLowerCase();
+
   const content = {
     sinhala: {
-      // Header
       headerTitle: "පැතිකඩ",
       headerSubtitle: "ඔබේ වගා පුවරුව",
-
-      // Profile Hero
       profile: "පැතිකඩ",
       farmer: "ගොවියා",
       officer: "නිලධාරියා",
       location: "ස්ථානය",
       scans: "ස්කෑන්",
-
-      // Disease Detection Section
       diseaseDetection: "රෝග හඳුනාගැනීම",
       chooseAIModel: "AI ආකෘතිය තෝරන්න",
       standard: "ප්‍රමිතිය",
@@ -78,8 +83,8 @@ const ProfileScreen = () => {
       fast: "වේගවත්",
       offline: "අන්තර්ජාලය නොමැති",
       highAccuracy: "ඉහළ නිරවද්‍යතාව",
-
-      // Settings Section
+      adminPestForum: "පළිබෝධ සංසදය",
+      adminPestForumDesc: "පළිබෝධ දත්ත කළමනාකරණය",
       settings: "සැකසුම්",
       managePreferences: "ඔබේ අභිමතයන් කළමනාකරණය කරන්න",
       language: "භාෂාව",
@@ -87,8 +92,6 @@ const ProfileScreen = () => {
       enabled: "සක්‍රියයි",
       helpCenter: "උපකාර කේන්ද්‍රය",
       faqSupport: "නිති අසන පැණ සහ උදව්",
-
-      // Recent Predictions
       recentPredictions: "මෑත පුරෝකථන",
       farmingInsights: "ඔබේ වගා අවබෝධතා",
       loadingPredictions: "පුරෝකථන පූරණය වෙමින්...",
@@ -97,16 +100,12 @@ const ProfileScreen = () => {
       maizeCrop: "බඩ ඉරිඟු බෝගය",
       active: "සක්‍රිය",
       shareWithOfficer: "නිලධාරියා සමඟ බෙදාගන්න",
-
-      // Alerts
       copied: "පිටපත් කරන ලදී!",
       copyFailed: "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය",
       logout: "ඉවත්වීම",
       logoutConfirm: "ඔබට ඉවත්වීමට අවශ්‍ය බවට විශ්වාසද?",
       cancel: "අවලංගු කරන්න",
       logoutText: "ඉවත්වීම",
-
-      // Prediction Details
       cropVariety: "බෝග වර්ගය",
       plantingDate: "වැවීම් දිනය",
       landSize: "ඉඩම් ප්‍රමාණය",
@@ -114,18 +113,13 @@ const ProfileScreen = () => {
       status: "තත්ත්වය",
     },
     english: {
-      // Header
       headerTitle: "Profile",
       headerSubtitle: "Your Farming Dashboard",
-
-      // Profile Hero
       profile: "Profile",
       farmer: "Farmer",
       officer: "Officer",
       location: "Location",
       scans: "Scans",
-
-      // Disease Detection Section
       diseaseDetection: "Disease Detection",
       chooseAIModel: "Choose your AI model",
       standard: "Standard",
@@ -137,8 +131,8 @@ const ProfileScreen = () => {
       fast: "Fast",
       offline: "Offline",
       highAccuracy: "High Accuracy",
-
-      // Settings Section
+      adminPestForum: "Admin Pest Forum",
+      adminPestForumDesc: "Manage pest data & reports",
       settings: "Settings",
       managePreferences: "Manage your preferences",
       language: "Language",
@@ -146,8 +140,6 @@ const ProfileScreen = () => {
       enabled: "Enabled",
       helpCenter: "Help Center",
       faqSupport: "FAQ & Support",
-
-      // Recent Predictions
       recentPredictions: "Recent Predictions",
       farmingInsights: "Your farming insights",
       loadingPredictions: "Loading predictions...",
@@ -156,16 +148,12 @@ const ProfileScreen = () => {
       maizeCrop: "Maize Crop",
       active: "Active",
       shareWithOfficer: "Share with Officer",
-
-      // Alerts
       copied: "Copied!",
       copyFailed: "Failed to copy prediction details",
       logout: "Logout",
       logoutConfirm: "Are you sure you want to logout?",
       cancel: "Cancel",
       logoutText: "Logout",
-
-      // Prediction Details
       cropVariety: "Crop Variety",
       plantingDate: "Planting Date",
       landSize: "Land Size",
@@ -238,7 +226,6 @@ const ProfileScreen = () => {
   useEffect(() => {
     loadPredictionHistory();
 
-    // Entrance animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -252,7 +239,6 @@ const ProfileScreen = () => {
       }),
     ]).start();
 
-    // Pulse animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -338,11 +324,17 @@ Status: ${prediction.status || "Active"}`;
         ? `🌾 சோள விளைச்சல் மதிப்பீடு கோரிக்கை\n\n📝 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌱 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\nஎன் விளைச்சல் மதிப்பீடு மற்றும் பயிர் மேலாண்மை குறித்து விவசாய அதிகாரியிடம் ஆலோசனை பெற விரும்புகிறேன்.`
         : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
 
-    // Navigate to main Chat screen with prediction context
     navigation.navigate("Chat", {
       prefilledMessage: contextMessage,
       context: "yield_prediction",
       predictionData: prediction,
+    });
+  };
+
+  const handleAdminPestForum = () => {
+    // Level 0 = tab navigator (BottomNavigator) — navigate directly
+    navigation.navigate("PestIdentifier", {
+      screen: "AdminPestForum",
     });
   };
 
@@ -485,6 +477,41 @@ Status: ${prediction.status || "Active"}`;
               </TouchableOpacity>
             </LinearGradient>
           </View>
+
+          {/* ===== ADMIN PEST FORUM BUTTON (only for pestofficer@gmail.com) ===== */}
+          {isPestOfficer && (
+            <View style={styles.adminSection}>
+              <TouchableOpacity
+                style={styles.adminPestForumButton}
+                onPress={handleAdminPestForum}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={["#7c3aed", "#5b21b6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.adminPestForumGradient}
+                >
+                  <View style={styles.adminBadge}>
+                    <Text style={styles.adminBadgeText}>ADMIN</Text>
+                  </View>
+                  <View style={styles.adminPestForumIconContainer}>
+                    <Bug size={28} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.adminPestForumTextContainer}>
+                    <Text style={styles.adminPestForumTitle}>
+                      {t.adminPestForum}
+                    </Text>
+                    <Text style={styles.adminPestForumDesc}>
+                      {t.adminPestForumDesc}
+                    </Text>
+                  </View>
+                  <ChevronRight size={22} color="rgba(255,255,255,0.8)" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* ===== END ADMIN PEST FORUM BUTTON ===== */}
 
           {/* AI Model Selection */}
           {user?.role === "farmer" && (
@@ -758,7 +785,7 @@ Status: ${prediction.status || "Active"}`;
               )}
             </View>
           )}
-          {/* Bottom Spacing */}
+
           <View style={styles.bottomSpacer} />
         </Animated.View>
       </ScrollView>
@@ -771,7 +798,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8fafc",
   },
-  // Enhanced Header
   header: {
     paddingTop: 50,
     paddingBottom: 20,
@@ -837,7 +863,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  // Profile Hero
   profileHeroContainer: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -967,7 +992,65 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#10b981",
   },
-  // Quick Stats
+  // ===== Admin Pest Forum Styles =====
+  adminSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  adminPestForumButton: {
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  adminPestForumGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    gap: 14,
+  },
+  adminBadge: {
+    position: "absolute",
+    top: 10,
+    right: 44,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  adminBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  adminPestForumIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  adminPestForumTextContainer: {
+    flex: 1,
+  },
+  adminPestForumTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 3,
+  },
+  adminPestForumDesc: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "500",
+  },
+  // ===== End Admin Pest Forum Styles =====
   quickStatsSection: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -1009,7 +1092,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     fontWeight: "600",
   },
-  // Model Selection
   modelSection: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -1113,7 +1195,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  // Settings Panel
   settingsPanel: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -1161,7 +1242,6 @@ const styles = StyleSheet.create({
     top: 16,
     right: 16,
   },
-  // Predictions Panel
   predictionsPanel: {
     paddingHorizontal: 20,
     marginBottom: 24,
