@@ -12,6 +12,7 @@ import {
   Dimensions,
   StatusBar,
   Clipboard,
+  Modal,
 } from "react-native";
 import { useApp } from "../context/AppContext";
 import { getFarmerPredictionHistory } from "../services/yieldPredictionApi";
@@ -54,6 +55,7 @@ const ProfileScreen = () => {
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -88,6 +90,7 @@ const ProfileScreen = () => {
       settings: "සැකසුම්",
       managePreferences: "ඔබේ අභිමතයන් කළමනාකරණය කරන්න",
       language: "භාෂාව",
+      chooseLanguage: "භාෂාව තෝරන්න",
       notifications: "දැනුම්දීම්",
       enabled: "සක්‍රියයි",
       helpCenter: "උපකාර කේන්ද්‍රය",
@@ -105,6 +108,7 @@ const ProfileScreen = () => {
       logout: "ඉවත්වීම",
       logoutConfirm: "ඔබට ඉවත්වීමට අවශ්‍ය බවට විශ්වාසද?",
       cancel: "අවලංගු කරන්න",
+      close: "වසන්න",
       logoutText: "ඉවත්වීම",
       cropVariety: "බෝග වර්ගය",
       plantingDate: "වැවීම් දිනය",
@@ -136,6 +140,7 @@ const ProfileScreen = () => {
       settings: "Settings",
       managePreferences: "Manage your preferences",
       language: "Language",
+      chooseLanguage: "Choose Language",
       notifications: "Notifications",
       enabled: "Enabled",
       helpCenter: "Help Center",
@@ -153,6 +158,7 @@ const ProfileScreen = () => {
       logout: "Logout",
       logoutConfirm: "Are you sure you want to logout?",
       cancel: "Cancel",
+      close: "Close",
       logoutText: "Logout",
       cropVariety: "Crop Variety",
       plantingDate: "Planting Date",
@@ -189,6 +195,7 @@ const ProfileScreen = () => {
       settings: "அமைப்புகள்",
       managePreferences: "உங்கள் விருப்பங்களை நிர்வகிக்கவும்",
       language: "மொழி",
+      chooseLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்",
       notifications: "அறிவிப்புகள்",
       enabled: "செயல்படுத்தப்பட்டது",
       helpCenter: "உதவி மையம்",
@@ -211,6 +218,7 @@ const ProfileScreen = () => {
       logout: "வெளியேறுக",
       logoutConfirm: "வெளியேற விரும்புகிறீர்களா?",
       cancel: "ரத்துசெய்க",
+      close: "மூடு",
       logoutText: "வெளியேறுக",
 
       // Prediction Details
@@ -370,15 +378,14 @@ Status: ${prediction.status || "Active"}`;
     });
   };
 
-  const toggleLanguage = () => {
-    setLanguage(
-      language === "sinhala"
-        ? "english"
-        : language === "english"
-          ? "tamil"
-          : "sinhala",
-    );
-  };
+  const languageOptions: Array<{
+    key: "sinhala" | "english" | "tamil";
+    label: string;
+  }> = [
+    { key: "sinhala", label: "සිංහල" },
+    { key: "english", label: "English" },
+    { key: "tamil", label: "தமிழ்" },
+  ];
 
   const getInitials = (name: string) => {
     return name
@@ -655,7 +662,7 @@ Status: ${prediction.status || "Active"}`;
             <View style={styles.settingsGrid}>
               <TouchableOpacity
                 style={styles.settingCard}
-                onPress={toggleLanguage}
+                onPress={() => setShowLanguageModal(true)}
                 activeOpacity={0.8}
               >
                 <LinearGradient
@@ -809,6 +816,55 @@ Status: ${prediction.status || "Active"}`;
           <View style={styles.bottomSpacer} />
         </Animated.View>
       </ScrollView>
+
+      <Modal
+        visible={showLanguageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.languageModal}>
+            <Text style={styles.languageModalTitle}>{t.chooseLanguage}</Text>
+
+            {languageOptions.map((option) => {
+              const isActive = language === option.key;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.languageOption,
+                    isActive && styles.languageOptionActive,
+                  ]}
+                  onPress={() => {
+                    setLanguage(option.key);
+                    setShowLanguageModal(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      isActive && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {isActive && <Text style={styles.languageCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+
+            <TouchableOpacity
+              style={styles.languageCloseButton}
+              onPress={() => setShowLanguageModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.languageCloseButtonText}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1261,6 +1317,69 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 16,
     right: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  languageModal: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  languageModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 14,
+  },
+  languageOption: {
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  languageOptionActive: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+  languageOptionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  languageOptionTextActive: {
+    color: "#047857",
+  },
+  languageCheck: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#10B981",
+  },
+  languageCloseButton: {
+    marginTop: 4,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  languageCloseButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155",
   },
   predictionsPanel: {
     paddingHorizontal: 20,
