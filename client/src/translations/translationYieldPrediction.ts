@@ -287,7 +287,7 @@
 //   // AgriOfficer Screens
 //   officerSoilProfile: {
 //     si: {
-//       title: 'පස් පැතිකඩ',
+//       title: 'පස් විස්තර',
 //       subtitle: 'පියවර 1 න් 4',
 //       soilPH: 'පස් pH',
 //       soilNitrogen: 'පස් නයිට්‍රජන් (kg/ha)',

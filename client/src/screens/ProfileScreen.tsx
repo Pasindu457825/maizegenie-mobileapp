@@ -65,9 +65,9 @@ const ProfileScreen = () => {
 
   const content = {
     sinhala: {
-      headerTitle: "පැතිකඩ",
+      headerTitle: "විස්තර",
       headerSubtitle: "ඔබේ වගා පුවරුව",
-      profile: "පැතිකඩ",
+      profile: "විස්තර",
       farmer: "ගොවියා",
       officer: "නිලධාරියා",
       location: "ස්ථානය",
@@ -199,7 +199,8 @@ const ProfileScreen = () => {
       farmingInsights: "உங்கள் விவசாய நுண்ணறிவுகள்",
       loadingPredictions: "மதிப்பீடுகள் ஏற்றப்படுகின்றன...",
       noPredictions: "மதிப்பீடுகள் இல்லை",
-      startByCreating: "உங்கள் முதல் விளைச்சல் மதிப்பீட்டை உருவாக்கி தொடங்குங்கள்",
+      startByCreating:
+        "உங்கள் முதல் விளைச்சல் மதிப்பீட்டை உருவாக்கி தொடங்குங்கள்",
       maizeCrop: "சோளப் பயிர்",
       active: "செயல்பாடு",
       shareWithOfficer: "அதிகாரியுடன் பகிர்ந்துகொள்க",
@@ -251,7 +252,7 @@ const ProfileScreen = () => {
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -264,7 +265,7 @@ const ProfileScreen = () => {
       console.error("Failed to load prediction history:", error);
       Alert.alert(
         "Error",
-        error.message || "Failed to load prediction history"
+        error.message || "Failed to load prediction history",
       );
     } finally {
       setLoading(false);
@@ -299,30 +300,41 @@ Status: ${prediction.status || "Active"}`;
 
       Clipboard.setString(copyText);
       Alert.alert(
-        language === "sinhala" ? "පිටපත් කරන ලදී!" : language === "tamil" ? "நகலெடுக்கப்பட்டது!" : "Copied!",
+        language === "sinhala"
+          ? "පිටපත් කරන ලදී!"
+          : language === "tamil"
+            ? "நகலெடுக்கப்பட்டது!"
+            : "Copied!",
         language === "sinhala"
           ? "පුරෝකථන විස්තර පිටපත් කරන ලදී"
-          : language === "tamil" ? "மதிப்பீடு விவரங்கள் நகலெடுக்கப்பட்டது"
-            : "Prediction details copied to clipboard"
+          : language === "tamil"
+            ? "மதிப்பீடு விவரங்கள் நகலெடுக்கப்பட்டது"
+            : "Prediction details copied to clipboard",
       );
     } catch (error) {
       console.error("Copy failed:", error);
       Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : language === "tamil" ? "பிழை" : "Error",
+        language === "sinhala"
+          ? "දෝෂයකි"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
         language === "sinhala"
           ? "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය"
-          : language === "tamil" ? "மதிப்பீடு விவரங்களை நகலெடுக்க முடியவில்லை"
-            : "Failed to copy prediction details"
+          : language === "tamil"
+            ? "மதிப்பீடு விவரங்களை நகலெடுக்க முடியவில்லை"
+            : "Failed to copy prediction details",
       );
     }
   };
 
   const handleShareWithOfficer = (prediction: any) => {
-    const contextMessage = language === "sinhala"
-      ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
-      : language === "tamil"
-        ? `🌾 சோள விளைச்சல் மதிப்பீடு கோரிக்கை\n\n📝 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌱 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\nஎன் விளைச்சல் மதிப்பீடு மற்றும் பயிர் மேலாண்மை குறித்து விவசாய அதிகாரியிடம் ஆலோசனை பெற விரும்புகிறேன்.`
-        : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
+    const contextMessage =
+      language === "sinhala"
+        ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
+        : language === "tamil"
+          ? `🌾 சோள விளைச்சல் மதிப்பீடு கோரிக்கை\n\n📝 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌱 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\nஎன் விளைச்சல் மதிப்பீடு மற்றும் பயிர் மேலாண்மை குறித்து விவசாய அதிகாரியிடம் ஆலோசனை பெற விரும்புகிறேன்.`
+          : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
 
     navigation.navigate("Chat", {
       prefilledMessage: contextMessage,
@@ -360,7 +372,11 @@ Status: ${prediction.status || "Active"}`;
 
   const toggleLanguage = () => {
     setLanguage(
-      language === "sinhala" ? "english" : language === "english" ? "tamil" : "sinhala"
+      language === "sinhala"
+        ? "english"
+        : language === "english"
+          ? "tamil"
+          : "sinhala",
     );
   };
 
@@ -651,7 +667,11 @@ Status: ${prediction.status || "Active"}`;
                   </View>
                   <Text style={styles.settingTitle}>{t.language}</Text>
                   <Text style={styles.settingValue}>
-                    {language === "sinhala" ? "සිංහල" : language === "tamil" ? "தமிழ்" : "English"}
+                    {language === "sinhala"
+                      ? "සිංහල"
+                      : language === "tamil"
+                        ? "தமிழ்"
+                        : "English"}
                   </Text>
                   <View style={styles.settingArrow}>
                     <ChevronRight size={16} color="#10b981" />

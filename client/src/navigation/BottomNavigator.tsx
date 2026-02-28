@@ -43,7 +43,7 @@ export default function BottomNavigator() {
       disease: "රෝග",
       yield: "අස්වැන්න",
       price: "මිල",
-      profile: "පැතිකඩ",
+      profile: "විස්තර",
     },
     tamil: {
       home: "முகப்பு",
