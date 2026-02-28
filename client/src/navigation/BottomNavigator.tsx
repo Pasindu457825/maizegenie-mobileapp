@@ -108,7 +108,7 @@ export default function BottomNavigator() {
         options={{
           tabBarLabel: labels.disease,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="medical-outline" size={size} color={color} />
+            <Ionicons name="leaf-outline" size={size} color={color} />
           ),
         }}
       />
@@ -120,7 +120,7 @@ export default function BottomNavigator() {
         options={{
           tabBarLabel: labels.yield,
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="leaf-outline" size={size} color={color} />
+            <Ionicons name="stats-chart-outline" size={size} color={color} />
           ),
         }}
       />
