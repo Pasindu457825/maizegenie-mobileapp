@@ -36,6 +36,7 @@ export type DiseaseIdentifyStackParamList = {
     predictions: Prediction[];
     diseaseNameEn?: string;
     diseaseNameSi?: string;
+    diseaseNameTa?: string;
   };
 
   DiseaseInfo: {

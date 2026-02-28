@@ -77,7 +77,7 @@ const REQUEST_TIMEOUT = 45000;
 const DiseaseIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
   const { language: lang, setLanguage } = useLanguage();
-  const language = lang === "sinhala" ? "si" : "en";
+  const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   const content = {
     si: {
@@ -172,6 +172,52 @@ const DiseaseIdentificationScreen = () => {
         "Avoid blurry or distant photos",
       ],
     },
+    ta: {
+      title: "🍃 இலை நோய் கண்டறிதல்",
+      subtitle: "திறன்மிகு விவசாயம்",
+      headerTitle: "இலை நோய் கண்டறிதல்",
+      headerSubtitle: "புகைப்படங்களிலிருந்து இலை நோய்களைக் கண்டறியவும்",
+      cameraOption: "கேமராவைப் பயன்படுத்து",
+      uploadOption: "புகைப்படத்தைப் பதிவேற்று",
+      detectButton: "நோயைக் கண்டறி",
+      analyzing: "படத்தை பகுப்பாய்வு செய்கிறது...",
+      resultTitle: "நோய்கள் கண்டறியப்பட்டன",
+      noDiseases: "நோய்கள் எதுவும் கண்டறியப்படவில்லை! 🎉",
+      tryAgain: "மீண்டும் முயற்சி செய்",
+      pickImage: "ஒரு படத்தைத் தேர்ந்தெடு",
+      orText: "அல்லது",
+      successMessage: "வெற்றிகரமாக அடையாளம் காணப்பட்டது!",
+      selectImageFirst: "முதலில் ஒரு படத்தைத் தேர்ந்தெடுக்கவும்",
+      permissionDenied: "அனுமதி தேவை",
+      serverError: "சேவையகத்துடன் இணைக்க முடியவில்லை",
+      viewDetails: "மேலும் விவரங்களைக் காண்க",
+      uploadPhoto: "புகைப்படத்தைப் பதிவேற்று",
+      modernAgriculture: "நவீன விவசாயம்",
+      healthyCrop: "ஆரோக்கியமான பயிர்",
+      back: "பின்செல்",
+      newDetection: "புதிய கண்டறிதல்",
+      speak: "பேசு",
+      confidence: "நம்பிக்கை",
+      high: "அதிகம்",
+      medium: "நடுத்தரம்",
+      low: "குறைவு",
+      severity: "தொற்றுநோயின் அளவு",
+      detectionStatus: "கண்டறிதல் நிலை",
+      healthy: "ஆரோக்கியமானது",
+      location: "இடம்",
+      status: "நிலை",
+      invalidLeafTitle: "செல்லாத இலைப் படம்",
+      invalidLeafSubtitle:
+        "இந்தப் படம் மக்காச்சோள இலையாக இருக்காது. தெளிவான மக்காச்சோள இலைப் படத்தைப் பதிவேற்றவும்.",
+      invalidSuggestionsTitle: "சரியான படத்தைப் பதிவேற்றுவதற்கான உதவிக்குறிப்புகள்",
+      invalidSuggestions: [
+        "சேதமடைந்த அல்லது நோயுற்ற மக்காச்சோள இலையை மட்டும் படம்பிடிக்கவும்",
+        "நல்ல வெளிச்சம் மற்றும் தெளிவான மையத்தைப் பயன்படுத்தவும்",
+        "படத்தின் மையத்தில் இலையை முழுமையாக வைத்திருக்கவும்",
+        "தெளிவான நோய் அறிகுறிகளை (புள்ளிகள், நிறமாற்றம், துரு, அல்லது உலர்தல்) உறுதிசெய்யவும்",
+        "மங்கலான அல்லது தொலைதூரப் புகைப்படங்களைத் தவிர்க்கவும்",
+      ],
+    },
   };
 
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -261,6 +307,10 @@ const DiseaseIdentificationScreen = () => {
           ? `කරුණාකර ${
               type === "camera" ? "කැමරා" : "ගැලරි"
             } ප්‍රවේශය ලබා දෙන්න!`
+          : language === "ta"
+          ? `தொடர ${
+              type === "camera" ? "கேமரா" : "கேலரி"
+            } அனுமதிகளை வழங்கவும்!`
           : `Please grant ${type} permissions to continue!`,
         [{ text: "OK" }]
       );
@@ -378,6 +428,8 @@ const DiseaseIdentificationScreen = () => {
         errorMsg =
           language === "si"
             ? "කාලය ඉක්මවී ගියේය! නැවත උත්සාහ කරන්න"
+            : language === "ta"
+            ? "நேரம் முடிந்தது! மீண்டும் முயற்சி செய்யவும்"
             : "Request timeout! Please try again";
       } else if (err.response?.data) {
         errorMsg =
@@ -434,9 +486,11 @@ const DiseaseIdentificationScreen = () => {
     Speech.speak(
       language === "si"
         ? `${cleanName} රෝගය හමුවිය`
+        : language === "ta"
+        ? `${cleanName} நோய் கண்டறியப்பட்டது`
         : `${cleanName} disease detected`,
       {
-        language: language === "si" ? "si-LK" : "en-US",
+        language: language === "si" ? "si-LK" : language === "ta" ? "ta-IN" : "en-US",
         rate: 0.9,
         pitch: 1.0,
         onDone: () => {
@@ -529,6 +583,17 @@ const DiseaseIdentificationScreen = () => {
     if (key.includes("blight")) return "කොළ බ්ලයිට්";
     if (key.includes("common rust")) return "කොමන් රස්ට්";
     if (key.includes("gray") && key.includes("spot")) return "අළු ලප";
+
+    // fallback (if unknown)
+    return diseaseName;
+  };
+
+  const getDiseaseNameTa = (rawClassName: string) => {
+    const key = formatDiseaseName(rawClassName).toLowerCase();
+
+    if (key.includes("blight")) return "இலை கருகல்";
+    if (key.includes("common rust")) return "பொதுவான துரு";
+    if (key.includes("gray") && key.includes("spot")) return "சாம்பல் புள்ளி";
 
     // fallback (if unknown)
     return diseaseName;
@@ -699,6 +764,8 @@ const DiseaseIdentificationScreen = () => {
                   <Text style={styles.actionCardDescription}>
                     {language === "si"
                       ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
+                      : language === "ta"
+                      ? "கேமராவிலிருந்து நேரடியாக புகைப்படம் எடுக்கவும்"
                       : "Take photo directly from camera"}
                   </Text>
                   <View style={styles.actionArrow}>
@@ -735,6 +802,8 @@ const DiseaseIdentificationScreen = () => {
                   >
                     {language === "si"
                       ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
+                      : language === "ta"
+                      ? "கேலரியில் இருந்து இருக்கும் புகைப்படங்களைத் தேர்ந்தெடுக்கவும்"
                       : "Choose existing photos from gallery"}
                   </Text>
                   <View
@@ -788,6 +857,8 @@ const DiseaseIdentificationScreen = () => {
                   <Text style={styles.loadingSubtext}>
                     {language === "si"
                       ? "කරුණාකර රැඳී සිටින්න..."
+                      : language === "ta"
+                      ? "தயவுசெய்து காத்திருக்கவும்..."
                       : "Please wait..."}
                   </Text>
                 </View>
@@ -808,7 +879,11 @@ const DiseaseIdentificationScreen = () => {
                   <AlertCircle size={36} color="#EF4444" />
                 </View>
                 <Text style={styles.errorTitle}>
-                  {language === "si" ? "දෝෂයක්" : "Error"}
+                  {language === "si"
+                    ? "දෝෂයක්"
+                    : language === "ta"
+                    ? "பிழை"
+                    : "Error"}
                 </Text>
                 <Text style={styles.errorMessage}>{error}</Text>
                 <TouchableOpacity
@@ -934,6 +1009,8 @@ const DiseaseIdentificationScreen = () => {
                           >
                             {language === "si"
                               ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : language === "ta"
+                              ? getDiseaseNameTa(primaryPrediction.class_name)
                               : diseaseName}{" "}
                             {content[language].resultTitle}
                           </Text>
@@ -968,7 +1045,11 @@ const DiseaseIdentificationScreen = () => {
                                 fontSize: 14,
                               }}
                             >
-                              {language === "si" ? "ශබ්දයෙන් අසන්න" : "Listen"}
+                              {language === "si"
+                                ? "ශබ්දයෙන් අසන්න"
+                                : language === "ta"
+                                ? "கேள்"
+                                : "Listen"}
                             </Text>
                           </TouchableOpacity>
                         ) : (
@@ -1010,7 +1091,11 @@ const DiseaseIdentificationScreen = () => {
                                 fontSize: 14,
                               }}
                             >
-                              {language === "si" ? "ශබ්දය නවත්වන්න" : "Stop"}
+                              {language === "si"
+                                ? "ශබ්දය නවත්වන්න"
+                                : language === "ta"
+                                ? "நிறுத்து"
+                                : "Stop"}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -1071,6 +1156,16 @@ const DiseaseIdentificationScreen = () => {
                                       .includes("medium")
                                   ? content.si.medium
                                   : content.si.low
+                                : language === "ta"
+                                ? result.severity_label
+                                    .toLowerCase()
+                                    .includes("high")
+                                  ? content.ta.high
+                                  : result.severity_label
+                                      .toLowerCase()
+                                      .includes("medium")
+                                  ? content.ta.medium
+                                  : content.ta.low
                                 : result.severity_label}
                             </Text>
                           </View>
@@ -1094,6 +1189,9 @@ const DiseaseIdentificationScreen = () => {
                             diseaseNameEn: diseaseName,
                             diseaseNameSi: primaryPrediction
                               ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : diseaseName,
+                            diseaseNameTa: primaryPrediction
+                              ? getDiseaseNameTa(primaryPrediction.class_name)
                               : diseaseName,
                           })
                         }
@@ -1132,6 +1230,8 @@ const DiseaseIdentificationScreen = () => {
                 <Text style={styles.healthySubtitle}>
                   {language === "si"
                     ? "ඔබේ කොළය සෞඛ්‍ය සම්පන්න තත්ත්වයේ පවතී"
+                    : language === "ta"
+                    ? "உங்கள் இலை ஆரோக்கியமான நிலையில் இருப்பதாக தெரிகிறது"
                     : "Your leaf appears to be in healthy condition"}
                 </Text>
                 <TouchableOpacity

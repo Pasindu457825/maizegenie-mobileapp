@@ -76,12 +76,13 @@ export default function SeverityDetailsScreen({ route }: Props) {
     predictions,
     diseaseNameEn,
     diseaseNameSi,
+    diseaseNameTa,
   } = route.params;
   const navigation = useNavigation<NavProp>();
 
   // 🌐 GLOBAL LANGUAGE (sinhala/english)
   const { language: lang, setLanguage } = useLanguage();
-  const language = lang === "sinhala" ? "si" : "en";
+  const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   // 🌐 TRANSLATION CONTENT
   const content = {
@@ -205,6 +206,66 @@ export default function SeverityDetailsScreen({ route }: Props) {
       severityMediumPrefix: "For Moderate Infection",
       severityHighPrefix: "For High Infection",
     },
+    ta: {
+      back: "பின்செல்",
+      header: "தாவர சுகாதார நிலை",
+      mild: "உங்கள் ஆலை நல்ல நிலையில் உள்ளது. நோயின் லேசான அறிகுறிகள் கண்டறியப்பட்டுள்ளன.",
+      moderate: "உங்கள் ஆலைக்கு கவனம் தேவை. நோய் மிதமாக பரவுகிறது.",
+      severe:
+        "எச்சரிக்கை! கடுமையான தொற்று நிலைகள் கண்டறியப்பட்டுள்ளன. உடனடியாக நடவடிக்கை தேவை.",
+      viewDetails: "முழு நோய் விவரங்களைக் காண்க",
+      plantSeverity: "இலை நோய் தொற்று நிலை",
+      severityAnalysis: "தற்போதைய தீவிர நிலை",
+      infectionLevel: "தொற்று நிலை",
+      nextSteps: "அடுத்த படிகள்",
+      viewDiseaseInfo: "நோய் தகவலைக் காண்க",
+      recommendations: "பரிந்துரைகள்",
+      takeAction: "நடவடிக்கை எடு",
+      monitoring: "கண்காணிப்பு",
+      severityLevel: "தீவிர நிலை",
+      healthy: "ஆரோக்கியமானது",
+      lowRisk: "குறைந்த ஆபத்து",
+      mediumRisk: "நடுத்தர ஆபத்து",
+      highRisk: "அதிக ஆபத்து",
+
+      // Treatment section translations
+      treatmentGuide: "இலங்கையில் கிடைக்கும் சிகிச்சைகள்",
+      availableInSL: "இலங்கையில் கிடைக்கும் தயாரிப்புகள்",
+      howToUse: "எப்படி பயன்படுத்துவது",
+      dosage: "மருந்தளவு மற்றும் கலவை",
+      applicationSchedule: "விண்ணப்ப அட்டவணை",
+      frequency: "அதிர்வெண்",
+      duration: "காலம்",
+      bestTime: "சிறந்த நேரம்",
+      safetyPrecautions: "பாதுகாப்பு முன்னெச்சரிக்கைகள்",
+      whereToBuy: "எங்கே வாங்குவது",
+      costEstimate: "மதிப்பீட்டு செலவு (LKR)",
+      spraySchedule: "தெளிப்பு அட்டவணை",
+      immediateAction: "உடனடி நடவடிக்கை",
+      followUpTreatment: "தொடர் சிகிச்சை",
+      preventionTips: "மீண்டும் தொற்று ஏற்படுவதைத் தடுக்கவும்",
+      organicOptions: "கரிம தீர்வுகள்",
+      chemicalOptions: "இரசாயன தீர்வுகள்",
+      recommendedForSeverity: "தீவிர நிலைக்கான தீர்வுகள்",
+      stepByStepGuide: "படிப்படியான வழிகாட்டி",
+      day: "நாள்",
+      days: "நாட்கள்",
+      weeks: "வாரங்கள்",
+      repeat: "மீண்டும் செய்யவும்",
+      morning: "காலை",
+      evening: "மாலை",
+      avoidRain: "மழையைத் தவிர்க்கவும்",
+      protectiveGear: "பாதுகாப்பு கியர் பயன்படுத்தவும்",
+      storeProperly: "சரியாக சேமிக்கவும்",
+      forDisease: "க்கு",
+      effectiveAgainst: "எதிராக பயனுள்ளதாக இருக்கும்",
+      fungalDiseases: "பூஞ்சை நோய்கள்",
+      bacterialDiseases: "பாக்டீரியா நோய்கள்",
+      viralDiseases: "வைரஸ் நோய்கள்",
+      severityLowPrefix: "குறைந்த தொற்றுக்கு",
+      severityMediumPrefix: "மிதமான தொற்றுக்கு",
+      severityHighPrefix: "அதிக தொற்றுக்கு",
+    },
   };
 
   const getSeverityUI = (label: string) => {
@@ -239,6 +300,12 @@ export default function SeverityDetailsScreen({ route }: Props) {
         : severityUI.level === "medium"
         ? content.si.mediumRisk
         : content.si.highRisk
+      : language === "ta"
+      ? severityUI.level === "low"
+        ? content.ta.lowRisk
+        : severityUI.level === "medium"
+        ? content.ta.mediumRisk
+        : content.ta.highRisk
       : severity_label;
 
   const statusText =
@@ -346,9 +413,17 @@ export default function SeverityDetailsScreen({ route }: Props) {
       diseaseNameLower.includes("blight") ||
       diseaseNameLower.includes("rust")
     ) {
-      return language === "si" ? "දිලීර රෝග" : "Fungal diseases";
+      return language === "si"
+        ? "දිලීර රෝග"
+        : language === "ta"
+        ? "பூஞ்சை நோய்கள்"
+        : "Fungal diseases";
     }
-    return language === "si" ? "ශාක රෝග" : "Plant diseases";
+    return language === "si"
+      ? "ශාක රෝග"
+      : language === "ta"
+      ? "தாவர நோய்கள்"
+      : "Plant diseases";
   };
 
   const diseaseType = getDiseaseType();
@@ -543,6 +618,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   ? `${diseaseNameSi || diseaseName} රෝගය ${
                       content.si.forDisease
                     }`
+                  : language === "ta"
+                  ? `${diseaseNameTa || diseaseName} ${content.ta.forDisease}`
                   : `${content.en.forDisease} ${
                       diseaseNameEn || diseaseName
                     } disease`}
@@ -661,6 +738,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               >
                 {language === "si"
                   ? "පත්‍රයෙන් හානි වී ඇති ප්‍රතිශතය"
+                  : language === "ta"
+                  ? " பாதிக்கப்பட்ட இலை பகுதி"
                   : "Leaf Area Affected"}
               </Text>
 
@@ -844,7 +923,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.chemicalText]}
                         >
-                          {treatment.schedule.frequency}
+                          {treatment.schedule.frequency[language]}
                         </Text>
                       </View>
 
@@ -860,7 +939,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.chemicalText]}
                         >
-                          {treatment.schedule.duration}
+                          {treatment.schedule.duration[language]}
                         </Text>
                       </View>
 
@@ -876,7 +955,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.chemicalText]}
                         >
-                          {treatment.schedule.bestTime}
+                          {treatment.schedule.bestTime[language]}
                         </Text>
                       </View>
                     </View>
@@ -924,7 +1003,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.chemicalCost]}>
-                        {treatment.costEstimate}
+                        {treatment.costEstimate[language]}
                       </Text>
                     </View>
                   </View>
@@ -952,6 +1031,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                 <Text style={styles.treatmentSubtitle}>
                   {language === "si"
                     ? "ආරක්ෂිත හා පරිසර හිතකර"
+                    : language === "ta"
+                    ? "பாதுகாப்பான மற்றும் சூழல் நட்பு"
                     : "Safe & Environment Friendly"}
                 </Text>
               </View>
@@ -1030,7 +1111,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.organicText]}
                         >
-                          {treatment.schedule.frequency}
+                          {treatment.schedule.frequency[language]}
                         </Text>
                       </View>
 
@@ -1046,7 +1127,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.organicText]}
                         >
-                          {treatment.schedule.duration}
+                          {treatment.schedule.duration[language]}
                         </Text>
                       </View>
 
@@ -1062,7 +1143,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.organicText]}
                         >
-                          {treatment.schedule.bestTime}
+                          {treatment.schedule.bestTime[language]}
                         </Text>
                       </View>
                     </View>
@@ -1108,7 +1189,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.organicCost]}>
-                        {treatment.costEstimate}
+                        {treatment.costEstimate[language]}
                       </Text>
                     </View>
                   </View>
@@ -1135,6 +1216,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Text style={styles.recommendationText}>
                 {language === "si"
                   ? "ඉහත කාලසටහනට අනුව ස්ප්‍රේ කිරිමේ කිරීම ආරම්භ කරන්න"
+                  : language === "ta"
+                  ? "மேலே உள்ள அட்டவணைப்படி தெளிக்கத் தொடங்குங்கள்"
                   : "Start spraying according to the above schedule"}
               </Text>
             </View>
@@ -1145,6 +1228,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Text style={styles.recommendationText}>
                 {language === "si"
                   ? "සුරක්ෂිත ඇඳුම් හා උපකරණ භාවිත කරන්න"
+                  : language === "ta"
+                  ? "பாதுகாப்பு ஆடை மற்றும் உபகரணங்களைப் பயன்படுத்தவும்"
                   : "Use safety clothing and equipment"}
               </Text>
             </View>
@@ -1155,6 +1240,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Text style={styles.recommendationText}>
                 {language === "si"
                   ? "සතියකට වරක් පැලේ ප්‍රගතිය නිරීක්ෂණය කරන්න"
+                  : language === "ta"
+                  ? "வாரந்தோறும் தாவரத்தின் முன்னேற்றத்தைக் கண்காணிக்கவும்"
                   : "Monitor plant progress weekly"}
               </Text>
             </View>
