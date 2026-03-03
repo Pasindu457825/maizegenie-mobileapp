@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -17,10 +17,12 @@ import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { LineChart, BarChart } from "react-native-chart-kit";
 import { PestIdentifyStackParamList } from "src/navigation/PestIdentifyStack";
+import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
 type NavProp = StackNavigationProp<PestIdentifyStackParamList>;
+type UiLanguage = "si" | "en" | "ta";
 
 interface PestFrequencyItem {
   class_name: string;
@@ -53,6 +55,51 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
+const translations = {
+  si: {
+    failedLoad: "විශ්ලේෂණය පූරණය කිරීමට අසාර්ථකයි.",
+    headerTitle: "කෘමි සංඛ්‍යාත විශ්ලේෂණය",
+    days: "දින",
+    loading: "විශ්ලේෂණ වාර්තාව සැකසෙමින්...",
+    totalRequests: "මුළු ඉල්ලීම්",
+    detections: "හඳුනාගැනීම්",
+    noPestCases: "කෘමි නොමැති අවස්ථා",
+    dailyTrend: "දෛනික හඳුනාගැනීම් ප්‍රවණතාව (අවසාන 7 ලක්ෂ්‍ය)",
+    topDistribution: "ප්‍රධාන කෘමි බෙදාහැරීම",
+    detailedList: "විස්තරාත්මක ප්‍රධාන කෘමි ලැයිස්තුව",
+    noData: "තෝරාගත් කාල පරාසයට හඳුනාගැනීම් දත්ත නොමැත.",
+    noChartData: "දත්ත නැත",
+  },
+  en: {
+    failedLoad: "Failed to load analysis.",
+    headerTitle: "Pest Frequency Analysis",
+    days: "Days",
+    loading: "Generating analysis report...",
+    totalRequests: "Total Requests",
+    detections: "Detections",
+    noPestCases: "No-Pest Cases",
+    dailyTrend: "Daily Detection Trend (Last 7 points)",
+    topDistribution: "Top Pests Distribution",
+    detailedList: "Detailed Top Pest List",
+    noData: "No detection data in selected window.",
+    noChartData: "No Data",
+  },
+  ta: {
+    failedLoad: "பகுப்பாய்வை ஏற்ற முடியவில்லை.",
+    headerTitle: "பூச்சி அடிக்கடி நிகழ்வு பகுப்பாய்வு",
+    days: "நாட்கள்",
+    loading: "பகுப்பாய்வு அறிக்கை உருவாக்கப்படுகிறது...",
+    totalRequests: "மொத்த கோரிக்கைகள்",
+    detections: "அடையாளங்கள்",
+    noPestCases: "பூச்சி இல்லாத நிகழ்வுகள்",
+    dailyTrend: "தினசரி கண்டறிதல் போக்கு (கடைசி 7 புள்ளிகள்)",
+    topDistribution: "முக்கிய பூச்சிகள் பகிர்வு",
+    detailedList: "விரிவான முக்கிய பூச்சி பட்டியல்",
+    noData: "தேர்ந்தெடுக்கப்பட்ட காலவரம்பில் கண்டறிதல் தரவு இல்லை.",
+    noChartData: "தரவு இல்லை",
+  },
+} as const;
+
 const chartConfig = {
   backgroundGradientFrom: "#FFFFFF",
   backgroundGradientTo: "#FFFFFF",
@@ -72,10 +119,14 @@ const chartConfig = {
 
 const PestFrequencyAnalysisScreen = () => {
   const navigation = useNavigation<NavProp>();
+  const { language: appLang } = useLanguage();
+  const language: UiLanguage =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
   const [stats, setStats] = useState<PestFrequencyResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [days, setDays] = useState(30);
   const [error, setError] = useState<string | null>(null);
+  const content = translations[language];
 
   const fetchStats = useCallback(async (windowDays: number) => {
     try {
@@ -95,14 +146,14 @@ const PestFrequencyAnalysisScreen = () => {
       if (res.data?.success) {
         setStats(res.data as PestFrequencyResponse);
       } else {
-        setError("Failed to load analysis.");
+        setError(content.failedLoad);
       }
     } catch (e: any) {
-      setError(e?.response?.data?.detail || "Failed to load analysis.");
+      setError(e?.response?.data?.detail || content.failedLoad);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     fetchStats(days);
@@ -125,10 +176,10 @@ const PestFrequencyAnalysisScreen = () => {
   const barData = useMemo(() => {
     const top = (stats?.top_pests || []).slice(0, 5);
     return {
-      labels: top.length ? top.map((x) => x.class_name.slice(0, 8)) : ["No Data"],
+      labels: top.length ? top.map((x) => x.class_name.slice(0, 8)) : [content.noChartData],
       datasets: [{ data: top.length ? top.map((x) => x.count) : [0] }],
     };
-  }, [stats]);
+  }, [language, stats]);
 
   return (
     <View style={styles.container}>
@@ -136,7 +187,7 @@ const PestFrequencyAnalysisScreen = () => {
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ArrowLeft color="#FFFFFF" size={20} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pest Frequency Analysis</Text>
+        <Text style={styles.headerTitle}>{content.headerTitle}</Text>
         <TouchableOpacity style={styles.backBtn} onPress={() => fetchStats(days)}>
           <RefreshCw color="#FFFFFF" size={18} />
         </TouchableOpacity>
@@ -150,7 +201,7 @@ const PestFrequencyAnalysisScreen = () => {
             style={[styles.dayTab, days === d && styles.dayTabActive]}
           >
             <Text style={[styles.dayTabText, days === d && styles.dayTabTextActive]}>
-              {d} Days
+              {d} {content.days}
             </Text>
           </TouchableOpacity>
         ))}
@@ -159,7 +210,7 @@ const PestFrequencyAnalysisScreen = () => {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#10AD79" />
-          <Text style={styles.loadingText}>Generating analysis report...</Text>
+          <Text style={styles.loadingText}>{content.loading}</Text>
         </View>
       ) : error ? (
         <View style={styles.center}>
@@ -171,21 +222,21 @@ const PestFrequencyAnalysisScreen = () => {
             <View style={styles.summaryCard}>
               <TrendingUp size={18} color="#10AD79" />
               <Text style={styles.summaryValue}>{stats?.total_requests ?? 0}</Text>
-              <Text style={styles.summaryLabel}>Total Requests</Text>
+              <Text style={styles.summaryLabel}>{content.totalRequests}</Text>
             </View>
             <View style={styles.summaryCard}>
               <BarChart3 size={18} color="#10AD79" />
               <Text style={styles.summaryValue}>{stats?.total_detections ?? 0}</Text>
-              <Text style={styles.summaryLabel}>Detections</Text>
+              <Text style={styles.summaryLabel}>{content.detections}</Text>
             </View>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryValue}>{stats?.no_pest_requests ?? 0}</Text>
-              <Text style={styles.summaryLabel}>No-Pest Cases</Text>
+              <Text style={styles.summaryLabel}>{content.noPestCases}</Text>
             </View>
           </View>
 
           <View style={styles.chartCard}>
-            <Text style={styles.chartTitle}>Daily Detection Trend (Last 7 points)</Text>
+            <Text style={styles.chartTitle}>{content.dailyTrend}</Text>
             <LineChart
               data={lineData}
               width={width - 48}
@@ -198,7 +249,7 @@ const PestFrequencyAnalysisScreen = () => {
           </View>
 
           <View style={styles.chartCard}>
-            <Text style={styles.chartTitle}>Top Pests Distribution</Text>
+            <Text style={styles.chartTitle}>{content.topDistribution}</Text>
             <BarChart
               data={barData}
               width={width - 48}
@@ -211,7 +262,7 @@ const PestFrequencyAnalysisScreen = () => {
           </View>
 
           <View style={styles.listCard}>
-            <Text style={styles.chartTitle}>Detailed Top Pest List</Text>
+            <Text style={styles.chartTitle}>{content.detailedList}</Text>
             {(stats?.top_pests || []).length ? (
               stats?.top_pests.map((p, idx) => (
                 <View key={`${p.class_name}-${idx}`} style={styles.listRow}>
@@ -222,7 +273,7 @@ const PestFrequencyAnalysisScreen = () => {
                 </View>
               ))
             ) : (
-              <Text style={styles.emptyText}>No detection data in selected window.</Text>
+              <Text style={styles.emptyText}>{content.noData}</Text>
             )}
           </View>
         </ScrollView>
@@ -326,3 +377,4 @@ const styles = StyleSheet.create({
 });
 
 export default PestFrequencyAnalysisScreen;
+

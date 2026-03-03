@@ -1,54 +1,54 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Speech from "expo-speech";
 import { useLanguage } from "../../context/LanguageContext";
 
-type LangKey = "si" | "en";
+type LangKey = "si" | "en" | "ta";
 
 // Add your narration data here (from previous step)
 const stages = [
   {
     key: "egg",
-    label: { si: "බිත්තරය", en: "Egg" },
+    label: { si: "බිත්තරය", en: "Egg", ta: "முட்டை" },
     image: require("../../../assets/pest_lifecycle/fallarmyworm/fall_egg.png"),
     description: { 
       si: "බිත්තර පොකුරු ලෙස තබනු ලබන අතර, සාමාන්‍යයෙන් පත්‍ර වල පහළ පැත්තට.", 
-      en: "Eggs are laid in clusters, usually on the underside of leaves." 
-    },
+      en: "Eggs are laid in clusters, usually on the underside of leaves.",
+      ta: "முட்டைகள் பொதுவாக இலைகளின் அடிப்புறத்தில் குவியல்களாக இடப்படுகின்றன." },
     voiceTextEn: "Fall Armyworm eggs are laid in clusters, usually on the underside of maize leaves. These eggs are small, round, and pale in color. Farmers should look closely under leaves and remove egg masses when found to prevent further damage.",
     voiceTextSi: "සේනා දළබුවගේ බිත්තු පොකුරු ලෙස පත්‍ර වල පහල පැත්තට තැබෙනවා. බිත්තු කුඩා, රවුම් හා සුදු පැහැතිව පෙනෙනවා. ගොවියෝ පත්‍ර පහලින් බැලුවොත් බිත්තු පොකුරු හඳුනාගෙන ඉවත් කළ යුතුයි."
   },
   {
     key: "larva",
-    label: { si: "කීටයා", en: "Larva" },
+    label: { si: "කීටයා", en: "Larva", ta: "இருவில்" },
     image: require("../../../assets/pest_lifecycle/fallarmyworm/fall_larva.png"),
     description: { 
       si: "කීටයින් (කූඹියන්) හානිකර අදියර වන අතර, ශාක පත්‍ර ආහාරයට ගනී.", 
-      en: "Larvae (caterpillars) are the damaging stage, feeding on plant leaves." 
-    },
+      en: "Larvae (caterpillars) are the damaging stage, feeding on plant leaves.",
+      ta: "இருவில் (புழு) நிலைதான் அதிக சேதம் செய்யும்; இது தாவர இலைகளைத் தின்று சேதப்படுத்தும்." },
     voiceTextEn: "The larva, or caterpillar, is the most damaging stage. These larvae feed on maize leaves, creating holes and sometimes attacking the cob. Early detection and control at this stage can help save your crop.",
     voiceTextSi: "ලාරා, එනම් කූඹියා, වැඩිපුර හානි කරන අදියරයි. මේ කූඹියෝ පත්‍ර කමින් ගැටලු ඇති කරනවා, සමහරවිට ඇටයටවත් හානි කරනවා. මෙය ඉක්මනින් හඳුනාගෙන පාලනය කළහොත් වගාව බේරාගන්න පුළුවන්."
   },
   {
     key: "pupa",
-    label: { si: "පියුපාව", en: "Pupa" },
+    label: { si: "පියුපාව", en: "Pupa", ta: "பூப்பா" },
     image: require("../../../assets/pest_lifecycle/fallarmyworm/fall_pupa.png"),
     description: { 
       si: "පියුපා අවධිය පසෙහි සිදු වේ. කූඹියා වැඩිහිටියෙකු බවට පරිවර්තනය වේ.", 
-      en: "Pupa stage occurs in the soil. The caterpillar transforms into an adult." 
-    },
+      en: "Pupa stage occurs in the soil. The caterpillar transforms into an adult.",
+      ta: "பூப்பா நிலை மண்ணில் ஏற்படும்; புழு முழுவயது வண்டாக மாறும்." },
     voiceTextEn: "During the pupa stage, the caterpillar goes underground to change into an adult moth. No feeding or damage happens at this time. Good field hygiene and removing crop debris can reduce pupae numbers.",
     voiceTextSi: "පූපා අදියරේදී කූඹියා බිමට යාමෙන් අළුත් මදුවන්නෙක් වෙන්න වෙනස් වෙනවා. මේ අවධියේ කෑම හෝ හානි සිදුවෙන්නේ නෑ. වගා බිම පිරිසිදුව තබන එක පූපා සංඛ්‍යාව අඩු කරගන්න හොඳ ක්‍රමයක්."
   },
   {
     key: "adult",
-    label: { si: "වැඩිහිටියා (මදුවා)", en: "Adult (Moth)" },
+    label: { si: "වැඩිහිටියා (මදුවා)", en: "Adult (Moth)", ta: "முழுவயது (வண்டு)" },
     image: require("../../../assets/pest_lifecycle/fallarmyworm/fall_adult.png"),
     description: { 
       si: "වැඩිහිටියා චක්‍රය නැවත ආරම්භ කිරීමට බිත්තර දමන මදුවෙකි.", 
-      en: "The adult is a moth that lays eggs to start the cycle again." 
-    },
+      en: "The adult is a moth that lays eggs to start the cycle again.",
+      ta: "முழுவயது வண்டு முட்டைகள் இடும்; அதனால் வாழ்க்கைச் சுழற்சி மீண்டும் தொடங்கும்." },
     voiceTextEn: "The adult Fall Armyworm is a brownish moth. It flies at night and lays eggs to start the life cycle again. Monitoring adult moths and using light traps can help control their population.",
     voiceTextSi: "වැඩිහිටි සේනා දළබුව මදුවන්නෙක්. රාත්‍රීයේ පියාසර කරලා නැවතත් බිත්තු තබනවා. වැඩිහිටි මදුවන්නෝ පාලනයට ආලෝක පෝෂක යන්ත්‍ර යොදාගන්න හෝ පරීක්ෂා කිරීම හොඳයි."
   }
@@ -57,7 +57,8 @@ const stages = [
 export default function FallArmywormLifecycleScreen() {
   /* 🌐 GLOBAL LANGUAGE */
   const { language: appLang } = useLanguage();
-  const language: LangKey = appLang === "sinhala" ? "si" : "en";
+  const language: LangKey =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
   /* 📝 TEXT CONTENT */
   const content = {
@@ -76,6 +77,14 @@ export default function FallArmywormLifecycleScreen() {
       sinhalaBtn: "සිංහල",
       englishBtn: "English",
       stopBtn: "Stop",
+    },
+    ta: {
+      headerTitle: "பால் ஆர்மிவோர்ம் வாழ்க்கைச் சுழற்சி",
+      headerSubtitle: "பூச்சியின் வளர்ச்சி நிலைகளை புரிந்துகொள்ளுங்கள்",
+      voiceLabel: "விரிவான தகவலை கேளுங்கள்:",
+      sinhalaBtn: "சிங்களம்",
+      englishBtn: "English",
+      stopBtn: "நிறுத்து",
     },
   };
 
@@ -405,3 +414,4 @@ const styles = StyleSheet.create({
     height: 20,
   },
 });
+
