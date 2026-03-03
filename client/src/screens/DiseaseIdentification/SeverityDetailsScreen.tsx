@@ -384,14 +384,38 @@ export default function SeverityDetailsScreen({ route }: Props) {
       return splitByType(generalTreatmentsData);
     }
 
-    const formattedName = formatDiseaseName(
-      primaryPrediction.class_name
-    ).toLowerCase();
-
     const normalize = (s: string) =>
       s.toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
     const normalizedName = normalize(primaryPrediction.class_name);
+
+    // Healthy outputs should not show treatment recommendations.
+    if (normalizedName.includes("health") || normalizedName.includes("healthy")) {
+      return { chemical: [], organic: [] };
+    }
+
+    const inferCanonicalDiseaseKey = (name: string): string | null => {
+      const n = normalize(name);
+
+      const aliasMap: Record<string, string> = {
+        // Roboflow-normalized outputs
+        "gray spot": "gray spot",
+        "gray leaf spot": "gray spot",
+        "grey spot": "gray spot",
+        "grey leaf spot": "gray spot",
+        "common rust": "common rust",
+        blight: "leaf blight",
+        "leaf blight": "leaf blight",
+        "northern leaf blight": "leaf blight",
+      };
+
+      if (aliasMap[n]) return aliasMap[n];
+      if (n.includes("blight")) return "leaf blight";
+      if (n.includes("rust")) return "common rust";
+      if (n.includes("gray") && n.includes("spot")) return "gray spot";
+      if (n.includes("grey") && n.includes("spot")) return "gray spot";
+      return null;
+    };
 
     const matchedKey = Object.keys(treatmentsData).find(
       (key) => normalize(key) === normalizedName
@@ -400,6 +424,23 @@ export default function SeverityDetailsScreen({ route }: Props) {
     // 2️⃣ Disease-specific treatments
     if (matchedKey) {
       return splitByType(treatmentsData[matchedKey]);
+    }
+
+    const inferredKey = inferCanonicalDiseaseKey(normalizedName);
+    if (inferredKey && treatmentsData[inferredKey]) {
+      return splitByType(treatmentsData[inferredKey]);
+    }
+
+    const partialKey = Object.keys(treatmentsData).find((key) => {
+      const normalizedKey = normalize(key);
+      return (
+        normalizedName.includes(normalizedKey) ||
+        normalizedKey.includes(normalizedName)
+      );
+    });
+
+    if (partialKey) {
+      return splitByType(treatmentsData[partialKey]);
     }
 
     // 3️⃣ Fallback
