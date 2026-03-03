@@ -5,6 +5,9 @@ import joblib
 import numpy as np
 import pandas as pd
 
+# Supabase client for fetching real historical prices
+from src.database.supabase_client import supabase
+
 # ===============================
 # 🔕 SUPPRESS SKLEARN WARNING
 # ===============================
@@ -30,6 +33,53 @@ try:
 except Exception as e:
     print("❌ Model load failed:", e)
     raise RuntimeError("Model loading failed")
+
+# =====================================================
+# HISTORICAL PRICE FETCHER
+# =====================================================
+def fetch_price_history(district: str, year: int, week: int, n: int = 8) -> list[float]:
+    """
+    Fetch the last `n` weekly prices for a district from Supabase.
+
+    Expected table : maize_prices
+    Expected columns: year (int), week (int), district (text), price (float)
+
+    Returns a list ordered oldest → newest  (length == n).
+    Raises ValueError if fewer than `n` rows are available.
+    """
+    try:
+        # Keep only rows whose (year, week) pair is <= the reference point.
+        # PostgREST compound OR:  year < ref_year  OR  (year = ref_year AND week <= ref_week)
+        result = (
+            supabase
+            .from_("maize_prices")
+            .select("year, week, price")
+            .eq("district", district)
+            .or_(f"year.lt.{year},and(year.eq.{year},week.lte.{week})")
+            .order("year", desc=True)
+            .order("week", desc=True)
+            .limit(n)
+            .execute()
+        )
+
+        rows = result.data or []
+
+        if len(rows) < n:
+            raise ValueError(
+                f"Insufficient price history for district '{district}': "
+                f"need {n} weeks, found {len(rows)}. "
+                "Please ensure at least 8 weeks of historical prices exist in 'maize_prices'."
+            )
+
+        # DB returned newest-first; reverse so index 0 = oldest, -1 = most recent
+        rows_asc = list(reversed(rows))
+        return [float(row["price"]) for row in rows_asc]
+
+    except ValueError:
+        raise  # re-raise validation errors as-is
+    except Exception as e:
+        raise RuntimeError(f"Supabase price history fetch failed: {e}") from e
+
 
 # =====================================================
 # REQUEST / RESPONSE MODELS
@@ -110,9 +160,17 @@ def predict_delta_with_uncertainty(X: pd.DataFrame) -> tuple[float, float]:
 # =====================================================
 # RF DELTA WALK-FORWARD FORECAST (with confidence)
 # =====================================================
-def forecast_weeks_rf_delta(req: PriceForecastRequest):
+def forecast_weeks_rf_delta(req: PriceForecastRequest, price_history: list[float]):
+    """
+    Walk-forward forecast using a real price_history window.
+
+    price_history must have exactly 8 entries, ordered oldest → newest.
+    Each new prediction is appended so lag features stay accurate over
+    subsequent forecast steps.
+    """
     results = []
-    price_history = [req.last_price] * 8
+    # Work on a mutable copy so we never mutate the caller's list
+    price_history = list(price_history)
 
     for i in range(req.weeks_ahead):
         week = ((req.week + i - 1) % 52) + 1
@@ -174,9 +232,44 @@ def get_price_forecast(req: PriceForecastRequest):
 
     try:
         req = normalize_if_needed(req)
-        weeks = forecast_weeks_rf_delta(req)
+
+        # ── Step 1: fetch real historical prices from Supabase ──────────────
+        try:
+            price_history = fetch_price_history(
+                district=req.district,
+                year=req.year,
+                week=req.week,
+                n=8,
+            )
+            print(f"  History (lag8): {[round(p, 2) for p in price_history]}")
+        except ValueError as ve:
+            print(f"⚠️  Insufficient history: {ve}")
+            raise HTTPException(status_code=422, detail=str(ve))
+        except RuntimeError as re:
+            print(f"❌ Supabase fetch error: {re}")
+            raise HTTPException(status_code=500, detail="Failed to retrieve price history from database")
+
+        # ── Step 2: walk-forward forecast with real lag features ─────────────
+        weeks = forecast_weeks_rf_delta(req, price_history)
+
+        # ── OUTPUT LOG ───────────────────────────────────────────────────────
+        print(SEP)
+        print("📤  FORECAST OUTPUT")
+        print(SEP)
+        print(f"  {'Week':<6} {'Predicted (Rs/kg)':<22} {'Δ vs last':<16} {'Confidence'}")
+        print(f"  {'─'*4:<6} {'─'*18:<22} {'─'*12:<16} {'─'*12}")
+        for w in weeks:
+            delta = w["rf_price"] - req.last_price
+            delta_str = f"+{delta:.2f}" if delta >= 0 else f"{delta:.2f}"
+            conf_str = f"{w['confidence_pct']}%  ({w['confidence_tag']})"
+            print(f"  {w['week']:<6} Rs {w['rf_price']:<19.2f} {delta_str:<16} {conf_str}")
+        print(f"{'═' * 55}\n")
+
         return PriceForecastResponse(success=True, weeks=weeks)
 
+    except HTTPException:
+        raise  # pass-through already-typed errors unchanged
     except Exception as e:
-        print("❌ RF Delta Forecast Error:", e)
+        print(f"❌ RF Delta Forecast Error: {e}")
+        print(f"{'═' * 55}\n")
         raise HTTPException(status_code=500, detail="RF delta forecast failed")

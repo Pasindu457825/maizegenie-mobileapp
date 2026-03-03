@@ -567,6 +567,58 @@ const PriceForecastScreen = () => {
     return "Yala";
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // SAVE FORECAST → SUPABASE
+  //   1. Upsert current week's actual price into maize_prices
+  //      (so future forecasts have a real lag-1 value for this week)
+  //   2. Insert every predicted week into price_forecast_results
+  // ─────────────────────────────────────────────────────────────────────────
+  const saveForecastToSupabase = async (
+    weeks: WeekForecast[],
+    refYear: number,
+    refWeek: number,
+    district: string,
+    season: string,
+    farmGatePrice: number,
+  ) => {
+    try {
+      // NOTE: maize_prices is intentionally NOT written here.
+      // That table is the trusted historical source for the ML model and must
+      // only be populated by admins / verified DOA data (via Supabase dashboard
+      // or service-role scripts). Allowing unverified farmer input to feed
+      // directly into lag_1 / roll_4 / roll_8 would corrupt future forecasts.
+
+      // Insert each predicted week into price_forecast_results
+      const rows = weeks.map((w) => ({
+        ref_year: refYear,
+        ref_week: refWeek,
+        district,
+        season,
+        forecast_offset: w.week, // 1 = next week, 2 = week after, …
+        predicted_price: w.ensemble,
+        confidence_pct: w.confidence_pct ?? null,
+        confidence_tag: w.confidence_tag ?? null,
+        farm_gate_price: farmGatePrice,
+      }));
+
+      const { error: fcErr } = await supabase
+        .from("price_forecast_results")
+        .insert(rows);
+
+      if (fcErr) {
+        console.warn(
+          "[Supabase] price_forecast_results insert warning:",
+          fcErr.message,
+        );
+      } else {
+        console.log("✅ Forecast saved to Supabase", rows.length, "rows");
+      }
+    } catch (err) {
+      // Never let a save error crash the UI – forecast is already shown
+      console.warn("[Supabase] saveForecastToSupabase failed:", err);
+    }
+  };
+
   const generateForecast = async () => {
     try {
       // 🔥 RESET NOTIFICATION FLAG for new forecast
@@ -667,6 +719,16 @@ const PriceForecastScreen = () => {
       }
 
       setWeeklyForecast(res.weeks);
+
+      // 💾 Persist to Supabase (fire-and-forget — errors are swallowed inside)
+      saveForecastToSupabase(
+        res.weeks,
+        payload.year,
+        payload.week,
+        payload.district,
+        payload.season,
+        lastPriceValue,
+      );
 
       const first = res.weeks[0];
       const firstWeek = res.weeks[0];
