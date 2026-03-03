@@ -31,6 +31,13 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
 import { useApp } from "../../context/AppContext";
+
+// On Android emulator localhost is unreachable — remap to 10.0.2.2.
+// On a physical device, set EXPO_PUBLIC_API_BASE to your LAN IP instead.
+const EFFECTIVE_API_BASE =
+  Platform.OS === "android"
+    ? API_BASE.replace(/http:\/\/localhost/i, "http://10.0.2.2")
+    : API_BASE;
 import { useNotifications } from "../../context/NotificationContext";
 
 const { width } = Dimensions.get("window");
@@ -108,6 +115,7 @@ export default function ProAdvisorListScreen() {
   const [data, setData] = useState<ProAdvisorItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useApp();
   const { unreadCount } = useNotifications();
 
@@ -133,29 +141,51 @@ export default function ProAdvisorListScreen() {
     }).start();
   }, []);
 
+  /* ---------- Skip useFocusEffect on very first focus (useEffect handles it) ---------- */
+  const isFirstFocus = useRef(true);
+
   /* ---------- Fetch ---------- */
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const apiLang = language === "ta" ? "en" : language;
-      const res = await axios.get(
-        `${API_BASE}/pro-advisor?language=${apiLang}`,
+      console.log(
+        "📡 Fetching pro-advisor from:",
+        `${EFFECTIVE_API_BASE}/pro-advisor?language=${apiLang}`,
+        "| platform:",
+        Platform.OS,
       );
-      setData(res.data || []);
-    } catch (e) {
-      console.log("❌ Fetch error", e);
+      const res = await axios.get(
+        `${EFFECTIVE_API_BASE}/pro-advisor?language=${apiLang}`,
+        { timeout: 10000 },
+      );
+      console.log("✅ Fetched items:", res.data?.length ?? 0);
+      setData(Array.isArray(res.data) ? res.data : []);
+    } catch (e: any) {
+      const msg =
+        e?.code === "ECONNABORTED"
+          ? "Request timed out. Check your network."
+          : (e?.message ?? "Network error");
+      console.log("❌ Fetch error", msg, e);
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial fetch + re-fetch when language changes
   useEffect(() => {
     fetchData();
   }, [language]);
 
-  /* ---------- Refresh on focus ---------- */
+  /* ---------- Refresh on focus – skip first focus to avoid double-fetch on mount ---------- */
   useFocusEffect(
     React.useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return; // useEffect already handles the initial load
+      }
       fetchData();
     }, [language]),
   );
@@ -430,6 +460,31 @@ export default function ProAdvisorListScreen() {
                 ? "தரவு ஏற்றப்படுகிறது..."
                 : "Loading guidance..."}
           </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.loader}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>
+            {language === "si"
+              ? "සම්බන්ධතා දෝෂයකි"
+              : language === "ta"
+                ? "இணைப்பு பிழை"
+                : "Connection Error"}
+          </Text>
+          <Text style={styles.errorMsg}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={fetchData}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.retryBtnText}>
+              {language === "si"
+                ? "නැවත උත්සාහ කරන්න"
+                : language === "ta"
+                  ? "மீண்டும் முயற்சி"
+                  : "Retry"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
@@ -812,8 +867,42 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  loader: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    padding: 24,
+  },
   loadingText: { fontSize: 13, fontWeight: "700", color: "#6B7280" },
+
+  errorIcon: { fontSize: 36 },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#064E3B",
+    textAlign: "center",
+  },
+  errorMsg: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  retryBtn: {
+    marginTop: 8,
+    backgroundColor: "#047857",
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 14,
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  retryBtnText: { color: "#FFFFFF", fontWeight: "900", fontSize: 14 },
 
   content: { padding: 16 },
 
@@ -948,7 +1037,7 @@ const styles = StyleSheet.create({
 
   cardLeftAccent: {
     width: 10,
-    height: "100%",
+    alignSelf: "stretch", // ✅ replaces height:"100%" which breaks on Android
     borderRadius: 10,
     backgroundColor: "#10B981",
   },
