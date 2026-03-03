@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -36,7 +36,7 @@ import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 interface Prediction {
   class_id: number;
@@ -89,7 +89,8 @@ const PestIdentificationScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const { language: appLang } = useLanguage();
-  const language: Language = appLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
   const fetchPestFrequency = async () => {
     try {
@@ -160,6 +161,29 @@ const PestIdentificationScreen = () => {
       instruction4: "✗ Avoid blurry or dark photos",
       instruction5: "✗ Avoid photos taken from too far",
     },
+    ta: {
+      title: "பூச்சி அடையாளம்",
+      subtitle: "AI மூலம் கண்டறிதல்",
+      headerTitle: "பூச்சி அடையாளம்",
+      headerSubtitle: "படங்களில் இருந்து பூச்சியை கண்டறியுங்கள்",
+      cameraOption: "கேமரா",
+      uploadOption: "கேலரி",
+      detectButton: "பூச்சியை கண்டறி",
+      analyzing: "பரிசோதித்து வருகிறது...",
+      resultTitle: "கண்டறியப்பட்ட பூச்சிகள்",
+      noPests: "பூச்சிகள் கண்டறியப்படவில்லை",
+      tryAgain: "மீண்டும் முயற்சி",
+      pickImage: "ஒரு படத்தை தேர்வு செய்",
+      orText: "அல்லது",
+      viewControl: "கட்டுப்பாட்டை பார்க்க",
+      viewLifecycle: "வாழ்க்கைச் சுழற்சியை பார்க்க",
+      instructionsTitle: "📸 சிறந்த முடிவுகளுக்கான குறிப்புகள்",
+      instruction1: "✓ தெளிவான மற்றும் கவனம் உள்ள படங்களை பயன்படுத்தவும்",
+      instruction2: "✓ போதுமான ஒளி இருப்பதை உறுதி செய்யவும்",
+      instruction3: "✓ பூச்சியை நெருக்கமாகவும் நடுவிலும் படம் எடுக்கவும்",
+      instruction4: "✗ மங்கலான அல்லது இருண்ட புகைப்படங்களை தவிர்க்கவும்",
+      instruction5: "✗ மிகத் தூரத்தில் இருந்து எடுத்த புகைப்படங்களை தவிர்க்கவும்",
+    },
   };
 
   useEffect(() => {
@@ -185,7 +209,9 @@ const PestIdentificationScreen = () => {
       alert(
         language === "si"
           ? "කරුණාකර ගැලරි ප්‍රවේශය ලබා දෙන්න!"
-          : "Sorry, we need gallery permissions!"
+          : language === "ta"
+            ? "கேலரி அணுக அனுமதி வழங்கவும்!"
+            : "Sorry, we need gallery permissions!"
       );
       return;
     }
@@ -211,7 +237,9 @@ const PestIdentificationScreen = () => {
       alert(
         language === "si"
           ? "කරුණාකර කැමරා ප්‍රවේශය ලබා දෙන්න!"
-          : "Sorry, we need camera permissions!"
+          : language === "ta"
+            ? "கேமரா அணுக அனுமதி வழங்கவும்!"
+            : "Sorry, we need camera permissions!"
       );
       return;
     }
@@ -234,7 +262,9 @@ const PestIdentificationScreen = () => {
       alert(
         language === "si"
           ? "කරුණාකර පළමුව ඡායාරූපයක් තෝරන්න"
-          : "Please select an image first"
+          : language === "ta"
+            ? "முதலில் ஒரு படத்தைத் தேர்வு செய்யவும்"
+            : "Please select an image first"
       );
       return;
     }
@@ -285,12 +315,18 @@ const PestIdentificationScreen = () => {
           setError(
             language === "si"
               ? "ඡායාරූපයේ කෘමි හමු නොවීය"
-              : "No pests detected in the image"
+              : language === "ta"
+                ? "படத்தில் பூச்சிகள் கண்டறியப்படவில்லை"
+                : "No pests detected in the image"
           );
         }
       } else {
         setError(
-          language === "si" ? "හඳුනාගැනීම අසාර්ථකයි" : "Detection failed"
+          language === "si"
+            ? "හඳුනාගැනීම අසාර්ථකයි"
+            : language === "ta"
+              ? "கண்டறிதல் தோல்வியடைந்தது"
+              : "Detection failed"
         );
       }
     } catch (err: any) {
@@ -300,7 +336,9 @@ const PestIdentificationScreen = () => {
       let errorMsg =
         language === "si"
           ? "සර්වරය සමඟ සම්බන්ධ විය නොහැක!"
-          : "Failed to connect to server!";
+          : language === "ta"
+            ? "சர்வருடன் இணைக்க முடியவில்லை!"
+            : "Failed to connect to server!";
 
       if (err.response?.data) {
         if (typeof err.response.data === "string") {
@@ -427,11 +465,17 @@ const PestIdentificationScreen = () => {
           {/* Pest Frequency Snapshot */}
           <View style={styles.frequencyCard}>
             <Text style={styles.frequencyTitle}>
-              {language === "si" ? "Pest Frequency (Last 30 days)" : "Pest Frequency (Last 30 days)"}
+              {language === "si"
+                ? "Pest Frequency (Last 30 days)"
+                : language === "ta"
+                  ? "பூச்சி நிகழ்திறன் (கடைசி 30 நாட்கள்)"
+                  : "Pest Frequency (Last 30 days)"}
             </Text>
 
             {frequencyLoading ? (
-              <Text style={styles.frequencyLoadingText}>Loading trends...</Text>
+              <Text style={styles.frequencyLoadingText}>
+                {language === "ta" ? "போக்குகள் ஏற்றப்படுகிறது..." : "Loading trends..."}
+              </Text>
             ) : frequencyStats ? (
               <>
                 <View style={styles.frequencySummaryRow}>
@@ -439,13 +483,17 @@ const PestIdentificationScreen = () => {
                     <Text style={styles.frequencySummaryValue}>
                       {frequencyStats.total_requests}
                     </Text>
-                    <Text style={styles.frequencySummaryLabel}>Requests</Text>
+                    <Text style={styles.frequencySummaryLabel}>
+                      {language === "ta" ? "கோரிக்கைகள்" : "Requests"}
+                    </Text>
                   </View>
                   <View style={styles.frequencySummaryItem}>
                     <Text style={styles.frequencySummaryValue}>
                       {frequencyStats.total_detections}
                     </Text>
-                    <Text style={styles.frequencySummaryLabel}>Detections</Text>
+                    <Text style={styles.frequencySummaryLabel}>
+                      {language === "ta" ? "கண்டறிதல்கள்" : "Detections"}
+                    </Text>
                   </View>
                 </View>
 
@@ -459,7 +507,9 @@ const PestIdentificationScreen = () => {
                     </View>
                   ))
                 ) : (
-                  <Text style={styles.frequencyEmptyText}>No detection records yet.</Text>
+                  <Text style={styles.frequencyEmptyText}>
+                    {language === "ta" ? "இன்னும் கண்டறிதல் பதிவுகள் இல்லை." : "No detection records yet."}
+                  </Text>
                 )}
 
                 <TouchableOpacity
@@ -468,12 +518,16 @@ const PestIdentificationScreen = () => {
                   activeOpacity={0.85}
                 >
                   <BarChart3 color="#FFFFFF" size={18} />
-                  <Text style={styles.analysisButtonText}>Pest Frequency Analysis</Text>
+                  <Text style={styles.analysisButtonText}>
+                    {language === "ta" ? "பூச்சி நிகழ்திறன் பகுப்பாய்வு" : "Pest Frequency Analysis"}
+                  </Text>
                   <ArrowRight color="#FFFFFF" size={16} />
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.frequencyEmptyText}>No trend data available.</Text>
+              <Text style={styles.frequencyEmptyText}>
+                {language === "ta" ? "போக்கு தரவு இல்லை." : "No trend data available."}
+              </Text>
             )}
           </View>
 
@@ -1342,3 +1396,7 @@ const styles = StyleSheet.create({
 });
 
 export default PestIdentificationScreen;
+
+
+
+

@@ -29,13 +29,14 @@ type MaizeGenieHomeProps = {
   navigation: StackNavigationProp<PestIdentifyStackParamList>;
 };
 
-type LangKey = "si" | "en";
+type LangKey = "si" | "en" | "ta";
 
 export default function MaizeGenieHome({
   navigation,
 }: MaizeGenieHomeProps) {
   const { language: appLang } = useLanguage();
-  const language: LangKey = appLang === "sinhala" ? "si" : "en";
+  const language: LangKey =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
   const handlePestIdentification = () => {
     navigation.navigate("PestIdentifyLoading");
@@ -81,6 +82,21 @@ export default function MaizeGenieHome({
       smartAI: "Smart AI",
       realTime: "Real-time",
       community: "Community",
+    },
+    ta: {
+      tagline: "ஸ்மார்ட் விவசாய துணை",
+      subtitle: "இலங்கை சோள விவசாயிகளுக்காக",
+      description: "பூச்சி கண்டறிதலும் பயிர் மேலாண்மைக்கும் உங்கள் புத்திசாலி உதவியாளர்",
+      pestBtnTitle: "பூச்சியை கண்டறி",
+      pestBtnSub: "AI மூலம் உடனடி அடையாளம்",
+      riskBtnTitle: "பூச்சி ஆபத்தை காண்",
+      riskBtnSub: "சாகுபடிக்கு முன் ஆபத்து நிலையை பார்க்கவும்",
+      feedbackBtnTitle: "பூச்சி பிரச்சினை மற்றும் ஆலோசனை",
+      feedbackBtnSub: "சமூக அனுபவங்கள் மற்றும் தீர்வுகள்",
+      features: "அம்சங்கள்",
+      smartAI: "ஸ்மார்ட் AI",
+      realTime: "நேரடி",
+      community: "சமூகம்",
     },
   };
 
