@@ -5,7 +5,8 @@ from .model import PriceWindowModel
 from .service import (
     build_recommendation,
     best_planting_window,
-    calculate_harvest_week
+    calculate_harvest_week,
+    get_message
 )
 
 router = APIRouter(
@@ -163,26 +164,16 @@ def price_window_by_date(
     # Recommendation logic
     # -------------------------------
     if best["delay_weeks"] == 0 and best["label"] == "STRONG":
-        action = "Harvest now"
-        message_si = (
-            "පසුගිය අවුරුදු ගණනාවක දත්ත අනුව, "
-            "මේ කාලේ harvest වුණාම බඩ ඉරිඟු මිල "
-            "සාමාන්‍යයෙන් වැඩි වෙලා තියෙනවා."
-        )
+        action = get_message("si", "HARVEST_NOW")
+        message_si = get_message("si", "HARVEST_NOW")
 
     elif best["delay_weeks"] > 0:
-        action = f"Delay harvest by {best['delay_weeks']} weeks"
-        message_si = (
-            f"පසුගිය දත්ත අනුව, සති {best['delay_weeks']}ක් පස්සේ "
-            "harvest වුණාම මිල වැඩි වෙලා තියෙන අවස්ථා වැඩියි."
-        )
+        action = get_message("si", "DELAY_HARVEST", weeks=best["delay_weeks"])
+        message_si = get_message("si", "DELAY_HARVEST", weeks=best["delay_weeks"])
 
     else:
-        action = "Harvest and store"
-        message_si = (
-            "මේ කාලේ harvest වුණාම historically මිල අඩුයි. "
-            "ඒ නිසා වහාම විකුනන්න එපා. store කරලා පස්සේ විකුනන්න."
-        )
+        action = get_message("si", "HARVEST_AND_STORE")
+        message_si = get_message("si", "HARVEST_AND_STORE")
 
     # -------------------------------
     # Storage advice
@@ -192,18 +183,14 @@ def price_window_by_date(
             "required": True,
             "duration_weeks": best["delay_weeks"],
             "reason": "DELAYED_HARVEST",
-            "message_si": (
-                f"සති {best['delay_weeks']}ක් පමා කර විකුනන නිසා, "
-                "වියලි සහ හොඳ වායු සරණි සහිත ගබඩාවක් "
-                "භාවිතා කිරීම සුදුසුයි."
-            )
+            "message_si": get_message("si", "STORAGE_REQUIRED", weeks=best["delay_weeks"])
         }
     else:
         storage_advice = {
             "required": False,
             "duration_weeks": 0,
             "reason": "IMMEDIATE_SALE",
-            "message_si": "වහාම harvest කර විකුනන්න පුළුවන්."
+            "message_si": get_message("si", "NO_STORAGE")
         }
 
     # -------------------------------

@@ -368,6 +368,7 @@ const ProAdvisorPage: React.FC = () => {
           experience: formData.experienceLevel,
           landSize: formData.area || "0",
           irrigationAvailable: formData.hasIrrigation,
+          language,
           preparedness: {
             seedReady: formData.readiness.seeds,
             waterReady: formData.readiness.water,
