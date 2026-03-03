@@ -7,6 +7,7 @@ import ChatScreen from "@screens/DiseaseIdentification/ChatScreen";
 import OfficerRoomsScreen from "@screens/DiseaseIdentification/OfficerRoomsScreen";
 import SeverityDetailsScreen from "@screens/DiseaseIdentification/SeverityDetailsScreen";
 import DiseaseInfoScreen from "@screens/DiseaseIdentification/DiseaseInfoScreen"; // ✅ NEW SCREEN IMPORT
+import TreatmentPricesAdminScreen from "@screens/DiseaseIdentification/TreatmentPricesAdminScreen";
 
 // ---------------- TYPES ----------------
 export type Prediction = {
@@ -18,7 +19,11 @@ export type Prediction = {
 };
 
 export type DiseaseIdentifyStackParamList = {
-  DiseaseDetection: undefined;
+  DiseaseDetection:
+    | {
+        resetToken?: number;
+      }
+    | undefined;
 
   Chat: {
     roomId: string | null;
@@ -43,6 +48,8 @@ export type DiseaseIdentifyStackParamList = {
     predictions: Prediction[];
     severity_label: string;
   };
+
+  TreatmentPricesAdmin: undefined;
 };
 
 // ---------------- STACK ----------------
@@ -64,6 +71,10 @@ export default function DiseaseIdentifyStack() {
 
       {/* ✅ NEW: FULL DISEASE DETAILS SCREEN */}
       <Stack.Screen name="DiseaseInfo" component={DiseaseInfoScreen} />
+      <Stack.Screen
+        name="TreatmentPricesAdmin"
+        component={TreatmentPricesAdminScreen}
+      />
     </Stack.Navigator>
   );
 }

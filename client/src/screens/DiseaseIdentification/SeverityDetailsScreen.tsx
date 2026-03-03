@@ -39,8 +39,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   sriLankanTreatments,
   generalTreatments,
+  buildTreatmentsWithDynamicPrices,
+  buildGeneralTreatmentsWithDynamicPrices,
 } from "../../data/diseases/treatments";
-import { SriLankanTreatment } from "../../data/diseases/treatments/treatmentTypes";
+import {
+  SriLankanTreatment,
+  TreatmentsData,
+} from "../../data/diseases/treatments/treatmentTypes";
+import { fetchTreatmentPriceOverrides } from "../../services/diseaseTreatmentPriceApi";
 
 // 🌐 LANGUAGE CONTEXT
 import { useLanguage } from "../../context/LanguageContext";
@@ -292,6 +298,38 @@ export default function SeverityDetailsScreen({ route }: Props) {
   };
 
   const severityUI = getSeverityUI(severity_label);
+  const [treatmentsData, setTreatmentsData] =
+    useState<TreatmentsData>(sriLankanTreatments);
+  const [generalTreatmentsData, setGeneralTreatmentsData] =
+    useState<SriLankanTreatment[]>(generalTreatments);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateDynamicTreatmentPrices = async () => {
+      try {
+        const overrides = await fetchTreatmentPriceOverrides();
+
+        if (!isMounted) return;
+
+        setTreatmentsData(buildTreatmentsWithDynamicPrices(overrides));
+        setGeneralTreatmentsData(
+          buildGeneralTreatmentsWithDynamicPrices(overrides)
+        );
+      } catch (error) {
+        console.log(
+          "Dynamic treatment prices unavailable; using hardcoded defaults.",
+          error
+        );
+      }
+    };
+
+    hydrateDynamicTreatmentPrices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const displaySeverityLabel =
     language === "si"
@@ -343,7 +381,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
     // 1️⃣ No prediction
     if (!primaryPrediction) {
-      return splitByType(generalTreatments);
+      return splitByType(generalTreatmentsData);
     }
 
     const formattedName = formatDiseaseName(
@@ -355,17 +393,17 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
     const normalizedName = normalize(primaryPrediction.class_name);
 
-    const matchedKey = Object.keys(sriLankanTreatments).find(
+    const matchedKey = Object.keys(treatmentsData).find(
       (key) => normalize(key) === normalizedName
     );
 
     // 2️⃣ Disease-specific treatments
     if (matchedKey) {
-      return splitByType(sriLankanTreatments[matchedKey]);
+      return splitByType(treatmentsData[matchedKey]);
     }
 
     // 3️⃣ Fallback
-    return splitByType(generalTreatments);
+    return splitByType(generalTreatmentsData);
   };
 
   const filterBySeverity = (list: SriLankanTreatment[]) => {
@@ -427,6 +465,18 @@ export default function SeverityDetailsScreen({ route }: Props) {
   };
 
   const diseaseType = getDiseaseType();
+  const formatLocalizedPrice = (value: string) => {
+    const trimmed = value?.trim?.() ?? "";
+    if (!trimmed) return "-";
+
+    if (/(^|\s)(rs\.?|රු\.?|ரூ\.?)/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    const prefix =
+      language === "si" ? "රු. " : language === "ta" ? "ரூ. " : "Rs. ";
+    return `${prefix}${trimmed}`;
+  };
   const [displayImageSize, setDisplayImageSize] = useState({
     width: 0,
     height: 0,
@@ -1003,7 +1053,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.chemicalCost]}>
-                        {treatment.costEstimate[language]}
+                        {formatLocalizedPrice(treatment.costEstimate[language])}
                       </Text>
                     </View>
                   </View>
@@ -1189,7 +1239,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.organicCost]}>
-                        {treatment.costEstimate[language]}
+                        {formatLocalizedPrice(treatment.costEstimate[language])}
                       </Text>
                     </View>
                   </View>

@@ -70,9 +70,9 @@ export const commonRustTreatments: SriLankanTreatment[] = [
     id: "common_rust_mancozeb_low",
     type: "chemical",
     name: {
-      en: "Mancozeb 80% WP (Low dose – preventive)",
-      si: "මැන්කොසෙබ් 80% WP (අඩු මාත්‍රාව)",
-      ta: "மான்கோசெப் 80% WP (குறைந்த அளவு – தடுப்பு)",
+      en: "Mancozeb 80% WP",
+      si: "මැන්කොසෙබ් 80% WP",
+      ta: "மான்கோசெப் 80% WP",
     },
     availableProducts: {
       en: ["Dithane M-45", "Indofil M-45"],

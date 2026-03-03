@@ -2,12 +2,14 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { NavigatorScreenParams, StackActions } from "@react-navigation/native";
 
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import PriceForecastStack from "./PriceForecastStack";
 import PestIdentifyStack from "./PestIdentifyStack";
 import DiseaseIdentifyStack from "./DiseaseIdentifyStack";
+import { DiseaseIdentifyStackParamList } from "./DiseaseIdentifyStack";
 import YieldPredictionStack from "./YieldPredictionStack";
 import { ROUTES } from "../constants";
 import { useLanguage } from "../context/LanguageContext";
@@ -15,7 +17,9 @@ import { useLanguage } from "../context/LanguageContext";
 export type TabsParamList = {
   [ROUTES.TABS.HOME]: undefined;
   [ROUTES.TABS.PESTIDENTIFIER]: undefined;
-  [ROUTES.TABS.DISEASEIDENTIFIER]: undefined;
+  [ROUTES.TABS.DISEASEIDENTIFIER]:
+    | NavigatorScreenParams<DiseaseIdentifyStackParamList>
+    | undefined;
   [ROUTES.TABS.PREDICTYIELD]: undefined;
   [ROUTES.TABS.PRICEFORECAST]: undefined;
   [ROUTES.TABS.USERPROFILE]: undefined;
@@ -105,6 +109,33 @@ export default function BottomNavigator() {
       <Tab.Screen
         name={ROUTES.TABS.DISEASEIDENTIFIER}
         component={DiseaseIdentifyStack}
+        listeners={({ navigation, route }) => ({
+          tabPress: () => {
+            const tabRoute = navigation
+              .getState()
+              .routes.find((r) => r.key === route.key) as any;
+            const nestedState = tabRoute?.state;
+
+            if (
+              nestedState &&
+              typeof nestedState.index === "number" &&
+              nestedState.index > 0
+            ) {
+              navigation.dispatch({
+                ...StackActions.popToTop(),
+                target: nestedState.key,
+              });
+            }
+
+            navigation.navigate(
+              ROUTES.TABS.DISEASEIDENTIFIER,
+              {
+                screen: "DiseaseDetection",
+                params: { resetToken: Date.now() },
+              }
+            );
+          },
+        })}
         options={{
           tabBarLabel: labels.disease,
           tabBarIcon: ({ color, size }) => (

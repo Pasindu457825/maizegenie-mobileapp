@@ -28,13 +28,16 @@ import {
   Scan,
   Sparkles,
   ChevronRight,
+  ArrowRight,
+  Search,
+  TrendingUp,
   Volume2,
   Shield,
   ArrowLeft,
   RefreshCw,
 } from "lucide-react-native";
 import { API_BASE } from "../../services/api";
-import { useNavigation } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -49,6 +52,10 @@ import { Audio } from "expo-av";
 import { useApp } from "../../context/AppContext";
 
 type NavProp = StackNavigationProp<
+  DiseaseIdentifyStackParamList,
+  "DiseaseDetection"
+>;
+type DiseaseDetectionRouteProp = RouteProp<
   DiseaseIdentifyStackParamList,
   "DiseaseDetection"
 >;
@@ -76,6 +83,7 @@ const REQUEST_TIMEOUT = 45000;
 
 const DiseaseIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
+  const route = useRoute<DiseaseDetectionRouteProp>();
   const { language: lang, setLanguage } = useLanguage();
   const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
@@ -125,6 +133,18 @@ const DiseaseIdentificationScreen = () => {
         "ලප, කහ පැහැය, වියළීම, රස්ට් වැනි රෝග ලක්ෂණ පැහැදිලිව පෙනෙන කොළයක් භාවිතා කරන්න",
         "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
       ],
+      managePrices: "ප්‍රතිකාර මිල කළමනාකරණය",
+      managePricesDesc: "නිලධාරීන්ට පමණක්: බලන්න, එකතු කරන්න, යාවත්කාලීන කරන්න, මකන්න",
+      identifyDisease: "රෝගය හඳුනාගන්න",
+      identifyDiseaseDesc: "AI මගින් ඉක්මන් හඳුනාගැනීම",
+      openTreatmentPrices: "ප්‍රතිකාර මිල බලන්න",
+      openTreatmentPricesDesc: "නිලධාරීන්ට පමණක් මිල කළමනාකරණය",
+      chooseImageMethod: "ඡායාරූප මූලාශ්‍රය තෝරන්න",
+      homeDescription:
+        "කොළ රෝග හඳුනාගැනීම සහ ප්‍රතිකාර තීරණ සඳහා ඔබේ බුද්ධිමත් සහායක",
+      smartAI: "Smart AI",
+      realTime: "Real-time",
+      community: "Community",
     },
     en: {
       title: "🍃 Leaf Disease Detection",
@@ -171,6 +191,18 @@ const DiseaseIdentificationScreen = () => {
         "Ensure visible disease symptoms (spots, discoloration, rust, or drying)",
         "Avoid blurry or distant photos",
       ],
+      managePrices: "Manage Treatment Prices",
+      managePricesDesc: "Officers only: view, add, update, delete",
+      identifyDisease: "Identify Disease",
+      identifyDiseaseDesc: "Instant AI-powered identification",
+      openTreatmentPrices: "View Treatment Prices",
+      openTreatmentPricesDesc: "Officer-only price management",
+      chooseImageMethod: "Choose image source",
+      homeDescription:
+        "Your intelligent assistant for disease detection and treatment guidance",
+      smartAI: "Smart AI",
+      realTime: "Real-time",
+      community: "Community",
     },
     ta: {
       title: "🍃 இலை நோய் கண்டறிதல்",
@@ -217,6 +249,19 @@ const DiseaseIdentificationScreen = () => {
         "தெளிவான நோய் அறிகுறிகளை (புள்ளிகள், நிறமாற்றம், துரு, அல்லது உலர்தல்) உறுதிசெய்யவும்",
         "மங்கலான அல்லது தொலைதூரப் புகைப்படங்களைத் தவிர்க்கவும்",
       ],
+      managePrices: "சிகிச்சை விலைகளை நிர்வகி",
+      managePricesDesc:
+        "அதிகாரிகளுக்கு மட்டும்: பார்வை, சேர்த்து, புதுப்பித்து, நீக்கு",
+      identifyDisease: "நோயை கண்டறி",
+      identifyDiseaseDesc: "உடனடி AI அடையாளம்",
+      openTreatmentPrices: "சிகிச்சை விலைகளை பார்க்க",
+      openTreatmentPricesDesc: "அதிகாரிகளுக்கு மட்டும் விலை மேலாண்மை",
+      chooseImageMethod: "பட மூலத்தைத் தேர்வு செய்க",
+      homeDescription:
+        "நோய் கண்டறிதலும் சிகிச்சை முடிவுகளுக்கும் உங்கள் புத்திசாலி உதவியாளர்",
+      smartAI: "Smart AI",
+      realTime: "Real-time",
+      community: "Community",
     },
   };
 
@@ -234,6 +279,7 @@ const DiseaseIdentificationScreen = () => {
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const [slideAnim] = useState(new Animated.Value(30));
   const [pulseAnim] = useState(new Animated.Value(1));
+  const [showIdentifyOptions, setShowIdentifyOptions] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -359,7 +405,7 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
-  const { diseaseModel } = useApp(); // ✅ global value
+  const { diseaseModel, user } = useApp(); // ✅ global value
 
   const uploadAndDetect = async () => {
     if (!imageUri) {
@@ -513,8 +559,15 @@ const DiseaseIdentificationScreen = () => {
     setImageUri(null);
     setResult(null);
     setError(null);
+    setShowIdentifyOptions(false);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
+
+  useEffect(() => {
+    if (route.params?.resetToken) {
+      resetScreen();
+    }
+  }, [route.params?.resetToken]);
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "#10B981";
@@ -662,6 +715,40 @@ const DiseaseIdentificationScreen = () => {
             </View>
           </View>
 
+          {!imageUri && !loading && !showIdentifyOptions && (
+            <View style={styles.homeInfoSection}>
+              <Text style={styles.homeInfoDescription}>
+                {content[language].homeDescription}
+              </Text>
+              <View style={styles.homeStatsRow}>
+                <View style={styles.homeStatCard}>
+                  <View style={styles.homeStatIcon}>
+                    <Shield size={18} color="#10B981" />
+                  </View>
+                  <Text style={styles.homeStatText}>
+                    {content[language].smartAI}
+                  </Text>
+                </View>
+                <View style={styles.homeStatCard}>
+                  <View style={styles.homeStatIcon}>
+                    <TrendingUp size={18} color="#10B981" />
+                  </View>
+                  <Text style={styles.homeStatText}>
+                    {content[language].realTime}
+                  </Text>
+                </View>
+                <View style={styles.homeStatCard}>
+                  <View style={styles.homeStatIcon}>
+                    <MessageSquare size={18} color="#10B981" />
+                  </View>
+                  <Text style={styles.homeStatText}>
+                    {content[language].community}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Image Preview Section */}
           {imageUri && (
             <Animated.View
@@ -702,116 +789,174 @@ const DiseaseIdentificationScreen = () => {
                 },
               ]}
             >
-              {/* Image Upload Guidance (Before Image Selection Only) */}
-              <View
-                style={{
-                  backgroundColor: "#ECFDF5",
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: "#A7F3D0",
-                }}
-              >
+              {/* Image Upload Guidance */}
+              {showIdentifyOptions && (
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 10,
+                    backgroundColor: "#ECFDF5",
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 20,
+                    borderWidth: 1,
+                    borderColor: "#A7F3D0",
                   }}
                 >
-                  <AlertCircle size={18} color="#059669" />
-                  <Text
+                  <View
                     style={{
-                      marginLeft: 8,
-                      fontWeight: "700",
-                      color: "#047857",
-                      fontSize: 14,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginBottom: 10,
                     }}
                   >
-                    {content[language].invalidSuggestionsTitle}
-                  </Text>
-                </View>
-
-                {content[language].invalidSuggestions.map(
-                  (tip: string, index: number) => (
+                    <AlertCircle size={18} color="#059669" />
                     <Text
-                      key={index}
                       style={{
+                        marginLeft: 8,
+                        fontWeight: "700",
                         color: "#047857",
-                        fontSize: 13,
-                        marginBottom: 6,
-                        lineHeight: 18,
+                        fontSize: 14,
                       }}
                     >
-                      • {tip}
+                      {content[language].invalidSuggestionsTitle}
                     </Text>
-                  )
-                )}
-              </View>
-              <View style={styles.actionCards}>
-                <TouchableOpacity
-                  style={[styles.actionCard, styles.actionCardPrimary]}
-                  onPress={pickImageFromCamera}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.actionIconContainer}>
-                    <Camera size={28} color="#FFFFFF" />
                   </View>
-                  <Text style={styles.actionCardTitle}>
-                    {content[language].cameraOption}
-                  </Text>
-                  <Text style={styles.actionCardDescription}>
-                    {language === "si"
-                      ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
-                      : language === "ta"
-                      ? "கேமராவிலிருந்து நேரடியாக புகைப்படம் எடுக்கவும்"
-                      : "Take photo directly from camera"}
-                  </Text>
-                  <View style={styles.actionArrow}>
-                    <ChevronRight size={18} color="#FFFFFF" />
-                  </View>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.actionCard, styles.actionCardSecondary]}
-                  onPress={pickImageFromGallery}
-                  activeOpacity={0.9}
-                >
-                  <View
-                    style={[
-                      styles.actionIconContainer,
-                      styles.actionIconSecondary,
-                    ]}
-                  >
-                    <Upload size={28} color="#10B981" />
-                  </View>
-                  <Text
-                    style={[
-                      styles.actionCardTitle,
-                      styles.actionCardTitleSecondary,
-                    ]}
-                  >
-                    {content[language].uploadOption}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.actionCardDescription,
-                      styles.actionCardDescriptionSecondary,
-                    ]}
-                  >
-                    {language === "si"
-                      ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
-                      : language === "ta"
-                      ? "கேலரியில் இருந்து இருக்கும் புகைப்படங்களைத் தேர்ந்தெடுக்கவும்"
-                      : "Choose existing photos from gallery"}
-                  </Text>
-                  <View
-                    style={[styles.actionArrow, styles.actionArrowSecondary]}
-                  >
-                    <ChevronRight size={18} color="#10B981" />
-                  </View>
-                </TouchableOpacity>
+                  {content[language].invalidSuggestions.map(
+                    (tip: string, index: number) => (
+                      <Text
+                        key={index}
+                        style={{
+                          color: "#047857",
+                          fontSize: 13,
+                          marginBottom: 6,
+                          lineHeight: 18,
+                        }}
+                      >
+                        • {tip}
+                      </Text>
+                    )
+                  )}
+                </View>
+              )}
+              <View style={styles.actionCards}>
+                {!showIdentifyOptions ? (
+                  <>
+                    <TouchableOpacity
+                      style={styles.primaryHomeAction}
+                      onPress={() => setShowIdentifyOptions(true)}
+                      activeOpacity={0.9}
+                    >
+                      <View style={styles.homeActionIconPrimary}>
+                        <Search size={24} color="#10B981" />
+                      </View>
+                      <View style={styles.homeActionContent}>
+                        <Text style={styles.homeCardTitle}>
+                          {content[language].identifyDisease}
+                        </Text>
+                        <Text style={styles.homeCardDesc}>
+                          {content[language].identifyDiseaseDesc}
+                        </Text>
+                      </View>
+                      <View style={styles.homeActionArrowPrimary}>
+                        <ArrowRight size={18} color="#10B981" />
+                      </View>
+                    </TouchableOpacity>
+
+                    {user?.role === "officer" && (
+                      <TouchableOpacity
+                        style={styles.secondaryHomeAction}
+                        onPress={() => navigation.navigate("TreatmentPricesAdmin")}
+                        activeOpacity={0.9}
+                      >
+                        <View style={styles.homeActionIconSecondary}>
+                          <Shield size={22} color="#38BDF8" />
+                        </View>
+                        <View style={styles.homeActionContent}>
+                          <Text style={styles.homeCardTitle}>
+                            {content[language].openTreatmentPrices}
+                          </Text>
+                          <Text style={styles.homeCardDesc}>
+                            {content[language].openTreatmentPricesDesc}
+                          </Text>
+                        </View>
+                        <View style={styles.homeActionArrowSecondary}>
+                          <ArrowRight size={16} color="#38BDF8" />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.chooseMethodBanner}>
+                      <Text style={styles.chooseMethodText}>
+                        {content[language].chooseImageMethod}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.actionCard, styles.actionCardPrimary]}
+                      onPress={pickImageFromCamera}
+                      activeOpacity={0.9}
+                    >
+                      <View style={styles.actionIconContainer}>
+                        <Camera size={28} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.actionCardTitle}>
+                        {content[language].cameraOption}
+                      </Text>
+                      <Text style={styles.actionCardDescription}>
+                        {language === "si"
+                          ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
+                          : language === "ta"
+                          ? "கேமராவிலிருந்து நேரடியாக புகைப்படம் எடுக்கவும்"
+                          : "Take photo directly from camera"}
+                      </Text>
+                      <View style={styles.actionArrow}>
+                        <ChevronRight size={18} color="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionCard, styles.actionCardSecondary]}
+                      onPress={pickImageFromGallery}
+                      activeOpacity={0.9}
+                    >
+                      <View
+                        style={[
+                          styles.actionIconContainer,
+                          styles.actionIconSecondary,
+                        ]}
+                      >
+                        <Upload size={28} color="#10B981" />
+                      </View>
+                      <Text
+                        style={[
+                          styles.actionCardTitle,
+                          styles.actionCardTitleSecondary,
+                        ]}
+                      >
+                        {content[language].uploadOption}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.actionCardDescription,
+                          styles.actionCardDescriptionSecondary,
+                        ]}
+                      >
+                        {language === "si"
+                          ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
+                          : language === "ta"
+                          ? "கேலரியில் இருந்து இருக்கும் புகைப்படங்களைத் தேர்ந்தெடுக்கவும்"
+                          : "Choose existing photos from gallery"}
+                      </Text>
+                      <View
+                        style={[styles.actionArrow, styles.actionArrowSecondary]}
+                      >
+                        <ChevronRight size={18} color="#10B981" />
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </Animated.View>
           )}
@@ -1461,6 +1606,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
   },
+  homeInfoSection: {
+    paddingHorizontal: 20,
+    marginTop: 26,
+    marginBottom: 6,
+  },
+  homeInfoDescription: {
+    fontSize: 16,
+    color: "#475569",
+    textAlign: "center",
+    lineHeight: 24,
+    fontWeight: "500",
+  },
+  homeStatsRow: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  homeStatCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    paddingVertical: 12,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  homeStatIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  homeStatText: {
+    fontSize: 11,
+    color: "#1F2937",
+    fontWeight: "700",
+    textAlign: "center",
+  },
   imageSection: {
     paddingHorizontal: 20,
     marginTop: 30,
@@ -1519,6 +1711,137 @@ const styles = StyleSheet.create({
   },
   actionCards: {
     gap: 16,
+  },
+  primaryHomeAction: {
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  secondaryHomeAction: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    backgroundColor: "#FFFFFF",
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  homeActionIconPrimary: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeActionIconSecondary: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeActionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  homeCardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  homeCardDesc: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  homeActionArrowPrimary: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeActionArrowSecondary: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chooseMethodBanner: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  chooseMethodText: {
+    color: "#047857",
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  officerCard: {
+    backgroundColor: "#0F766E",
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#0F766E",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  officerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  officerContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  officerTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  officerDesc: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  officerArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   actionCard: {
     borderRadius: 20,
