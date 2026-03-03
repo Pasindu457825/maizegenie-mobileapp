@@ -156,6 +156,100 @@ def calculate_severity(preds, image):
 
     return round(severity, 3), label
 
+
+def attach_impact_boxes(preds: List[Dict], image: np.ndarray) -> List[Dict]:
+    """
+    Add localized disease impact boxes to each prediction as `impact_boxes`.
+    """
+    if image is None or image.size == 0:
+        return preds
+
+    h, w = image.shape[:2]
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    H, S, V = cv2.split(hsv)
+    r = image[:, :, 0]
+    g = image[:, :, 1]
+    b = image[:, :, 2]
+
+    # Focus on orange/rust/brown spot-like pixels; avoid broad green leaf regions.
+    lesion_mask = (
+        (
+            (H < 35) | (H > 170)
+        ) &
+        (S > 22) &
+        (V > 35) &
+        (r > g + 8) &
+        (r > b + 5)
+    )
+
+    lesion_mask = lesion_mask.astype(np.uint8)
+    lesion_mask = cv2.morphologyEx(
+        lesion_mask,
+        cv2.MORPH_OPEN,
+        np.ones((2, 2), np.uint8)
+    )
+    lesion_mask = cv2.morphologyEx(
+        lesion_mask,
+        cv2.MORPH_CLOSE,
+        np.ones((2, 2), np.uint8)
+    )
+
+    for p in preds:
+        p["impact_boxes"] = []
+        box = p.get("box_xyxy")
+        if not isinstance(box, list) or len(box) < 4:
+            continue
+
+        x1, y1, x2, y2 = [int(v) for v in box[:4]]
+        bx1 = max(0, min(w - 1, min(x1, x2)))
+        by1 = max(0, min(h - 1, min(y1, y2)))
+        bx2 = max(0, min(w, max(x1, x2)))
+        by2 = max(0, min(h, max(y1, y2)))
+        if bx2 - bx1 <= 3 or by2 - by1 <= 3:
+            continue
+
+        roi = lesion_mask[by1:by2, bx1:bx2]
+        if roi.size == 0:
+            continue
+
+        num_labels, _, stats, _ = cv2.connectedComponentsWithStats(roi, 8)
+        impact_boxes = []
+
+        for i in range(1, num_labels):
+            x, y, bw, bh, area = stats[i]
+            if area < 8 or bw < 2 or bh < 2:
+                continue
+
+            # Reject thin line artifacts.
+            aspect = max(bw, bh) / max(1, min(bw, bh))
+            if aspect > 8 and area < 40:
+                continue
+
+            ax1 = max(0, bx1 + int(x) - 1)
+            ay1 = max(0, by1 + int(y) - 1)
+            ax2 = min(w, ax1 + int(bw) + 2)
+            ay2 = min(h, ay1 + int(bh) + 2)
+            impact_boxes.append([float(ax1), float(ay1), float(ax2), float(ay2)])
+
+            if len(impact_boxes) >= 120:
+                break
+
+        # Fallback: at least one localized marker if extraction finds nothing.
+        if not impact_boxes:
+            cx = (bx1 + bx2) // 2
+            cy = (by1 + by2) // 2
+            half = max(4, min(12, min(bx2 - bx1, by2 - by1) // 8))
+            impact_boxes = [[
+                float(max(0, cx - half)),
+                float(max(0, cy - half)),
+                float(min(w, cx + half)),
+                float(min(h, cy + half)),
+            ]]
+
+        p["impact_boxes"] = impact_boxes
+
+    return preds
+
 # =============================================================================
 # ERROR RESPONSE
 # =============================================================================
@@ -262,6 +356,7 @@ def predict_disease_enhanced(image_bytes: bytes, conf=0.4, return_image=False):
         filtered = remove_duplicate_detections(filtered)
         if not filtered:
             filtered = disease_preds
+        filtered = attach_impact_boxes(filtered, img)
 
         sev, label = calculate_severity(filtered, img)   # ✅ not img.shape
 

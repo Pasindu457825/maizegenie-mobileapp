@@ -89,6 +89,30 @@ const translations = {
         proFeature5: "Detailed Reports",
         proFeature6: "Ad-Free Experience",
     },
+    // Tamil fallback (uses English until full translations added)
+    tamil: {
+        title: "MaizeGenie Pro க்கு வரவேற்கிறோம்",
+        subtitle: "உங்கள் விவசாயப் பயணத்திற்கு ஏற்ற திட்டத்தைத் தேர்வு செய்யுங்கள்",
+        free: "இலவசம்",
+        pro: "Pro",
+        lifetime: "வாழ்நாள்",
+        continueWithFree: "இலவசமாக தொடரவும்",
+        upgradeToPro: "Pro க்கு மேம்படுத்து",
+        mostPopular: "மிகவும் பிரபலமானது",
+        limitedOffer: "வரையறுக்கப்பட்ட சலுகை",
+        saveAmount: "ரூ. 2,500 சேமிக்கவும்",
+        originalPrice: "அசல் விலை: ரூ. 4,999",
+        freeFeature1: "அடிப்படை விளைச்சல் மதிப்பீடு",
+        freeFeature2: "பூச்சி கண்டறிதல்",
+        freeFeature3: "வானிலை தகவல்",
+        freeFeature4: "அடிப்படை உர குறிப்புகள்",
+        proFeature1: "AI விளைச்சல் மதிப்பீடு",
+        proFeature2: "மண் பரிசோதனை கோரிக்கை 🔬",
+        proFeature3: "நிபுணர் ஆலோசனை",
+        proFeature4: "முன்னுரிமை ஆதரவு",
+        proFeature5: "விரிவான அறிக்கைகள்",
+        proFeature6: "விளம்பரமில்லா அனுபவம்",
+    },
 };
 
 export default function PricingModal({
