@@ -75,7 +75,7 @@ def recommend_price_window(
 def best_planting(
     location: str = Query(..., description="District / location name"),
     start_week: int = Query(..., ge=1, le=52),
-    duration_weeks: int = Query(14, ge=8, le=20),
+    seed_variety: str = Query("Local Variety", description="Maize seed variety"),
     lookahead_weeks: int = Query(6, ge=2, le=12)
 ):
     """
@@ -87,16 +87,19 @@ def best_planting(
         model=model,
         location=location,
         start_week=start_week,
-        duration_weeks=duration_weeks,
+        seed_variety=seed_variety,
         lookahead_weeks=lookahead_weeks
     )
 
     if best_option is None:
         return {"error": "No suitable planting window found"}
 
+    duration_weeks = SEED_MATURITY_WEEKS.get(seed_variety, 14)
+
     return {
         "location": location,
         "start_week": start_week,
+        "seed_variety": seed_variety,
         "duration_weeks": duration_weeks,
         "lookahead_weeks": lookahead_weeks,
         "best_option": best_option,
@@ -244,7 +247,8 @@ def advisor_guide(payload: dict):
         return price_result
 
     # 2) Generate advisor guide (NEW)
-    advisor = generate_advisor_guide(payload, price_result)
+    lang = payload.get("language", "en")
+    advisor = generate_advisor_guide(payload, price_result, language=lang)
 
     # 3) Combine (NO existing keys removed)
     return {

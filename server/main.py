@@ -28,8 +28,18 @@ from core.config import settings
 # Import routers
 # -----------------------
 from auth.router import router as auth_router
-from diseaseidentify.router import router as disease_router
-from pestidentify.router import router as pest_router
+try:
+    from diseaseidentify.router import router as disease_router
+except Exception as _e:
+    import logging
+    logging.warning(f"diseaseidentify router not loaded: {_e}")
+    disease_router = None
+try:
+    from pestidentify.router import router as pest_router
+except Exception as _e:
+    import logging
+    logging.warning(f"pestidentify router not loaded: {_e}")
+    pest_router = None
 from chat.room_router import router as room_router    # get/create room
 from chat.officer_router import router as officer_router
 from chat.router import router as chat_router         # history + websocket
@@ -82,8 +92,10 @@ async def health():
 # Register Routers
 # -----------------------
 app.include_router(auth_router)
-app.include_router(disease_router)
-app.include_router(pest_router)
+if disease_router:
+    app.include_router(disease_router)
+if pest_router:
+    app.include_router(pest_router)
 
 # Chat system (order does NOT matter but kept clean)
 app.include_router(room_router)     # /chat/get-room

@@ -49,7 +49,7 @@ const getHourlyIcon = (mm: number) => {
 };
 
 // ✨ FIXED: Get language type from context
-type Language = "sinhala" | "english";
+type Language = "sinhala" | "english" | "tamil";
 
 const getApiUrl = () => {
   if (Platform.OS === "android") {
@@ -64,9 +64,14 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 const getTranslatedLocation = (rawName: string | null, lang: Language) => {
-  if (!rawName) return lang === "sinhala" ? "ස්ථානය" : "Location";
+  if (!rawName)
+    return lang === "sinhala"
+      ? "ස්ථානය"
+      : lang === "tamil"
+        ? "இடம்"
+        : "Location";
 
-  if (lang === "english") return rawName;
+  if (lang === "english" || lang === "tamil") return rawName;
 
   let enName = rawName.trim();
 
@@ -165,7 +170,7 @@ const WeatherForecastScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [weatherData, setWeatherData] = useState<WeatherPrediction | null>(
-    null
+    null,
   );
   const [error, setError] = useState<string | null>(null);
   const [hasUserRetried, setHasUserRetried] = useState(false);
@@ -179,7 +184,7 @@ const WeatherForecastScreen = () => {
 
   const generateWeeklyFarmerVoice = (
     predictions: WeatherDay[],
-    language: Language
+    language: Language,
   ): string => {
     if (!predictions || predictions.length === 0) return "";
 
@@ -233,7 +238,40 @@ const WeatherForecastScreen = () => {
       );
     }
 
-    // 🌍 English fallback
+    // � Tamil advisory
+    if (language === "tamil") {
+      if (rainRiskDays >= 3) {
+        return (
+          "வரும் வாரத்தில் அதிக மழை நாட்கள் உள்ளன. " +
+          "எனவே இந்த வாரம் விவசாய பணிகளுக்கு ஏற்றதல்ல. " +
+          "தற்போதுள்ள பயிர்களையும் அறுவடையையும் பாதுகாக்கவும்."
+        );
+      }
+
+      if (dryDays >= 3) {
+        return (
+          "வரும் வாரம் வறண்ட வானிலை எதிர்பார்க்கப்படுகிறது. " +
+          "மழை குறைவாக இருப்பதால் நீர்ப்பாசனம் அவசியம். " +
+          "நீர்ப்பாசனத்திற்கு முன்கூட்டியே திட்டமிடுங்கள்."
+        );
+      }
+
+      if (goodDays >= 4) {
+        return (
+          "வரும் வாரம் விவசாய பணிகளுக்கு நல்ல வாரம். " +
+          "மழையும் வெப்பநிலையும் விவசாயத்திற்கு ஏற்றது. " +
+          "விதைப்பு மற்றும் விவசாய பணிகளை தொடரலாம்."
+        );
+      }
+
+      return (
+        "வரும் வாரம் கலப்பான வானிலை எதிர்பார்க்கப்படுகிறது. " +
+        "நிலைமை நாளுக்கு நாள் மாறலாம். " +
+        "வானிலையை தொடர்ந்து கண்காணித்து கவனமாக விவசாயம் செய்யுங்கள்."
+      );
+    }
+
+    // �🌍 English fallback
     if (rainRiskDays >= 3)
       return "Heavy rainfall is expected during the coming week. Avoid farming activities and protect existing crops.";
     if (dryDays >= 3)
@@ -260,8 +298,13 @@ const WeatherForecastScreen = () => {
 
       const speechOptions: any = {
         pitch: 1,
-        rate: language === "sinhala" ? 0.85 : 0.9,
-        language: language === "sinhala" ? "si-LK" : "en-US",
+        rate: language === "sinhala" ? 0.85 : language === "tamil" ? 0.85 : 0.9,
+        language:
+          language === "sinhala"
+            ? "si-LK"
+            : language === "tamil"
+              ? "ta-IN"
+              : "en-US",
         onDone: () => {
           console.log("Speech finished");
           setIsSpeaking(false);
@@ -274,7 +317,7 @@ const WeatherForecastScreen = () => {
 
       console.log(
         "Speaking with language:",
-        language === "sinhala" ? "Sinhala" : "English"
+        language === "sinhala" ? "Sinhala" : "English",
       );
       console.log("Summary:", summary.substring(0, 50) + "...");
 
@@ -317,13 +360,13 @@ const WeatherForecastScreen = () => {
         Speech.stop().catch((err) => console.log("Stop speech error:", err));
         setIsSpeaking(false);
       };
-    }, [latitude, longitude])
+    }, [latitude, longitude]),
   );
 
   const fadeAnim = useState(new Animated.Value(0))[0];
   const slideAnim = useState(new Animated.Value(30))[0];
 
-  const content = {
+  const content: Record<Language, any> = {
     sinhala: {
       title: "කාලගුණ පුරෝකථනය",
       subtitle: "බඩ ඉරිඟු වගාව සඳහා",
@@ -420,6 +463,54 @@ const WeatherForecastScreen = () => {
       speakForecast: "🔊 Speak Forecast",
       stopSpeaking: "⏹️ Stop",
     },
+    tamil: {
+      title: "வானிலை முன்னறிவிப்பு",
+      subtitle: "மக்காச்சோள விவசாயத்திற்காக",
+      loading: "வானிலை ஏற்றுகிறது...",
+      error: "வானிலை தரவை பெற முடியவில்லை",
+      retry: "மீண்டும் முயற்சிக்கவும்",
+
+      farmingAdvice: "விவசாய அறிவுரை",
+      goodDays: "சாதகமான நாட்கள்",
+      concernDays: "கவனம் தேவையான நாட்கள்",
+
+      tempTrend: "வெப்பநிலை போக்கு",
+      rainTrend: "மழைப்பொழிவு போக்கு",
+      weeklyOverview: "வாராந்திர மேலோட்டம்",
+
+      humidity: "ஈரப்பதம்",
+      rainfall: "மழை",
+      wind: "காற்று",
+      uvIndex: "UV அளவு",
+
+      goodForPlanting: "நடவு செய்ய ஏற்றது",
+      goodForHarvesting: "அறுவடைக்கு ஏற்றது",
+      heavyRainWarning: "கனமழை - கவனம்",
+      dryCondition: "வறண்ட நிலை - நீர்ப்பாசனம் செய்யுங்கள்",
+      idealConditions: "விவசாயத்திற்கு சிறந்த நிலை",
+      highTemp: "அதிக வெப்பநிலை",
+      moderateConditions: "சாதாரண நிலை",
+
+      dayLabel: "நாள்",
+      today: "இன்று",
+
+      goodDay: "விவசாயத்திற்கு நல்லது",
+      riskyDay: "ஆபத்தான நாள்",
+      dryDay: "வறண்டது - நீர்ப்பாசனம் செய்",
+      goodWeek: "🌱 விவசாயத்திற்கு நல்ல வாரம்",
+      riskyWeek: "⛔ ஆபத்தான வாரம் – அதிக மழை/வெப்பம்",
+      mixedWeek: "⚠️ கலப்பான வாரம் – சில நாட்கள் நல்லது, சில கவனம்",
+
+      heavyRain: "🌧️ கனமழை",
+      excellentTemp: "🌤️ சிறந்த வெப்பநிலை",
+      lowHumidity: "💧 குறைந்த ஈரப்பதம்",
+      dontPlantToday: "– இன்று நடவு வேண்டாம்",
+      goodForFarming: "– விவசாயத்திற்கு ஏற்றது",
+      irrigateNeeded: "– நீர்ப்பாசனம் தேவை",
+
+      speakForecast: "🔊 முன்னறிவிப்பு கேளுங்கள்",
+      stopSpeaking: "⏹️ நிறுத்து",
+    },
   };
 
   const getContent = () => {
@@ -456,7 +547,26 @@ const WeatherForecastScreen = () => {
       "නොවැ",
       "දැසැ",
     ];
-    const months = language === "sinhala" ? monthsSi : monthsEn;
+    const monthsTa = [
+      "ஜன",
+      "பிப்",
+      "மார்",
+      "ஏப்",
+      "மே",
+      "ஜூன்",
+      "ஜூலை",
+      "ஆக",
+      "செப்",
+      "அக்",
+      "நவ",
+      "டிச",
+    ];
+    const months =
+      language === "sinhala"
+        ? monthsSi
+        : language === "tamil"
+          ? monthsTa
+          : monthsEn;
     return `${months[(m || 1) - 1]} ${d || 1}`;
   };
 
@@ -473,6 +583,9 @@ const WeatherForecastScreen = () => {
           "සිකුරාදා",
           "සෙනසුරාදා",
         ];
+    const ta = short
+      ? ["ஞாயி", "திங்", "செவ்", "புத", "வியா", "வெள்", "சனி"]
+      : ["ஞாயிறு", "திங்கள்", "செவ்வாய்", "புதன்", "வியாழன்", "வெள்ளி", "சனி"];
     const en = short
       ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
       : [
@@ -484,7 +597,11 @@ const WeatherForecastScreen = () => {
           "Friday",
           "Saturday",
         ];
-    return language === "sinhala" ? si[date.getDay()] : en[date.getDay()];
+    return language === "sinhala"
+      ? si[date.getDay()]
+      : language === "tamil"
+        ? ta[date.getDay()]
+        : en[date.getDay()];
   };
 
   const getFirstRainHour = () => {
@@ -522,7 +639,9 @@ const WeatherForecastScreen = () => {
           <Text style={{ fontSize: 14, fontWeight: "800", color: "#065F46" }}>
             {language === "sinhala"
               ? "🟢 ඉදිරි පැය කිහිපය වැසි නොමැත – වගා වැඩ සඳහා සුදුසුයි"
-              : "🟢 No rain expected in the next few hours – suitable for farming"}
+              : language === "tamil"
+                ? "🟢 அடுத்த சில மணி நேரங்களில் மழை எதிர்பார்க்கப்படவில்லை – விவசாயத்திற்கு ஏற்றது"
+                : "🟢 No rain expected in the next few hours – suitable for farming"}
           </Text>
         </View>
       );
@@ -542,7 +661,9 @@ const WeatherForecastScreen = () => {
     let text =
       language === "sinhala"
         ? `⚠️ ${hourLabel} පමණ වැසි ඇතිවිය හැක – එයට පෙර වැඩ සූදානම් කරන්න`
-        : `⚠️ Rain expected around ${hourLabel} – prepare work before that`;
+        : language === "tamil"
+          ? `⚠️ ${hourLabel} மணியளவில் மழை எதிர்பார்க்கப்படுகிறது – அதற்கு முன் வேலையை முடிக்கவும்`
+          : `⚠️ Rain expected around ${hourLabel} – prepare work before that`;
 
     if (index <= 2) {
       // Rain very soon (1–2 hours)
@@ -551,7 +672,9 @@ const WeatherForecastScreen = () => {
       text =
         language === "sinhala"
           ? `⛔ ${hourLabel}ට පෙර වැසි පටන්ගන්න පුළුවන් – දැන්ම අස්වැන්න ආවරණය කරන්න`
-          : `⛔ Rain may start before ${hourLabel} – protect harvest immediately`;
+          : language === "tamil"
+            ? `⛔ ${hourLabel}க்கு முன் மழை தொடங்கலாம் – உடனே அறுவடையை பாதுகாக்கவும்`
+            : `⛔ Rain may start before ${hourLabel} – protect harvest immediately`;
     }
 
     return (
@@ -595,7 +718,11 @@ const WeatherForecastScreen = () => {
             content[language].heavyRainWarning
           }`,
           description: `${rain.toFixed(1)}mm ${
-            language === "sinhala" ? "වර්ෂාව අපේක්ෂිතයි" : "rainfall expected"
+            language === "sinhala"
+              ? "වර්ෂාව අපේක්ෂිතයි"
+              : language === "tamil"
+                ? "மழை எதிர்பார்க்கப்படுகிறது"
+                : "rainfall expected"
           }`,
           icon: <CloudRain size={20} color="#ef4444" />,
         });
@@ -606,7 +733,11 @@ const WeatherForecastScreen = () => {
             content[language].idealConditions
           }`,
           description: `${rain.toFixed(1)}mm ${
-            language === "sinhala" ? "වර්ෂාව, උෂ්ණත්වය" : "rain, temp"
+            language === "sinhala"
+              ? "වර්ෂාව, උෂ්ණත්වය"
+              : language === "tamil"
+                ? "மழை, வெப்பம்"
+                : "rain, temp"
           } ${Math.round(temp)}°C`,
           icon: <CheckCircle size={20} color="#10B981" />,
         });
@@ -617,7 +748,11 @@ const WeatherForecastScreen = () => {
             content[language].dryCondition
           }`,
           description: `${
-            language === "sinhala" ? "ආර්ද්‍රතාව" : "Humidity"
+            language === "sinhala"
+              ? "ආර්ද්‍රතාව"
+              : language === "tamil"
+                ? "ஈரப்பதம்"
+                : "Humidity"
           } ${Math.round(humidity)}%`,
           icon: <AlertTriangle size={20} color="#f59e0b" />,
         });
@@ -630,7 +765,9 @@ const WeatherForecastScreen = () => {
           description: `${Math.round(temp)}°C - ${
             language === "sinhala"
               ? "අමතර වාරිමාර්ග අවශ්‍යයි"
-              : "Extra irrigation needed"
+              : language === "tamil"
+                ? "கூடுதல் நீர்ப்பாசனம் தேவை"
+                : "Extra irrigation needed"
           }`,
           icon: <Sun size={20} color="#f59e0b" />,
         });
@@ -647,9 +784,23 @@ const WeatherForecastScreen = () => {
   };
 
   const getHourlyLabel = (mm: number) => {
-    if (mm >= 3) return language === "sinhala" ? "අවදානම්" : "Risky";
-    if (mm >= 1) return language === "sinhala" ? "වැසි" : "Rain";
-    return language === "sinhala" ? "හොඳයි" : "Good";
+    if (mm >= 3)
+      return language === "sinhala"
+        ? "අවදානම්"
+        : language === "tamil"
+          ? "ஆபத்து"
+          : "Risky";
+    if (mm >= 1)
+      return language === "sinhala"
+        ? "වැසි"
+        : language === "tamil"
+          ? "மழை"
+          : "Rain";
+    return language === "sinhala"
+      ? "හොඳයි"
+      : language === "tamil"
+        ? "நல்லது"
+        : "Good";
   };
 
   // 🕒 HOURLY RAIN STRIP (DOT GRAPH)
@@ -677,7 +828,9 @@ const WeatherForecastScreen = () => {
         >
           {language === "sinhala"
             ? "⏱️ ඉදිරි පැය – වගාවට කොහොමද?"
-            : "⏱️ Next few hours – farming suitability"}
+            : language === "tamil"
+              ? "⏱️ அடுத்த சில மணி நேரங்கள் – விவசாய தகுதி"
+              : "⏱️ Next few hours – farming suitability"}
         </Text>
 
         {/* ✅ HORIZONTAL SCROLL FIX */}
@@ -697,8 +850,8 @@ const WeatherForecastScreen = () => {
               risk === "red"
                 ? "#FEE2E2"
                 : risk === "yellow"
-                ? "#FEF9C3"
-                : "#DCFCE7";
+                  ? "#FEF9C3"
+                  : "#DCFCE7";
 
             // ⏰ ACTUAL TIME (Asia/Colombo)
             const hourLabel = new Date(h.time).toLocaleString("en-US", {
@@ -881,8 +1034,8 @@ const WeatherForecastScreen = () => {
             trafficColor === "red"
               ? "#FECACA"
               : trafficColor === "yellow"
-              ? "#FEF08A"
-              : "#BBFDE0",
+                ? "#FEF08A"
+                : "#BBFDE0",
         }}
       >
         <View style={{ flex: 1 }}>
@@ -904,7 +1057,7 @@ const WeatherForecastScreen = () => {
       {
         icon: <Sun size={16} color="#f59e0b" />,
         label: `${Math.round(day.temperature_min)}°-${Math.round(
-          day.temperature_max
+          day.temperature_max,
         )}°C`,
         value: `Temp`,
       },
@@ -978,7 +1131,11 @@ const WeatherForecastScreen = () => {
             marginBottom: 12,
           }}
         >
-          📅 Weekly Forecast
+          {language === "sinhala"
+            ? "📅 සතිපතා කාලගුණය"
+            : language === "tamil"
+              ? "📅 வார வானிலை"
+              : "📅 Weekly Forecast"}
         </Text>
         <View
           style={{
@@ -1018,10 +1175,10 @@ const WeatherForecastScreen = () => {
         (d.rain_mm ?? 0) >= 5 &&
         (d.rain_mm ?? 0) <= 25 &&
         d.temperature >= 25 &&
-        d.temperature <= 33
+        d.temperature <= 33,
     ).length;
     const riskyDaysCount = predictions.filter(
-      (d) => (d.rain_mm ?? 0) > 25 || d.temperature > 33
+      (d) => (d.rain_mm ?? 0) > 25 || d.temperature > 33,
     ).length;
 
     const currentContent = getContent();
@@ -1039,7 +1196,9 @@ const WeatherForecastScreen = () => {
       desc =
         language === "sinhala"
           ? `${goodDaysCount} හොඳ දින - සිටින්න!`
-          : `${goodDaysCount} good days - Perfect time to farm!`;
+          : language === "tamil"
+            ? `${goodDaysCount} நல்ல நாட்கள் - விவசாயம் செய்ய சரியான நேரம்!`
+            : `${goodDaysCount} good days - Perfect time to farm!`;
       bgColor = "#F0FDF4";
       borderColor = "#10B981";
       textColor = "#047857";
@@ -1049,7 +1208,9 @@ const WeatherForecastScreen = () => {
       desc =
         language === "sinhala"
           ? `${riskyDaysCount} අවදානම් දින - අවධානයෙන්!`
-          : `${riskyDaysCount} risky days - Be careful!`;
+          : language === "tamil"
+            ? `${riskyDaysCount} ஆபத்தான நாட்கள் - கவனமாக இருங்கள்!`
+            : `${riskyDaysCount} risky days - Be careful!`;
       bgColor = "#FEF2F2";
       borderColor = "#ef4444";
       textColor = "#dc2626";
@@ -1059,7 +1220,9 @@ const WeatherForecastScreen = () => {
       desc =
         language === "sinhala"
           ? "දිනපතා පුරෝකථනය පරීක්ෂා කරන්න"
-          : "Check daily forecasts";
+          : language === "tamil"
+            ? "தினசரி முன்னறிவிப்பை சரிபார்க்கவும்"
+            : "Check daily forecasts";
       bgColor = "#FFFBEB";
       borderColor = "#f59e0b";
       textColor = "#d97706";
@@ -1218,7 +1381,9 @@ const WeatherForecastScreen = () => {
             <Text style={styles.currentLabel}>
               {language === "sinhala"
                 ? "දැන් තියෙන උෂ්ණත්වය"
-                : "Current Temperature"}
+                : language === "tamil"
+                  ? "தற்போதைய வெப்பநிலை"
+                  : "Current Temperature"}
             </Text>
           </View>
         </View>
@@ -1229,7 +1394,7 @@ const WeatherForecastScreen = () => {
   const fetchWeatherData = async (
     lat: number,
     lon: number,
-    isRefresh = false
+    isRefresh = false,
   ) => {
     try {
       if (isRefresh) setRefreshing(true);
@@ -1345,7 +1510,13 @@ const WeatherForecastScreen = () => {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#10B981" />
-        <Text style={styles.loadingTxt}>GPS සකස් වෙමින්...</Text>
+        <Text style={styles.loadingTxt}>
+          {language === "sinhala"
+            ? "GPS සකස් වෙමින්..."
+            : language === "tamil"
+              ? "GPS தயாராகிறது..."
+              : "Loading GPS..."}
+        </Text>
       </View>
     );
   }
@@ -1377,7 +1548,9 @@ const WeatherForecastScreen = () => {
         <Text style={styles.loadingTxt}>
           {language === "sinhala"
             ? "කාලගුණ දත්ත සකස් වෙමින්..."
-            : "Preparing weather data..."}
+            : language === "tamil"
+              ? "வானிலை தரவு தயாராகிறது..."
+              : "Preparing weather data..."}
         </Text>
       </View>
     );
@@ -1433,7 +1606,7 @@ const WeatherForecastScreen = () => {
               fetchWeatherData(
                 latitude ?? DEFAULT_LAT,
                 longitude ?? DEFAULT_LON,
-                true
+                true,
               )
             }
           />
@@ -1456,7 +1629,9 @@ const WeatherForecastScreen = () => {
               <Text style={styles.dailySummaryLabel}>
                 {language === "sinhala"
                   ? "📍 අද කාලගුණය"
-                  : "📍 Today's Weather"}
+                  : language === "tamil"
+                    ? "📍 இன்றைய வானிலை"
+                    : "📍 Today's Weather"}
               </Text>
               <Text style={styles.dailySummaryValue}>
                 {getDailySummaryText(predictions[0])}
@@ -1535,7 +1710,9 @@ const WeatherForecastScreen = () => {
           <Text style={styles.chartNote}>
             {language === "sinhala"
               ? "* 5-25mm වර්ෂාව බඩ ඉරිඟු වගාවට හිතකරයි"
-              : "* 5-25mm rainfall is ideal for corn farming"}
+              : language === "tamil"
+                ? "* 5-25mm மழை மக்காச்சோள விவசாயத்திற்கு சிறந்தது"
+                : "* 5-25mm rainfall is ideal for corn farming"}
           </Text>
         </Animated.View>
 
@@ -1561,21 +1738,33 @@ const WeatherForecastScreen = () => {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <EnhancedTrafficDot color="green" />
             <Text style={{ color: "#047857", fontSize: 12, fontWeight: "600" }}>
-              {language === "sinhala" ? "හොඳ" : "Good"}
+              {language === "sinhala"
+                ? "හොඳ"
+                : language === "tamil"
+                  ? "நல்லது"
+                  : "Good"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <EnhancedTrafficDot color="yellow" />
             <Text style={{ color: "#CA8A04", fontSize: 12, fontWeight: "600" }}>
-              {language === "sinhala" ? "අවධානයෙන්" : "Moderate"}
+              {language === "sinhala"
+                ? "අවධානයෙන්"
+                : language === "tamil"
+                  ? "மிதமான"
+                  : "Moderate"}
             </Text>
           </View>
 
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <EnhancedTrafficDot color="red" />
             <Text style={{ color: "#DC2626", fontSize: 12, fontWeight: "600" }}>
-              {language === "sinhala" ? "අවදානම්" : "Risky"}
+              {language === "sinhala"
+                ? "අවදානම්"
+                : language === "tamil"
+                  ? "ஆபத்தான"
+                  : "Risky"}
             </Text>
           </View>
         </View>
@@ -1587,14 +1776,14 @@ const WeatherForecastScreen = () => {
             trafficColor === "red"
               ? "#FEF2F2"
               : trafficColor === "yellow"
-              ? "#FFFBEB"
-              : "#F0FDF4";
+                ? "#FFFBEB"
+                : "#F0FDF4";
           const cardBorder =
             trafficColor === "red"
               ? "#FECACA"
               : trafficColor === "yellow"
-              ? "#FEF08A"
-              : "#BBFDE0";
+                ? "#FEF08A"
+                : "#BBFDE0";
 
           return (
             <Animated.View

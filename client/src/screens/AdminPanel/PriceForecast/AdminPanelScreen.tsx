@@ -24,7 +24,7 @@ import { useNavigation } from "@react-navigation/native";
 import { Platform } from "react-native";
 import { useLanguage } from "../../../context/LanguageContext";
 
-type Language = "sinhala" | "english";
+type Language = "sinhala" | "english" | "tamil";
 
 const AdminPanelScreen = () => {
   const navigation = useNavigation();
@@ -103,6 +103,29 @@ const AdminPanelScreen = () => {
       saving: "Saving...",
       noData: "No data available yet",
     },
+    tamil: {
+      title: "விலை பதிவேற்றம்",
+      subtitle: "🌽 MaizeGenie",
+      welcome: "வரவேற்கிறோம்",
+      description: "தற்போதைய சந்தை விலைகள் மற்றும் வரிகளை பதிவிடுங்கள்",
+      fuelPrice: "எரிபொருள் விலை",
+      fuelPriceUnit: "ரூபாய் (லிட்டருக்கு)",
+      importTax: "இறக்குமதி வரி",
+      importTaxUnit: "சதவிகிதம் (%)",
+      farmGatePrice: "விவசாய வாயில் விலை",
+      farmGatePriceUnit: "ரூபாய் (கிலோக்கு)",
+      lastUpdated: "கடைசியாக பதிவிட்டது",
+      save: "மாற்றங்களை சேமி",
+      refresh: "தரவு புதுப்பி",
+      back: "பின்னோக்கிச் செல்",
+      saveSuccess: "தரவு வெற்றிகரமாகப் பதிவிட்டது!",
+      saveError: "தரவை சேமிக்கும்போது பிழை ஏற்பட்டது",
+      loadError: "தரவை ஏற்றும்போது பிழை ஏற்பட்டது",
+      fillAll: "அனைத்து தகவல்களையும் சரியாக நிரப்பவும்",
+      loading: "ஏற்றுகிறது...",
+      saving: "சேமிக்கிறது...",
+      noData: "இதுவரை தரவு ஏதுமில்லை",
+    },
   };
 
   useEffect(() => {
@@ -124,8 +147,12 @@ const AdminPanelScreen = () => {
     } catch (error) {
       console.error("Error fetching data:", error);
       Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : "Error",
-        content[language].loadError
+        language === "sinhala"
+          ? "දොෂයකිස්"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
+        content[language].loadError,
       );
     } finally {
       setLoading(false);
@@ -137,7 +164,7 @@ const AdminPanelScreen = () => {
     if (!fuelPrice || !importTax || !farmGatePrice) {
       Alert.alert(
         language === "sinhala" ? "අවශ්‍යයි" : "Required",
-        content[language].fillAll
+        content[language].fillAll,
       );
       return;
     }
@@ -160,8 +187,12 @@ const AdminPanelScreen = () => {
 
       if (response.ok && data.success) {
         Alert.alert(
-          language === "sinhala" ? "සාර්ථකයි ✓" : "Success ✓",
-          content[language].saveSuccess
+          language === "sinhala"
+            ? "සාර්තකයි ✓"
+            : language === "tamil"
+              ? "வெற்றி ✓"
+              : "Success ✓",
+          content[language].saveSuccess,
         );
         fetchCurrentData(); // Refresh data
       } else {
@@ -170,8 +201,12 @@ const AdminPanelScreen = () => {
     } catch (error) {
       console.error("Error saving data:", error);
       Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : "Error",
-        content[language].saveError
+        language === "sinhala"
+          ? "දොෂයකිස්"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
+        content[language].saveError,
       );
     } finally {
       setSaving(false);
@@ -232,11 +267,15 @@ const AdminPanelScreen = () => {
                   </Text>
                   <Text style={styles.updateValue}>
                     {new Date(lastUpdated).toLocaleString(
-                      language === "sinhala" ? "si-LK" : "en-US",
+                      language === "sinhala"
+                        ? "si-LK"
+                        : language === "tamil"
+                          ? "ta-LK"
+                          : "en-US",
                       {
                         dateStyle: "medium",
                         timeStyle: "short",
-                      }
+                      },
                     )}
                   </Text>
                 </View>
