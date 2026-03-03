@@ -29,6 +29,7 @@ import {
   XCircle,
   Bell,
   Clock,
+  Users,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -130,6 +131,14 @@ const MarketPlaceScreen = () => {
       alreadyOffered: "You already offered on this post",
       posted: "Posted",
       updated: "Updated",
+      offerCount: (n: number) =>
+        n === 0
+          ? "No offers yet · Be the first!"
+          : n === 1
+            ? "1 offer placed"
+            : `${n} offers placed`,
+      highDemand: "High demand",
+      activeInterest: "Active interest",
     },
     ta: {
       title: "அறுவடை சந்தை",
@@ -156,7 +165,85 @@ const MarketPlaceScreen = () => {
       alreadyOffered: "ஏற்கனவே சலிவு விலை சமர்ப்பித்துள்ளீர்கள்",
       posted: "பதிவிடப்பட்டது",
       updated: "புதுப்பிக்கப்பட்டது",
+      offerCount: (n: number) =>
+        n === 0
+          ? "இன்னும் சலிவு இல்லை · முதலில் இடுக!"
+          : n === 1
+            ? "1 சலிவு விலை"
+            : `${n} சலிவு விலைகள்`,
+      highDemand: "அதிக தேவை",
+      activeInterest: "செயலில் ஆர்வம்",
     },
+  };
+
+  // Helper: derive label/colors for the offer count strip
+  const getOfferMeta = (count: number, lang: "si" | "en" | "ta") => {
+    const offerContent = {
+      si: {
+        none: "ඉදිරිපත්කරණ නොමැත · පළමු වන්න!",
+        one: "ඉදිරිපත්කරණය 1",
+        many: (n: number) => `ඉදිරිපත්කරණ ${n}`,
+        highDemand: "ඉහළ ඉල්ලුමක්",
+        activeInterest: "ක්‍රියාශීලී උනන්දුව",
+      },
+      en: {
+        none: "No offers yet · Be the first!",
+        one: "1 offer placed",
+        many: (n: number) => `${n} offers placed`,
+        highDemand: "High demand",
+        activeInterest: "Active interest",
+      },
+      ta: {
+        none: "இன்னும் சலிவு இல்லை · முதலில் இடுக!",
+        one: "1 சலிவு விலை",
+        many: (n: number) => `${n} சலிவு விலைகள்`,
+        highDemand: "அதிக தேவை",
+        activeInterest: "செயலில் ஆர்வம்",
+      },
+    }[lang];
+
+    if (count === 0) {
+      return {
+        label: offerContent.none,
+        sideLabel: "",
+        bg: "#F3F4F6",
+        iconColor: "#9CA3AF",
+        textColor: "#6B7280",
+        borderColor: "#E5E7EB",
+        showSide: false,
+      };
+    }
+    if (count >= 6) {
+      return {
+        label: count === 1 ? offerContent.one : offerContent.many(count),
+        sideLabel: `🔥 ${offerContent.highDemand}`,
+        bg: "#FFF7ED",
+        iconColor: "#F97316",
+        textColor: "#C2410C",
+        borderColor: "#FDBA74",
+        showSide: true,
+      };
+    }
+    if (count >= 3) {
+      return {
+        label: count === 1 ? offerContent.one : offerContent.many(count),
+        sideLabel: offerContent.activeInterest,
+        bg: "#ECFDF5",
+        iconColor: "#10B981",
+        textColor: "#065F46",
+        borderColor: "#6EE7B7",
+        showSide: true,
+      };
+    }
+    return {
+      label: count === 1 ? offerContent.one : offerContent.many(count),
+      sideLabel: "",
+      bg: "#EFF6FF",
+      iconColor: "#3B82F6",
+      textColor: "#1D4ED8",
+      borderColor: "#BFDBFE",
+      showSide: false,
+    };
   };
 
   // Format a UTC ISO timestamp to a short local date string e.g. "Feb 27, 2026"
@@ -396,6 +483,64 @@ const MarketPlaceScreen = () => {
             <Text style={styles.detailText}>W{item.week}</Text>
           </View>
         </View>
+
+        {/* ✨ Offer Count Strip — visible for non-scheduled active/sold posts */}
+        {!isScheduled &&
+          (() => {
+            const offerMeta = getOfferMeta(item.offer_count ?? 0, language);
+            return (
+              <View
+                style={[
+                  styles.offerCountStrip,
+                  {
+                    backgroundColor: offerMeta.bg,
+                    borderColor: offerMeta.borderColor,
+                  },
+                ]}
+              >
+                <View style={styles.offerCountLeft}>
+                  <View
+                    style={[
+                      styles.offerIconCircle,
+                      { backgroundColor: offerMeta.borderColor },
+                    ]}
+                  >
+                    <Users size={12} color={offerMeta.iconColor} />
+                  </View>
+                  <Text
+                    style={[
+                      styles.offerCountLabel,
+                      { color: offerMeta.textColor },
+                    ]}
+                  >
+                    {offerMeta.label}
+                  </Text>
+                </View>
+                {offerMeta.showSide && (
+                  <Text
+                    style={[
+                      styles.offerSideLabel,
+                      { color: offerMeta.textColor },
+                    ]}
+                  >
+                    {offerMeta.sideLabel}
+                  </Text>
+                )}
+                {(item.offer_count ?? 0) > 0 && (
+                  <View
+                    style={[
+                      styles.offerCountPill,
+                      { backgroundColor: offerMeta.iconColor },
+                    ]}
+                  >
+                    <Text style={styles.offerCountPillText}>
+                      {item.offer_count}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
         {/* Date Row */}
         <View style={styles.dateRow}>
@@ -1268,6 +1413,53 @@ const styles = StyleSheet.create({
   },
   filterPillTextActive: {
     color: "#FFFFFF",
+  },
+
+  // ─── Offer count strip ───────────────────────────────────────────────────
+  offerCountStrip: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 8,
+  },
+  offerCountLeft: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 7,
+    flex: 1,
+  },
+  offerIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+  },
+  offerCountLabel: {
+    fontSize: 11,
+    fontWeight: "600" as const,
+    flexShrink: 1,
+  },
+  offerSideLabel: {
+    fontSize: 10,
+    fontWeight: "600" as const,
+  },
+  offerCountPill: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center" as const,
+    alignItems: "center" as const,
+    paddingHorizontal: 6,
+  },
+  offerCountPillText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "800" as const,
   },
 });
 

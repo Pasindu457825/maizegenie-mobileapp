@@ -21,6 +21,7 @@ export interface Post {
   farmer_name?: string;
   farmer_phone?: string | null; // only populated for the accepted buyer via RPC
   accepted_offer_id?: string | null;
+  offer_count?: number; // total number of offers placed on this post
 }
 
 export interface Offer {
@@ -123,7 +124,8 @@ export const listPosts = async (filters?: {
     .select(
       `
       *,
-      farmer:profiles!posts_farmer_id_fkey(full_name)
+      farmer:profiles!posts_farmer_id_fkey(full_name),
+      offers(count)
     `,
     )
     .order("status", { ascending: true }) // active < scheduled < sold alphabetically
@@ -148,6 +150,10 @@ export const listPosts = async (filters?: {
   return (data || []).map((post: any) => ({
     ...post,
     farmer_name: post.farmer?.full_name || "Unknown Farmer",
+    offer_count:
+      Array.isArray(post.offers) && post.offers.length > 0
+        ? (post.offers[0].count ?? 0)
+        : 0,
   })) as Post[];
 };
 
