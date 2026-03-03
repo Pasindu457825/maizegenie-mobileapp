@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 import os
 import joblib
@@ -7,6 +7,9 @@ import pandas as pd
 
 # Supabase client for fetching real historical prices
 from src.database.supabase_client import supabase
+
+# District-level weekly weather (replaces GPS-based weather)
+from src.priceforecast.district_weather_service import fetch_district_weekly_weather
 
 # ===============================
 # 🔕 SUPPRESS SKLEARN WARNING
@@ -37,15 +40,21 @@ except Exception as e:
 # =====================================================
 # HISTORICAL PRICE FETCHER
 # =====================================================
-def fetch_price_history(district: str, year: int, week: int, n: int = 8) -> list[float]:
+def fetch_price_history(district: str, year: int, week: int, min_weeks: int = 3, pad_to: int = 8) -> list[float]:
     """
-    Fetch the last `n` weekly prices for a district from Supabase.
+    Fetch weekly prices for a district from Supabase.
+    
+    Parameters:
+      district: District name
+      year, week: Reference point (fetch prices up to this week)
+      min_weeks: Minimum acceptable history (default 3)
+      pad_to: If fewer rows, pad with the most recent price to reach this length (default 8)
 
     Expected table : maize_prices
     Expected columns: year (int), week (int), district (text), price (float)
 
-    Returns a list ordered oldest → newest  (length == n).
-    Raises ValueError if fewer than `n` rows are available.
+    Returns a list ordered oldest → newest (length >= min_weeks, padded to pad_to if needed).
+    Raises ValueError if fewer than min_weeks rows are available.
     """
     try:
         # Keep only rows whose (year, week) pair is <= the reference point.
@@ -58,22 +67,30 @@ def fetch_price_history(district: str, year: int, week: int, n: int = 8) -> list
             .or_(f"year.lt.{year},and(year.eq.{year},week.lte.{week})")
             .order("year", desc=True)
             .order("week", desc=True)
-            .limit(n)
+            .limit(pad_to)
             .execute()
         )
 
         rows = result.data or []
 
-        if len(rows) < n:
+        if len(rows) < min_weeks:
             raise ValueError(
                 f"Insufficient price history for district '{district}': "
-                f"need {n} weeks, found {len(rows)}. "
-                "Please ensure at least 8 weeks of historical prices exist in 'maize_prices'."
+                f"need at least {min_weeks} weeks, found {len(rows)}. "
+                f"Please add historical prices for '{district}' to the 'maize_prices' table."
             )
 
         # DB returned newest-first; reverse so index 0 = oldest, -1 = most recent
         rows_asc = list(reversed(rows))
-        return [float(row["price"]) for row in rows_asc]
+        prices = [float(row["price"]) for row in rows_asc]
+        
+        # Pad with most recent price if needed to reach pad_to length
+        if len(prices) < pad_to:
+            recent_price = prices[-1]
+            prices.extend([recent_price] * (pad_to - len(prices)))
+            print(f"  ⚠️  Padded history for '{district}' from {len(rows)} to {pad_to} using recent price {recent_price}")
+        
+        return prices
 
     except ValueError:
         raise  # re-raise validation errors as-is
@@ -224,7 +241,34 @@ def forecast_weeks_rf_delta(req: PriceForecastRequest, price_history: list[float
     return results
 
 # =====================================================
-# API ENDPOINT
+# DISTRICT WEATHER ENDPOINT
+# =====================================================
+@router.get("/district-weather")
+def get_district_weather(
+    district: str = Query(..., description="District name (e.g. 'Kurunegala')"),
+    year:     int = Query(..., ge=2020, le=2100, description="ISO year"),
+    week:     int = Query(..., ge=1,    le=53,   description="ISO week number"),
+):
+    """
+    Returns the weekly-average temperature (°C) and rainfall (mm) for the
+    selected district, covering the full ISO week (Monday–Sunday).
+
+    The client uses these district-level weekly averages as inputs to the
+    ML price-forecast model instead of the user's GPS-based current weather.
+    """
+    try:
+        result = fetch_district_weekly_weather(
+            district=district,
+            year=year,
+            week=week,
+        )
+        return {"success": True, **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =====================================================
+# PRICE FORECAST ENDPOINT
 # =====================================================
 @router.post("/next-weeks", response_model=PriceForecastResponse)
 def get_price_forecast(req: PriceForecastRequest):
@@ -239,7 +283,8 @@ def get_price_forecast(req: PriceForecastRequest):
                 district=req.district,
                 year=req.year,
                 week=req.week,
-                n=8,
+                min_weeks=3,
+                pad_to=8,
             )
             print(f"  History (lag8): {[round(p, 2) for p in price_history]}")
         except ValueError as ve:
@@ -253,6 +298,7 @@ def get_price_forecast(req: PriceForecastRequest):
         weeks = forecast_weeks_rf_delta(req, price_history)
 
         # ── OUTPUT LOG ───────────────────────────────────────────────────────
+        SEP = '═' * 55
         print(SEP)
         print("📤  FORECAST OUTPUT")
         print(SEP)

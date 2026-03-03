@@ -31,11 +31,11 @@ export interface WeekForecast {
   week: number;
 
   // EXISTING (UI already uses these)
-  sarimax: number;   // mapped from rf_price
-  ensemble: number;  // mapped from rf_price
+  sarimax: number; // mapped from rf_price
+  ensemble: number; // mapped from rf_price
 
   // NEW (for confidence bar & tag)
-  confidence_pct?: number;           // 0–100
+  confidence_pct?: number; // 0–100
   confidence_tag?: "High" | "Medium";
 }
 
@@ -45,10 +45,71 @@ export interface PriceForecastResponse {
 }
 
 // =====================================================
-// API CALL
+// DISTRICT WEEKLY WEATHER
+// =====================================================
+
+/**
+ * Weekly-average weather for a district.
+ * Returned by GET /api/price-forecast/district-weather
+ */
+export interface DistrictWeather {
+  avg_temperature: number; // °C  (ISO-week average)
+  avg_rainfall: number; // mm  (ISO-week average of daily totals)
+  week_start: string; // ISO date of Monday
+  week_end: string; // ISO date of Sunday
+  district: string;
+  source: string; // "archive" | "forecast" | "fallback_…"
+}
+
+/**
+ * Fetch the weekly-average temperature and rainfall for a district.
+ *
+ * Replaces GPS-based current weather so the ML price-forecast model
+ * always receives district-level, ISO-week aggregated weather inputs.
+ *
+ * @param district - English district name (e.g. "Kurunegala")
+ * @param year     - ISO year
+ * @param week     - ISO week number (1–53)
+ */
+export async function getDistrictWeather(
+  district: string,
+  year: number,
+  week: number,
+): Promise<DistrictWeather | null> {
+  try {
+    const params = new URLSearchParams({
+      district,
+      year: String(year),
+      week: String(week),
+    });
+    const res = await fetch(
+      `${API_BASE}/api/price-forecast/district-weather?${params}`,
+    );
+    if (!res.ok) {
+      console.error("getDistrictWeather API error:", res.status);
+      return null;
+    }
+    const data = await res.json();
+    if (!data.success) return null;
+    return {
+      avg_temperature: data.avg_temperature,
+      avg_rainfall: data.avg_rainfall,
+      week_start: data.week_start,
+      week_end: data.week_end,
+      district: data.district,
+      source: data.source,
+    };
+  } catch (err) {
+    console.error("getDistrictWeather fetch failed:", err);
+    return null;
+  }
+}
+
+// =====================================================
+// PRICE FORECAST API CALL
 // =====================================================
 export async function getPriceForecast(
-  payload: PriceForecastPayload
+  payload: PriceForecastPayload,
 ): Promise<PriceForecastResponse> {
   const res = await fetch(`${API_BASE}/api/price-forecast/next-weeks`, {
     method: "POST",

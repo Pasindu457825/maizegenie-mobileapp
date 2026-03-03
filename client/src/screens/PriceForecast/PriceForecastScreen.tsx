@@ -130,9 +130,10 @@ const PriceForecastScreen = () => {
     temperature,
     weatherCondition,
     weatherIcon,
-    rainfallMm,
     isLoading,
   } = useUniversalLocation(language);
+  // rainfallMm and temperature from GPS are used for header display only.
+  // The ML forecast now uses district-level weekly weather (districtWeather state).
 
   const loadSavedDataFromStorage = async () => {
     try {
@@ -184,6 +185,73 @@ const PriceForecastScreen = () => {
   const [showSellPopup, setShowSellPopup] = useState(false);
   const popupAnim = useRef(new Animated.Value(0)).current;
   const popupShownRef = useRef(false);
+
+  // 🌍 DISTRICT WEEKLY WEATHER (replaces GPS-based weather for forecast)
+  const [districtWeather, setDistrictWeather] = useState<{
+    avg_temperature: number;
+    avg_rainfall: number;
+    source: string;
+  } | null>(null);
+
+  /**
+   * Fetch weekly average temperature + rainfall for the selected district
+   * from the backend. Uses ISO year/week to compute Mon–Sun window.
+   * Falls back silently to seasonal defaults on any network error.
+   */
+  const fetchDistrictWeather = async (
+    district: string,
+    year: number,
+    week: number,
+  ) => {
+    try {
+      const url =
+        `${API_URL}/api/price-forecast/district-weather` +
+        `?district=${encodeURIComponent(district)}&year=${year}&week=${week}`;
+      const res  = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        console.log(
+          `🌤 District weather for ${district} wk${week}/${year}:`,
+          `temp=${data.avg_temperature}°C  rain=${data.avg_rainfall}mm  [${data.source}]`,
+        );
+        return {
+          avg_temperature: data.avg_temperature as number,
+          avg_rainfall:    data.avg_rainfall    as number,
+          source:          data.source          as string,
+        };
+      }
+      throw new Error("success=false");
+    } catch (err) {
+      console.warn("fetchDistrictWeather failed, using seasonal defaults:", err);
+      return null;
+    }
+  };
+
+  // Fetch district weather whenever we have a district + valid week
+  useEffect(() => {
+    const district = formData?.district;
+    const yearNum  = Number(formData?.year);
+    const weekNum  = Number(formData?.week);
+    if (
+      district &&
+      Number.isFinite(yearNum) && yearNum >= 2020 &&
+      Number.isFinite(weekNum) && weekNum >= 1 && weekNum <= 53
+    ) {
+      fetchDistrictWeather(district, yearNum, weekNum).then((w) => {
+        // Always set (even if null) so the trigger useEffect can react
+        setDistrictWeather(
+          w ?? {
+            // Season-based fallback so forecast still runs
+            avg_temperature: weekNum >= 40 || weekNum <= 13 ? 26.5 : 28.5,
+            avg_rainfall:    weekNum >= 40 || weekNum <= 13 ? 28.0 : 12.0,
+            source: "fallback_client",
+          },
+        );
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData?.district, formData?.year, formData?.week]);
 
   const content = {
     si: {
@@ -675,22 +743,28 @@ const PriceForecastScreen = () => {
         0,
       );
 
+      // 🌤 Use district weekly-average weather (NOT GPS current weather)
       const rainfallValue =
-        rainfallMm && rainfallMm > 0
-          ? rainfallMm
+        districtWeather && districtWeather.avg_rainfall > 0
+          ? districtWeather.avg_rainfall
           : seasonCode === "Maha"
-            ? 30 // realistic Maha minimum
+            ? 30  // realistic Maha fallback
             : 10;
 
-      let temperatureValue = safeNumber(
-        temperature,
-        seasonCode === "Maha" ? 26 : 28,
-      );
+      let temperatureValue =
+        districtWeather && districtWeather.avg_temperature > 0
+          ? districtWeather.avg_temperature
+          : seasonCode === "Maha" ? 26 : 28;
 
-      // Sri Lanka invalid guard (0°C, negative, etc.)
+      // Sri Lanka validity guard
       if (temperatureValue < 10 || temperatureValue > 45) {
         temperatureValue = seasonCode === "Maha" ? 26 : 28;
       }
+
+      console.log(
+        `🌡️ Forecast inputs: temp=${temperatureValue}°C  ` +
+        `rain=${rainfallValue}mm  source=${districtWeather?.source ?? "fallback"}`,
+      );
 
       const demandIndexValue = seasonCode === "Maha" ? 0.85 : 0.7;
 
@@ -833,14 +907,15 @@ const PriceForecastScreen = () => {
     }
   };
 
+  // 🌤 Trigger forecast once district weather has been resolved
   useEffect(() => {
     if (hasRunForecastRef.current) return;
-
-    if (!isLoading && temperature !== null && rainfallMm !== null) {
+    if (districtWeather !== null) {
       hasRunForecastRef.current = true;
       generateForecast();
     }
-  }, [isLoading, temperature, rainfallMm]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [districtWeather]);
 
   const calculateProfit = () => {
     if (!formData) return { revenue: 0, profit: 0, margin: 0 };

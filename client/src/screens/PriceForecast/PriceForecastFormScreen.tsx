@@ -165,6 +165,76 @@ const PriceForecastFormScreen = () => {
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
   const { user } = useApp();
 
+  // 🌍 District weekly weather (replaces GPS weather for ML model inputs)
+  const [districtWeather, setDistrictWeather] = useState<{
+    avg_temperature: number;
+    avg_rainfall: number;
+    source: string;
+  } | null>(null);
+  const [isLoadingDistrictWeather, setIsLoadingDistrictWeather] =
+    useState(false);
+
+  /**
+   * Fetch ISO-week average temperature (°C) and rainfall (mm) for the given
+   * district. Called whenever the user selects / changes a district.
+   */
+  const fetchDistrictWeatherData = async (
+    selectedDistrict: string,
+    yearVal: string,
+    weekVal: string,
+  ) => {
+    const yearNum = parseInt(yearVal, 10);
+    const weekNum = parseInt(weekVal, 10);
+    if (
+      !selectedDistrict ||
+      !Number.isFinite(yearNum) ||
+      !Number.isFinite(weekNum) ||
+      weekNum < 1 ||
+      weekNum > 53
+    )
+      return;
+
+    setIsLoadingDistrictWeather(true);
+    try {
+      const url =
+        `${API_URL}/api/price-forecast/district-weather` +
+        `?district=${encodeURIComponent(selectedDistrict)}` +
+        `&year=${yearNum}&week=${weekNum}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        setDistrictWeather({
+          avg_temperature: data.avg_temperature,
+          avg_rainfall: data.avg_rainfall,
+          source: data.source,
+        });
+        return;
+      }
+      throw new Error("success=false");
+    } catch (err) {
+      console.warn("Form fetchDistrictWeather failed:", err);
+      // Seasonal fallback so cards always show a value
+      const isMaha = weekNum >= 40 || weekNum <= 13;
+      setDistrictWeather({
+        avg_temperature: isMaha ? 26.5 : 28.5,
+        avg_rainfall: isMaha ? 28.0 : 12.0,
+        source: "fallback",
+      });
+    } finally {
+      setIsLoadingDistrictWeather(false);
+    }
+  };
+
+  // Re-fetch district weather whenever the selected district (or week) changes
+  useEffect(() => {
+    if (district && year && week) {
+      setDistrictWeather(null); // clear stale value while fetching
+      fetchDistrictWeatherData(district, year, week);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [district, year, week]);
+
   const isFarmer = user?.role === "farmer";
   const isOfficer = user?.role === "officer";
   // user.role = "FARMER" | "OFFICER"
@@ -1069,6 +1139,80 @@ const PriceForecastFormScreen = () => {
                     ? "இல்லை"
                     : "No"}
             </Text>
+            <View style={styles.autoDataCard}>
+              <View style={styles.cardIconContainer}>
+                <Calendar color="#10B981" size={22} />
+              </View>
+              <Text style={styles.autoDataLabel}>
+                {language === "si"
+                  ? "උත්සව සතිය"
+                  : language === "ta"
+                    ? "பண்டிகை வாரம்"
+                    : "Festival Week"}
+              </Text>
+              <Text style={styles.autoDataValue}>
+                {isFestivalWeek
+                  ? language === "si"
+                    ? "ඔව්"
+                    : language === "ta"
+                      ? "ஆம்"
+                      : "Yes"
+                  : language === "si"
+                    ? "නැත"
+                    : language === "ta"
+                      ? "இல்லை"
+                      : "No"}
+              </Text>
+            </View>
+
+            {/* ─── District-level weekly weather ─────────────────────────── */}
+            {/* These values replace GPS weather as ML model inputs.           */}
+            {district ? (
+              isLoadingDistrictWeather ? (
+                <View style={[styles.autoDataCard, { opacity: 0.7 }]}>
+                  <Text style={styles.autoDataLabel}>
+                    {language === "si"
+                      ? "කාලගුණ පූරණය..."
+                      : language === "ta"
+                        ? "வானிலை ஏற்றுகிறது..."
+                        : "Loading weather..."}
+                  </Text>
+                </View>
+              ) : districtWeather ? (
+                <>
+                  <View style={styles.autoDataCard}>
+                    <View style={styles.cardIconContainer}>
+                      <Droplets color="#0284c7" size={22} />
+                    </View>
+                    <Text style={styles.autoDataLabel}>
+                      {language === "si"
+                        ? "සාමාන්. වර්ෂාව (mm)"
+                        : language === "ta"
+                          ? "சராசரி மழை (mm)"
+                          : "Avg. Rainfall (mm)"}
+                    </Text>
+                    <Text style={styles.autoDataValue}>
+                      {districtWeather.avg_rainfall.toFixed(1)}
+                    </Text>
+                  </View>
+                  <View style={styles.autoDataCard}>
+                    <View style={styles.cardIconContainer}>
+                      <Sun color="#f59e0b" size={22} />
+                    </View>
+                    <Text style={styles.autoDataLabel}>
+                      {language === "si"
+                        ? "සාමාන්. තාපය (°C)"
+                        : language === "ta"
+                          ? "சராசரி வெப்பம் (°C)"
+                          : "Avg. Temp (°C)"}
+                    </Text>
+                    <Text style={styles.autoDataValue}>
+                      {districtWeather.avg_temperature.toFixed(1)}
+                    </Text>
+                  </View>
+                </>
+              ) : null
+            ) : null}
           </View>
         </View>
 

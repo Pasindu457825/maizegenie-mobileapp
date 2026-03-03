@@ -99,11 +99,11 @@ const getISOWeekRange = (year: number, week: number, lang: "si" | "en") => {
 
   const start = weekStart.toLocaleDateString(
     lang === "si" ? "si-LK" : "en-US",
-    options
+    options,
   );
   const end = weekEnd.toLocaleDateString(
     lang === "si" ? "si-LK" : "en-US",
-    options
+    options,
   );
 
   return `${start} – ${end}`;
@@ -116,7 +116,7 @@ const validateRequiredNumber = (
   value: any,
   fieldName: string,
   minValue?: number,
-  maxValue?: number
+  maxValue?: number,
 ): number => {
   // Sanitize string inputs (remove currency symbols, etc.)
   let sanitized = value;
@@ -134,13 +134,13 @@ const validateRequiredNumber = (
   // Check min/max bounds
   if (minValue !== undefined && num < minValue) {
     throw new Error(
-      `${fieldName} (${num}) is below minimum allowed (${minValue})`
+      `${fieldName} (${num}) is below minimum allowed (${minValue})`,
     );
   }
 
   if (maxValue !== undefined && num > maxValue) {
     throw new Error(
-      `${fieldName} (${num}) exceeds maximum allowed (${maxValue})`
+      `${fieldName} (${num}) exceeds maximum allowed (${maxValue})`,
     );
   }
 
@@ -167,9 +167,8 @@ export default function OfficerPriceForecastScreen() {
   const { language: globalLang } = useLanguage();
   const language = globalLang === "sinhala" ? "si" : "en";
 
-  // 🔥 GET WEATHER DATA FROM HOOK (instead of formData)
-  const { temperature, rainfallMm, weatherCondition } =
-    useUniversalLocation(language);
+  // GPS location used for display header only (NOT for forecast inputs)
+  const { weatherCondition } = useUniversalLocation(language);
 
   const T = {
     si: {
@@ -296,10 +295,79 @@ export default function OfficerPriceForecastScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<"overview" | "detailed">(
-    "overview"
+    "overview",
   );
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
+
+  // 🌍 DISTRICT WEEKLY WEATHER – replaces GPS-based weather for forecast inputs
+  const [districtWeather, setDistrictWeather] = useState<{
+    avg_temperature: number;
+    avg_rainfall: number;
+    source: string;
+  } | null>(null);
+
+  /**
+   * Fetch ISO-week average temperature (°C) and rainfall (mm) for the
+   * selected district from the backend. Sets districtWeather state once resolved.
+   */
+  const fetchDistrictWeather = async (
+    district: string,
+    year: number,
+    week: number,
+  ) => {
+    try {
+      const url =
+        `${API_URL}/api/price-forecast/district-weather` +
+        `?district=${encodeURIComponent(district)}&year=${year}&week=${week}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        console.log(
+          `🌤 Officer district weather ${district} wk${week}/${year}: ` +
+            `temp=${data.avg_temperature}°C  rain=${data.avg_rainfall}mm  [${data.source}]`,
+        );
+        setDistrictWeather({
+          avg_temperature: data.avg_temperature,
+          avg_rainfall: data.avg_rainfall,
+          source: data.source,
+        });
+        return;
+      }
+      throw new Error("success=false");
+    } catch (err) {
+      console.warn(
+        "Officer fetchDistrictWeather failed, using seasonal defaults:",
+        err,
+      );
+      // Compute fallback from week number (Maha wk 40-52 OR wk 1-13)
+      const isMaha = week >= 40 || week <= 13;
+      setDistrictWeather({
+        avg_temperature: isMaha ? 26.5 : 28.5,
+        avg_rainfall: isMaha ? 28.0 : 12.0,
+        source: "fallback_client",
+      });
+    }
+  };
+
+  // Kick off district weather fetch as soon as we have form data
+  useEffect(() => {
+    const district = formData?.district;
+    const yearNum = Number(formData?.year);
+    const weekNum = Number(formData?.week);
+    if (
+      district &&
+      Number.isFinite(yearNum) &&
+      yearNum >= 2020 &&
+      Number.isFinite(weekNum) &&
+      weekNum >= 1 &&
+      weekNum <= 53
+    ) {
+      fetchDistrictWeather(district, yearNum, weekNum);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData?.district, formData?.year, formData?.week]);
 
   /* ===============================
      BACKEND CALL (REFACTORED)
@@ -315,50 +383,55 @@ export default function OfficerPriceForecastScreen() {
         const district = validateRequiredString(formData.district, "District");
         const season = validateRequiredString(formData.season, "Season");
 
-        // ✅ Environmental data from WEATHER HOOK (not formData)
         const fuelPrice = validateRequiredNumber(
           formData.fuel_price ?? 277,
           "Fuel Price",
           0,
-          10000
+          10000,
         );
 
-        // 🔥 Use rainfallMm from hook, fallback to season default
+        // 🌤 Use district weekly-average weather (NOT GPS current weather)
+        const isMaha = normalizeSeason(season) === "Maha";
         const rainfall =
-          rainfallMm && rainfallMm > 0
-            ? rainfallMm
-            : normalizeSeason(season) === "Maha"
-            ? 30
-            : 10;
+          districtWeather && districtWeather.avg_rainfall > 0
+            ? districtWeather.avg_rainfall
+            : isMaha
+              ? 30
+              : 10;
 
-        // 🔥 Use temperature from hook, with validation
-        // ✅ RENAME: Use `temperatureValue` instead of `temperature` to avoid conflict
         let temperatureValue: number =
-          temperature ?? (normalizeSeason(season) === "Maha" ? 26 : 28);
+          districtWeather && districtWeather.avg_temperature > 0
+            ? districtWeather.avg_temperature
+            : isMaha
+              ? 26
+              : 28;
         if (temperatureValue < 10 || temperatureValue > 45) {
-          temperatureValue = normalizeSeason(season) === "Maha" ? 26 : 28;
+          temperatureValue = isMaha ? 26 : 28;
         }
 
-        // Demand index based on season
-        const demandIndex = normalizeSeason(season) === "Maha" ? 0.85 : 0.7;
+        console.log(
+          `🌡️ Officer forecast weather: temp=${temperatureValue}°C  ` +
+            `rain=${rainfall}mm  source=${districtWeather?.source ?? "fallback"}`,
+        );
 
-        // 🔥 FIX: Extract import_tax from formData.cornImportTax (string) → convert to number
+        // Demand index based on season
+        const demandIndex = isMaha ? 0.85 : 0.7;
+
+        // Extract import_tax from formData.cornImportTax (string) → number
         let importTaxValue = 0;
         if (formData.cornImportTax) {
           const sanitized = String(formData.cornImportTax)
             .replace(/[^0-9.]/g, "")
             .trim();
           importTaxValue = parseFloat(sanitized);
-          if (!Number.isFinite(importTaxValue)) {
-            importTaxValue = 0;
-          }
+          if (!Number.isFinite(importTaxValue)) importTaxValue = 0;
         }
 
         const lastPrice = validateRequiredNumber(
           formData.last_price ?? 160,
           "Last Market Price",
           0,
-          10000
+          10000,
         );
 
         const normalizedSeason = normalizeSeason(season);
@@ -369,24 +442,21 @@ export default function OfficerPriceForecastScreen() {
           district,
           season: normalizedSeason,
           fuel_price: fuelPrice,
-          rainfall: rainfall, // 🔥 FROM HOOK
-          temperature: temperatureValue, // 🔥 FROM HOOK (using renamed variable)
+          rainfall: rainfall, // 🌤 district weekly avg
+          temperature: temperatureValue, // 🌤 district weekly avg
           demand_index: demandIndex,
-          import_tax: importTaxValue, // 🔥 FROM formData.cornImportTax (converted)
+          import_tax: importTaxValue,
           last_price: lastPrice,
           weeks_ahead: 4,
         };
 
         console.log("OFFICER RF PAYLOAD:", payload);
 
-        const res = await fetch(
-          "http://192.168.8.181:8000/api/price-forecast/next-weeks",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+        const res = await fetch(`${API_URL}/api/price-forecast/next-weeks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
         const data = await res.json();
         console.log("OFFICER RF RESPONSE:", data);
@@ -404,12 +474,12 @@ export default function OfficerPriceForecastScreen() {
       }
     };
 
-    // 🔥 Wait for weather data to load before calling forecast
-    if (temperature !== null && rainfallMm !== null) {
+    // 🌤 Wait for district weather to be resolved before calling forecast
+    if (districtWeather !== null) {
       fetchForecast();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, temperature, rainfallMm]);
+  }, [districtWeather]);
 
   useEffect(() => {
     Animated.parallel([
@@ -437,7 +507,7 @@ export default function OfficerPriceForecastScreen() {
   const avgConfidence = useMemo(() => {
     if (!weeks.length) return 0;
     return Math.round(
-      weeks.reduce((s, w) => s + w.confidence_pct, 0) / weeks.length
+      weeks.reduce((s, w) => s + w.confidence_pct, 0) / weeks.length,
     );
   }, [weeks]);
 
@@ -615,7 +685,7 @@ export default function OfficerPriceForecastScreen() {
                       ? getISOWeekRange(
                           Number(formData?.year || new Date().getFullYear()),
                           bestWeek.week,
-                          language
+                          language,
                         )
                       : "-"}
                   </Text>
@@ -649,8 +719,8 @@ export default function OfficerPriceForecastScreen() {
                     {avgConfidence >= 80
                       ? t.high
                       : avgConfidence >= 60
-                      ? t.medium
-                      : t.low}
+                        ? t.medium
+                        : t.low}
                   </Text>
                 </View>
 
@@ -686,8 +756,8 @@ export default function OfficerPriceForecastScreen() {
                           trend === "Upward"
                             ? "#D1FAE5"
                             : trend === "Downward"
-                            ? "#FEE2E2"
-                            : "#FEF3C7",
+                              ? "#FEE2E2"
+                              : "#FEF3C7",
                       },
                     ]}
                   >
@@ -699,8 +769,8 @@ export default function OfficerPriceForecastScreen() {
                             trend === "Upward"
                               ? "#047857"
                               : trend === "Downward"
-                              ? "#DC2626"
-                              : "#92400E",
+                                ? "#DC2626"
+                                : "#92400E",
                         },
                       ]}
                     >
@@ -713,10 +783,10 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.chartArea}>
                   {weeks.map((w, idx) => {
                     const maxPrice = Math.max(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const minPrice = Math.min(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const height =
                       ((w.rf_price - minPrice) / (maxPrice - minPrice + 1)) *
@@ -781,8 +851,8 @@ export default function OfficerPriceForecastScreen() {
                     {trend === "Upward"
                       ? t.rising
                       : trend === "Downward"
-                      ? t.falling
-                      : t.stable}
+                        ? t.falling
+                        : t.stable}
                   </Text>
                   <Text style={styles.intelSubtext}>{t.marketSentiment}</Text>
                 </View>
@@ -838,7 +908,7 @@ export default function OfficerPriceForecastScreen() {
                           {getISOWeekRange(
                             Number(formData?.year || new Date().getFullYear()),
                             w.week,
-                            language
+                            language,
                           )}
                         </Text>
                       </View>
@@ -892,8 +962,8 @@ export default function OfficerPriceForecastScreen() {
                                     idx === 0
                                       ? "#6B7280"
                                       : w.rf_price > weeks[idx - 1].rf_price
-                                      ? "#10B981"
-                                      : "#EF4444",
+                                        ? "#10B981"
+                                        : "#EF4444",
                                 },
                               ]}
                             >
@@ -928,8 +998,8 @@ export default function OfficerPriceForecastScreen() {
                           trend === "Upward"
                             ? "#D1FAE5"
                             : trend === "Downward"
-                            ? "#FEE2E2"
-                            : "#FEF3C7",
+                              ? "#FEE2E2"
+                              : "#FEF3C7",
                       },
                     ]}
                   >
@@ -941,8 +1011,8 @@ export default function OfficerPriceForecastScreen() {
                             trend === "Upward"
                               ? "#047857"
                               : trend === "Downward"
-                              ? "#DC2626"
-                              : "#92400E",
+                                ? "#DC2626"
+                                : "#92400E",
                         },
                       ]}
                     >
@@ -955,10 +1025,10 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.chartArea}>
                   {weeks.map((w, idx) => {
                     const maxPrice = Math.max(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const minPrice = Math.min(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const height =
                       ((w.rf_price - minPrice) / (maxPrice - minPrice + 1)) *
@@ -1023,8 +1093,8 @@ export default function OfficerPriceForecastScreen() {
                     {trend === "Upward"
                       ? t.rising
                       : trend === "Downward"
-                      ? t.falling
-                      : t.stable}
+                        ? t.falling
+                        : t.stable}
                   </Text>
                   <Text style={styles.intelSubtext}>{t.marketSentiment}</Text>
                 </View>
