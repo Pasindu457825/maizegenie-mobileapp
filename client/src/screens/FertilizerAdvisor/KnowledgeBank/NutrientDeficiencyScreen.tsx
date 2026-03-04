@@ -11,7 +11,7 @@ import { ArrowLeft, BookOpen, AlertCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 interface ContentType {
     title: string;
@@ -54,6 +54,21 @@ const content: Record<Language, ContentType> = {
         phosphorusDeficiency: "Phosphorus Deficiency",
         potassiumDeficiency: "Potassium Deficiency",
     },
+    ta: {
+        title: "ஊட்டச்சத்து குறைபாடு",
+        subtitle: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்கள்",
+        sectionTitle: "ஊட்டச்சத்து குறைபாடு என்றால் என்ன?",
+        infoPoints: [
+            "நைட்ரஜன், பாஸ்பரஸ் மற்றும் பொட்டாசியம் ஆகிய முதன்மை ஊட்டச்சத்துக்களைத் தவிர, மெக்னீசியம், கால்சியம் மற்றும் கந்தகம் போன்ற இரண்டாம் நிலை ஊட்டச்சத்துக்களும் தேவை. இதன்படி, ஊட்டச்சத்து குறைபாடு தாவரத்தின் கார்போஹைட்ரேட், ப்ரோட்டீன் மற்றும் செல் செயல்பாடுகளை பாதிக்கிறது.",
+            "இந்த ஊட்டச்சத்துக்கள் குறைவாக இருக்கும்போது, பயிர் வளர்ச்சி குறைவு, முதிர்ச்சி காலம் குறைவு மற்றும் பலவீனமான கதிர் உருவாக்கம் போன்ற அறிகுறிகள் பயிரில் காணப்படலாம்.",
+            "மண்ணின் ஊட்டச்சத்து நிலை பற்றி சரியான அறிவு இல்லாமல் பயிர்ச்செய்கை மேற்கொள்ளும்போது ஊட்டச்சத்து குறைபாடு ஏற்படலாம்.",
+            "எனவே, விவசாயிகள் பயிர்ச்செய்கை செய்யும் மண்ணின் ஊட்டச்சத்து மட்டங்களை புரிந்துகொள்வது அவசியமாகும்.",
+            "மண் காரணிகளைத் தவிர, எதிர்பார்க்கப்படும் விளைச்சல் மட்டத்திற்கு பொருந்தாத பிரச்சினைகள் எழும்போது, ஊட்டச்சத்து குறைபாட்டிற்கான காரணங்களை கண்டறிவது முக்கியமாகும்.",
+        ],
+        nitrogenDeficiency: "நைட்ரஜன் குறைபாடு",
+        phosphorusDeficiency: "பாஸ்பரஸ் குறைபாடு",
+        potassiumDeficiency: "பொட்டாசியம் குறைபாடு",
+    },
 };
 
 export default function NutrientDeficiencyScreen() {
@@ -63,7 +78,7 @@ export default function NutrientDeficiencyScreen() {
     // ✅ Robust mapping (keeps the same UI/behavior, avoids wrong language if context returns "si"/"en")
     const normalized = String(lang || "").toLowerCase();
     const language: Language =
-        normalized === "sinhala" || normalized === "si" ? "si" : "en";
+        normalized === "sinhala" || normalized === "si" ? "si" : normalized === "tamil" || normalized === "ta" ? "ta" : "en";
 
     const t = content[language];
 

@@ -20,7 +20,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import * as Speech from "expo-speech";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
   si: {
@@ -213,6 +213,101 @@ const content = {
     currentGrowthStage: "Planting Stage",
     daysAfterPlanting: "Days After Planting",
   },
+  ta: {
+    title: "உர ஆலோசனை",
+    subtitle: "பகுப்பாய்வு முடிவுகள்",
+    observation: "கண்டறிப்பு",
+    cause: "காரணம்",
+    reasoning: "பகுப்பாய்வு",
+    advice: "ஆலோசனை",
+    recommendations: "பரிந்துரைக்கப்பட்ட உரங்கள்",
+    warnings: "எச்சரிக்கைகள்",
+    applyToday: "இன்று பயன்படுத்தவும்",
+    canApply: "இன்று உரம் பயன்படுத்த போதுமானது",
+    cannotApply: "இன்று உரம் பயன்படுத்த பரிந்துரைக்கப்படவில்லை",
+    detectedIssues: "கண்டறியப்பட்ட குறிப்புகள்",
+    fertilizer: "உரம்",
+    amount: "அளவு",
+    timing: "நேரம்",
+    priority: "முன்னுரிமை",
+    high: "உயர்ந்து",
+    medium: "மத்தியம்",
+    low: "குறைவு",
+    newAnalysis: "புதிய பகுப்பாய்வு",
+    yourInput: "உங்கள் உள்ளீடு",
+    officialSource: "மூலம்: DOA/CIC (Rule-Based)",
+    contactOfficer: "விவசாய அதிகாரியிடம் ஆலோசனை பெறுங்கள்",
+    contactOfficerDesc: "உங்கள் முடிவுகளை அதிகாரியுடன் பகிர்ந்துகொள்ளுங்கள்",
+    fertilizerSchedule: "உர அட்டவணை",
+    plantingDate: "நடவு தேதி",
+    basalApplication: "Basal Application",
+    basalLabel: "அடிப்படை உரம் பயன்பாடு",
+    basalFertilizers: "TSP 100kg/ha + MOP 75kg/ha + Urea 35kg/ha",
+    atPlanting: "நடவு செய்யும்போது",
+    topDress1: "Top Dress 1",
+    topDress1Label: "முதல் மேல் உரம் பயன்பாடு",
+    topDress1Fertilizers: "Urea 65kg/ha (எக்கருக்கு 26kg)",
+    nearDay25: "நாள் 25 அருகில்",
+    topDress2: "Top Dress 2",
+    topDress2Label: "இரண்டாம் மேல் உரம் பயன்பாடு",
+    topDress2Fertilizers: "Urea 65kg/ha (எக்கருக்கு 26kg)",
+    nearDay52: "நாள் 52 அருகில்",
+    scheduleInfo: "விரிவுகள்",
+    closeInfo: "மூடு",
+    addToCalendar: "Google Calendar இல் சேர்க்கவும்",
+    calendarAdded: "Calendar இல் சேர்க்கப்பட்டது",
+    noPlantingDateAlert: "நடவு தேதி இல்லை",
+    noPlantingDateMsg: "Calendar இல் சேர்க்க நடவு தேதி தேவை.",
+    infoTitle: "🌽 சோள உரம் பயன்பாடு நிலைகள்",
+    basalInfoTitle: "1️⃣ Basal Application",
+    basalInfoSubtitle: "👉 அடிப்படை உரம் / ஆரம்ப உரம்",
+    basalInfoDate: "📅 நாள் 0 – நடவு செய்யும் நேரத்தில்",
+    basalInfoMeaning: "🔹 பொருள் (விவசாயிகளுக்கு):",
+    basalInfoDesc: "சோள விதைகளை நடும்போது மண்ணில் முதலில் பயன்படுத்தப்படும் உரம்.",
+    basalInfoFertilizers: "🔹 பொதுவாக பயன்படுத்தப்படும்:",
+    basalInfoList: "• TSP\n• MOP\n• (தேவைப்பட்டால்) சிறிதளவு Urea",
+    basalInfoReason: "🎯 நோக்கம்:",
+    basalInfoReasonDesc: "• ஆரம்ப வளர்ச்சியை மேம்படுத்தல்\n• செடிகள் வலுவாக தொடங்க உதவுதல்",
+    topDress1InfoTitle: "2️⃣ Top Dressing 1",
+    topDress1InfoSubtitle: "👉 முதல் மேல் உரம் பயன்பாடு",
+    topDress1InfoDate: "📅 நாள் 25 – நடவு செய்து 3–4 வாரங்கள் பின்",
+    topDress1InfoMeaning: "🔹 பொருள்:",
+    topDress1InfoDesc: "சோள செடிகள் நன்றாக வளரத் தொடங்கும்போது மேலிருந்து பயன்படுத்தப்படும் உரம்.",
+    topDress1InfoFertilizers: "🔹 பொதுவாக பயன்படுத்தப்படும்:",
+    topDress1InfoList: "• Urea (நைட்ரஜன் உரம்)",
+    topDress1InfoReason: "🎯 நோக்கம்:",
+    topDress1InfoReasonDesc: "• இலை மற்றும் தண்டு வளர்ச்சியை அதிகரிக்கவும்\n• நல்ல விளைச்சலுக்கு முக்கியமான நிலை",
+    topDress2InfoTitle: "3️⃣ Top Dressing 2",
+    topDress2InfoSubtitle: "👉 இரண்டாம் மேல் உரம் பயன்பாடு",
+    topDress2InfoDate: "📅 நாள் 52 – நடவு செய்து 7–8 வாரங்கள் பின்",
+    topDress2InfoMeaning: "🔹 பொருள்:",
+    topDress2InfoDesc: "பூக்கள் மலரும் முன்பும் தானியங்கள் நன்றாக நிரம்பும் முன்பு இரண்டாம் முறை மேலிருந்து பயன்படுத்தப்படும் உரம்.",
+    topDress2InfoFertilizers: "🔹 பொதுவாக பயன்படுத்தப்படும்:",
+    topDress2InfoList: "• Urea (நைட்ரஜன் உரம்)",
+    topDress2InfoReason: "🎯 நோக்கம்:",
+    topDress2InfoReasonDesc: "• தானியங்களை நன்றாக நிரம்புதல்\n• விளைச்சலை அதிகரிக்கவும்",
+    speakAdvice: "🔊 ஆலோசனையை கேளுங்கள்",
+    stopSpeaking: "⏹️ நிறுத்தவும்",
+    growthStages: "வளர்ச்சி நிலைகள்",
+    growthStagesTitle: "வளர்ச்சி நிலைகள் (நடவு செய்த நாட்கள் அடிப்படையில்)",
+    days: "நாட்கள்",
+    stageEnglish: "நிலை (ஆங்கிலம்)",
+    stageSinhala: "நிலை (சிங்களம்)",
+    seedlingStage: "Seedling stage",
+    seedlingStageSi: "நாற்று நிலை",
+    vegetativeStage: "Vegetative stage",
+    vegetativeStageSi: "தாவர வளர்ச்சி நிலை",
+    kneeHeightStage: "Knee-height stage",
+    kneeHeightStageSi: "முட்டி உயரம் நிலை",
+    tasselingStage: "Tasseling/Flowering stage",
+    tasselingStageSi: "பூக்கும் நிலை",
+    grainFillingStage: "Grain filling stage",
+    grainFillingStageSi: "தானியம் நிரம்பும் நிலை",
+    harvestTime: "Harvest time",
+    harvestTimeSi: "அறுவடை காலம்",
+    currentGrowthStage: "நடப்பு வளர்ச்சி நிலை",
+    daysAfterPlanting: "நடவு செய்த நாட்கள்",
+  },
 };
 
 export default function RuleBasedAdvisoryResultsScreen() {
@@ -225,7 +320,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
   };
 
   const { language: contextLang } = useLanguage();
-  const language: Language = contextLang === "sinhala" ? "si" : "en";
+  const language: Language = contextLang === "sinhala" ? "si" : contextLang === "tamil" ? "ta" : "en";
   const t = content[language];
 
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -247,7 +342,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
       let stageName = "";
-      
+
       if (diffDays >= 0 && diffDays <= 10) {
         stageName = language === "si" ? t.seedlingStageSi : t.seedlingStage;
       } else if (diffDays > 10 && diffDays <= 25) {
@@ -470,25 +565,25 @@ export default function RuleBasedAdvisoryResultsScreen() {
       const plantingDate = new Date(plantingDateStr);
       const topDress1Date = new Date(plantingDate);
       topDress1Date.setDate(topDress1Date.getDate() + 25);
-      
+
       // Calculate date range (±2 days)
       const topDress1Start = new Date(topDress1Date);
       topDress1Start.setDate(topDress1Start.getDate() - 2);
       const topDress1End = new Date(topDress1Date);
       topDress1End.setDate(topDress1End.getDate() + 2);
-      
+
       const topDress1Title = `${t.topDress1} - ${t.topDress1Label}`;
       const topDress1Details = language === "si"
         ? "බඩ ඉරිඟු වගාව සඳහා පළමු ඉහළ පොහොර යෙදීම (Urea)"
         : "First top dressing for maize (Urea)";
-      
+
       const topDress1URL = buildGoogleCalendarURL(topDress1Title, topDress1Details, topDress1Start, topDress1End);
       await Linking.openURL(topDress1URL);
     } catch (error) {
       console.error("Error adding to calendar:", error);
       Alert.alert(
         language === "si" ? "දෝෂයක්" : "Error",
-        language === "si" 
+        language === "si"
           ? "Calendar එකට එක් කිරීමේදී දෝෂයක් ඇතිවිය."
           : "An error occurred while adding to calendar."
       );
@@ -510,25 +605,25 @@ export default function RuleBasedAdvisoryResultsScreen() {
       const plantingDate = new Date(plantingDateStr);
       const topDress2Date = new Date(plantingDate);
       topDress2Date.setDate(topDress2Date.getDate() + 52);
-      
+
       // Calculate date range (±2 days)
       const topDress2Start = new Date(topDress2Date);
       topDress2Start.setDate(topDress2Start.getDate() - 2);
       const topDress2End = new Date(topDress2Date);
       topDress2End.setDate(topDress2End.getDate() + 2);
-      
+
       const topDress2Title = `${t.topDress2} - ${t.topDress2Label}`;
       const topDress2Details = language === "si"
         ? "බඩ ඉරිඟු වගාව සඳහා දෙවන ඉහළ පොහොර යෙදීම (Urea)"
         : "Second top dressing for maize (Urea)";
-      
+
       const topDress2URL = buildGoogleCalendarURL(topDress2Title, topDress2Details, topDress2Start, topDress2End);
       await Linking.openURL(topDress2URL);
     } catch (error) {
       console.error("Error adding to calendar:", error);
       Alert.alert(
         language === "si" ? "දෝෂයක්" : "Error",
-        language === "si" 
+        language === "si"
           ? "Calendar එකට එක් කිරීමේදී දෝෂයක් ඇතිවිය."
           : "An error occurred while adding to calendar."
       );
@@ -546,44 +641,44 @@ export default function RuleBasedAdvisoryResultsScreen() {
 
     try {
       const plantingDate = new Date(plantingDateStr);
-      
+
       // DOA Fertilizer Schedule (from cornKnowledgeBase.ts):
       // Basal: At planting (day 0)
       // Top Dress 1: 3-4 weeks after planting (day 25)
       // Top Dress 2: 7-8 weeks after planting (day 52)
-      
+
       const basalDate = new Date(plantingDate); // Day 0
-      
+
       const topDress1Date = new Date(plantingDate);
       topDress1Date.setDate(topDress1Date.getDate() + 25); // 25 days after planting
-      
+
       // Calculate date range for Top Dress 1 (±2 days)
       const topDress1Start = new Date(topDress1Date);
       topDress1Start.setDate(topDress1Start.getDate() - 2);
       const topDress1End = new Date(topDress1Date);
       topDress1End.setDate(topDress1End.getDate() + 2);
-      
+
       const topDress2Date = new Date(plantingDate);
       topDress2Date.setDate(topDress2Date.getDate() + 52); // 52 days after planting
-      
+
       // Calculate date range for Top Dress 2 (±2 days)
       const topDress2Start = new Date(topDress2Date);
       topDress2Start.setDate(topDress2Start.getDate() - 2);
       const topDress2End = new Date(topDress2Date);
       topDress2End.setDate(topDress2End.getDate() + 2);
-      
+
       return {
         planting: plantingDate.toLocaleDateString(),
         basal: { date: basalDate.toLocaleDateString(), days: 0 },
-        topDress1: { 
+        topDress1: {
           dateStart: topDress1Start.toLocaleDateString(),
           dateEnd: topDress1End.toLocaleDateString(),
-          days: 25 
+          days: 25
         },
-        topDress2: { 
+        topDress2: {
           dateStart: topDress2Start.toLocaleDateString(),
           dateEnd: topDress2End.toLocaleDateString(),
-          days: 52 
+          days: 52
         },
       };
     } catch (error) {
@@ -748,26 +843,26 @@ export default function RuleBasedAdvisoryResultsScreen() {
             </View>
 
             {data.recommendations.map((rec: any, index: number) => (
-            <View key={index} style={styles.recommendationCard}>
-              <View style={styles.recommendationHeader}>
-                <Text style={styles.recName}>{rec.fertilizer}</Text>
-                <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(rec.priority) }]}>
-                  <Text style={styles.priorityText}>{priorityLabel(rec.priority)}</Text>
+              <View key={index} style={styles.recommendationCard}>
+                <View style={styles.recommendationHeader}>
+                  <Text style={styles.recName}>{rec.fertilizer}</Text>
+                  <View style={[styles.priorityBadge, { backgroundColor: getPriorityColor(rec.priority) }]}>
+                    <Text style={styles.priorityText}>{priorityLabel(rec.priority)}</Text>
+                  </View>
                 </View>
-              </View>
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t.amount}</Text>
-                <Text style={styles.detailValue}>{rec.amount}</Text>
-              </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t.amount}</Text>
+                  <Text style={styles.detailValue}>{rec.amount}</Text>
+                </View>
 
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>{t.timing}</Text>
-                <Text style={styles.detailValue}>{rec.timing}</Text>
-              </View>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>{t.timing}</Text>
+                  <Text style={styles.detailValue}>{rec.timing}</Text>
+                </View>
 
-              {rec.reason ? <Text style={styles.reasonLine}>{rec.reason}</Text> : null}
-            </View>
+                {rec.reason ? <Text style={styles.reasonLine}>{rec.reason}</Text> : null}
+              </View>
             ))}
           </View>
         ) : null}
@@ -783,7 +878,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
             <View style={styles.infoModalContent}>
               <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.infoModalTitle}>{t.infoTitle}</Text>
-                
+
                 {/* Basal Application Info */}
                 <View style={styles.infoSection}>
                   <Text style={styles.infoSectionTitle}>{t.basalInfoTitle}</Text>
@@ -823,7 +918,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
                   <Text style={styles.infoSectionText}>{t.topDress2InfoReasonDesc}</Text>
                 </View>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.closeInfoButton}
                   onPress={() => setShowInfoModal(false)}
                 >
@@ -860,7 +955,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
                 <Leaf size={20} color="#10b981" />
                 <Text style={styles.scheduleTitle}>{t.fertilizerSchedule}</Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.infoTextButton}
                 onPress={() => setShowInfoModal(true)}
                 activeOpacity={0.7}
@@ -868,7 +963,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
                 <Text style={styles.infoTextButtonText}>{t.scheduleInfo}</Text>
               </TouchableOpacity>
             </View>
-            
+
             {/* Planting Date - Centered */}
             <View style={styles.plantingDateContainer}>
               <Calendar size={20} color="#6B7280" />
@@ -905,7 +1000,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
                   {fertilizerDates.topDress1.dateStart} - {fertilizerDates.topDress1.dateEnd}
                 </Text>
                 <Text style={styles.scheduleDays}>{t.nearDay25}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.scheduleCalendarButton}
                   onPress={addTopDress1ToCalendar}
                   activeOpacity={0.8}
@@ -928,7 +1023,7 @@ export default function RuleBasedAdvisoryResultsScreen() {
                   {fertilizerDates.topDress2.dateStart} - {fertilizerDates.topDress2.dateEnd}
                 </Text>
                 <Text style={styles.scheduleDays}>{t.nearDay52}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.scheduleCalendarButton}
                   onPress={addTopDress2ToCalendar}
                   activeOpacity={0.8}
@@ -1347,7 +1442,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
-  
+
   // Growth Stages Table Styles
   growthStagesToggle: {
     flexDirection: "row",
@@ -1421,7 +1516,7 @@ const styles = StyleSheet.create({
     color: "#374151",
     textAlign: "center",
   },
-  
+
   // Growth Stage Display Card Styles
   growthStageCard: {
     backgroundColor: "#ECFDF5",
@@ -1457,7 +1552,7 @@ const styles = StyleSheet.create({
     color: "#047857",
     fontWeight: "600",
   },
-  
+
   newAnalysisButton: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, alignItems: "center", borderWidth: 2, borderColor: "#10B981", marginTop: 8 },
   newAnalysisButtonText: { fontSize: 16, fontWeight: "700", color: "#10B981" },
 });

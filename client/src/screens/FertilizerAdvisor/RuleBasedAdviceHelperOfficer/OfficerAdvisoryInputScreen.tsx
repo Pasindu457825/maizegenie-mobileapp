@@ -25,7 +25,7 @@ import { useLanguage } from "../../../context/LanguageContext";
 
 const API_URL = process.env.EXPO_PUBLIC_API_BASE;
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
   si: {
@@ -70,45 +70,66 @@ const content = {
     errorTitle: "Error",
     errorMessage: "Please fill all required fields",
   },
+  ta: {
+    title: "அதிகாரி ஆலோசனை",
+    subtitle: "கட்டமைக்கப்பட்ட பகுப்பாய்வு",
+    growthStage: "வளர்ச்சி நிலை",
+    soilType: "மண் வகை",
+    fieldSize: "வயல் அளவு (எக்கர்)",
+    symptoms: "அறிகுறிகள் (விருப்பம்)",
+    weatherCondition: "காலநிலை",
+    location: "இடம் (விருப்பம்)",
+    analyze: "பகுப்பாய்வு செய்க",
+    analyzing: "பகுப்பாய்வு செய்யப்படுகிறது...",
+    selectGrowthStage: "வளர்ச்சி நிலையைத் தேர்ந்தெடுக்கவும்",
+    selectSoilType: "மண் வகையைத் தேர்ந்தெடுக்கவும்",
+    selectWeather: "காலநிலையைத் தேர்ந்தெடுக்கவும்",
+    enterFieldSize: "வயல் அளவை எக்கரில் உள்ளிடவும்",
+    enterLocation: "இடத்தை உள்ளிடவும்",
+    selectSymptoms: "கண்டறியப்பட்ட அறிகுறிகளைத் தேர்ந்தெடுக்கவும்",
+    formDescription: "கட்டமைக்கப்பட்ட தரவுகளைப் பயன்படுத்தி விரிவான உர பரிந்துரைகளைப் பெறுங்கள்",
+    errorTitle: "பிழை",
+    errorMessage: "தயவு செய்து அனைத்து தேவையான புலங்களை நிரப்பவும்",
+  },
 };
 
 const growthStages = [
-  { id: "land_prep", labelEn: "Land Preparation", labelSi: "ඉඩම් සකස් කිරීම" },
-  { id: "planting", labelEn: "Planting", labelSi: "බීජ රෝපණය" },
-  { id: "early_growth", labelEn: "Early Growth (0-20 days)", labelSi: "මුල් වර්ධනය (දින 0-20)" },
-  { id: "vegetative", labelEn: "Vegetative (20-60 days)", labelSi: "ශාක වර්ධනය (දින 20-60)" },
-  { id: "reproductive", labelEn: "Reproductive (60-90 days)", labelSi: "මල් හා කොබ් (දින 60-90)" },
-  { id: "maturity", labelEn: "Maturity/Harvest", labelSi: "අස්වනු අවධිය" },
+  { id: "land_prep", labelEn: "Land Preparation", labelSi: "ඉඩම් සකස් කිරීම", labelTa: "நிலம் தயாரிப்பு" },
+  { id: "planting", labelEn: "Planting", labelSi: "බීජ රෝපණය", labelTa: "நடுகை" },
+  { id: "early_growth", labelEn: "Early Growth (0-20 days)", labelSi: "මුල් වර්ධනය (දින 0-20)", labelTa: "ஆரம்ப வளர்ச்சி (0-20 நாட்கள்)" },
+  { id: "vegetative", labelEn: "Vegetative (20-60 days)", labelSi: "ශාක වර්ධනය (දින 20-60)", labelTa: "தாவர வளர்ச்சி (20-60 நாட்கள்)" },
+  { id: "reproductive", labelEn: "Reproductive (60-90 days)", labelSi: "මල් හා කොබ් (දින 60-90)", labelTa: "இனப்பெருக்கம் (60-90 நாட்கள்)" },
+  { id: "maturity", labelEn: "Maturity/Harvest", labelSi: "අස්වනු අවධිය", labelTa: "முதிர்ச்சி/அறுவடை" },
 ];
 
 const soilTypes = [
-  { id: "sandy", labelEn: "Sandy Soil", labelSi: "වැලි පස" },
-  { id: "clay", labelEn: "Clay Soil", labelSi: "මැටි පස" },
-  { id: "loamy", labelEn: "Loamy Soil (Optimal)", labelSi: "ලෝම් පස (හොඳම)" },
-  { id: "acidic", labelEn: "Acidic Soil", labelSi: "ආම්ලික පස" },
+  { id: "sandy", labelEn: "Sandy Soil", labelSi: "වැලි පස", labelTa: "மணல் மண்" },
+  { id: "clay", labelEn: "Clay Soil", labelSi: "මැටි පස", labelTa: "களிமண் மண்" },
+  { id: "loamy", labelEn: "Loamy Soil (Optimal)", labelSi: "ලෝම් පස (හොඳම)", labelTa: "களிமண் கலவை மண் (சிறந்தது)" },
+  { id: "acidic", labelEn: "Acidic Soil", labelSi: "ආම්ලික පස", labelTa: "அமில மண்" },
 ];
 
-const weatherConditions = [
-  { id: "normal", labelEn: "Normal", labelSi: "සාමාන්‍ය" },
-  { id: "heavy_rain", labelEn: "Heavy Rain", labelSi: "අධික වර්ෂාව" },
-  { id: "drought", labelEn: "Drought", labelSi: "නියඟය" },
-  { id: "flooding", labelEn: "Flooding", labelSi: "ගංවතුර" },
+const weatherConditions: { id: string; labelEn: string; labelSi: string; labelTa: string }[] = [
+  { id: "normal", labelEn: "Normal", labelSi: "සාමාන්‍ය", labelTa: "சாதாரணமான" },
+  { id: "heavy_rain", labelEn: "Heavy Rain", labelSi: "අධික වර්ෂාව", labelTa: "அதிக மழை" },
+  { id: "drought", labelEn: "Drought", labelSi: "නියඟය", labelTa: "வறட்சி" },
+  { id: "flooding", labelEn: "Flooding", labelSi: "ගංවතුර", labelTa: "வெள்ளப்பெருக்கி" },
 ];
 
 const symptomOptions = [
-  { id: "yellow_leaves", labelEn: "Yellow Leaves", labelSi: "කහ කොළ" },
-  { id: "weak_plants", labelEn: "Weak Plants", labelSi: "දුර්වල පැල" },
-  { id: "stunted_growth", labelEn: "Stunted Growth", labelSi: "වර්ධනය අඩු වීම" },
-  { id: "nitrogen_deficiency", labelEn: "Nitrogen Deficiency", labelSi: "නයිට්‍රජන් ඌනතාවය" },
-  { id: "phosphorus_deficiency", labelEn: "Phosphorus Deficiency", labelSi: "පොස්පරස් ඌනතාවය" },
-  { id: "potassium_deficiency", labelEn: "Potassium Deficiency", labelSi: "පොටෑසියම් ඌනතාවය" },
+  { id: "yellow_leaves", labelEn: "Yellow Leaves", labelSi: "කහ කොළ", labelTa: "மஞ்சள் இலைகள்" },
+  { id: "weak_plants", labelEn: "Weak Plants", labelSi: "දුර්වල පැල", labelTa: "பலவீனமான செடிகள்" },
+  { id: "stunted_growth", labelEn: "Stunted Growth", labelSi: "වර්ධනය අඩු වීම", labelTa: "வளர்ச்சி குறைவு" },
+  { id: "nitrogen_deficiency", labelEn: "Nitrogen Deficiency", labelSi: "නයිට්‍රජන් ඌනතාවය", labelTa: "நைட்ரஜன் குறைபாடு" },
+  { id: "phosphorus_deficiency", labelEn: "Phosphorus Deficiency", labelSi: "පොස්පරස් ඌනතාවය", labelTa: "பாஸ்பரம் குறைபாடு" },
+  { id: "potassium_deficiency", labelEn: "Potassium Deficiency", labelSi: "පොටෑසියම් ඌනතාවය", labelTa: "பொட்டாசியம் குறைபாடு" },
 ];
 
 export default function OfficerAdvisoryInputScreen() {
   const navigation = useNavigation<any>();
   const { user } = useApp();
   const { language: lang } = useLanguage();
-  const language: Language = lang === "sinhala" ? "si" : "en";
+  const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
   const [loading, setLoading] = useState(false);
 
   const [growthStage, setGrowthStage] = useState("");
@@ -259,7 +280,7 @@ export default function OfficerAdvisoryInputScreen() {
                 <Text
                   style={[styles.optionText, growthStage === stage.id && styles.optionTextActive]}
                 >
-                  {language === "si" ? stage.labelSi : stage.labelEn}
+                  {language === "si" ? stage.labelSi : language === "ta" ? stage.labelTa : stage.labelEn}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -279,7 +300,7 @@ export default function OfficerAdvisoryInputScreen() {
                 onPress={() => setSoilType(soil.id)}
               >
                 <Text style={[styles.optionText, soilType === soil.id && styles.optionTextActive]}>
-                  {language === "si" ? soil.labelSi : soil.labelEn}
+                  {language === "si" ? soil.labelSi : language === "ta" ? soil.labelTa : soil.labelEn}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -322,7 +343,7 @@ export default function OfficerAdvisoryInputScreen() {
                     weatherCondition === weather.id && styles.optionTextActive,
                   ]}
                 >
-                  {language === "si" ? weather.labelSi : weather.labelEn}
+                  {language === "si" ? weather.labelSi : language === "ta" ? weather.labelTa : weather.labelEn}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -351,7 +372,7 @@ export default function OfficerAdvisoryInputScreen() {
                     symptoms.includes(symptom.id) && styles.symptomTextActive,
                   ]}
                 >
-                  {language === "si" ? symptom.labelSi : symptom.labelEn}
+                  {language === "si" ? symptom.labelSi : language === "ta" ? symptom.labelTa : symptom.labelEn}
                 </Text>
               </TouchableOpacity>
             ))}

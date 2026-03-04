@@ -24,7 +24,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
   si: {
@@ -93,6 +93,39 @@ const content = {
     npkRatio: "NPK Ratio",
     costEstimate: "Cost Estimate",
   },
+  ta: {
+    title: "அதிகாரி பகுப்பாய்வு முடிவுகள்",
+    subtitle: "விரிவான பரிந்துரைகள்",
+    fieldDetails: "வயல் விரிவுகள்",
+    growthStage: "வளர்ச்சி நிலை",
+    soilType: "மண் வகை",
+    fieldSize: "வயல் அளவு",
+    applyToday: "இன்று பயன்படுத்தவும்",
+    canApply: "பயன்படுத்த போதுமானது",
+    cannotApply: "பரிந்துரைக்கப்படவில்லை",
+    observation: "கண்டறிப்பு",
+    cause: "காரணம்",
+    reasoning: "தர்க்கம்",
+    recommendations: "உர பரிந்துரைகள்",
+    warnings: "எச்சரிக்கைகள்",
+    soilAdjustment: "மண் சரிசெய்தல்",
+    adjustment: "சரிசெய்தல்",
+    risk: "அபாயம்",
+    applicationSchedule: "பயன்பாட்டு அட்டவணை",
+    day: "நாள்",
+    activity: "செயல்பாடு",
+    fertilizer: "உரம்",
+    amount: "அளவு",
+    costAnalysis: "செலவு பகுப்பாய்வு",
+    totalCost: "மொத்த செலவு",
+    breakdown: "விரிவாக்கம்",
+    advice: "ஆலோசனை",
+    newAnalysis: "புதிய பகுப்பாய்வு",
+    priority: "முன்னுரிமை",
+    timing: "நேரம்",
+    npkRatio: "NPK விகிதம்",
+    costEstimate: "செலவு மதிப்பீடு",
+  },
 };
 
 export default function OfficerAdvisoryResultsScreen() {
@@ -101,7 +134,7 @@ export default function OfficerAdvisoryResultsScreen() {
   const { data, language: lang } = route.params;
 
   const { language: contextLang } = useLanguage();
-  const language: Language = contextLang === "sinhala" ? "si" : "en";
+  const language: Language = contextLang === "sinhala" ? "si" : contextLang === "tamil" ? "ta" : "en";
   const t = content[language];
 
   const getPriorityColor = (priority: string) => {
@@ -318,7 +351,7 @@ export default function OfficerAdvisoryResultsScreen() {
                 ]}
               >
                 <Text style={styles.warningText}>
-                  {language === "si" ? warning.message_si : warning.message_en}
+                  {language === "si" ? warning.message_si : language === "ta" ? (warning.message_ta || warning.message_en) : warning.message_en}
                 </Text>
               </View>
             ))}

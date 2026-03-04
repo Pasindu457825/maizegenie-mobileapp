@@ -12,7 +12,7 @@ import { ArrowLeft, BookOpen, AlertCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
     si: {
@@ -29,12 +29,19 @@ const content = {
         nutrientManagement: "Nutrient Management",
         nutrientDeficiency: "Nutrient Deficiency",
     },
+    ta: {
+        title: "உர வழிகாட்டுதல்கள்",
+        subtitle: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்கள்",
+        sectionTitle: "ஊட்டச்சத்து தகவல்கள்",
+        nutrientManagement: "ஊட்டச்சத்து மேலாண்மை",
+        nutrientDeficiency: "ஊட்டச்சத்து குறைபாடு",
+    },
 };
 
 export default function KnowledgeBankMainScreen() {
     const navigation = useNavigation<any>();
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
     const t = content[language];
 
     const handleNutrientManagement = () => {
