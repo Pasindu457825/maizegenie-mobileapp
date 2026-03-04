@@ -228,6 +228,21 @@ export default function OfficerPriceForecastScreen() {
       volatilityText3: "සැලසුම් සඳහා ස්ථාවර තත්වයන්",
       volatilityText4: "කාල තීරණවල ප්‍රවේශම් වන්න",
       week: "සතිය",
+      summaryStats: "සාරාංශ සංඛ්‍යාලේඛන",
+      averagePrice: "සාමාන්‍ය මිල",
+      medianPrice: "මධ්‍යස්ථ මිල",
+      riskAssessment: "අවදානම් තක්සේරුව",
+      downside: "පහළ පැත්ත අවදානම",
+      upside: "ඉහළ පැත්ත විභවය",
+      riskReward: "ප්‍රතිලාභ අවදානම",
+      priceMovement: "මිල චලනය",
+      forecastMeta: "පුරෝකථන විස්තර",
+      generatedOn: "ජනිතයි",
+      modelInputs: "ආකෘති ඉතුරුවල",
+      dataFreshness: "දත්ත නතුනකම",
+      confidenceAnalysis: "විශ්වාස විශ්ලේෂණය",
+      forecastQuality: "පුරෝකථන ගුණ",
+      justNow: "දැන්ම",
     },
     en: {
       title: "Officer Price Forecast",
@@ -286,6 +301,21 @@ export default function OfficerPriceForecastScreen() {
       volatilityText3: "Stable conditions for planning.",
       volatilityText4: "Exercise caution in timing decisions.",
       week: "Week",
+      summaryStats: "Summary Statistics",
+      averagePrice: "Average Price",
+      medianPrice: "Median Price",
+      riskAssessment: "Risk Assessment",
+      downside: "Downside Risk",
+      upside: "Upside Potential",
+      riskReward: "Risk/Reward Ratio",
+      priceMovement: "Price Movement Analysis",
+      forecastMeta: "Forecast Metadata",
+      generatedOn: "Generated",
+      modelInputs: "Model Inputs",
+      dataFreshness: "Data Freshness",
+      confidenceAnalysis: "Confidence Analysis",
+      forecastQuality: "Forecast Quality",
+      justNow: "Just now",
     },
   } as const;
 
@@ -528,6 +558,66 @@ export default function OfficerPriceForecastScreen() {
     const variance =
       prices.reduce((sum, p) => sum + Math.pow(p - avg, 2), 0) / prices.length;
     return Math.sqrt(variance);
+  }, [weeks]);
+
+  // 📊 ADVANCED OFFICER ANALYTICS
+  const summaryStats = useMemo(() => {
+    if (!weeks.length) return { mean: 0, median: 0, min: 0, max: 0, range: 0 };
+    const prices = weeks.map((w) => w.rf_price).sort((a, b) => a - b);
+    const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const median =
+      prices.length % 2 === 0
+        ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2
+        : prices[Math.floor(prices.length / 2)];
+    return {
+      mean,
+      median,
+      min: prices[0],
+      max: prices[prices.length - 1],
+      range: prices[prices.length - 1] - prices[0],
+    };
+  }, [weeks]);
+
+  const riskAssessment = useMemo(() => {
+    if (!weeks.length || !bestWeek) return { downside: 0, upside: 0, ratio: 0 };
+    const firstWeekPrice = weeks[0].rf_price;
+    const bestPrice = bestWeek.rf_price;
+    const worstPrice = Math.min(...weeks.map((w) => w.rf_price));
+
+    const downsideRisk = ((firstWeekPrice - worstPrice) / firstWeekPrice) * 100;
+    const upsidePotential =
+      ((bestPrice - firstWeekPrice) / firstWeekPrice) * 100;
+    const ratio = downsideRisk > 0 ? upsidePotential / downsideRisk : 0;
+
+    return {
+      downside: downsideRisk,
+      upside: upsidePotential,
+      ratio: ratio,
+    };
+  }, [weeks, bestWeek]);
+
+  const priceMovementAnalysis = useMemo(() => {
+    if (weeks.length < 2) return [];
+    return weeks.map((w, idx) => {
+      if (idx === 0) return { week: w.week, change: 0, changePercent: 0 };
+      const prevPrice = weeks[idx - 1].rf_price;
+      const change = w.rf_price - prevPrice;
+      const changePercent = (change / prevPrice) * 100;
+      return { week: w.week, change, changePercent };
+    });
+  }, [weeks]);
+
+  const confidenceMetrics = useMemo(() => {
+    if (!weeks.length) return { min: 0, max: 0, avg: 0, consistency: 0 };
+    const confidences = weeks.map((w) => w.confidence_pct);
+    const min = Math.min(...confidences);
+    const max = Math.max(...confidences);
+    const avg = confidences.reduce((a, b) => a + b, 0) / confidences.length;
+    const variance =
+      confidences.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) /
+      confidences.length;
+    const stdev = Math.sqrt(variance);
+    return { min, max, avg: Math.round(avg), consistency: 100 - stdev }; // consistency = 100 - stdev
   }, [weeks]);
 
   const getTrendTranslation = () => {
@@ -1163,6 +1253,178 @@ export default function OfficerPriceForecastScreen() {
                   </View>
                 </View>
               </View>
+
+              {/* ADVANCED: Summary Statistics */}
+              <Text style={styles.sectionTitle}>📊 {t.summaryStats}</Text>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>{t.averagePrice}</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.mean)}
+                  </Text>
+                  <Text style={styles.statMeta}>
+                    Mean of {weeks.length} weeks
+                  </Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>{t.medianPrice}</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.median)}
+                  </Text>
+                  <Text style={styles.statMeta}>Middle value</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Min Price</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.min)}
+                  </Text>
+                  <Text style={styles.statMeta}>Lowest forecast</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Max Price</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.max)}
+                  </Text>
+                  <Text style={styles.statMeta}>Highest forecast</Text>
+                </View>
+              </View>
+
+              {/* ADVANCED: Risk Assessment */}
+              <Text style={styles.sectionTitle}>⚠️ {t.riskAssessment}</Text>
+              <View style={styles.riskCard}>
+                <View style={styles.riskRow}>
+                  <View style={styles.riskMetric}>
+                    <Text style={styles.riskLabel}>{t.downside}</Text>
+                    <View style={styles.riskValue}>
+                      <Text style={[styles.riskNumber, { color: "#EF4444" }]}>
+                        {riskAssessment.downside.toFixed(1)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.riskMeta}>Maximum loss risk</Text>
+                  </View>
+                  <View style={styles.riskMetric}>
+                    <Text style={styles.riskLabel}>{t.upside}</Text>
+                    <View style={styles.riskValue}>
+                      <Text style={[styles.riskNumber, { color: "#10B981" }]}>
+                        +{riskAssessment.upside.toFixed(1)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.riskMeta}>Maximum gain potential</Text>
+                  </View>
+                  <View style={styles.riskMetric}>
+                    <Text style={styles.riskLabel}>{t.riskReward}</Text>
+                    <View style={styles.riskValue}>
+                      <Text style={[styles.riskNumber, { color: "#3B82F6" }]}>
+                        {riskAssessment.ratio.toFixed(2)}x
+                      </Text>
+                    </View>
+                    <Text style={styles.riskMeta}>Reward vs risk</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ADVANCED: Price Movement Analysis */}
+              <Text style={styles.sectionTitle}>📈 {t.priceMovement}</Text>
+              <View style={styles.movementCard}>
+                {priceMovementAnalysis.map((item, idx) => (
+                  <View key={idx} style={styles.movementRow}>
+                    <Text style={styles.movementWeek}>W{item.week}</Text>
+                    <View style={styles.movementBar}>
+                      <View
+                        style={[
+                          styles.movementFill,
+                          {
+                            width: `${Math.abs(item.changePercent) * 10}%`,
+                            backgroundColor:
+                              item.changePercent > 0 ? "#10B981" : "#EF4444",
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.movementValue,
+                        {
+                          color: item.changePercent > 0 ? "#10B981" : "#EF4444",
+                        },
+                      ]}
+                    >
+                      {item.changePercent > 0 ? "+" : ""}
+                      {item.changePercent.toFixed(2)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* ADVANCED: Confidence Analysis */}
+              <Text style={styles.sectionTitle}>🎯 {t.confidenceAnalysis}</Text>
+              <View style={styles.confidenceCard}>
+                <View style={styles.confidenceRow}>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si" ? "අවම" : "Minimum"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.min.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si" ? "සාමාන්‍ය" : "Average"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.avg}%
+                    </Text>
+                  </View>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si" ? "උපරිම" : "Maximum"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.max.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si" ? "සমතාවය" : "Consistency"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.consistency.toFixed(0)}%
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ADVANCED: Forecast Metadata */}
+              <Text style={styles.sectionTitle}>ℹ️ {t.forecastMeta}</Text>
+              <View style={styles.metadataCard}>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>{t.generatedOn}</Text>
+                  <Text style={styles.metadataValue}>{t.justNow}</Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>{t.district}</Text>
+                  <Text style={styles.metadataValue}>
+                    {formData?.district || "-"}
+                  </Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>{t.season}</Text>
+                  <Text style={styles.metadataValue}>
+                    {normalizeSeason(formData?.season || "")}
+                  </Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Weeks Forecast</Text>
+                  <Text style={styles.metadataValue}>{weeks.length}</Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Fuel Price (Input)</Text>
+                  <Text style={styles.metadataValue}>
+                    {formatRs(formData?.fuel_price)}
+                  </Text>
+                </View>
+              </View>
             </>
           )}
 
@@ -1608,6 +1870,182 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     lineHeight: 20,
+  },
+  // NEW: Advanced Analytics Styles
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  statMeta: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+  },
+  riskCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    marginBottom: 20,
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  riskRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  riskMetric: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  riskLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  riskValue: {
+    marginBottom: 8,
+  },
+  riskNumber: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  riskMeta: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  movementCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 20,
+  },
+  movementRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  movementWeek: {
+    width: 35,
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  movementBar: {
+    flex: 1,
+    height: 24,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  movementFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  movementValue: {
+    width: 60,
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "right",
+  },
+  confidenceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  confidenceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  confidenceMeter: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  confidenceLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  confidenceValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#047857",
+  },
+  metadataCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 20,
+  },
+  metadataRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  metadataLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+  metadataValue: {
+    fontSize: 13,
+    color: "#1F2937",
+    fontWeight: "500",
   },
   center: {
     flex: 1,
