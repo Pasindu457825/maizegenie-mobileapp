@@ -2216,34 +2216,6 @@ const PriceAdvisorScreen: React.FC = () => {
                 </View>
 
                 <View style={styles.combinedSummary}>
-                  {/* Top badges */}
-                  <View style={styles.badgeRow}>
-                    {priceWindowResult?.best_option?.label && (
-                      <View
-                        style={[
-                          styles.badge,
-                          priceWindowResult.best_option.label === "STRONG"
-                            ? styles.badgeStrong
-                            : priceWindowResult.best_option.label === "MODERATE"
-                              ? styles.badgeModerate
-                              : styles.badgeWeak,
-                        ]}
-                      >
-                        <Text style={styles.badgeText}>
-                          {priceWindowResult.best_option.label}
-                        </Text>
-                      </View>
-                    )}
-
-                    {priceWindowResult?.best_option?.confidence && (
-                      <View style={[styles.badge, styles.badgeConfidence]}>
-                        <Text style={styles.badgeText}>
-                          Confidence: {priceWindowResult.best_option.confidence}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
                   {/* Main recommendation */}
                   <Text style={styles.mainActionText}>
                     {computedDelayWeeks == null
