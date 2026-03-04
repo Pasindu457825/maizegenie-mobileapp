@@ -45,6 +45,7 @@ from official_news.official_news_router import router as official_news_router
 from pro_advisor.router import router as pro_advisor_router
 from advicerequests.router import router as advice_requests_router
 from soilextraction.router import router as soil_extraction_router
+from subscription.router import router as subscription_router
 
 
 
@@ -102,3 +103,4 @@ app.include_router(official_news_router)
 app.include_router(pro_advisor_router)
 app.include_router(advice_requests_router)  # Farmer Advice Requests
 app.include_router(soil_extraction_router)  # Soil Data Extraction from PDF/Image
+app.include_router(subscription_router)  # Subscription and sandbox payment

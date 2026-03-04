@@ -37,6 +37,7 @@ import {
   Smartphone,
   Cloud,
   Bug,
+  Crown,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../context/LanguageContext";
@@ -50,13 +51,15 @@ const { width } = Dimensions.get("window");
 const PEST_OFFICER_EMAIL = "pestofficer@gmail.com";
 
 const ProfileScreen = () => {
-  const { user, signOut, diseaseModel, setDiseaseModel } = useApp();
+  const { user, signOut, diseaseModel, setDiseaseModel, refreshProfile } =
+    useApp();
   const { language, setLanguage } = useLanguage();
   const navigation = useNavigation<any>();
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -86,12 +89,26 @@ const ProfileScreen = () => {
       fast: "වේගවත්",
       offline: "අන්තර්ජාලය නොමැති",
       highAccuracy: "ඉහළ නිරවද්‍යතාව",
+      locked: "අගුලු දමා ඇත",
+      paidUser: "Paid User",
+      freeUser: "Free User",
+      subscriptionEnds: "Subscription Ends",
       adminPestForum: "පළිබෝධ සංසදය",
       adminPestForumDesc: "පළිබෝධ දත්ත කළමනාකරණය",
       settings: "සැකසුම්",
       managePreferences: "ඔබේ අභිමතයන් කළමනාකරණය කරන්න",
       language: "භාෂාව",
       chooseLanguage: "භාෂාව තෝරන්න",
+      subscriptions: "දායකත්වය",
+      subscriptionDetails: "දායකත්ව තොරතුරු",
+      subscriptionStatus: "තත්ත්වය",
+      currentPlan: "වත්මන් සැලසුම",
+      paidDate: "ගෙවූ දිනය",
+      lastPaidAmount: "අවසන් ගෙවූ මුදල",
+      activeStatus: "සක්‍රීය",
+      inactiveStatus: "අක්‍රීය",
+      advancedAccess: "Advanced මාදිලි ප්‍රවේශය",
+      unlocked: "අගුළුහැර ඇත",
       notifications: "දැනුම්දීම්",
       enabled: "සක්‍රියයි",
       helpCenter: "උපකාර කේන්ද්‍රය",
@@ -136,12 +153,26 @@ const ProfileScreen = () => {
       fast: "Fast",
       offline: "Offline",
       highAccuracy: "High Accuracy",
+      locked: "Locked",
+      paidUser: "Paid User",
+      freeUser: "Free User",
+      subscriptionEnds: "Subscription Ends",
       adminPestForum: "Admin Pest Forum",
       adminPestForumDesc: "Manage pest data & reports",
       settings: "Settings",
       managePreferences: "Manage your preferences",
       language: "Language",
       chooseLanguage: "Choose Language",
+      subscriptions: "Subscriptions",
+      subscriptionDetails: "Subscription Details",
+      subscriptionStatus: "Status",
+      currentPlan: "Current Plan",
+      paidDate: "Paid Date",
+      lastPaidAmount: "Last Paid Amount",
+      activeStatus: "Active",
+      inactiveStatus: "Inactive",
+      advancedAccess: "Advanced Model Access",
+      unlocked: "Unlocked",
       notifications: "Notifications",
       enabled: "Enabled",
       helpCenter: "Help Center",
@@ -191,6 +222,10 @@ const ProfileScreen = () => {
       fast: "வேகமானது",
       offline: "ஆஃப்லைன்",
       highAccuracy: "அதிக துல்லியம்",
+      locked: "பூட்டப்பட்டுள்ளது",
+      paidUser: "Paid User",
+      freeUser: "Free User",
+      subscriptionEnds: "Subscription Ends",
       adminPestForum: "நிர்வாக பூச்சி மன்றம்",
       adminPestForumDesc: "பூச்சி தரவு மற்றும் அறிக்கைகளை நிர்வகிக்கவும்",
 
@@ -199,6 +234,16 @@ const ProfileScreen = () => {
       managePreferences: "உங்கள் விருப்பங்களை நிர்வகிக்கவும்",
       language: "மொழி",
       chooseLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்",
+      subscriptions: "சந்தா",
+      subscriptionDetails: "சந்தா விவரங்கள்",
+      subscriptionStatus: "நிலை",
+      currentPlan: "தற்போதைய திட்டம்",
+      paidDate: "செலுத்திய தேதி",
+      lastPaidAmount: "கடைசி செலுத்திய தொகை",
+      activeStatus: "செயலில்",
+      inactiveStatus: "செயலற்றது",
+      advancedAccess: "Advanced மாடல் அணுகல்",
+      unlocked: "திறக்கப்பட்டுள்ளது",
       notifications: "அறிவிப்புகள்",
       enabled: "செயல்படுத்தப்பட்டது",
       helpCenter: "உதவி மையம்",
@@ -234,9 +279,14 @@ const ProfileScreen = () => {
   };
 
   const t = content[language];
+  const hasActiveSubscription =
+    Boolean(user?.is_paid_user) &&
+    Boolean(user?.subscription_end_date) &&
+    new Date(user?.subscription_end_date as string).getTime() > Date.now();
 
   useEffect(() => {
     loadPredictionHistory();
+    void refreshProfile();
 
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -408,6 +458,15 @@ Status: ${prediction.status || "Active"}`;
       .slice(0, 2);
   };
 
+  const formatPlanName = (plan?: string | null) => {
+    if (!plan) return "Free";
+    return plan
+      .split("_")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
@@ -474,6 +533,14 @@ Status: ${prediction.status || "Active"}`;
                 <Text style={styles.heroName}>
                   {user?.full_name || t.farmer}
                 </Text>
+                <Text style={styles.subscriptionBadge}>
+                  {hasActiveSubscription ? `${t.paidUser} ✓` : t.freeUser}
+                </Text>
+                {hasActiveSubscription && user?.subscription_end_date ? (
+                  <Text style={styles.subscriptionDate}>
+                    {t.subscriptionEnds}: {formatDate(user.subscription_end_date)}
+                  </Text>
+                ) : null}
 
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
@@ -570,7 +637,9 @@ Status: ${prediction.status || "Active"}`;
                     styles.modelCard,
                     diseaseModel === "local" && styles.modelCardActive,
                   ]}
-                  onPress={() => setDiseaseModel("local")}
+                  onPress={() => {
+                    void setDiseaseModel("local");
+                  }}
                   activeOpacity={0.9}
                 >
                   <View style={styles.modelCardHeader}>
@@ -615,7 +684,13 @@ Status: ${prediction.status || "Active"}`;
                     styles.modelCard,
                     diseaseModel === "roboflow" && styles.modelCardActive,
                   ]}
-                  onPress={() => setDiseaseModel("roboflow")}
+                  onPress={() => {
+                    if (hasActiveSubscription) {
+                      void setDiseaseModel("roboflow");
+                      return;
+                    }
+                    navigation.navigate("SubscriptionPlans");
+                  }}
                   activeOpacity={0.9}
                 >
                   <View style={styles.modelCardHeader}>
@@ -647,7 +722,11 @@ Status: ${prediction.status || "Active"}`;
                         ]}
                       />
                       <Text style={styles.statusText}>
-                        {diseaseModel === "roboflow" ? t.selected : t.available}
+                        {diseaseModel === "roboflow"
+                          ? t.selected
+                          : hasActiveSubscription
+                            ? t.available
+                            : t.locked}
                       </Text>
                     </View>
                   </View>
@@ -697,6 +776,31 @@ Status: ${prediction.status || "Active"}`;
                   </Text>
                   <View style={styles.settingArrow}>
                     <ChevronRight size={16} color="#10b981" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingCard}
+                activeOpacity={0.8}
+                onPress={() => {
+                  void refreshProfile();
+                  setShowSubscriptionModal(true);
+                }}
+              >
+                <LinearGradient
+                  colors={["#fff7ed", "#ffedd5"]}
+                  style={styles.settingGradient}
+                >
+                  <View style={styles.settingIcon}>
+                    <Crown size={24} color="#f59e0b" />
+                  </View>
+                  <Text style={styles.settingTitle}>{t.subscriptions}</Text>
+                  <Text style={styles.settingValue}>
+                    {hasActiveSubscription ? t.activeStatus : t.inactiveStatus}
+                  </Text>
+                  <View style={styles.settingArrow}>
+                    <ChevronRight size={16} color="#f59e0b" />
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -831,6 +935,75 @@ Status: ${prediction.status || "Active"}`;
           <View style={styles.bottomSpacer} />
         </Animated.View>
       </ScrollView>
+
+      <Modal
+        visible={showSubscriptionModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSubscriptionModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.languageModal}>
+            <Text style={styles.languageModalTitle}>{t.subscriptionDetails}</Text>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.subscriptionStatus}</Text>
+              <Text style={styles.subscriptionValue}>
+                {hasActiveSubscription ? t.activeStatus : t.inactiveStatus}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.currentPlan}</Text>
+              <Text style={styles.subscriptionValue}>
+                {formatPlanName(user?.subscription_plan)}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.subscriptionEnds}</Text>
+              <Text style={styles.subscriptionValue}>
+                {user?.subscription_end_date
+                  ? formatDate(user.subscription_end_date)
+                  : "-"}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.paidDate}</Text>
+              <Text style={styles.subscriptionValue}>
+                {user?.subscription_start_date
+                  ? formatDate(user.subscription_start_date)
+                  : "-"}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.lastPaidAmount}</Text>
+              <Text style={styles.subscriptionValue}>
+                {typeof user?.last_payment_amount_lkr === "number"
+                  ? `Rs. ${user.last_payment_amount_lkr.toLocaleString()}`
+                  : "-"}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.advancedAccess}</Text>
+              <Text style={styles.subscriptionValue}>
+                {hasActiveSubscription ? t.unlocked : t.locked}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.languageCloseButton}
+              onPress={() => setShowSubscriptionModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.languageCloseButtonText}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal
         visible={showLanguageModal}
@@ -1016,6 +1189,23 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     marginBottom: 4,
+  },
+  subscriptionBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 6,
+  },
+  subscriptionDate: {
+    color: "#d1fae5",
+    fontSize: 12,
+    marginBottom: 8,
+    fontWeight: "600",
   },
   heroEmail: {
     fontSize: 13,
@@ -1395,6 +1585,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#334155",
+  },
+  subscriptionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  subscriptionLabel: {
+    fontSize: 13,
+    color: "#475569",
+    fontWeight: "700",
+  },
+  subscriptionValue: {
+    fontSize: 13,
+    color: "#0f766e",
+    fontWeight: "800",
   },
   predictionsPanel: {
     paddingHorizontal: 20,

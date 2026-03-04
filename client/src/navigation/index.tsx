@@ -23,6 +23,7 @@ import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNe
 
 import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
+import SubscriptionPlansScreen from "../screens/Payment/SubscriptionPlansScreen";
 import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
 import ProAdvisorAdminEditScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminEditScreen";
 import ProAdvisorFollowScreen from"../screens/PriceForecast/ProAdvisorFollowScreen";
@@ -48,7 +49,9 @@ export type RootStackParamList = {
   Payment: {
     plan?: string;
     amount?: number;
+    billingCycle?: "monthly" | "annual";
   };
+  SubscriptionPlans: undefined;
   PaymentSuccess: {
     orderId?: string;
     amount?: number;
@@ -164,6 +167,7 @@ export default function RootNavigator() {
 
 
       {/* PAYMENT */}
+      <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
     </Stack.Navigator>
