@@ -103,8 +103,31 @@ export const NotificationProvider = ({
   }, []);
 
   /* =======================
-     REALTIME LISTENER
+     REFETCH WHEN USER CHANGES
   ======================= */
+  useEffect(() => {
+    if (!userId) {
+      setNotifications([]);
+      return;
+    }
+
+    const refetch = async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("❌ Fetch notifications failed", error);
+        return;
+      }
+
+      if (data) setNotifications(data as AppNotification[]);
+    };
+
+    refetch();
+  }, [userId]);
   useEffect(() => {
     if (!userId) return;
 

@@ -40,23 +40,6 @@ except Exception as e:
     print("❌ Model load failed:", e)
     raise RuntimeError("Model loading failed")
 
-# Log model validation metrics on startup
-print("\n" + "="*60)
-print("MODEL VALIDATION METRICS")
-print("="*60)
-if metrics_calc.metrics_cached:
-    print(f"✅ R² Score:  {metrics_calc.r2_score_val:.4f}")
-    print(f"   MAE:      {metrics_calc.mae_val:.2f} Rs/kg")
-    print(f"   RMSE:     {metrics_calc.rmse_val:.2f} Rs/kg")
-    if metrics_calc.last_updated:
-        print(f"   Updated:  {metrics_calc.last_updated}")
-else:
-    print("⚠️  Using DEFAULT metrics (no cache found)")
-    print(f"   R² Score:  {metrics_calc.r2_score_val:.4f} (assumed)")
-    print(f"   MAE:       {metrics_calc.mae_val:.2f} Rs/kg (default)")
-    print(f"   RMSE:      {metrics_calc.rmse_val:.2f} Rs/kg (default)")
-    print("\n💡 To compute real metrics, call POST /api/price-forecast/compute-metrics")
-print("="*60 + "\n")
 
 # =====================================================
 # HISTORICAL PRICE FETCHER
