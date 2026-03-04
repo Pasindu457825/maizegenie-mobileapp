@@ -8,47 +8,428 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from "react-native";
 import {
   ArrowLeft,
-  DollarSign,
-  Package,
-  TrendingUp,
-  Save,
-  RefreshCw,
   CheckCircle,
-  Calendar,
   Sparkles,
+  Database,
+  MapPin,
+  ChevronDown,
+  Edit2,
+  Trash2,
+  Calendar,
+  X,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Platform } from "react-native";
 import { useLanguage } from "../../../context/LanguageContext";
+import { supabase } from "../../../lib/supabase";
 
-type Language = "sinhala" | "english";
+const DISTRICTS = [
+  "Anuradhapura",
+  "Polonnaruwa",
+  "Kurunegala",
+  "Puttalam",
+  "Kandy",
+  "Matale",
+  "Badulla",
+  "Monaragala",
+  "Hambantota",
+  "Matara",
+  "Colombo",
+  "Gampaha",
+  "Jaffna",
+  "Nuwara Eliya",
+];
+
+type Language = "sinhala" | "english" | "tamil";
 
 const AdminPanelScreen = () => {
   const navigation = useNavigation();
   const { language, setLanguage } = useLanguage();
 
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Form fields
-  const [fuelPrice, setFuelPrice] = useState("");
-  const [importTax, setImportTax] = useState("");
-  const [farmGatePrice, setFarmGatePrice] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<string>("");
+  // 🔄 Auto-calculate current and previous week
+  const [currentYear, setCurrentYear] = useState("");
+  const [currentWeek, setCurrentWeek] = useState("");
+  const [previousYear, setPreviousYear] = useState("");
+  const [previousWeek, setPreviousWeek] = useState("");
 
-  // 🔥 Dynamic API URL using .env + Platform detection
+  // ── District-wise price fields ──────────────────────────────────────────────
+  const [histDistrict, setHistDistrict] = useState("Anuradhapura");
+  const [histYear, setHistYear] = useState("");
+  const [histWeek, setHistWeek] = useState("");
+  const [histPrice, setHistPrice] = useState(""); // maize_price
+  const [histFuelPrice, setHistFuelPrice] = useState(""); // fuel_price
+  const [histImportTax, setHistImportTax] = useState(""); // import_tax
+  const [histSaving, setHistSaving] = useState(false);
+  const [showDistrictPicker, setShowDistrictPicker] = useState(false);
+
+  // 📋 Price History & Edit Feature
+  const [priceHistory, setPriceHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [editFormData, setEditFormData] = useState({
+    year: "",
+    week: "",
+    price: "",
+    fuel_price: "",
+    import_tax: "",
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  // 📅 Calculate ISO week number
+  const getISOWeek = (date: Date): number => {
+    const target = new Date(date.valueOf());
+    const dayNr = (date.getDay() + 6) % 7;
+    target.setDate(target.getDate() - dayNr + 3);
+    const jan4 = new Date(target.getFullYear(), 0, 4);
+    const dayDiff = (target.getTime() - jan4.getTime()) / 86400000;
+    return 1 + Math.ceil(dayDiff / 7);
+  };
+
+  // 🔄 Initialize current week and previous week on component mount
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const week = getISOWeek(now);
+
+    setCurrentYear(year.toString());
+    setCurrentWeek(week.toString());
+
+    // Calculate previous week
+    let prevWeek = week - 1;
+    let prevYear = year;
+
+    if (week === 1) {
+      prevWeek = 52;
+      prevYear = year - 1;
+    }
+
+    setPreviousYear(prevYear.toString());
+    setPreviousWeek(prevWeek.toString());
+
+    // Auto-fill form with PREVIOUS week (for entering previous week prices)
+    setHistYear(prevYear.toString());
+    setHistWeek(prevWeek.toString());
+  }, []);
+
+  // No need to fetch global prices anymore - all prices are district-specific
+
+  const handleAddHistoricalPrice = async () => {
+    const yearNum = parseInt(histYear, 10);
+    const weekNum = parseInt(histWeek, 10);
+    const priceNum = parseFloat(histPrice);
+    const fuelNum = parseFloat(histFuelPrice);
+    const taxNum = parseFloat(histImportTax);
+
+    // Validation: All fields are required
+    if (
+      !histDistrict ||
+      !Number.isFinite(yearNum) ||
+      !Number.isFinite(weekNum) ||
+      weekNum < 1 ||
+      weekNum > 52 ||
+      !Number.isFinite(priceNum) ||
+      priceNum <= 0 ||
+      !Number.isFinite(fuelNum) ||
+      fuelNum <= 0 ||
+      !Number.isFinite(taxNum) ||
+      taxNum < 0
+    ) {
+      Alert.alert(
+        language === "sinhala"
+          ? "අවශ්‍යයි"
+          : language === "tamil"
+            ? "தேவை"
+            : "Required",
+        content[language].histFillAll,
+      );
+      return;
+    }
+
+    setHistSaving(true);
+    try {
+      // 🔍 Check if record already exists
+      const { data: existingRecord, error: checkError } = await supabase
+        .from("maize_prices")
+        .select("id")
+        .eq("year", yearNum)
+        .eq("week", weekNum)
+        .eq("district", histDistrict)
+        .single();
+
+      // If record exists, show a message and don't allow duplicate
+      if (existingRecord && !checkError) {
+        setHistSaving(false);
+        Alert.alert(
+          language === "sinhala"
+            ? "පෙර පිටින්න"
+            : language === "tamil"
+              ? "ஏற்கனவே உள்ளது"
+              : "Record Already Exists",
+          language === "sinhala"
+            ? `මෙම දිස්ත්‍රික්කයට දී ඉතින් සතිය ${weekNum} සඳහා මිල වාර්තාව තිබේ. කරුණාකර අමතර කිරීමට වඩා සංස්කරණය කරන්න.`
+            : language === "tamil"
+              ? `இந்த மாவட்டத்தில் வாரம் ${weekNum} க்கான விலை பதிவு ஏற்கனவே உள்ளது. புதிய பதிவு சேர்ப்பதற்குப் பதிலாக திருத்தவும்.`
+              : `A price record for this district and week ${weekNum} already exists. Edit the existing record instead.`,
+          [
+            {
+              text:
+                language === "sinhala"
+                  ? "ඉතින්"
+                  : language === "tamil"
+                    ? "சரி"
+                    : "OK",
+              onPress: () => {},
+            },
+          ],
+        );
+        return;
+      }
+
+      // 💾 Save the new record
+      const { error } = await supabase.from("maize_prices").insert({
+        year: yearNum,
+        week: weekNum,
+        district: histDistrict,
+        price: priceNum,
+        fuel_price: fuelNum,
+        import_tax: taxNum,
+        source: "officer_input",
+        updated_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+
+      // Show success message
+      const successTitle =
+        language === "sinhala"
+          ? "සාර්තකයි ✓"
+          : language === "tamil"
+            ? "வெற்றி ✓"
+            : "Success ✓";
+
+      const successMessage =
+        language === "sinhala"
+          ? "නව මිල වාර්තාව සුරකින ලදී! (Year: " +
+            yearNum +
+            ", Week: " +
+            weekNum +
+            ")"
+          : language === "tamil"
+            ? "புதிய விலை பதிவு சேமிக்கப்பட்டது! (வருடம்: " +
+              yearNum +
+              ", வாரம்: " +
+              weekNum +
+              ")"
+            : "New price record saved! (Year: " +
+              yearNum +
+              ", Week: " +
+              weekNum +
+              ")";
+
+      Alert.alert(successTitle, successMessage);
+
+      // Form fields are kept filled for convenient re-entry with small changes
+    } catch (err: any) {
+      console.error("[maize_prices] insert error:", err);
+      Alert.alert(
+        language === "sinhala"
+          ? "දොෂයකිස්"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
+        content[language].histError,
+      );
+    } finally {
+      setHistSaving(false);
+      fetchPriceHistory(histDistrict); // Refresh history after save
+    }
+  };
+
+  // 📋 Fetch price history for display (latest 3 records per district)
+  const fetchPriceHistory = async (district: string) => {
+    if (!district) return;
+    setLoadingHistory(true);
+    try {
+      const { data, error } = await supabase
+        .from("maize_prices")
+        .select("*")
+        .eq("district", district)
+        .order("year", { ascending: false })
+        .order("week", { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+      setPriceHistory(data || []);
+    } catch (err: any) {
+      console.error("Error fetching price history:", err);
+      setPriceHistory([]);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // ✏️ Open edit modal with record data
+  const handleEditPrice = (record: any) => {
+    setEditingRecord(record);
+    setEditFormData({
+      year: record.year?.toString() || "",
+      week: record.week?.toString() || "",
+      price: record.price?.toString() || "",
+      fuel_price: record.fuel_price?.toString() || "",
+      import_tax: record.import_tax?.toString() || "",
+    });
+    setShowEditModal(true);
+  };
+
+  // 💾 Update existing price record
+  const handleUpdatePrice = async () => {
+    if (
+      !editingRecord ||
+      !editFormData.year ||
+      !editFormData.week ||
+      !editFormData.price
+    ) {
+      Alert.alert(
+        language === "sinhala"
+          ? "අවශ්‍යයි"
+          : language === "tamil"
+            ? "தேவை"
+            : "Required",
+        content[language].histFillAll,
+      );
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase.from("maize_prices").upsert(
+        {
+          year: parseInt(editFormData.year, 10),
+          week: parseInt(editFormData.week, 10),
+          district: histDistrict,
+          price: parseFloat(editFormData.price),
+          fuel_price: parseFloat(editFormData.fuel_price) || 0,
+          import_tax: parseFloat(editFormData.import_tax) || 0,
+          source: "officer_input",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "year,week,district" },
+      );
+
+      if (error) throw error;
+
+      const successTitle =
+        language === "sinhala"
+          ? "සාර්තකයි ✓"
+          : language === "tamil"
+            ? "வெற்றி ✓"
+            : "Success ✓";
+
+      const successMessage =
+        language === "sinhala"
+          ? "මිල වාර්තාව යාවත්කාලීන කරන ලදී!"
+          : language === "tamil"
+            ? "விலை பதிவு புதுப்பிக்கப்பட்டது!"
+            : "Price record updated successfully!";
+
+      Alert.alert(successTitle, successMessage);
+      setShowEditModal(false);
+      fetchPriceHistory(histDistrict); // Refresh history
+    } catch (err: any) {
+      console.error("[maize_prices] update error:", err);
+      Alert.alert(
+        language === "sinhala"
+          ? "දොෂයකිස්"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
+        content[language].histError,
+      );
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // 🗑️ Delete price record
+  const handleDeletePrice = (record: any) => {
+    Alert.alert(
+      language === "sinhala"
+        ? "මකා දමන්න?"
+        : language === "tamil"
+          ? "நீக்குறீர்களா?"
+          : "Delete?",
+      `${record.year} - Week ${record.week}`,
+      [
+        {
+          text:
+            language === "sinhala"
+              ? "අවලංගු"
+              : language === "tamil"
+                ? "ரத்து"
+                : "Cancel",
+          onPress: () => {},
+        },
+        {
+          text:
+            language === "sinhala"
+              ? "මකා දමන්න"
+              : language === "tamil"
+                ? "நீக்கு"
+                : "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const { error } = await supabase
+                .from("maize_prices")
+                .delete()
+                .eq("district", record.district)
+                .eq("year", record.year)
+                .eq("week", record.week);
+
+              if (error) throw error;
+              Alert.alert(
+                language === "sinhala"
+                  ? "සාර්තකයි ✓"
+                  : language === "tamil"
+                    ? "வெற்றி ✓"
+                    : "Success ✓",
+                language === "sinhala"
+                  ? "මිල ඉවත් කරන ලදී"
+                  : language === "tamil"
+                    ? "விலை நீக்கப்பட்டது"
+                    : "Price deleted",
+              );
+              fetchPriceHistory(histDistrict);
+            } catch (err: any) {
+              console.error("Delete error:", err);
+              Alert.alert("Error", "Failed to delete price");
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  // Load price history when district changes
+  useEffect(() => {
+    fetchPriceHistory(histDistrict);
+  }, [histDistrict]);
+
+  // No need to use API for global prices anymore - all prices are district-specific
   const getApiUrl = () => {
     if (Platform.OS === "android") {
-      // Real Android Device → Uses .env
       return process.env.EXPO_PUBLIC_API_BASE;
     } else if (Platform.OS === "ios") {
-      // iOS simulator
       return "http://localhost:8000";
     } else {
-      // Expo Web fallback
       return "http://localhost:8000";
     }
   };
@@ -61,122 +442,102 @@ const AdminPanelScreen = () => {
       title: "මිල යාවත්කාලීන කිරීම",
       subtitle: "🌽 MaizeGenie",
       welcome: "ස්වාගතයි",
-      description: "වත්මන් වෙළඳපොළ මිල සහ බද්ද යාවත්කාලීන කරන්න",
-      fuelPrice: "ඉන්ධන මිල",
-      fuelPriceUnit: "රුපියල් (ලීටරයකට)",
-      importTax: "ආනයන බද්ද",
-      importTaxUnit: "ප්‍රතිශතය (%)",
-      farmGatePrice: "ගොවි මිල",
-      farmGatePriceUnit: "රුපියල් (කිලෝග්‍රෑමයකට)",
-      lastUpdated: "අවසන් යාවත්කාලීනය",
-      save: "සුරකින්න",
-      refresh: "නැවුම් කරන්න",
+      description: "දිස්ත්‍රික්ක අනුව මිල සහ බද්ද ඇතුළත් කරන්න",
       back: "ආපසු යන්න",
-      saveSuccess: "දත්ත සාර්ථකව යාවත්කාලීන විය!",
-      saveError: "දත්ත සුරැකීමේදී දෝෂයක් ඇතිවිය",
-      loadError: "දත්ත පූරණයේදී දෝෂයක් ඇතිවිය",
-      fillAll: "කරුණාකර සියලු තොරතුරු නිවැරදිව පුරවන්න",
-      loading: "පූරණය වෙමින්...",
       saving: "සුරකිමින්...",
-      noData: "දත්ත තවම නැත",
+      // Historical price section
+      histTitle: "පෙර සතියේ මිල",
+      histDesc: "දිස්ත්‍රික්කයට අනුව මිල, ඉන්ධන සහ බද්ද ඇතුළත් කරන්න",
+      histDistrict: "දිස්ත්‍රික්කය",
+      histYear: "වර්ෂය",
+      histWeek: "සතිය (ISO)",
+      histPrice: "මිල (රු/කිලෝ)",
+      histFuelPrice: "ඉන්ධන මිල (රු/ලීටර)",
+      histImportTax: "ආනයන බද්ද (%)",
+      histSave: "මිල සුරකින්න",
+      histSaving: "සුරකිමින්...",
+      histSuccess: "මිල, ඉන්ධන සහ බද්ද සාර්ථකව සුරකින ලදී!",
+      histError: "දත්ත සුරැකීමේදී දෝෂයක් ඇතිවිය",
+      histFillAll: "කරුණාකර සියලු තොරතුරු නිවැරදිව පුරවන්න",
+      histDuplicate: "මෙම සතිය සඳහා මිල දැනටමත් ඇත. නිවැරදි කරන ලදී.",
+      selectDistrict: "දිස්ත්‍රික්කය තෝරන්න",
+      historyTitle: "මිල ඉතිහාසය",
+      historyDesc: "පෙර ඇතුළු කිරීම නරඹන්න සහ සංස්කරණය කරන්න",
+      noHistory: "කිසිදු මිල ඇතුළු කිරීම නොමැත",
+      edit: "සංස්කරණය",
+      delete: "මකා දมන්න",
+      update: "යාවත්කාලීන කරන්න",
+      editHistory: "මිල සංස්කරණය",
+      autoWeekInfo: "📅 පෙර සතිය ස්වයංක්‍රීය ලෙස පුරවා ඇත (වත්මන් සතිය:",
     },
     english: {
       title: "Price Update",
       subtitle: "🌽 MaizeGenie",
       welcome: "Welcome",
-      description: "Update current market prices and taxes",
-      fuelPrice: "Fuel Price",
-      fuelPriceUnit: "Rupees (per liter)",
-      importTax: "Import Tax",
-      importTaxUnit: "Percentage (%)",
-      farmGatePrice: "Farm Gate Price",
-      farmGatePriceUnit: "Rupees (per kg)",
-      lastUpdated: "Last Updated",
-      save: "Save Changes",
-      refresh: "Refresh Data",
+      description: "Record district-wise maize prices with fuel and tax data",
       back: "Go Back",
-      saveSuccess: "Data updated successfully!",
-      saveError: "Error occurred while saving data",
-      loadError: "Error occurred while loading data",
-      fillAll: "Please fill all fields correctly",
-      loading: "Loading...",
-      saving: "Saving...",
-      noData: "No data available yet",
+      // Historical price section
+      histTitle: "Previous Week Price",
+      histDesc:
+        "Record district-wise prices along with fuel price and import tax",
+      histDistrict: "District",
+      histYear: "Year",
+      histWeek: "Week (ISO)",
+      histPrice: "Maize Price (Rs/kg)",
+      histFuelPrice: "Fuel Price (Rs/liter)",
+      histImportTax: "Import Tax (%)",
+      histSave: "Save Price Data",
+      histSaving: "Saving...",
+      histSuccess: "Price data saved successfully!",
+      histError: "Error saving price data",
+      histFillAll: "Please fill all fields correctly",
+      histDuplicate: "Price for this week already existed. Updated.",
+      selectDistrict: "Select District",
+      historyTitle: "Price History",
+      historyDesc: "View and edit previously entered records",
+      noHistory: "No price entries yet",
+      edit: "Edit",
+      delete: "Delete",
+      update: "Update Price",
+      editHistory: "Edit Price",
+      autoWeekInfo: "📅 Previous week is auto-filled (Current week:",
+    },
+    tamil: {
+      title: "விலை பதிவேற்றம்",
+      subtitle: "🌽 MaizeGenie",
+      welcome: "வரவேற்கிறோம்",
+      description:
+        "மாவட்ட அடிப்படையில் விலை, எரிபொருள் மற்றும் வரியை பதிவிடுங்கள்",
+      back: "பின்னோக்கிச் செல்",
+      saving: "சேமிக்கிறது...",
+      // Historical price section
+      histTitle: "முந்தைய வார விலை",
+      histDesc: "மாவட்டவாரியாக விலை, எரிபொருள் மற்றும் வரியை பதிவிடுங்கள்",
+      histDistrict: "மாவட்டம்",
+      histYear: "ஆண்டு",
+      histWeek: "வாரம் (ISO)",
+      histPrice: "மக்காச்சோளம் விலை (ரூ/கிலோ)",
+      histFuelPrice: "எரிபொருள் விலை (ரூ/லிட்டர்)",
+      histImportTax: "இறக்குமதி வரி (%)",
+      histSave: "விலை தரவை சேமி",
+      histSaving: "சேமிக்கிறது...",
+      histSuccess: "விலை தரவு வெற்றிகரமாக சேமிக்கப்பட்டது!",
+      histError: "விலை தரவை சேமிக்கும்போது பிழை",
+      histFillAll: "அனைத்து தகவல்களையும் சரியாக நிரப்பவும்",
+      selectDistrict: "மாவட்டத்தை தேர்ந்தெடுக்கவும்",
+      historyTitle: "விலை வரலாறு",
+      historyDesc: "முந்தைய பதிவுகளை பார்வையிட்டு திருத்துங்கள்",
+      noHistory: "இதுவரை விலை உள்ளீடு இல்லை",
+      edit: "திருத்து",
+      delete: "நீக்கு",
+      update: "விலை புதுப்பிக்கவும்",
+      editHistory: "விலை திருத்தம்",
+      autoWeekInfo:
+        "📅 முந்தைய வாரம் தானாக நிரப்பப்பட்டுள்ளது (தற்போதைய வாரம்:",
     },
   };
 
-  useEffect(() => {
-    fetchCurrentData();
-  }, []);
-
-  const fetchCurrentData = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_URL}/api/admin/price-data`);
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setFuelPrice(data.data.fuelPrice?.toString() || "");
-        setImportTax(data.data.importTax?.toString() || "");
-        setFarmGatePrice(data.data.farmGatePrice?.toString() || "");
-        setLastUpdated(data.data.lastUpdated || "");
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : "Error",
-        content[language].loadError
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    // Validation
-    if (!fuelPrice || !importTax || !farmGatePrice) {
-      Alert.alert(
-        language === "sinhala" ? "අවශ්‍යයි" : "Required",
-        content[language].fillAll
-      );
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const response = await fetch(`${API_URL}/api/admin/price-data`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fuelPrice: parseFloat(fuelPrice),
-          importTax: parseFloat(importTax),
-          farmGatePrice: parseFloat(farmGatePrice),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        Alert.alert(
-          language === "sinhala" ? "සාර්ථකයි ✓" : "Success ✓",
-          content[language].saveSuccess
-        );
-        fetchCurrentData(); // Refresh data
-      } else {
-        throw new Error(data.message || "Save failed");
-      }
-    } catch (error) {
-      console.error("Error saving data:", error);
-      Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : "Error",
-        content[language].saveError
-      );
-    } finally {
-      setSaving(false);
-    }
-  };
+  // No need to fetch global prices anymore - all prices are district-specific
 
   return (
     <View style={styles.container}>
@@ -213,163 +574,405 @@ const AdminPanelScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {loading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#059669" />
-            <Text style={styles.loadingText}>{content[language].loading}</Text>
+        <>
+          {/* ── District-wise Price Entry ────────────────────────────────── */}
+          <View style={[styles.inputCard, styles.histCard]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardLabelRow}>
+                <View style={[styles.iconWrapper, styles.iconWrapperBlue]}>
+                  <Database color="#3B82F6" size={24} />
+                </View>
+                <View style={styles.labelContainer}>
+                  <Text style={styles.cardLabel}>
+                    {content[language].histTitle}
+                  </Text>
+                  <Text style={styles.cardSubLabel}>
+                    {content[language].histDesc}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* District selector */}
+            <Text style={styles.histFieldLabel}>
+              {content[language].histDistrict}
+            </Text>
+            <TouchableOpacity
+              style={styles.districtSelector}
+              onPress={() => setShowDistrictPicker(true)}
+            >
+              <MapPin color="#3B82F6" size={16} />
+              <Text style={styles.districtSelectorText}>{histDistrict}</Text>
+              <ChevronDown color="#64748B" size={16} />
+            </TouchableOpacity>
+
+            {/* Year + Week row (auto-calculated) */}
+            <View style={styles.histRow}>
+              <View style={styles.histHalf}>
+                <Text style={styles.histFieldLabel}>
+                  {content[language].histYear}
+                </Text>
+                <View style={[styles.histInputWrapper, styles.readOnlyWrapper]}>
+                  <Text style={styles.readOnlyText}>{histYear}</Text>
+                </View>
+              </View>
+              <View style={styles.histHalf}>
+                <Text style={styles.histFieldLabel}>
+                  {content[language].histWeek}
+                </Text>
+                <View style={[styles.histInputWrapper, styles.readOnlyWrapper]}>
+                  <Text style={styles.readOnlyText}>{histWeek}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Info: These are auto-calculated */}
+            <Text style={styles.infoText}>
+              {content[language].autoWeekInfo} {currentWeek})
+            </Text>
+
+            {/* Price input */}
+            <Text style={styles.histFieldLabel}>
+              {content[language].histPrice}
+            </Text>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.currencySymbol}>රු</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="115.00"
+                value={histPrice}
+                onChangeText={setHistPrice}
+                keyboardType="decimal-pad"
+                placeholderTextColor="#9CA3AF"
+              />
+            </View>
+
+            {/* Fuel Price + Import Tax row */}
+            <View style={styles.histRow}>
+              <View style={styles.histHalf}>
+                <Text style={styles.histFieldLabel}>
+                  {content[language].histFuelPrice}
+                </Text>
+                <View style={styles.histInputWrapper}>
+                  <TextInput
+                    style={styles.histInput}
+                    value={histFuelPrice}
+                    onChangeText={setHistFuelPrice}
+                    keyboardType="decimal-pad"
+                    placeholder="380.00"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              </View>
+              <View style={styles.histHalf}>
+                <Text style={styles.histFieldLabel}>
+                  {content[language].histImportTax}
+                </Text>
+                <View style={styles.histInputWrapper}>
+                  <TextInput
+                    style={styles.histInput}
+                    value={histImportTax}
+                    onChangeText={setHistImportTax}
+                    keyboardType="decimal-pad"
+                    maxLength={5}
+                    placeholder="25.00"
+                    placeholderTextColor="#9CA3AF"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Save historical price button */}
+            <TouchableOpacity
+              style={[
+                styles.histSaveButton,
+                histSaving && styles.buttonDisabled,
+              ]}
+              onPress={handleAddHistoricalPrice}
+              disabled={histSaving}
+            >
+              {histSaving ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Database color="#FFFFFF" size={18} />
+              )}
+              <Text style={styles.saveButtonText}>
+                {histSaving
+                  ? content[language].histSaving
+                  : content[language].histSave}
+              </Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          <>
-            {/* Last Updated Banner */}
-            {lastUpdated ? (
-              <View style={styles.updateBanner}>
-                <View style={styles.updateIcon}>
-                  <Calendar color="#059669" size={20} />
+
+          {/* 📋 Price History Section */}
+          <View style={[styles.inputCard, styles.historyCard]}>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardLabelRow}>
+                <View style={[styles.iconWrapper, styles.iconWrapperGreen]}>
+                  <Calendar color="#059669" size={24} />
                 </View>
-                <View style={styles.updateTextContainer}>
-                  <Text style={styles.updateLabel}>
-                    {content[language].lastUpdated}
+                <View style={styles.labelContainer}>
+                  <Text style={styles.cardLabel}>
+                    {content[language].historyTitle}
                   </Text>
-                  <Text style={styles.updateValue}>
-                    {new Date(lastUpdated).toLocaleString(
-                      language === "sinhala" ? "si-LK" : "en-US",
-                      {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }
-                    )}
+                  <Text style={styles.cardSubLabel}>
+                    {content[language].historyDesc}
                   </Text>
                 </View>
-                <CheckCircle color="#059669" size={24} />
               </View>
+            </View>
+
+            {loadingHistory ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color="#059669" size="large" />
+                <Text style={styles.loadingText}>Loading history...</Text>
+              </View>
+            ) : priceHistory.length === 0 ? (
+              <Text style={styles.noHistoryText}>
+                {content[language].noHistory}
+              </Text>
             ) : (
-              <View style={[styles.updateBanner, styles.noDataBanner]}>
-                <Text style={styles.noDataText}>
-                  {content[language].noData}
-                </Text>
-              </View>
-            )}
-
-            {/* Fuel Price Card */}
-            <View style={styles.inputCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardLabelRow}>
-                  <View style={[styles.iconWrapper, styles.iconWrapperGreen]}>
-                    <DollarSign color="#059669" size={24} />
+              <FlatList
+                scrollEnabled={false}
+                data={priceHistory}
+                keyExtractor={(item) => `${item.year}-${item.week}`}
+                renderItem={({ item }) => (
+                  <View style={styles.historyItem}>
+                    <View style={styles.historyItemLeft}>
+                      <Text style={styles.historyItemDate}>
+                        {item.year} - Week {item.week}
+                      </Text>
+                      <View style={styles.historyItemPrices}>
+                        <Text style={styles.historyItemPrice}>
+                          Rs. {parseFloat(item.price).toFixed(2)}/kg
+                        </Text>
+                        <Text style={styles.historyItemSubPrice}>
+                          Fuel: Rs.{" "}
+                          {parseFloat(item.fuel_price || 0).toFixed(2)} | Tax:{" "}
+                          {parseFloat(item.import_tax || 0).toFixed(2)}%
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.historyItemActions}>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.editButton]}
+                        onPress={() => handleEditPrice(item)}
+                      >
+                        <Edit2 color="#FFFFFF" size={16} />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionButton, styles.deleteButton]}
+                        onPress={() => handleDeletePrice(item)}
+                      >
+                        <Trash2 color="#FFFFFF" size={16} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={styles.labelContainer}>
-                    <Text style={styles.cardLabel}>
-                      {content[language].fuelPrice}
-                    </Text>
-                    <Text style={styles.cardSubLabel}>
-                      {content[language].fuelPriceUnit}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.currencySymbol}>රු</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="380.00"
-                  value={fuelPrice}
-                  onChangeText={setFuelPrice}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-            </View>
-
-            {/* Import Tax Card */}
-            <View style={styles.inputCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardLabelRow}>
-                  <View style={[styles.iconWrapper, styles.iconWrapperPurple]}>
-                    <Package color="#8B5CF6" size={24} />
-                  </View>
-                  <View style={styles.labelContainer}>
-                    <Text style={styles.cardLabel}>
-                      {content[language].importTax}
-                    </Text>
-                    <Text style={styles.cardSubLabel}>
-                      {content[language].importTaxUnit}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.inputWrapper}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="25"
-                  value={importTax}
-                  onChangeText={setImportTax}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor="#9CA3AF"
-                />
-                <Text style={styles.percentSymbol}>%</Text>
-              </View>
-            </View>
-
-            {/* Farm Gate Price Card */}
-            <View style={styles.inputCard}>
-              <View style={styles.cardHeader}>
-                <View style={styles.cardLabelRow}>
-                  <View style={[styles.iconWrapper, styles.iconWrapperEmerald]}>
-                    <TrendingUp color="#10B981" size={24} />
-                  </View>
-                  <View style={styles.labelContainer}>
-                    <Text style={styles.cardLabel}>
-                      {content[language].farmGatePrice}
-                    </Text>
-                    <Text style={styles.cardSubLabel}>
-                      {content[language].farmGatePriceUnit}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-              <View style={styles.inputWrapper}>
-                <Text style={styles.currencySymbol}>රු</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="115.00"
-                  value={farmGatePrice}
-                  onChangeText={setFarmGatePrice}
-                  keyboardType="decimal-pad"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-            </View>
-
-            {/* Action Buttons */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.refreshButton}
-                onPress={fetchCurrentData}
-                disabled={loading}
-              >
-                <RefreshCw color="#6B7280" size={20} />
-                <Text style={styles.refreshButtonText}>
-                  {content[language].refresh}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSave}
-                disabled={saving}
-              >
-                {saving ? (
-                  <ActivityIndicator color="#FFFFFF" size="small" />
-                ) : (
-                  <Save color="#FFFFFF" size={20} />
                 )}
-                <Text style={styles.saveButtonText}>
-                  {saving ? content[language].saving : content[language].save}
+              />
+            )}
+          </View>
+
+          {/* District Picker Modal */}
+          <Modal
+            visible={showDistrictPicker}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowDistrictPicker(false)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setShowDistrictPicker(false)}
+            >
+              <View style={styles.modalSheet}>
+                <Text style={styles.modalTitle}>
+                  {content[language].selectDistrict}
                 </Text>
-              </TouchableOpacity>
+                <FlatList
+                  data={DISTRICTS}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.districtOption,
+                        item === histDistrict && styles.districtOptionSelected,
+                      ]}
+                      onPress={() => {
+                        setHistDistrict(item);
+                        setShowDistrictPicker(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.districtOptionText,
+                          item === histDistrict &&
+                            styles.districtOptionTextSelected,
+                        ]}
+                      >
+                        {item}
+                      </Text>
+                      {item === histDistrict && (
+                        <CheckCircle color="#059669" size={18} />
+                      )}
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
+          {/* ✏️ Edit Price Modal */}
+          <Modal
+            visible={showEditModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowEditModal(false)}
+          >
+            <View style={styles.editModalOverlay}>
+              <View style={styles.editModalContent}>
+                {/* Header */}
+                <View style={styles.editModalHeader}>
+                  <Text style={styles.editModalTitle}>
+                    {content[language].editHistory}
+                  </Text>
+                  <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                    <X color="#64748B" size={24} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Edit Form */}
+                <ScrollView
+                  style={styles.editModalForm}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {/* Year */}
+                  <View style={styles.editFormGroup}>
+                    <Text style={styles.editFormLabel}>
+                      {content[language].histYear}
+                    </Text>
+                    <TextInput
+                      style={styles.editFormInput}
+                      value={editFormData.year}
+                      onChangeText={(text) =>
+                        setEditFormData({ ...editFormData, year: text })
+                      }
+                      keyboardType="number-pad"
+                      maxLength={4}
+                      editable={false}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  {/* Week */}
+                  <View style={styles.editFormGroup}>
+                    <Text style={styles.editFormLabel}>
+                      {content[language].histWeek}
+                    </Text>
+                    <TextInput
+                      style={styles.editFormInput}
+                      value={editFormData.week}
+                      onChangeText={(text) =>
+                        setEditFormData({ ...editFormData, week: text })
+                      }
+                      keyboardType="number-pad"
+                      maxLength={2}
+                      editable={false}
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  {/* Price */}
+                  <View style={styles.editFormGroup}>
+                    <Text style={styles.editFormLabel}>
+                      {content[language].histPrice}
+                    </Text>
+                    <TextInput
+                      style={styles.editFormInput}
+                      value={editFormData.price}
+                      onChangeText={(text) =>
+                        setEditFormData({ ...editFormData, price: text })
+                      }
+                      keyboardType="decimal-pad"
+                      placeholder="115.00"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  {/* Fuel Price */}
+                  <View style={styles.editFormGroup}>
+                    <Text style={styles.editFormLabel}>
+                      {content[language].histFuelPrice}
+                    </Text>
+                    <TextInput
+                      style={styles.editFormInput}
+                      value={editFormData.fuel_price}
+                      onChangeText={(text) =>
+                        setEditFormData({ ...editFormData, fuel_price: text })
+                      }
+                      keyboardType="decimal-pad"
+                      placeholder="380.00"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+
+                  {/* Import Tax */}
+                  <View style={styles.editFormGroup}>
+                    <Text style={styles.editFormLabel}>
+                      {content[language].histImportTax}
+                    </Text>
+                    <TextInput
+                      style={styles.editFormInput}
+                      value={editFormData.import_tax}
+                      onChangeText={(text) =>
+                        setEditFormData({ ...editFormData, import_tax: text })
+                      }
+                      keyboardType="decimal-pad"
+                      placeholder="25.00"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                </ScrollView>
+
+                {/* Action Buttons */}
+                <View style={styles.editModalActions}>
+                  <TouchableOpacity
+                    style={[
+                      styles.editModalButton,
+                      styles.editModalCancelButton,
+                    ]}
+                    onPress={() => setShowEditModal(false)}
+                  >
+                    <Text style={styles.editModalCancelText}>
+                      {language === "sinhala"
+                        ? "අවලංගු"
+                        : language === "tamil"
+                          ? "ரத்து"
+                          : "Cancel"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.editModalButton,
+                      styles.editModalSaveButton,
+                      isUpdating && styles.buttonDisabled,
+                    ]}
+                    onPress={handleUpdatePrice}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.editModalSaveText}>
+                        {content[language].update}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          </>
-        )}
+          </Modal>
+        </>
 
         <View style={styles.footer} />
       </ScrollView>
@@ -384,7 +987,7 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: "#FFFFFF",
-    paddingTop: 50,
+    paddingTop: 40,
     paddingBottom: 24,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
@@ -650,6 +1253,288 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: 20,
+  },
+  // ── Historical price card ──────────────────────────────────────────────────
+  histCard: {
+    borderColor: "#DBEAFE",
+    borderWidth: 1.5,
+  },
+  iconWrapperBlue: {
+    backgroundColor: "#DBEAFE",
+  },
+  histFieldLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+    marginBottom: 6,
+    marginTop: 14,
+  },
+  districtSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  districtSelectorText: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#0F172A",
+  },
+  histRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  histHalf: {
+    flex: 1,
+  },
+  histInputWrapper: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    paddingHorizontal: 16,
+  },
+  histInput: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#0F172A",
+    paddingVertical: 14,
+  },
+  readOnlyWrapper: {
+    backgroundColor: "#F0FDF4",
+    borderColor: "#BBF7D0",
+    justifyContent: "center",
+  },
+  readOnlyText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#059669",
+    paddingVertical: 14,
+    paddingHorizontal: 0,
+  },
+  infoText: {
+    fontSize: 13,
+    color: "#059669",
+    fontWeight: "500",
+    marginTop: 8,
+    paddingHorizontal: 4,
+    fontStyle: "italic",
+  },
+  histSaveButton: {
+    marginTop: 20,
+    backgroundColor: "#3B82F6",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 14,
+    shadowColor: "#3B82F6",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  // ── District picker modal ──────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
+    maxHeight: "70%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  districtOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 4,
+  },
+  districtOptionSelected: {
+    backgroundColor: "#D1FAE5",
+  },
+  districtOptionText: {
+    fontSize: 16,
+    color: "#1E293B",
+    fontWeight: "500",
+  },
+  districtOptionTextSelected: {
+    color: "#065F46",
+    fontWeight: "700",
+  },
+  // ── Price History Styles ──────────────────────────────────────────────────
+  historyCard: {
+    borderColor: "#D1FAE5",
+    borderWidth: 1.5,
+  },
+  noHistoryText: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    paddingVertical: 24,
+    fontStyle: "italic",
+  },
+  historyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  historyItemLeft: {
+    flex: 1,
+  },
+  historyItemDate: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginBottom: 4,
+  },
+  historyItemPrices: {
+    gap: 2,
+  },
+  historyItemPrice: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#059669",
+  },
+  historyItemSubPrice: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  historyItemActions: {
+    flexDirection: "row",
+    gap: 8,
+    marginLeft: 8,
+  },
+  actionButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  editButton: {
+    backgroundColor: "#3B82F6",
+  },
+  deleteButton: {
+    backgroundColor: "#EF4444",
+  },
+  // ── Edit Modal Styles ──────────────────────────────────────────────────────
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  editModalContent: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    maxHeight: "85%",
+  },
+  editModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+  },
+  editModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  editModalForm: {
+    marginBottom: 20,
+  },
+  editFormGroup: {
+    marginBottom: 16,
+  },
+  editFormLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+    marginBottom: 6,
+  },
+  editFormInput: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: "#0F172A",
+    fontWeight: "500",
+  },
+  editModalActions: {
+    flexDirection: "row",
+    gap: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    paddingTop: 16,
+  },
+  editModalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  editModalCancelButton: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  editModalCancelText: {
+    color: "#64748B",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  editModalSaveButton: {
+    backgroundColor: "#059669",
+  },
+  editModalSaveText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 
