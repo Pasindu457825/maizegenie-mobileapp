@@ -94,8 +94,26 @@ export default function RootNavigator() {
       <Stack.Screen name="Onboarding3" component={Onboarding3} />
 
       {/* LOGIN */}
-      <Stack.Screen name={ROUTES.AUTH.LOGIN} component={LoginScreen} />
-      <Stack.Screen name={ROUTES.AUTH.SIGNUP} component={SignupScreen} />
+      <Stack.Screen
+        name={ROUTES.AUTH.LOGIN}
+        component={LoginScreen}
+        options={{
+          animation: "slide_from_left",
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animationTypeForReplace: "push",
+        }}
+      />
+      <Stack.Screen
+        name={ROUTES.AUTH.SIGNUP}
+        component={SignupScreen}
+        options={{
+          animation: "slide_from_right",
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animationTypeForReplace: "push",
+        }}
+      />
 
       {/* MAIN TABS */}
       <Stack.Screen name={ROUTES.ROOT.MAIN} component={BottomNavigator} />

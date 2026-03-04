@@ -40,6 +40,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../context/LanguageContext";
+import { ROUTES } from "../constants";
 
 // ✅ REMOVED: import { PestIdentifyStackParamList } from "../navigation/PestIdentifyStack";
 //    (was causing module-not-found error and was not needed here)
@@ -359,12 +360,18 @@ Status: ${prediction.status || "Active"}`;
   };
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t.logout, t.logoutConfirm, [
+      { text: t.cancel, style: "cancel" },
       {
-        text: "Logout",
+        text: t.logoutText,
         style: "destructive",
-        onPress: () => signOut(),
+        onPress: async () => {
+          await signOut();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: ROUTES.AUTH.LOGIN }],
+          });
+        },
       },
     ]);
   };

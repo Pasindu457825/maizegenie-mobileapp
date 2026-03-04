@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE } from "../services/api";
+import { API_BASE } from "../constants";
 import { supabase } from "../lib/supabase"; // ⭐ IMPORTANT
 import { useEffect } from "react";
 
