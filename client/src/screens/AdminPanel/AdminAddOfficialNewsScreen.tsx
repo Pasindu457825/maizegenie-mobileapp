@@ -39,7 +39,8 @@ export default function AdminAddOfficialNewsScreen() {
   const { language } = useLanguage();
 
   // UI language
-  const uiLang: "si" | "en" = language === "sinhala" ? "si" : "en";
+  const uiLang: "si" | "en" | "ta" =
+    language === "sinhala" ? "si" : language === "tamil" ? "ta" : "en";
 
   // 🌐 Bilingual text
   const content = {
@@ -81,18 +82,42 @@ export default function AdminAddOfficialNewsScreen() {
       selectImage: "Select an image",
       publishing: "Publishing...",
     },
+    ta: {
+      title: "அதிகாரப்பூர்வ செய்தி சேர்க்க",
+      subtitle: "விவசாயிகளுக்கு அதிகாரப்பூர்வ தகவல்களை ப்ரசுரிக்கவும்",
+      newsTitle: "தலைப்பு",
+      summary: "சுருக்கம்",
+      category: "வகை",
+      source: "மூலம்",
+      url: "அதிகாரப்பூர்வ மூல இணைப்ிண்பு",
+      district: "மாவட்டம்",
+      publish: "ப்ரசுரி",
+      back: "மீள்",
+      error: "தேவையான தகவல்கள் இல்லை",
+      success: "அதிகாரப்பூர்வ செய்தி வெற்றிகரமாக ப்ரசுரிக்கப்பட்டது",
+      imageLabel: "படம்",
+      optional: "(ஐச்சரியமற்றது)",
+      required: "*",
+      selectImage: "படத்தைத் தேர்ந்தெடுக்கவும்",
+      publishing: "ப்ரசுரிக்கப்படுகிறது...",
+    },
   };
 
   const CATEGORY_OPTIONS = [
-    { value: "price", si: "මිල", en: "Price" },
-    { value: "weather", si: "කාලගුණය", en: "Weather" },
-    { value: "policy", si: "ප්‍රතිපත්ති", en: "Policy" },
-    { value: "alert", si: "අනතුරු ඇඟවීම", en: "Alert" },
-    { value: "pest", si: "පළිබෝධ", en: "Pest" },
-    { value: "disease", si: "රෝග", en: "Disease" },
-    { value: "fertilizer", si: "පොහොර", en: "Fertilizer" },
-    { value: "cultivation", si: "වගා උපදෙස්", en: "Cultivation" },
-    { value: "program", si: "වැඩසටහන්", en: "Program" },
+    { value: "price", si: "මිල", en: "Price", ta: "விலை" },
+    { value: "weather", si: "කාලගුණය", en: "Weather", ta: "வானிலை" },
+    { value: "policy", si: "ප්‍රතිපත්ති", en: "Policy", ta: "கொள்கை" },
+    { value: "alert", si: "අනතුරු ඇගවීම", en: "Alert", ta: "எச்சரிக்கை" },
+    { value: "pest", si: "පලිබෝද", en: "Pest", ta: "பூச்சி" },
+    { value: "disease", si: "රෝග", en: "Disease", ta: "நோய்" },
+    { value: "fertilizer", si: "පෝහොර", en: "Fertilizer", ta: "உரம்" },
+    {
+      value: "cultivation",
+      si: "වගා උපදේස්",
+      en: "Cultivation",
+      ta: "சாகுபடி வழிகாட்டல்",
+    },
+    { value: "program", si: "වැඩසටහන්", en: "Program", ta: "திட்டம்" },
   ];
 
   const t = content[uiLang];
@@ -174,7 +199,13 @@ export default function AdminAddOfficialNewsScreen() {
 
     // 🔴 Title validation
     if (!title.trim()) {
-      setTitleError(uiLang === "si" ? "ශීර්ෂය අවශ්‍යයි" : "Title is required");
+      setTitleError(
+        uiLang === "si"
+          ? "ශීර්ෂය අවශ්‍යයි"
+          : uiLang === "ta"
+            ? "தலைப்பு தேவை"
+            : "Title is required",
+      );
       hasError = true;
 
       // 👇 scroll to title
@@ -187,7 +218,11 @@ export default function AdminAddOfficialNewsScreen() {
     // 🔴 Category validation
     if (!category) {
       setCategoryError(
-        uiLang === "si" ? "වර්ගය තෝරන්න" : "Category is required"
+        uiLang === "si"
+          ? "වර්ගය තෝරන්න"
+          : uiLang === "ta"
+            ? "வகையைத் தேர்ந்தெடுக்கவும்"
+            : "Category is required",
       );
 
       categoryRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
@@ -199,7 +234,11 @@ export default function AdminAddOfficialNewsScreen() {
     // 🔴 Source validation
     if (!source.trim()) {
       setSourceError(
-        uiLang === "si" ? "මූලාශ්‍රය අවශ්‍යයි" : "Source is required"
+        uiLang === "si"
+          ? "මූලාශ්‍රය අවශ්‍යයි"
+          : uiLang === "ta"
+            ? "மூலம் தேவை"
+            : "Source is required",
       );
 
       sourceRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
@@ -233,7 +272,7 @@ export default function AdminAddOfficialNewsScreen() {
       console.log("❌ RESPONSE:", err?.response?.data);
       Alert.alert(
         "Error",
-        err?.response?.data?.detail || "Failed to publish news"
+        err?.response?.data?.detail || "Failed to publish news",
       );
     } finally {
       setLoading(false);
@@ -304,7 +343,11 @@ export default function AdminAddOfficialNewsScreen() {
                 </View>
                 <Text style={styles.placeholderText}>{t.selectImage}</Text>
                 <Text style={styles.placeholderSubtext}>
-                  {uiLang === "si" ? "5MB දක්වා" : "Max 5MB"}
+                  {uiLang === "si"
+                    ? "5MB දක්වා"
+                    : uiLang === "ta"
+                      ? "அதிகபட்சம் 5MB"
+                      : "Max 5MB"}
                 </Text>
               </View>
             )}
@@ -379,8 +422,10 @@ export default function AdminAddOfficialNewsScreen() {
               {category
                 ? CATEGORY_OPTIONS.find((c) => c.value === category)?.[uiLang]
                 : uiLang === "si"
-                ? "-- වර්ගය තෝරන්න --"
-                : "-- Select Category --"}
+                  ? "-- වර්ගය තෝරන්න --"
+                  : uiLang === "ta"
+                    ? "-- வகையைத் தேர்ந்தெடுக்கவும் --"
+                    : "-- Select Category --"}
             </Text>
 
             <Tag size={18} color="#2E7D32" />
@@ -478,7 +523,11 @@ export default function AdminAddOfficialNewsScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>
-                {uiLang === "si" ? "වර්ගය තෝරන්න" : "Select Category"}
+                {uiLang === "si"
+                  ? "වර්ගය තෝරන්න"
+                  : uiLang === "ta"
+                    ? "வகையைத் தேர்ந்தெடுக்கவும்"
+                    : "Select Category"}
               </Text>
 
               <ScrollView showsVerticalScrollIndicator={false}>
@@ -494,7 +543,11 @@ export default function AdminAddOfficialNewsScreen() {
                     activeOpacity={0.85}
                   >
                     <Text style={styles.optionText}>
-                      {uiLang === "si" ? item.si : item.en}
+                      {uiLang === "si"
+                        ? item.si
+                        : uiLang === "ta"
+                          ? item.ta
+                          : item.en}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -506,7 +559,11 @@ export default function AdminAddOfficialNewsScreen() {
                 activeOpacity={0.9}
               >
                 <Text style={styles.cancelText}>
-                  {uiLang === "si" ? "අවලංගු කරන්න" : "Cancel"}
+                  {uiLang === "si"
+                    ? "අවලංගු කරන්න"
+                    : uiLang === "ta"
+                      ? "ரத்து செய்"
+                      : "Cancel"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -522,13 +579,17 @@ export default function AdminAddOfficialNewsScreen() {
               <Text style={styles.successTitle}>
                 {uiLang === "si"
                   ? "නිල ප්‍රවෘත්තිය සාර්ථකව ප්‍රකාශිතයි"
-                  : "Official News Published"}
+                  : uiLang === "ta"
+                    ? "அதிகாரப்பூர்வ செய்தி ப்ரசுரிக்கப்பட்டது"
+                    : "Official News Published"}
               </Text>
 
               <Text style={styles.successSubtitle}>
                 {uiLang === "si"
-                  ? "ගොවීන්ට දැන් මෙම දැනුම්දීම් දෘශ්‍යමාන වේ"
-                  : "This update is now visible to farmers"}
+                  ? "ගොවීන්ට දැන් මේ දැනුම්දීම් දර්ශ්‍යමාන වේ"
+                  : uiLang === "ta"
+                    ? "இந்த தகவல் இப்போது விவசாயிகளுக்கு தெரியும்"
+                    : "This update is now visible to farmers"}
               </Text>
 
               <TouchableOpacity

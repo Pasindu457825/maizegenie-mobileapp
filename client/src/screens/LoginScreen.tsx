@@ -16,6 +16,7 @@ import { useApp } from "../context/AppContext";
 import { useRoute } from "@react-navigation/native";
 import { useLanguage } from "../context/LanguageContext";
 import { LinearGradient } from 'expo-linear-gradient';
+import { ROUTES } from "../constants";
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,6 +31,7 @@ export default function LoginScreen({ navigation, route }: any) {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorText, setErrorText] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideUpAnim] = useState(new Animated.Value(30));
@@ -58,6 +60,8 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: string;
       loginFailed: string;
       invalidCredentials: string;
+      noAccountText: string;
+      createAccountText: string;
     }
   > = {
     si: {
@@ -78,6 +82,8 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: "කරුණාකර ඉමේල් සහ මුරපදය ඇතුළු කරන්න.",
       loginFailed: "පිවිසීම අසාර්ථකයි",
       invalidCredentials: "අවලංගු ඉමේල් හෝ මුරපදය",
+      noAccountText: "ගිණුමක් නැද්ද?",
+      createAccountText: "ලියාපදිංචි වන්න",
     },
     en: {
       welcomeTitle: "Welcome Back 🌱",
@@ -97,6 +103,8 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: "Please enter email & password.",
       loginFailed: "Login Failed",
       invalidCredentials: "Invalid email or password",
+      noAccountText: "Don't have an account?",
+      createAccountText: "Register",
     },
     ta: {
       welcomeTitle: "வரவேற்கிறோம் 🌱",
@@ -116,6 +124,8 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: "தயவுசெய்து மின்னஞ்சல் மற்றும் கடவுச்சொல்லை உள்ளிடுக.",
       loginFailed: "உள்நுழைவு தோல்வியடைந்தது",
       invalidCredentials: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
+      noAccountText: "கணக்கு இல்லையா?",
+      createAccountText: "பதிவு செய்யவும்",
     },
   };
 
@@ -156,14 +166,17 @@ export default function LoginScreen({ navigation, route }: any) {
 
   const handleLogin = async () => {
     if (!email || !password) {
+      setErrorText(t.missingFieldsMessage);
       Alert.alert(t.missingFields, t.missingFieldsMessage);
       return;
     }
 
+    setErrorText("");
     const ok = await signIn(email.trim(), password);
     if (ok) {
       navigation.replace("Main");
     } else {
+      setErrorText(t.invalidCredentials);
       Alert.alert(t.loginFailed, t.invalidCredentials);
     }
   };
@@ -315,7 +328,10 @@ export default function LoginScreen({ navigation, route }: any) {
                   <TextInput
                     placeholder={t.emailPlaceholder}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      if (errorText) setErrorText("");
+                    }}
                     style={{
                       paddingHorizontal: 16,
                       paddingVertical: 16,
@@ -352,7 +368,10 @@ export default function LoginScreen({ navigation, route }: any) {
                   <TextInput
                     placeholder={t.passwordPlaceholder}
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(value) => {
+                      setPassword(value);
+                      if (errorText) setErrorText("");
+                    }}
                     style={{
                       flex: 1,
                       paddingHorizontal: 16,
@@ -419,12 +438,37 @@ export default function LoginScreen({ navigation, route }: any) {
                   {loading ? t.signingInButton : t.loginButton}
                 </Text>
               </TouchableOpacity>
+              {!!errorText && (
+                <Text
+                  style={{
+                    color: "#DC2626",
+                    marginTop: 10,
+                    textAlign: "center",
+                    fontSize: 12,
+                  }}
+                >
+                  {errorText}
+                </Text>
+              )}
 
               {/* Footer */}
               <View style={{
                 marginTop: 32,
                 alignItems: 'center',
               }}>
+                <View style={{ flexDirection: "row", marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, color: "#6B7280" }}>
+                    {t.noAccountText}{" "}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.push(ROUTES.AUTH.SIGNUP)}
+                    disabled={loading}
+                  >
+                    <Text style={{ fontSize: 13, color: "#0A8754", fontWeight: "700" }}>
+                      {t.createAccountText}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={{
                   fontSize: 12,
                   color: '#9CA3AF',

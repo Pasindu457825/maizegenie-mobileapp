@@ -31,6 +31,13 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { useLanguage } from "../../context/LanguageContext";
 import { API_BASE } from "../../services/api";
 import { useApp } from "../../context/AppContext";
+
+// On Android emulator localhost is unreachable — remap to 10.0.2.2.
+// On a physical device, set EXPO_PUBLIC_API_BASE to your LAN IP instead.
+const EFFECTIVE_API_BASE =
+  Platform.OS === "android"
+    ? API_BASE.replace(/http:\/\/localhost/i, "http://10.0.2.2")
+    : API_BASE;
 import { useNotifications } from "../../context/NotificationContext";
 
 const { width } = Dimensions.get("window");
@@ -102,11 +109,13 @@ const AnimatedCard = ({
 export default function ProAdvisorListScreen() {
   const navigation = useNavigation() as any;
   const { language: globalLang } = useLanguage();
-  const language: "si" | "en" = globalLang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" | "ta" =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
   const [data, setData] = useState<ProAdvisorItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useApp();
   const { unreadCount } = useNotifications();
 
@@ -115,7 +124,7 @@ export default function ProAdvisorListScreen() {
   /* ---------- UI states ---------- */
   const [query, setQuery] = useState("");
   const [activeChip, setActiveChip] = useState<"all" | "recent" | "popular">(
-    "all"
+    "all",
   );
   const [viewMode, setViewMode] = useState<"list" | "compact">("list");
 
@@ -132,30 +141,53 @@ export default function ProAdvisorListScreen() {
     }).start();
   }, []);
 
+  /* ---------- Skip useFocusEffect on very first focus (useEffect handles it) ---------- */
+  const isFirstFocus = useRef(true);
+
   /* ---------- Fetch ---------- */
   const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(
-        `${API_BASE}/pro-advisor?language=${language}`
+      setError(null);
+      const apiLang = language === "ta" ? "en" : language;
+      console.log(
+        "📡 Fetching pro-advisor from:",
+        `${EFFECTIVE_API_BASE}/pro-advisor?language=${apiLang}`,
+        "| platform:",
+        Platform.OS,
       );
-      setData(res.data || []);
-    } catch (e) {
-      console.log("❌ Fetch error", e);
+      const res = await axios.get(
+        `${EFFECTIVE_API_BASE}/pro-advisor?language=${apiLang}`,
+        { timeout: 10000 },
+      );
+      console.log("✅ Fetched items:", res.data?.length ?? 0);
+      setData(Array.isArray(res.data) ? res.data : []);
+    } catch (e: any) {
+      const msg =
+        e?.code === "ECONNABORTED"
+          ? "Request timed out. Check your network."
+          : (e?.message ?? "Network error");
+      console.log("❌ Fetch error", msg, e);
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial fetch + re-fetch when language changes
   useEffect(() => {
     fetchData();
   }, [language]);
 
-  /* ---------- Refresh on focus ---------- */
+  /* ---------- Refresh on focus – skip first focus to avoid double-fetch on mount ---------- */
   useFocusEffect(
     React.useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return; // useEffect already handles the initial load
+      }
       fetchData();
-    }, [language])
+    }, [language]),
   );
 
   /* ---------- Expand ---------- */
@@ -174,7 +206,7 @@ export default function ProAdvisorListScreen() {
       list = [...list];
     } else if (activeChip === "popular") {
       list = [...list].sort(
-        (a, b) => (b.blocks?.length || 0) - (a.blocks?.length || 0)
+        (a, b) => (b.blocks?.length || 0) - (a.blocks?.length || 0),
       );
     }
 
@@ -186,7 +218,7 @@ export default function ProAdvisorListScreen() {
         item.blocks?.some(
           (b) =>
             b.subtitle?.toLowerCase().includes(q) ||
-            b.content?.toLowerCase().includes(q)
+            b.content?.toLowerCase().includes(q),
         ) || false;
       return inTitle || inBlocks;
     });
@@ -196,33 +228,58 @@ export default function ProAdvisorListScreen() {
   const totalGuidance = data.length;
   const totalSections = data.reduce(
     (sum, item) => sum + (item.blocks?.length || 0),
-    0
+    0,
   );
 
   const chips = [
-    { key: "all" as const, si: "සියල්ල", en: "All", icon: BookOpen },
-    { key: "recent" as const, si: "අලුත්", en: "Recent", icon: Sparkles },
+    {
+      key: "all" as const,
+      si: "සියල්ල",
+      en: "All",
+      ta: "அனைத்தும்",
+      icon: BookOpen,
+    },
+    {
+      key: "recent" as const,
+      si: "අලුත්",
+      en: "Recent",
+      ta: "புதியது",
+      icon: Sparkles,
+    },
     {
       key: "popular" as const,
       si: "ප්‍රසිද්ධ",
       en: "Popular",
+      ta: "பிரபலமான",
       icon: TrendingUp,
     },
   ];
 
   const pageTitle =
-    language === "si" ? "Pro Advisor උපදෙස්" : "Pro Advisor Guidance";
+    language === "si"
+      ? "Pro Advisor උපදෙස්"
+      : language === "ta"
+        ? "Pro Advisor வழிகாட்டுதல்"
+        : "Pro Advisor Guidance";
   const pageSub =
     language === "si"
       ? "විශේෂඥ උපදෙස් කියවලා ක්‍රියාවට නංවන්න"
-      : "Read expert guidance and act with confidence";
+      : language === "ta"
+        ? "நிபுணர் வழிகாட்டுதல்களை படித்து நம்பிக்கையுடன் செயல்படுங்கள்"
+        : "Read expert guidance and act with confidence";
 
   const emptyTitle =
-    language === "si" ? "උපදෙස් හමු නොවීය" : "No guidance found";
+    language === "si"
+      ? "උපදෙස් හමු නොවීය"
+      : language === "ta"
+        ? "வழிகாட்டுதல் எதுவும் கிடைக்கவில்லை"
+        : "No guidance found";
   const emptySub =
     language === "si"
       ? "වෙනස් වචනක් search කරලා බලන්න"
-      : "Try searching with a different keyword";
+      : language === "ta"
+        ? "வேறொரு முக்கியச் சொல்லுடன் தேடுங்கள்"
+        : "Try searching with a different keyword";
 
   /* ---------- UI ---------- */
   return (
@@ -257,6 +314,18 @@ export default function ProAdvisorListScreen() {
             <Text style={styles.headerSubtitle}>{pageSub}</Text>
           </View>
 
+          {isOfficer ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
+              activeOpacity={0.85}
+              style={[styles.iconBtn, styles.addBtn]}
+            >
+              <Plus size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 42 }} />
+          )}
+
           {/* ✅ Notification Button */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Notifications")}
@@ -272,18 +341,6 @@ export default function ProAdvisorListScreen() {
               </View>
             )}
           </TouchableOpacity>
-
-          {isOfficer ? (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
-              activeOpacity={0.85}
-              style={[styles.iconBtn, styles.addBtn]}
-            >
-              <Plus size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 42 }} />
-          )}
         </View>
 
         {/* Stats Row */}
@@ -291,19 +348,31 @@ export default function ProAdvisorListScreen() {
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{totalGuidance}</Text>
             <Text style={styles.statLabel}>
-              {language === "si" ? "උපදෙස්" : "Guidance"}
+              {language === "si"
+                ? "උපදෙස්"
+                : language === "ta"
+                  ? "வழிகாட்டல்"
+                  : "Guidance"}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{totalSections}</Text>
             <Text style={styles.statLabel}>
-              {language === "si" ? "කොටස්" : "Sections"}
+              {language === "si"
+                ? "කොටස්"
+                : language === "ta"
+                  ? "பகுதிகள்"
+                  : "Sections"}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{filtered.length}</Text>
             <Text style={styles.statLabel}>
-              {language === "si" ? "ප්‍රතිඵල" : "Results"}
+              {language === "si"
+                ? "ප්‍රතිඵල"
+                : language === "ta"
+                  ? "முடிவுகள்"
+                  : "Results"}
             </Text>
           </View>
         </View>
@@ -315,7 +384,11 @@ export default function ProAdvisorListScreen() {
             value={query}
             onChangeText={setQuery}
             placeholder={
-              language === "si" ? "Search උපදෙස්..." : "Search guidance..."
+              language === "si"
+                ? "Search උපදෙස්..."
+                : language === "ta"
+                  ? "வழிகாட்டல் தேடுக..."
+                  : "Search guidance..."
             }
             placeholderTextColor="#6B7280"
             style={styles.searchInput}
@@ -358,7 +431,7 @@ export default function ProAdvisorListScreen() {
                 activeOpacity={0.9}
                 onPress={() => {
                   LayoutAnimation.configureNext(
-                    LayoutAnimation.Presets.easeInEaseOut
+                    LayoutAnimation.Presets.easeInEaseOut,
                   );
                   setActiveChip(c.key);
                 }}
@@ -368,7 +441,7 @@ export default function ProAdvisorListScreen() {
                 <Text
                   style={[styles.chipText, active && styles.chipTextActive]}
                 >
-                  {language === "si" ? c.si : c.en}
+                  {language === "si" ? c.si : language === "ta" ? c.ta : c.en}
                 </Text>
               </TouchableOpacity>
             );
@@ -381,8 +454,37 @@ export default function ProAdvisorListScreen() {
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#10B981" />
           <Text style={styles.loadingText}>
-            {language === "si" ? "දත්ත load වෙමින්..." : "Loading guidance..."}
+            {language === "si"
+              ? "දත්ත load වෙමින්..."
+              : language === "ta"
+                ? "தரவு ஏற்றப்படுகிறது..."
+                : "Loading guidance..."}
           </Text>
+        </View>
+      ) : error ? (
+        <View style={styles.loader}>
+          <Text style={styles.errorIcon}>⚠️</Text>
+          <Text style={styles.errorTitle}>
+            {language === "si"
+              ? "සම්බන්ධතා දෝෂයකි"
+              : language === "ta"
+                ? "இணைப்பு பிழை"
+                : "Connection Error"}
+          </Text>
+          <Text style={styles.errorMsg}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={fetchData}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.retryBtnText}>
+              {language === "si"
+                ? "නැවත උත්සාහ කරන්න"
+                : language === "ta"
+                  ? "மீண்டும் முயற்சி"
+                  : "Retry"}
+            </Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView
@@ -395,12 +497,18 @@ export default function ProAdvisorListScreen() {
             <View style={styles.bannerDot} />
             <View style={{ flex: 1 }}>
               <Text style={styles.bannerTitle}>
-                {language === "si" ? "ඉක්මන් උපදෙස්" : "Quick Tip"}
+                {language === "si"
+                  ? "ඉක්මන් උපදෙස්"
+                  : language === "ta"
+                    ? "விரைவு குறிப்பு"
+                    : "Quick Tip"}
               </Text>
               <Text style={styles.bannerText}>
                 {language === "si"
                   ? "Card එක click කරලා විස්තර open කරගන්න. අවශ්‍ය නම් search භාවිතා කරන්න."
-                  : "Tap a card to expand details. Use search to find what you need faster."}
+                  : language === "ta"
+                    ? "விவரங்களை விரிக்க அட்டையைத் தட்டவும். தேவையானதை வேகமாகக் கண்டறிய தேடலைப் பயன்படுத்தவும்."
+                    : "Tap a card to expand details. Use search to find what you need faster."}
               </Text>
             </View>
           </View>
@@ -457,13 +565,19 @@ export default function ProAdvisorListScreen() {
                             <Text style={styles.cardMeta}>
                               {language === "si"
                                 ? `${item.blocks?.length || 0} කොටස්`
-                                : `${item.blocks?.length || 0} sections`}
+                                : language === "ta"
+                                  ? `${item.blocks?.length || 0} பகுதிகள்`
+                                  : `${item.blocks?.length || 0} sections`}
                             </Text>
                           </View>
                           {isOpen && (
                             <View style={styles.openIndicator}>
                               <Text style={styles.openIndicatorText}>
-                                {language === "si" ? "විවෘත" : "Open"}
+                                {language === "si"
+                                  ? "විවෘත"
+                                  : language === "ta"
+                                    ? "திறந்தது"
+                                    : "Open"}
                               </Text>
                             </View>
                           )}
@@ -517,7 +631,9 @@ export default function ProAdvisorListScreen() {
                               <Text style={styles.blockBadgeText}>
                                 {language === "si"
                                   ? `කොටස ${idx + 1}`
-                                  : `Part ${idx + 1}`}
+                                  : language === "ta"
+                                    ? `பகுதி ${idx + 1}`
+                                    : `Part ${idx + 1}`}
                               </Text>
                             </View>
                             <Text style={styles.subTitle}>
@@ -558,7 +674,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0FDF4" },
 
   headerWrap: {
-    paddingTop: 24,
+    paddingTop: 40,
     paddingBottom: 14,
     paddingHorizontal: 14,
     backgroundColor: "#FFFFFF",
@@ -751,8 +867,42 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  loader: { flex: 1, justifyContent: "center", alignItems: "center", gap: 10 },
+  loader: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+    padding: 24,
+  },
   loadingText: { fontSize: 13, fontWeight: "700", color: "#6B7280" },
+
+  errorIcon: { fontSize: 36 },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: "900",
+    color: "#064E3B",
+    textAlign: "center",
+  },
+  errorMsg: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  retryBtn: {
+    marginTop: 8,
+    backgroundColor: "#047857",
+    paddingHorizontal: 20,
+    paddingVertical: 11,
+    borderRadius: 14,
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  retryBtnText: { color: "#FFFFFF", fontWeight: "900", fontSize: 14 },
 
   content: { padding: 16 },
 
@@ -887,7 +1037,7 @@ const styles = StyleSheet.create({
 
   cardLeftAccent: {
     width: 10,
-    height: "100%",
+    alignSelf: "stretch", // ✅ replaces height:"100%" which breaks on Android
     borderRadius: 10,
     backgroundColor: "#10B981",
   },

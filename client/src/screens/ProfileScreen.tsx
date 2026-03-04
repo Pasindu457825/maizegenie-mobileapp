@@ -12,10 +12,11 @@ import {
   Dimensions,
   StatusBar,
   Clipboard,
+  Modal,
 } from "react-native";
 import { useApp } from "../context/AppContext";
 import { getFarmerPredictionHistory } from "../services/yieldPredictionApi";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import {
   User,
   Calendar,
@@ -39,6 +40,7 @@ import {
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../context/LanguageContext";
+import { ROUTES } from "../constants";
 
 // ✅ REMOVED: import { PestIdentifyStackParamList } from "../navigation/PestIdentifyStack";
 //    (was causing module-not-found error and was not needed here)
@@ -54,6 +56,7 @@ const ProfileScreen = () => {
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -65,9 +68,9 @@ const ProfileScreen = () => {
 
   const content = {
     sinhala: {
-      headerTitle: "පැතිකඩ",
+      headerTitle: "විස්තර",
       headerSubtitle: "ඔබේ වගා පුවරුව",
-      profile: "පැතිකඩ",
+      profile: "විස්තර",
       farmer: "ගොවියා",
       officer: "නිලධාරියා",
       location: "ස්ථානය",
@@ -88,6 +91,7 @@ const ProfileScreen = () => {
       settings: "සැකසුම්",
       managePreferences: "ඔබේ අභිමතයන් කළමනාකරණය කරන්න",
       language: "භාෂාව",
+      chooseLanguage: "භාෂාව තෝරන්න",
       notifications: "දැනුම්දීම්",
       enabled: "සක්‍රියයි",
       helpCenter: "උපකාර කේන්ද්‍රය",
@@ -105,6 +109,7 @@ const ProfileScreen = () => {
       logout: "ඉවත්වීම",
       logoutConfirm: "ඔබට ඉවත්වීමට අවශ්‍ය බවට විශ්වාසද?",
       cancel: "අවලංගු කරන්න",
+      close: "වසන්න",
       logoutText: "ඉවත්වීම",
       cropVariety: "බෝග වර්ගය",
       plantingDate: "වැවීම් දිනය",
@@ -136,6 +141,7 @@ const ProfileScreen = () => {
       settings: "Settings",
       managePreferences: "Manage your preferences",
       language: "Language",
+      chooseLanguage: "Choose Language",
       notifications: "Notifications",
       enabled: "Enabled",
       helpCenter: "Help Center",
@@ -153,6 +159,7 @@ const ProfileScreen = () => {
       logout: "Logout",
       logoutConfirm: "Are you sure you want to logout?",
       cancel: "Cancel",
+      close: "Close",
       logoutText: "Logout",
       cropVariety: "Crop Variety",
       plantingDate: "Planting Date",
@@ -184,11 +191,14 @@ const ProfileScreen = () => {
       fast: "வேகமானது",
       offline: "ஆஃப்லைன்",
       highAccuracy: "அதிக துல்லியம்",
+      adminPestForum: "நிர்வாக பூச்சி மன்றம்",
+      adminPestForumDesc: "பூச்சி தரவு மற்றும் அறிக்கைகளை நிர்வகிக்கவும்",
 
       // Settings Section
       settings: "அமைப்புகள்",
       managePreferences: "உங்கள் விருப்பங்களை நிர்வகிக்கவும்",
       language: "மொழி",
+      chooseLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்",
       notifications: "அறிவிப்புகள்",
       enabled: "செயல்படுத்தப்பட்டது",
       helpCenter: "உதவி மையம்",
@@ -199,7 +209,8 @@ const ProfileScreen = () => {
       farmingInsights: "உங்கள் விவசாய நுண்ணறிவுகள்",
       loadingPredictions: "மதிப்பீடுகள் ஏற்றப்படுகின்றன...",
       noPredictions: "மதிப்பீடுகள் இல்லை",
-      startByCreating: "உங்கள் முதல் விளைச்சல் மதிப்பீட்டை உருவாக்கி தொடங்குங்கள்",
+      startByCreating:
+        "உங்கள் முதல் விளைச்சல் மதிப்பீட்டை உருவாக்கி தொடங்குங்கள்",
       maizeCrop: "சோளப் பயிர்",
       active: "செயல்பாடு",
       shareWithOfficer: "அதிகாரியுடன் பகிர்ந்துகொள்க",
@@ -210,6 +221,7 @@ const ProfileScreen = () => {
       logout: "வெளியேறுக",
       logoutConfirm: "வெளியேற விரும்புகிறீர்களா?",
       cancel: "ரத்துசெய்க",
+      close: "மூடு",
       logoutText: "வெளியேறுக",
 
       // Prediction Details
@@ -251,7 +263,7 @@ const ProfileScreen = () => {
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -264,7 +276,7 @@ const ProfileScreen = () => {
       console.error("Failed to load prediction history:", error);
       Alert.alert(
         "Error",
-        error.message || "Failed to load prediction history"
+        error.message || "Failed to load prediction history",
       );
     } finally {
       setLoading(false);
@@ -299,30 +311,41 @@ Status: ${prediction.status || "Active"}`;
 
       Clipboard.setString(copyText);
       Alert.alert(
-        language === "sinhala" ? "පිටපත් කරන ලදී!" : language === "tamil" ? "நகலெடுக்கப்பட்டது!" : "Copied!",
+        language === "sinhala"
+          ? "පිටපත් කරන ලදී!"
+          : language === "tamil"
+            ? "நகலெடுக்கப்பட்டது!"
+            : "Copied!",
         language === "sinhala"
           ? "පුරෝකථන විස්තර පිටපත් කරන ලදී"
-          : language === "tamil" ? "மதிப்பீடு விவரங்கள் நகலெடுக்கப்பட்டது"
-            : "Prediction details copied to clipboard"
+          : language === "tamil"
+            ? "மதிப்பீடு விவரங்கள் நகலெடுக்கப்பட்டது"
+            : "Prediction details copied to clipboard",
       );
     } catch (error) {
       console.error("Copy failed:", error);
       Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : language === "tamil" ? "பிழை" : "Error",
+        language === "sinhala"
+          ? "දෝෂයකි"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
         language === "sinhala"
           ? "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය"
-          : language === "tamil" ? "மதிப்பீடு விவரங்களை நகலெடுக்க முடியவில்லை"
-            : "Failed to copy prediction details"
+          : language === "tamil"
+            ? "மதிப்பீடு விவரங்களை நகலெடுக்க முடியவில்லை"
+            : "Failed to copy prediction details",
       );
     }
   };
 
   const handleShareWithOfficer = (prediction: any) => {
-    const contextMessage = language === "sinhala"
-      ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
-      : language === "tamil"
-        ? `🌾 சோள விளைச்சல் மதிப்பீடு கோரிக்கை\n\n📝 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌱 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\nஎன் விளைச்சல் மதிப்பீடு மற்றும் பயிர் மேலாண்மை குறித்து விவசாய அதிகாரியிடம் ஆலோசனை பெற விரும்புகிறேன்.`
-        : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
+    const contextMessage =
+      language === "sinhala"
+        ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
+        : language === "tamil"
+          ? `🌾 சோள விளைச்சல் மதிப்பீடு கோரிக்கை\n\n📝 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌱 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\nஎன் விளைச்சல் மதிப்பீடு மற்றும் பயிர் மேலாண்மை குறித்து விவசாய அதிகாரியிடம் ஆலோசனை பெற விரும்புகிறேன்.`
+          : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
 
     navigation.navigate("Chat", {
       prefilledMessage: contextMessage,
@@ -338,15 +361,24 @@ Status: ${prediction.status || "Active"}`;
     });
   };
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: () => signOut(),
-      },
-    ]);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.warn("Logout failed, forcing navigation to login:", error);
+    } finally {
+      const rootNavigation =
+        navigation.getParent()?.getParent() ??
+        navigation.getParent() ??
+        navigation;
+
+      rootNavigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: ROUTES.AUTH.LOGIN }],
+        })
+      );
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -358,11 +390,14 @@ Status: ${prediction.status || "Active"}`;
     });
   };
 
-  const toggleLanguage = () => {
-    setLanguage(
-      language === "sinhala" ? "english" : language === "english" ? "tamil" : "sinhala"
-    );
-  };
+  const languageOptions: Array<{
+    key: "sinhala" | "english" | "tamil";
+    label: string;
+  }> = [
+    { key: "sinhala", label: "සිංහල" },
+    { key: "english", label: "English" },
+    { key: "tamil", label: "தமிழ்" },
+  ];
 
   const getInitials = (name: string) => {
     return name
@@ -463,11 +498,14 @@ Status: ${prediction.status || "Active"}`;
 
               <TouchableOpacity
                 style={styles.heroLogoutButton}
-                onPress={handleLogout}
+                onPress={() => {
+                  void handleLogout();
+                }}
                 activeOpacity={0.7}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <LinearGradient
-                  colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.1)"]}
+                  colors={["#ef4444", "#dc2626"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.heroLogoutContent}
@@ -639,7 +677,7 @@ Status: ${prediction.status || "Active"}`;
             <View style={styles.settingsGrid}>
               <TouchableOpacity
                 style={styles.settingCard}
-                onPress={toggleLanguage}
+                onPress={() => setShowLanguageModal(true)}
                 activeOpacity={0.8}
               >
                 <LinearGradient
@@ -651,7 +689,11 @@ Status: ${prediction.status || "Active"}`;
                   </View>
                   <Text style={styles.settingTitle}>{t.language}</Text>
                   <Text style={styles.settingValue}>
-                    {language === "sinhala" ? "සිංහල" : language === "tamil" ? "தமிழ்" : "English"}
+                    {language === "sinhala"
+                      ? "සිංහල"
+                      : language === "tamil"
+                        ? "தமிழ்"
+                        : "English"}
                   </Text>
                   <View style={styles.settingArrow}>
                     <ChevronRight size={16} color="#10b981" />
@@ -789,6 +831,55 @@ Status: ${prediction.status || "Active"}`;
           <View style={styles.bottomSpacer} />
         </Animated.View>
       </ScrollView>
+
+      <Modal
+        visible={showLanguageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.languageModal}>
+            <Text style={styles.languageModalTitle}>{t.chooseLanguage}</Text>
+
+            {languageOptions.map((option) => {
+              const isActive = language === option.key;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.languageOption,
+                    isActive && styles.languageOptionActive,
+                  ]}
+                  onPress={() => {
+                    setLanguage(option.key);
+                    setShowLanguageModal(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      isActive && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {isActive && <Text style={styles.languageCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+
+            <TouchableOpacity
+              style={styles.languageCloseButton}
+              onPress={() => setShowLanguageModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.languageCloseButtonText}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -1241,6 +1332,69 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 16,
     right: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  languageModal: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  languageModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 14,
+  },
+  languageOption: {
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  languageOptionActive: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+  languageOptionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  languageOptionTextActive: {
+    color: "#047857",
+  },
+  languageCheck: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#10B981",
+  },
+  languageCloseButton: {
+    marginTop: 4,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  languageCloseButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155",
   },
   predictionsPanel: {
     paddingHorizontal: 20,

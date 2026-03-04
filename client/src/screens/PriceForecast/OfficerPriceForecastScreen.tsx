@@ -80,7 +80,11 @@ const formatPct = (v?: number) => {
   return `${Math.round(v)}%`;
 };
 
-const getISOWeekRange = (year: number, week: number, lang: "si" | "en") => {
+const getISOWeekRange = (
+  year: number,
+  week: number,
+  lang: "si" | "en" | "ta",
+) => {
   const jan4 = new Date(year, 0, 4);
   const jan4Day = jan4.getDay() === 0 ? 7 : jan4.getDay();
   const week1Monday = new Date(jan4);
@@ -98,12 +102,12 @@ const getISOWeekRange = (year: number, week: number, lang: "si" | "en") => {
   };
 
   const start = weekStart.toLocaleDateString(
-    lang === "si" ? "si-LK" : "en-US",
-    options
+    lang === "si" ? "si-LK" : lang === "ta" ? "ta-IN" : "en-US",
+    options,
   );
   const end = weekEnd.toLocaleDateString(
-    lang === "si" ? "si-LK" : "en-US",
-    options
+    lang === "si" ? "si-LK" : lang === "ta" ? "ta-IN" : "en-US",
+    options,
   );
 
   return `${start} – ${end}`;
@@ -116,7 +120,7 @@ const validateRequiredNumber = (
   value: any,
   fieldName: string,
   minValue?: number,
-  maxValue?: number
+  maxValue?: number,
 ): number => {
   // Sanitize string inputs (remove currency symbols, etc.)
   let sanitized = value;
@@ -134,13 +138,13 @@ const validateRequiredNumber = (
   // Check min/max bounds
   if (minValue !== undefined && num < minValue) {
     throw new Error(
-      `${fieldName} (${num}) is below minimum allowed (${minValue})`
+      `${fieldName} (${num}) is below minimum allowed (${minValue})`,
     );
   }
 
   if (maxValue !== undefined && num > maxValue) {
     throw new Error(
-      `${fieldName} (${num}) exceeds maximum allowed (${maxValue})`
+      `${fieldName} (${num}) exceeds maximum allowed (${maxValue})`,
     );
   }
 
@@ -165,11 +169,11 @@ export default function OfficerPriceForecastScreen() {
   const formData = params.formData ?? params.data ?? null;
 
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" | "ta" =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
-  // 🔥 GET WEATHER DATA FROM HOOK (instead of formData)
-  const { temperature, rainfallMm, weatherCondition } =
-    useUniversalLocation(language);
+  // GPS location used for display header only (NOT for forecast inputs)
+  const { weatherCondition } = useUniversalLocation(language);
 
   const T = {
     si: {
@@ -229,6 +233,21 @@ export default function OfficerPriceForecastScreen() {
       volatilityText3: "සැලසුම් සඳහා ස්ථාවර තත්වයන්",
       volatilityText4: "කාල තීරණවල ප්‍රවේශම් වන්න",
       week: "සතිය",
+      summaryStats: "සාරාංශ සංඛ්‍යාලේඛන",
+      averagePrice: "සාමාන්‍ය මිල",
+      medianPrice: "මධ්‍යස්ථ මිල",
+      riskAssessment: "අවදානම් තක්සේරුව",
+      downside: "පහළ පැත්ත අවදානම",
+      upside: "ඉහළ පැත්ත විභවය",
+      riskReward: "ප්‍රතිලාභ අවදානම",
+      priceMovement: "මිල චලනය",
+      forecastMeta: "පුරෝකථන විස්තර",
+      generatedOn: "ජනිතයි",
+      modelInputs: "ආකෘති ඉතුරුවල",
+      dataFreshness: "දත්ත නතුනකම",
+      confidenceAnalysis: "විශ්වාස විශ්ලේෂණය",
+      forecastQuality: "පුරෝකථන ගුණ",
+      justNow: "දැන්ම",
     },
     en: {
       title: "Officer Price Forecast",
@@ -287,6 +306,94 @@ export default function OfficerPriceForecastScreen() {
       volatilityText3: "Stable conditions for planning.",
       volatilityText4: "Exercise caution in timing decisions.",
       week: "Week",
+      summaryStats: "Summary Statistics",
+      averagePrice: "Average Price",
+      medianPrice: "Median Price",
+      riskAssessment: "Risk Assessment",
+      downside: "Downside Risk",
+      upside: "Upside Potential",
+      riskReward: "Risk/Reward Ratio",
+      priceMovement: "Price Movement Analysis",
+      forecastMeta: "Forecast Metadata",
+      generatedOn: "Generated",
+      modelInputs: "Model Inputs",
+      dataFreshness: "Data Freshness",
+      confidenceAnalysis: "Confidence Analysis",
+      forecastQuality: "Forecast Quality",
+      justNow: "Just now",
+    },
+    ta: {
+      title: "அதிகாரி விலை முன்னறிவிப்பு",
+      subtitle: "தொழிலமுறை சந்தை நுண்ணறிவு",
+      generating: "முன்னறிவிப்பு உருவாக்கப்படுகிறது...",
+      error: "பிழை",
+      missingData: "படிவ தரவு காணவில்லை",
+      keyInsights: "முக்கிய நுண்ணறிவுகள்",
+      bestWeek: "சிறந்த வாரம்",
+      peakPrice: "உச்ச விலை",
+      avgConfidence: "சராசரி நம்பிக்கை",
+      trend: "போக்கு",
+      priceAnalysis: "விலை பகுப்பாய்வு",
+      weeklyBreakdown: "வாரந்தோறும் முறிவு",
+      marketIntel: "சந்தை நுண்ணறிவு",
+      recommendations: "பரிந்துரைகள்",
+      exportReport: "அறிக்கையை ஏற்றுமதி செய்யவும்",
+      refresh: "புதுப்பிக்கவும்",
+      overview: "சுருக்கமான கண்ணோட்டம்",
+      detailed: "விவரமான",
+      priceRange: "விலை வரம்பு",
+      volatility: "ஊசலாட்டம்",
+      supplyOutlook: "வழங்கல் முன்னோக்கு",
+      demandTrend: "தேவை போக்கு",
+      district: "மாவட்டம்",
+      season: "பருவம்",
+      period: "காலம்",
+      high: "உচ்சம்",
+      medium: "நடுத்தர",
+      low: "குறைந்த",
+      upward: "ஏறுமுக",
+      downward: "இறங்குமுக",
+      stable: "நிலையான",
+      weekTrajectory: "4-வாரம் விலை தொடர்பு",
+      bestWeekBadge: "சிறந்த வாரம்",
+      predictedPrice: "முன்னறிவிக்கப்பட்ட விலை",
+      confidence: "நம்பிக்கை",
+      change: "மாற்றம்",
+      base: "அடிப்படை",
+      spread: "பரவல்",
+      strong: "சக்திশালி",
+      moderate: "மிதமான",
+      rising: "ஏறுகிறது",
+      falling: "இறங்குகிறது",
+      marketSentiment: "சந்தை உணர்வு",
+      optimalSelling: "உகந்த விற்பனை சாளரம்",
+      optimalText: "சிறந்த விற்பனை வாய்ப்பு வாரத்தில் கண்டறியப்பட்டது",
+      trendAnalysisTitle: "சந்தை போக்கு பகுப்பாய்வு",
+      trendAnalysisText1: "விலை போக்கு",
+      trendAnalysisText2: "கொண்டு",
+      trendAnalysisText3: "சிறந்த விலைகளுக்குப் பிடிக்க பரிசீலிக்கவும்.",
+      trendAnalysisText4: "உகந்த நேரத்தिற்கு நெருக்கமாக கண்காணிக்கவும்.",
+      volatilityTitle: "ஊசலாட்டம் மதிப்பீடு",
+      volatilityText1: "சந்தை காட்டுகிறது",
+      volatilityText2: "ஊசலாட்டம்",
+      volatilityText3: "திட்டமிடலுக்கான நிலையான நிலைமைகள்.",
+      volatilityText4: "நேரத் தீர்மானங்களில் எச்சரிக்கை செலுத்துங்கள்.",
+      week: "வாரம்",
+      summaryStats: "சுருக்க புள்ளிவிவரங்கள்",
+      averagePrice: "சராசரி விலை",
+      medianPrice: "இடைநிலை விலை",
+      riskAssessment: "ঝুঁकி மதிப்பீடு",
+      downside: "பாதுகாப்பு ঝுஸ்கி",
+      upside: "ஏறுமுக சாத்தியக்கூறு",
+      riskReward: "஝ுக்கி/வெகுமதி விகிதம்",
+      priceMovement: "விலை இயக்கம் பகுப்பாய்வு",
+      forecastMeta: "முன்னறிவிப்பு மेটाデेटा",
+      generatedOn: "உருவாக்கப்பட்டது",
+      modelInputs: "மாதிரி உள்ளீடுகள்",
+      dataFreshness: "தரவு புதுமை",
+      confidenceAnalysis: "நம்பிக்கை பகுப்பாய்வு",
+      forecastQuality: "முன்னறிவிப்பு தரம்",
+      justNow: "இப்போது",
     },
   } as const;
 
@@ -296,10 +403,79 @@ export default function OfficerPriceForecastScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<"overview" | "detailed">(
-    "overview"
+    "overview",
   );
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
+
+  // 🌍 DISTRICT WEEKLY WEATHER – replaces GPS-based weather for forecast inputs
+  const [districtWeather, setDistrictWeather] = useState<{
+    avg_temperature: number;
+    avg_rainfall: number;
+    source: string;
+  } | null>(null);
+
+  /**
+   * Fetch ISO-week average temperature (°C) and rainfall (mm) for the
+   * selected district from the backend. Sets districtWeather state once resolved.
+   */
+  const fetchDistrictWeather = async (
+    district: string,
+    year: number,
+    week: number,
+  ) => {
+    try {
+      const url =
+        `${API_URL}/api/price-forecast/district-weather` +
+        `?district=${encodeURIComponent(district)}&year=${year}&week=${week}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.success) {
+        console.log(
+          `🌤 Officer district weather ${district} wk${week}/${year}: ` +
+            `temp=${data.avg_temperature}°C  rain=${data.avg_rainfall}mm  [${data.source}]`,
+        );
+        setDistrictWeather({
+          avg_temperature: data.avg_temperature,
+          avg_rainfall: data.avg_rainfall,
+          source: data.source,
+        });
+        return;
+      }
+      throw new Error("success=false");
+    } catch (err) {
+      console.warn(
+        "Officer fetchDistrictWeather failed, using seasonal defaults:",
+        err,
+      );
+      // Compute fallback from week number (Maha wk 40-52 OR wk 1-13)
+      const isMaha = week >= 40 || week <= 13;
+      setDistrictWeather({
+        avg_temperature: isMaha ? 26.5 : 28.5,
+        avg_rainfall: isMaha ? 28.0 : 12.0,
+        source: "fallback_client",
+      });
+    }
+  };
+
+  // Kick off district weather fetch as soon as we have form data
+  useEffect(() => {
+    const district = formData?.district;
+    const yearNum = Number(formData?.year);
+    const weekNum = Number(formData?.week);
+    if (
+      district &&
+      Number.isFinite(yearNum) &&
+      yearNum >= 2020 &&
+      Number.isFinite(weekNum) &&
+      weekNum >= 1 &&
+      weekNum <= 53
+    ) {
+      fetchDistrictWeather(district, yearNum, weekNum);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData?.district, formData?.year, formData?.week]);
 
   /* ===============================
      BACKEND CALL (REFACTORED)
@@ -315,50 +491,55 @@ export default function OfficerPriceForecastScreen() {
         const district = validateRequiredString(formData.district, "District");
         const season = validateRequiredString(formData.season, "Season");
 
-        // ✅ Environmental data from WEATHER HOOK (not formData)
         const fuelPrice = validateRequiredNumber(
           formData.fuel_price ?? 277,
           "Fuel Price",
           0,
-          10000
+          10000,
         );
 
-        // 🔥 Use rainfallMm from hook, fallback to season default
+        // 🌤 Use district weekly-average weather (NOT GPS current weather)
+        const isMaha = normalizeSeason(season) === "Maha";
         const rainfall =
-          rainfallMm && rainfallMm > 0
-            ? rainfallMm
-            : normalizeSeason(season) === "Maha"
-            ? 30
-            : 10;
+          districtWeather && districtWeather.avg_rainfall > 0
+            ? districtWeather.avg_rainfall
+            : isMaha
+              ? 30
+              : 10;
 
-        // 🔥 Use temperature from hook, with validation
-        // ✅ RENAME: Use `temperatureValue` instead of `temperature` to avoid conflict
         let temperatureValue: number =
-          temperature ?? (normalizeSeason(season) === "Maha" ? 26 : 28);
+          districtWeather && districtWeather.avg_temperature > 0
+            ? districtWeather.avg_temperature
+            : isMaha
+              ? 26
+              : 28;
         if (temperatureValue < 10 || temperatureValue > 45) {
-          temperatureValue = normalizeSeason(season) === "Maha" ? 26 : 28;
+          temperatureValue = isMaha ? 26 : 28;
         }
 
-        // Demand index based on season
-        const demandIndex = normalizeSeason(season) === "Maha" ? 0.85 : 0.7;
+        console.log(
+          `🌡️ Officer forecast weather: temp=${temperatureValue}°C  ` +
+            `rain=${rainfall}mm  source=${districtWeather?.source ?? "fallback"}`,
+        );
 
-        // 🔥 FIX: Extract import_tax from formData.cornImportTax (string) → convert to number
+        // Demand index based on season
+        const demandIndex = isMaha ? 0.85 : 0.7;
+
+        // Extract import_tax from formData.cornImportTax (string) → number
         let importTaxValue = 0;
         if (formData.cornImportTax) {
           const sanitized = String(formData.cornImportTax)
             .replace(/[^0-9.]/g, "")
             .trim();
           importTaxValue = parseFloat(sanitized);
-          if (!Number.isFinite(importTaxValue)) {
-            importTaxValue = 0;
-          }
+          if (!Number.isFinite(importTaxValue)) importTaxValue = 0;
         }
 
         const lastPrice = validateRequiredNumber(
           formData.last_price ?? 160,
           "Last Market Price",
           0,
-          10000
+          10000,
         );
 
         const normalizedSeason = normalizeSeason(season);
@@ -369,24 +550,21 @@ export default function OfficerPriceForecastScreen() {
           district,
           season: normalizedSeason,
           fuel_price: fuelPrice,
-          rainfall: rainfall, // 🔥 FROM HOOK
-          temperature: temperatureValue, // 🔥 FROM HOOK (using renamed variable)
+          rainfall: rainfall, // 🌤 district weekly avg
+          temperature: temperatureValue, // 🌤 district weekly avg
           demand_index: demandIndex,
-          import_tax: importTaxValue, // 🔥 FROM formData.cornImportTax (converted)
+          import_tax: importTaxValue,
           last_price: lastPrice,
           weeks_ahead: 4,
         };
 
         console.log("OFFICER RF PAYLOAD:", payload);
 
-        const res = await fetch(
-          "http://192.168.8.181:8000/api/price-forecast/next-weeks",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-          }
-        );
+        const res = await fetch(`${API_URL}/api/price-forecast/next-weeks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
 
         const data = await res.json();
         console.log("OFFICER RF RESPONSE:", data);
@@ -404,12 +582,12 @@ export default function OfficerPriceForecastScreen() {
       }
     };
 
-    // 🔥 Wait for weather data to load before calling forecast
-    if (temperature !== null && rainfallMm !== null) {
+    // 🌤 Wait for district weather to be resolved before calling forecast
+    if (districtWeather !== null) {
       fetchForecast();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData, temperature, rainfallMm]);
+  }, [districtWeather]);
 
   useEffect(() => {
     Animated.parallel([
@@ -437,7 +615,7 @@ export default function OfficerPriceForecastScreen() {
   const avgConfidence = useMemo(() => {
     if (!weeks.length) return 0;
     return Math.round(
-      weeks.reduce((s, w) => s + w.confidence_pct, 0) / weeks.length
+      weeks.reduce((s, w) => s + w.confidence_pct, 0) / weeks.length,
     );
   }, [weeks]);
 
@@ -460,16 +638,96 @@ export default function OfficerPriceForecastScreen() {
     return Math.sqrt(variance);
   }, [weeks]);
 
+  // 📊 ADVANCED OFFICER ANALYTICS
+  const summaryStats = useMemo(() => {
+    if (!weeks.length) return { mean: 0, median: 0, min: 0, max: 0, range: 0 };
+    const prices = weeks.map((w) => w.rf_price).sort((a, b) => a - b);
+    const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const median =
+      prices.length % 2 === 0
+        ? (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2
+        : prices[Math.floor(prices.length / 2)];
+    return {
+      mean,
+      median,
+      min: prices[0],
+      max: prices[prices.length - 1],
+      range: prices[prices.length - 1] - prices[0],
+    };
+  }, [weeks]);
+
+  const riskAssessment = useMemo(() => {
+    if (!weeks.length || !bestWeek) return { downside: 0, upside: 0, ratio: 0 };
+    const firstWeekPrice = weeks[0].rf_price;
+    const bestPrice = bestWeek.rf_price;
+    const worstPrice = Math.min(...weeks.map((w) => w.rf_price));
+
+    const downsideRisk = ((firstWeekPrice - worstPrice) / firstWeekPrice) * 100;
+    const upsidePotential =
+      ((bestPrice - firstWeekPrice) / firstWeekPrice) * 100;
+    const ratio = downsideRisk > 0 ? upsidePotential / downsideRisk : 0;
+
+    return {
+      downside: downsideRisk,
+      upside: upsidePotential,
+      ratio: ratio,
+    };
+  }, [weeks, bestWeek]);
+
+  const priceMovementAnalysis = useMemo(() => {
+    if (weeks.length < 2) return [];
+    return weeks.map((w, idx) => {
+      if (idx === 0) return { week: w.week, change: 0, changePercent: 0 };
+      const prevPrice = weeks[idx - 1].rf_price;
+      const change = w.rf_price - prevPrice;
+      const changePercent = (change / prevPrice) * 100;
+      return { week: w.week, change, changePercent };
+    });
+  }, [weeks]);
+
+  const confidenceMetrics = useMemo(() => {
+    if (!weeks.length) return { min: 0, max: 0, avg: 0, consistency: 0 };
+    const confidences = weeks.map((w) => w.confidence_pct);
+    const min = Math.min(...confidences);
+    const max = Math.max(...confidences);
+    const avg = confidences.reduce((a, b) => a + b, 0) / confidences.length;
+    const variance =
+      confidences.reduce((sum, c) => sum + Math.pow(c - avg, 2), 0) /
+      confidences.length;
+    const stdev = Math.sqrt(variance);
+    return { min, max, avg: Math.round(avg), consistency: 100 - stdev }; // consistency = 100 - stdev
+  }, [weeks]);
+
   const getTrendTranslation = () => {
-    if (trend === "Upward") return language === "si" ? "ඉහළ යන" : "upward";
-    if (trend === "Downward") return language === "si" ? "පහළ යන" : "downward";
-    return language === "si" ? "ස්ථාවර" : "stable";
+    if (trend === "Upward")
+      return language === "si"
+        ? "ඉහළ යන"
+        : language === "ta"
+          ? "ஏறுமுக"
+          : "upward";
+    if (trend === "Downward")
+      return language === "si"
+        ? "පහළ යන"
+        : language === "ta"
+          ? "இறங்குமுக"
+          : "downward";
+    return language === "si"
+      ? "ස්ථාවර"
+      : language === "ta"
+        ? "நிலையான"
+        : "stable";
   };
 
   const getVolatilityLevel = () => {
-    if (volatility < 2) return language === "si" ? "අඩු" : "low";
-    if (volatility < 5) return language === "si" ? "මධ්‍යම" : "moderate";
-    return language === "si" ? "ඉහළ" : "high";
+    if (volatility < 2)
+      return language === "si" ? "අඩු" : language === "ta" ? "குறைந்த" : "low";
+    if (volatility < 5)
+      return language === "si"
+        ? "මධ්‍යම"
+        : language === "ta"
+          ? "நடுத்தர"
+          : "moderate";
+    return language === "si" ? "ඉහළ" : language === "ta" ? "உচ்சம்" : "high";
   };
 
   /* ===============================
@@ -615,7 +873,7 @@ export default function OfficerPriceForecastScreen() {
                       ? getISOWeekRange(
                           Number(formData?.year || new Date().getFullYear()),
                           bestWeek.week,
-                          language
+                          language,
                         )
                       : "-"}
                   </Text>
@@ -649,8 +907,8 @@ export default function OfficerPriceForecastScreen() {
                     {avgConfidence >= 80
                       ? t.high
                       : avgConfidence >= 60
-                      ? t.medium
-                      : t.low}
+                        ? t.medium
+                        : t.low}
                   </Text>
                 </View>
 
@@ -686,8 +944,8 @@ export default function OfficerPriceForecastScreen() {
                           trend === "Upward"
                             ? "#D1FAE5"
                             : trend === "Downward"
-                            ? "#FEE2E2"
-                            : "#FEF3C7",
+                              ? "#FEE2E2"
+                              : "#FEF3C7",
                       },
                     ]}
                   >
@@ -699,8 +957,8 @@ export default function OfficerPriceForecastScreen() {
                             trend === "Upward"
                               ? "#047857"
                               : trend === "Downward"
-                              ? "#DC2626"
-                              : "#92400E",
+                                ? "#DC2626"
+                                : "#92400E",
                         },
                       ]}
                     >
@@ -713,10 +971,10 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.chartArea}>
                   {weeks.map((w, idx) => {
                     const maxPrice = Math.max(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const minPrice = Math.min(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const height =
                       ((w.rf_price - minPrice) / (maxPrice - minPrice + 1)) *
@@ -781,8 +1039,8 @@ export default function OfficerPriceForecastScreen() {
                     {trend === "Upward"
                       ? t.rising
                       : trend === "Downward"
-                      ? t.falling
-                      : t.stable}
+                        ? t.falling
+                        : t.stable}
                   </Text>
                   <Text style={styles.intelSubtext}>{t.marketSentiment}</Text>
                 </View>
@@ -801,7 +1059,11 @@ export default function OfficerPriceForecastScreen() {
                     </Text>
                     <Text style={styles.recommendationText}>
                       {t.optimalText} {bestWeek?.week}{" "}
-                      {language === "si" ? "මඟින්" : "with peak price of"}{" "}
+                      {language === "si"
+                        ? "මඟින්"
+                        : language === "ta"
+                          ? "உடன்"
+                          : "with peak price of"}{" "}
                       {formatRs(bestWeek?.rf_price)}.
                     </Text>
                   </View>
@@ -838,7 +1100,7 @@ export default function OfficerPriceForecastScreen() {
                           {getISOWeekRange(
                             Number(formData?.year || new Date().getFullYear()),
                             w.week,
-                            language
+                            language,
                           )}
                         </Text>
                       </View>
@@ -892,8 +1154,8 @@ export default function OfficerPriceForecastScreen() {
                                     idx === 0
                                       ? "#6B7280"
                                       : w.rf_price > weeks[idx - 1].rf_price
-                                      ? "#10B981"
-                                      : "#EF4444",
+                                        ? "#10B981"
+                                        : "#EF4444",
                                 },
                               ]}
                             >
@@ -928,8 +1190,8 @@ export default function OfficerPriceForecastScreen() {
                           trend === "Upward"
                             ? "#D1FAE5"
                             : trend === "Downward"
-                            ? "#FEE2E2"
-                            : "#FEF3C7",
+                              ? "#FEE2E2"
+                              : "#FEF3C7",
                       },
                     ]}
                   >
@@ -941,8 +1203,8 @@ export default function OfficerPriceForecastScreen() {
                             trend === "Upward"
                               ? "#047857"
                               : trend === "Downward"
-                              ? "#DC2626"
-                              : "#92400E",
+                                ? "#DC2626"
+                                : "#92400E",
                         },
                       ]}
                     >
@@ -955,10 +1217,10 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.chartArea}>
                   {weeks.map((w, idx) => {
                     const maxPrice = Math.max(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const minPrice = Math.min(
-                      ...weeks.map((week) => week.rf_price)
+                      ...weeks.map((week) => week.rf_price),
                     );
                     const height =
                       ((w.rf_price - minPrice) / (maxPrice - minPrice + 1)) *
@@ -1023,8 +1285,8 @@ export default function OfficerPriceForecastScreen() {
                     {trend === "Upward"
                       ? t.rising
                       : trend === "Downward"
-                      ? t.falling
-                      : t.stable}
+                        ? t.falling
+                        : t.stable}
                   </Text>
                   <Text style={styles.intelSubtext}>{t.marketSentiment}</Text>
                 </View>
@@ -1043,7 +1305,11 @@ export default function OfficerPriceForecastScreen() {
                     </Text>
                     <Text style={styles.recommendationText}>
                       {t.optimalText} {bestWeek?.week}{" "}
-                      {language === "si" ? "මඟින්" : "with peak price of"}{" "}
+                      {language === "si"
+                        ? "මඟින්"
+                        : language === "ta"
+                          ? "உடன்"
+                          : "with peak price of"}{" "}
                       {formatRs(bestWeek?.rf_price)}.
                     </Text>
                   </View>
@@ -1066,7 +1332,9 @@ export default function OfficerPriceForecastScreen() {
                       {t.trendAnalysisText2} {formatPct(avgConfidence)}{" "}
                       {language === "si"
                         ? "සාමාන්‍ය විශ්වාසය"
-                        : "average confidence"}
+                        : language === "ta"
+                          ? "சாமாந்య நம்பிக்கை"
+                          : "average confidence"}
                       .
                       {trend === "Upward"
                         ? ` ${t.trendAnalysisText3}`
@@ -1091,6 +1359,194 @@ export default function OfficerPriceForecastScreen() {
                         : ` ${t.volatilityText4}`}
                     </Text>
                   </View>
+                </View>
+              </View>
+
+              {/* ADVANCED: Summary Statistics */}
+              <Text style={styles.sectionTitle}>📊 {t.summaryStats}</Text>
+              <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>{t.averagePrice}</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.mean)}
+                  </Text>
+                  <Text style={styles.statMeta}>
+                    Mean of {weeks.length} weeks
+                  </Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>{t.medianPrice}</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.median)}
+                  </Text>
+                  <Text style={styles.statMeta}>Middle value</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Min Price</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.min)}
+                  </Text>
+                  <Text style={styles.statMeta}>Lowest forecast</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Max Price</Text>
+                  <Text style={styles.statValue}>
+                    {formatRs(summaryStats.max)}
+                  </Text>
+                  <Text style={styles.statMeta}>Highest forecast</Text>
+                </View>
+              </View>
+
+              {/* ADVANCED: Risk Assessment */}
+              <Text style={styles.sectionTitle}>⚠️ {t.riskAssessment}</Text>
+              <View style={styles.riskCard}>
+                <View style={styles.riskRow}>
+                  <View style={styles.riskMetric}>
+                    <Text style={styles.riskLabel}>{t.downside}</Text>
+                    <View style={styles.riskValue}>
+                      <Text style={[styles.riskNumber, { color: "#EF4444" }]}>
+                        {riskAssessment.downside.toFixed(1)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.riskMeta}>Maximum loss risk</Text>
+                  </View>
+                  <View style={styles.riskMetric}>
+                    <Text style={styles.riskLabel}>{t.upside}</Text>
+                    <View style={styles.riskValue}>
+                      <Text style={[styles.riskNumber, { color: "#10B981" }]}>
+                        +{riskAssessment.upside.toFixed(1)}%
+                      </Text>
+                    </View>
+                    <Text style={styles.riskMeta}>Maximum gain potential</Text>
+                  </View>
+                  <View style={styles.riskMetric}>
+                    <Text style={styles.riskLabel}>{t.riskReward}</Text>
+                    <View style={styles.riskValue}>
+                      <Text style={[styles.riskNumber, { color: "#3B82F6" }]}>
+                        {riskAssessment.ratio.toFixed(2)}x
+                      </Text>
+                    </View>
+                    <Text style={styles.riskMeta}>Reward vs risk</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ADVANCED: Price Movement Analysis */}
+              <Text style={styles.sectionTitle}>📈 {t.priceMovement}</Text>
+              <View style={styles.movementCard}>
+                {priceMovementAnalysis.map((item, idx) => (
+                  <View key={idx} style={styles.movementRow}>
+                    <Text style={styles.movementWeek}>W{item.week}</Text>
+                    <View style={styles.movementBar}>
+                      <View
+                        style={[
+                          styles.movementFill,
+                          {
+                            width: `${Math.abs(item.changePercent) * 10}%`,
+                            backgroundColor:
+                              item.changePercent > 0 ? "#10B981" : "#EF4444",
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text
+                      style={[
+                        styles.movementValue,
+                        {
+                          color: item.changePercent > 0 ? "#10B981" : "#EF4444",
+                        },
+                      ]}
+                    >
+                      {item.changePercent > 0 ? "+" : ""}
+                      {item.changePercent.toFixed(2)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* ADVANCED: Confidence Analysis */}
+              <Text style={styles.sectionTitle}>🎯 {t.confidenceAnalysis}</Text>
+              <View style={styles.confidenceCard}>
+                <View style={styles.confidenceRow}>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si"
+                        ? "අවම"
+                        : language === "ta"
+                          ? "குறைந்த"
+                          : "Minimum"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.min.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si"
+                        ? "සාමාන්‍ය"
+                        : language === "ta"
+                          ? "சாமாந்य"
+                          : "Average"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.avg}%
+                    </Text>
+                  </View>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si"
+                        ? "උපරිම"
+                        : language === "ta"
+                          ? "உচ்சம்"
+                          : "Maximum"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.max.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.confidenceMeter}>
+                    <Text style={styles.confidenceLabel}>
+                      {language === "si"
+                        ? "සমතාවය"
+                        : language === "ta"
+                          ? "சமதாவம்"
+                          : "Consistency"}
+                    </Text>
+                    <Text style={styles.confidenceValue}>
+                      {confidenceMetrics.consistency.toFixed(0)}%
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* ADVANCED: Forecast Metadata */}
+              <Text style={styles.sectionTitle}>ℹ️ {t.forecastMeta}</Text>
+              <View style={styles.metadataCard}>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>{t.generatedOn}</Text>
+                  <Text style={styles.metadataValue}>{t.justNow}</Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>{t.district}</Text>
+                  <Text style={styles.metadataValue}>
+                    {formData?.district || "-"}
+                  </Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>{t.season}</Text>
+                  <Text style={styles.metadataValue}>
+                    {normalizeSeason(formData?.season || "")}
+                  </Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Weeks Forecast</Text>
+                  <Text style={styles.metadataValue}>{weeks.length}</Text>
+                </View>
+                <View style={styles.metadataRow}>
+                  <Text style={styles.metadataLabel}>Fuel Price (Input)</Text>
+                  <Text style={styles.metadataValue}>
+                    {formatRs(formData?.fuel_price)}
+                  </Text>
                 </View>
               </View>
             </>
@@ -1538,6 +1994,182 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#6B7280",
     lineHeight: 20,
+  },
+  // NEW: Advanced Analytics Styles
+  statsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    minWidth: "45%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 6,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#1F2937",
+    marginBottom: 4,
+  },
+  statMeta: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    fontStyle: "italic",
+  },
+  riskCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#FED7AA",
+    marginBottom: 20,
+    shadowColor: "#F59E0B",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  riskRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+  },
+  riskMetric: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 8,
+  },
+  riskLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  riskValue: {
+    marginBottom: 8,
+  },
+  riskNumber: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  riskMeta: {
+    fontSize: 10,
+    color: "#9CA3AF",
+    textAlign: "center",
+  },
+  movementCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 20,
+  },
+  movementRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  movementWeek: {
+    width: 35,
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#1F2937",
+  },
+  movementBar: {
+    flex: 1,
+    height: 24,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 6,
+    overflow: "hidden",
+  },
+  movementFill: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  movementValue: {
+    width: 60,
+    fontSize: 12,
+    fontWeight: "bold",
+    textAlign: "right",
+  },
+  confidenceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  confidenceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  confidenceMeter: {
+    flex: 1,
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  confidenceLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  confidenceValue: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#047857",
+  },
+  metadataCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: 20,
+  },
+  metadataRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  metadataLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontWeight: "600",
+  },
+  metadataValue: {
+    fontSize: 13,
+    color: "#1F2937",
+    fontWeight: "500",
   },
   center: {
     flex: 1,
