@@ -656,7 +656,7 @@ const MarketPlaceScreen = () => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => navigation.navigate("PriceForecastLoadingScreen")}
           style={styles.backButton}
         >
           <ArrowLeft color="#047857" size={24} />
