@@ -1114,31 +1114,7 @@ const PriceForecastFormScreen = () => {
               </Text>
               <Text style={styles.autoDataValue}>{farmGatePrice}</Text>
             </View>
-          </View>
-          <View style={styles.autoDataCard}>
-            <View style={styles.cardIconContainer}>
-              <Calendar color="#10B981" size={22} />
-            </View>
-            <Text style={styles.autoDataLabel}>
-              {language === "si"
-                ? "උත්සව සතිය"
-                : language === "ta"
-                  ? "பண்டிகை வாரம்"
-                  : "Festival Week"}
-            </Text>
-            <Text style={styles.autoDataValue}>
-              {isFestivalWeek
-                ? language === "si"
-                  ? "ඔව්"
-                  : language === "ta"
-                    ? "ஆம்"
-                    : "Yes"
-                : language === "si"
-                  ? "නැත"
-                  : language === "ta"
-                    ? "இல்லை"
-                    : "No"}
-            </Text>
+
             <View style={styles.autoDataCard}>
               <View style={styles.cardIconContainer}>
                 <Calendar color="#10B981" size={22} />

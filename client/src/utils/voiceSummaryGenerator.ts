@@ -60,9 +60,6 @@ const generateSinhalaSummary = (
   hasStorage: boolean,
   recommendation: string,
 ): string => {
-  // Line 1: District greeting
-  const line1 = `${district} දිස්ත්‍රික්කයේ ඉරිඟු වගා කරන ඔබට සුභ දවසක්.`;
-
   // Line 2: Current price and trend
   const trendStatus = getTrendStatusSinhala(weeklyForecast);
   const currentWeekPrice =
@@ -94,10 +91,7 @@ const generateSinhalaSummary = (
       "තව සතියක් හෝ දෙකක් බලා සිටීමෙන් වඩා හොඳ මිලක් ලැබෙන්න පුළුවන්. ඉදිරි සති දෙක තුනේ මිල ඉහළ යාමේ අවස්ථාව තියෙනවා.";
   }
 
-  // Line 5: Closing
-  const line5 = "ඔබගේ අවශ්‍යතාවයට අනුව තීරණය ගන්න. සුභ පැතුම්.";
-
-  return `${line1} ${line2} ${line3} ${line4} ${line5}`;
+  return `${line2} ${line3} ${line4}`;
 };
 
 const getTrendStatusSinhala = (weeklyForecast: WeekForecast[]): string => {
@@ -168,8 +162,6 @@ const generateTamilSummary = (
   hasStorage: boolean,
   recommendation: string,
 ): string => {
-  const line1 = `${district} மாவட்டத்தில் மக்காச்சோளம் பயிரிடும் உங்களுக்கு வணக்கம்.`;
-
   const trendStatus = getTrendStatusTamil(weeklyForecast);
   const currentWeekPrice =
     weeklyForecast.length > 0
@@ -197,9 +189,7 @@ const generateTamilSummary = (
       "இன்னும் ஒன்று அல்லது இரண்டு வாரம் காத்திருந்தால் சிறந்த விலை கிடைக்கும். சந்தை பகுப்பாய்வின்படி வரும் வாரங்களில் விலை உயரும் வாய்ப்பு உள்ளது.";
   }
 
-  const line5 = "உங்கள் தேவைக்கு ஏற்ப தீர்மானம் எடுங்கள். வாழ்த்துக்கள்.";
-
-  return `${line1} ${line2} ${line3} ${line4} ${line5}`;
+  return `${line2} ${line3} ${line4}`;
 };
 
 const getTrendStatusTamil = (weeklyForecast: WeekForecast[]): string => {
@@ -238,9 +228,6 @@ const generateEnglishSummary = (
   hasStorage: boolean,
   recommendation: string,
 ): string => {
-  // Line 1: District greeting
-  const line1 = `Hello farmer in ${district} district. Here is your maize price update.`;
-
   // Line 2: Current price and trend
   const trendStatus = getTrendStatusEnglish(weeklyForecast);
   const currentWeekPrice =
@@ -267,10 +254,7 @@ const generateEnglishSummary = (
     line4 = `Waiting one or two more weeks would give you better prices. The coming two weeks show good opportunity for price increase based on market analysis.`;
   }
 
-  // Line 5: Closing
-  const line5 = `Make your decision based on your needs. Good luck with your harvest.`;
-
-  return `${line1} ${line2} ${line3} ${line4} ${line5}`;
+  return `${line2} ${line3} ${line4}`;
 };
 
 const getTrendStatusEnglish = (weeklyForecast: WeekForecast[]): string => {
