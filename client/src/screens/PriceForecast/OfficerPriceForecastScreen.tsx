@@ -80,7 +80,11 @@ const formatPct = (v?: number) => {
   return `${Math.round(v)}%`;
 };
 
-const getISOWeekRange = (year: number, week: number, lang: "si" | "en") => {
+const getISOWeekRange = (
+  year: number,
+  week: number,
+  lang: "si" | "en" | "ta",
+) => {
   const jan4 = new Date(year, 0, 4);
   const jan4Day = jan4.getDay() === 0 ? 7 : jan4.getDay();
   const week1Monday = new Date(jan4);
@@ -98,11 +102,11 @@ const getISOWeekRange = (year: number, week: number, lang: "si" | "en") => {
   };
 
   const start = weekStart.toLocaleDateString(
-    lang === "si" ? "si-LK" : "en-US",
+    lang === "si" ? "si-LK" : lang === "ta" ? "ta-IN" : "en-US",
     options,
   );
   const end = weekEnd.toLocaleDateString(
-    lang === "si" ? "si-LK" : "en-US",
+    lang === "si" ? "si-LK" : lang === "ta" ? "ta-IN" : "en-US",
     options,
   );
 
@@ -165,7 +169,8 @@ export default function OfficerPriceForecastScreen() {
   const formData = params.formData ?? params.data ?? null;
 
   const { language: globalLang } = useLanguage();
-  const language = globalLang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" | "ta" =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
   // GPS location used for display header only (NOT for forecast inputs)
   const { weatherCondition } = useUniversalLocation(language);
@@ -316,6 +321,79 @@ export default function OfficerPriceForecastScreen() {
       confidenceAnalysis: "Confidence Analysis",
       forecastQuality: "Forecast Quality",
       justNow: "Just now",
+    },
+    ta: {
+      title: "அதிகாரி விலை முன்னறிவிப்பு",
+      subtitle: "தொழிலமுறை சந்தை நுண்ணறிவு",
+      generating: "முன்னறிவிப்பு உருவாக்கப்படுகிறது...",
+      error: "பிழை",
+      missingData: "படிவ தரவு காணவில்லை",
+      keyInsights: "முக்கிய நுண்ணறிவுகள்",
+      bestWeek: "சிறந்த வாரம்",
+      peakPrice: "உச்ச விலை",
+      avgConfidence: "சராசரி நம்பிக்கை",
+      trend: "போக்கு",
+      priceAnalysis: "விலை பகுப்பாய்வு",
+      weeklyBreakdown: "வாரந்தோறும் முறிவு",
+      marketIntel: "சந்தை நுண்ணறிவு",
+      recommendations: "பரிந்துரைகள்",
+      exportReport: "அறிக்கையை ஏற்றுமதி செய்யவும்",
+      refresh: "புதுப்பிக்கவும்",
+      overview: "சுருக்கமான கண்ணோட்டம்",
+      detailed: "விவரமான",
+      priceRange: "விலை வரம்பு",
+      volatility: "ஊசலாட்டம்",
+      supplyOutlook: "வழங்கல் முன்னோக்கு",
+      demandTrend: "தேவை போக்கு",
+      district: "மாவட்டம்",
+      season: "பருவம்",
+      period: "காலம்",
+      high: "உচ்சம்",
+      medium: "நடுத்தர",
+      low: "குறைந்த",
+      upward: "ஏறுமுக",
+      downward: "இறங்குமுக",
+      stable: "நிலையான",
+      weekTrajectory: "4-வாரம் விலை தொடர்பு",
+      bestWeekBadge: "சிறந்த வாரம்",
+      predictedPrice: "முன்னறிவிக்கப்பட்ட விலை",
+      confidence: "நம்பிக்கை",
+      change: "மாற்றம்",
+      base: "அடிப்படை",
+      spread: "பரவல்",
+      strong: "சக்திশালி",
+      moderate: "மிதமான",
+      rising: "ஏறுகிறது",
+      falling: "இறங்குகிறது",
+      marketSentiment: "சந்தை உணர்வு",
+      optimalSelling: "உகந்த விற்பனை சாளரம்",
+      optimalText: "சிறந்த விற்பனை வாய்ப்பு வாரத்தில் கண்டறியப்பட்டது",
+      trendAnalysisTitle: "சந்தை போக்கு பகுப்பாய்வு",
+      trendAnalysisText1: "விலை போக்கு",
+      trendAnalysisText2: "கொண்டு",
+      trendAnalysisText3: "சிறந்த விலைகளுக்குப் பிடிக்க பரிசீலிக்கவும்.",
+      trendAnalysisText4: "உகந்த நேரத்தिற்கு நெருக்கமாக கண்காணிக்கவும்.",
+      volatilityTitle: "ஊசலாட்டம் மதிப்பீடு",
+      volatilityText1: "சந்தை காட்டுகிறது",
+      volatilityText2: "ஊசலாட்டம்",
+      volatilityText3: "திட்டமிடலுக்கான நிலையான நிலைமைகள்.",
+      volatilityText4: "நேரத் தீர்மானங்களில் எச்சரிக்கை செலுத்துங்கள்.",
+      week: "வாரம்",
+      summaryStats: "சுருக்க புள்ளிவிவரங்கள்",
+      averagePrice: "சராசரி விலை",
+      medianPrice: "இடைநிலை விலை",
+      riskAssessment: "ঝুঁकி மதிப்பீடு",
+      downside: "பாதுகாப்பு ঝுஸ்கி",
+      upside: "ஏறுமுக சாத்தியக்கூறு",
+      riskReward: "஝ுக்கி/வெகுமதி விகிதம்",
+      priceMovement: "விலை இயக்கம் பகுப்பாய்வு",
+      forecastMeta: "முன்னறிவிப்பு மेটाデेटा",
+      generatedOn: "உருவாக்கப்பட்டது",
+      modelInputs: "மாதிரி உள்ளீடுகள்",
+      dataFreshness: "தரவு புதுமை",
+      confidenceAnalysis: "நம்பிக்கை பகுப்பாய்வு",
+      forecastQuality: "முன்னறிவிப்பு தரம்",
+      justNow: "இப்போது",
     },
   } as const;
 
@@ -621,15 +699,35 @@ export default function OfficerPriceForecastScreen() {
   }, [weeks]);
 
   const getTrendTranslation = () => {
-    if (trend === "Upward") return language === "si" ? "ඉහළ යන" : "upward";
-    if (trend === "Downward") return language === "si" ? "පහළ යන" : "downward";
-    return language === "si" ? "ස්ථාවර" : "stable";
+    if (trend === "Upward")
+      return language === "si"
+        ? "ඉහළ යන"
+        : language === "ta"
+          ? "ஏறுமுக"
+          : "upward";
+    if (trend === "Downward")
+      return language === "si"
+        ? "පහළ යන"
+        : language === "ta"
+          ? "இறங்குமுக"
+          : "downward";
+    return language === "si"
+      ? "ස්ථාවර"
+      : language === "ta"
+        ? "நிலையான"
+        : "stable";
   };
 
   const getVolatilityLevel = () => {
-    if (volatility < 2) return language === "si" ? "අඩු" : "low";
-    if (volatility < 5) return language === "si" ? "මධ්‍යම" : "moderate";
-    return language === "si" ? "ඉහළ" : "high";
+    if (volatility < 2)
+      return language === "si" ? "අඩු" : language === "ta" ? "குறைந்த" : "low";
+    if (volatility < 5)
+      return language === "si"
+        ? "මධ්‍යම"
+        : language === "ta"
+          ? "நடுத்தர"
+          : "moderate";
+    return language === "si" ? "ඉහළ" : language === "ta" ? "உচ்சம்" : "high";
   };
 
   /* ===============================
@@ -961,7 +1059,11 @@ export default function OfficerPriceForecastScreen() {
                     </Text>
                     <Text style={styles.recommendationText}>
                       {t.optimalText} {bestWeek?.week}{" "}
-                      {language === "si" ? "මඟින්" : "with peak price of"}{" "}
+                      {language === "si"
+                        ? "මඟින්"
+                        : language === "ta"
+                          ? "உடன்"
+                          : "with peak price of"}{" "}
                       {formatRs(bestWeek?.rf_price)}.
                     </Text>
                   </View>
@@ -1203,7 +1305,11 @@ export default function OfficerPriceForecastScreen() {
                     </Text>
                     <Text style={styles.recommendationText}>
                       {t.optimalText} {bestWeek?.week}{" "}
-                      {language === "si" ? "මඟින්" : "with peak price of"}{" "}
+                      {language === "si"
+                        ? "මඟින්"
+                        : language === "ta"
+                          ? "உடன்"
+                          : "with peak price of"}{" "}
                       {formatRs(bestWeek?.rf_price)}.
                     </Text>
                   </View>
@@ -1226,7 +1332,9 @@ export default function OfficerPriceForecastScreen() {
                       {t.trendAnalysisText2} {formatPct(avgConfidence)}{" "}
                       {language === "si"
                         ? "සාමාන්‍ය විශ්වාසය"
-                        : "average confidence"}
+                        : language === "ta"
+                          ? "சாமாந்య நம்பிக்கை"
+                          : "average confidence"}
                       .
                       {trend === "Upward"
                         ? ` ${t.trendAnalysisText3}`
@@ -1362,7 +1470,11 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.confidenceRow}>
                   <View style={styles.confidenceMeter}>
                     <Text style={styles.confidenceLabel}>
-                      {language === "si" ? "අවම" : "Minimum"}
+                      {language === "si"
+                        ? "අවම"
+                        : language === "ta"
+                          ? "குறைந்த"
+                          : "Minimum"}
                     </Text>
                     <Text style={styles.confidenceValue}>
                       {confidenceMetrics.min.toFixed(0)}%
@@ -1370,7 +1482,11 @@ export default function OfficerPriceForecastScreen() {
                   </View>
                   <View style={styles.confidenceMeter}>
                     <Text style={styles.confidenceLabel}>
-                      {language === "si" ? "සාමාන්‍ය" : "Average"}
+                      {language === "si"
+                        ? "සාමාන්‍ය"
+                        : language === "ta"
+                          ? "சாமாந்य"
+                          : "Average"}
                     </Text>
                     <Text style={styles.confidenceValue}>
                       {confidenceMetrics.avg}%
@@ -1378,7 +1494,11 @@ export default function OfficerPriceForecastScreen() {
                   </View>
                   <View style={styles.confidenceMeter}>
                     <Text style={styles.confidenceLabel}>
-                      {language === "si" ? "උපරිම" : "Maximum"}
+                      {language === "si"
+                        ? "උපරිම"
+                        : language === "ta"
+                          ? "உচ்சம்"
+                          : "Maximum"}
                     </Text>
                     <Text style={styles.confidenceValue}>
                       {confidenceMetrics.max.toFixed(0)}%
@@ -1386,7 +1506,11 @@ export default function OfficerPriceForecastScreen() {
                   </View>
                   <View style={styles.confidenceMeter}>
                     <Text style={styles.confidenceLabel}>
-                      {language === "si" ? "සমතාවය" : "Consistency"}
+                      {language === "si"
+                        ? "සমතාවය"
+                        : language === "ta"
+                          ? "சமதாவம்"
+                          : "Consistency"}
                     </Text>
                     <Text style={styles.confidenceValue}>
                       {confidenceMetrics.consistency.toFixed(0)}%
