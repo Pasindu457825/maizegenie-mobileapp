@@ -15,7 +15,7 @@ GPS/Clock → year, week                        (system clock – unchanged)
 District selected → Open-Meteo API            (Mon–Sun average for the current ISO week)
   ├── avg_temperature  (°C)
   └── avg_rainfall     (mm)
-Admin sets → fuel_price, import_tax, last_price  (stored in Supabase → price_config)
+Officers set → fuel_price, import_tax, maize_price per district (Supabase → maize_prices)
 User picks → district (+ farm details for advisory only)
      ↓
 Supabase fetches last 8 weeks of real maize prices for the selected district
@@ -33,21 +33,21 @@ The form (`client/src/screens/PriceForecast/PriceForecastFormScreen.tsx`) collec
 
 ### A. Auto-Captured (no user typing required)
 
-| Field           | Source                                                             |
-| --------------- | ------------------------------------------------------------------ |
-| `year`          | Current date — system clock                                        |
-| `week`          | Current ISO week number — system clock                             |
-| `temperature`   | **Open-Meteo API — district weekly average** (Mon–Sun of ISO week) |
-| `rainfall`      | **Open-Meteo API — district weekly average** (Mon–Sun of ISO week) |
-| `fuelPrice`     | Fetched from Supabase `price_config` table (set by officer/admin)  |
-| `importTax`     | Same `price_config` table                                          |
-| `farmGatePrice` | Same `price_config` table — used as `last_price` in the model      |
+| Field           | Source                                                                           |
+| --------------- | -------------------------------------------------------------------------------- |
+| `year`          | Current date — system clock                                                      |
+| `week`          | Current ISO week number — system clock                                           |
+| `temperature`   | **Open-Meteo API — district weekly average** (Mon–Sun of ISO week)               |
+| `rainfall`      | **Open-Meteo API — district weekly average** (Mon–Sun of ISO week)               |
+| `fuelPrice`     | **Supabase `maize_prices` table** — district-specific, set by officers           |
+| `importTax`     | **Same `maize_prices` table** — district-specific                                |
+| `farmGatePrice` | **Same `maize_prices` table** — district-specific, used as `last_price` in model |
 
-> **GPS removal**: Temperature and rainfall are **no longer sourced from the device's GPS location**.  
-> A new backend endpoint `GET /api/price-forecast/district-weather` fetches ISO-week weather for the **selected district** using Open-Meteo (free, no API key).
+> **Pricing Update**: All prices are now **district-specific**. Officers enter prices per district via the Admin Panel, stored directly in the `maize_prices` table with `fuel_price` and `import_tax` fields.
+> Each record includes: `district`, `year`, `week`, `maize_price`, `fuel_price`, `import_tax`, `updated_at`
 
-> **Admin API**: Officers/admins update `price_config` via `POST /api/admin/price-data`  
-> **Auto-fetch**: App calls `GET /api/admin/price-data` when the form loads
+> **Admin API**: Removed global price endpoints. Officers/admins update prices **directly through Supabase** in the Admin Panel.
+> **Auto-fetch**: Deleted — the app no longer fetches global prices on form load. All price data is district-specific.
 
 ### B. User Enters Manually
 
@@ -267,21 +267,23 @@ The form screen (`PriceForecastFormScreen.tsx`) shows **"Avg. Rainfall"** and **
 
 ## Supabase Tables Used
 
-| Table          | Purpose                                               |
-| -------------- | ----------------------------------------------------- |
-| `maize_prices` | Historical weekly maize prices per district           |
-| `price_config` | Admin-managed fuel price, import tax, farm gate price |
+| Table          | Purpose                                                                             |
+| -------------- | ----------------------------------------------------------------------------------- |
+| `maize_prices` | **ALL price data**: Weekly maize prices, fuel prices, and import taxes per district |
+
+> **Note**: The `price_config` table has been deprecated. All pricing is now **district-specific** and stored in `maize_prices` with fields: `year`, `week`, `district`, `price` (maize), `fuel_price`, `import_tax`, `updated_at`.
 
 ---
 
 ## Important Notes
 
 1. **Minimum data requirement**: At least **8 weeks** of historical price data must exist in `maize_prices` for the selected district.
-2. **`demand_index`**: Currently hardcoded to `1.0` — not user-editable in the current UI.
-3. **Farm cost inputs** (seed, fertilizer, labour) are **not used** by the ML model — they are only used for profit/loss advisory calculations displayed alongside the forecast.
-4. **District drives everything**: The district selection determines the one-hot feature column, the historical price lookup, AND the Open-Meteo weather fetch.
-5. **No GPS required**: The price forecasting module no longer reads device GPS for any weather input. GPS is still used in the form header for cosmetic location display only.
-6. **Open-Meteo is free**: No API key required. Rate limits are generous for production use. The service automatically selects the Archive API for completed weeks and the Forecast API for the current/ongoing week.
+2. **District-specific prices**: Officers enter prices separately for each district via the Admin Panel. If no price exists for the district, the system should handle safely (error or fallback).
+3. **`demand_index`**: Currently hardcoded to `1.0` — not user-editable in the current UI.
+4. **Farm cost inputs** (seed, fertilizer, labour) are **not used** by the ML model — they are only used for profit/loss advisory calculations.
+5. **District drives everything**: The district selection determines the one-hot feature column, the historical price lookup, AND the Open-Meteo weather fetch.
+6. **No GPS required**: The price forecasting module no longer reads device GPS. GPS is used in the form header for cosmetic location display only.
+7. **Open-Meteo is free**: No API key required. Rate limits are generous for production use.
 
 ---
 
@@ -291,33 +293,33 @@ The form (`client/src/screens/PriceForecast/PriceForecastFormScreen.tsx`) collec
 
 ### A. Auto-Captured (no user typing required)
 
-| Field           | Source                                                            |
-| --------------- | ----------------------------------------------------------------- |
-| `year`          | Current date — system clock                                       |
-| `week`          | Current ISO week number — system clock                            |
-| `temperature`   | Live weather via `useUniversalLocation` hook → OpenWeather API    |
-| `rainfall`      | Same live weather hook                                            |
-| `fuelPrice`     | Fetched from Supabase `price_config` table (set by officer/admin) |
-| `importTax`     | Same `price_config` table                                         |
-| `farmGatePrice` | Same `price_config` table — used as `last_price` in the model     |
+| Field           | Source                                                                  |
+| --------------- | ----------------------------------------------------------------------- |
+| `year`          | Current date — system clock                                             |
+| `week`          | Current ISO week number — system clock                                  |
+| `temperature`   | Live weather via `useUniversalLocation` hook → OpenWeather API          |
+| `rainfall`      | Same live weather hook                                                  |
+| `fuelPrice`     | **Supabase `maize_prices` table** — district-specific                   |
+| `importTax`     | **Same `maize_prices` table** — district-specific                       |
+| `farmGatePrice` | **Same `maize_prices` table** — district-specific, used as `last_price` |
 
-> **Admin API**: Officers/admins update `price_config` via `POST /api/admin/price-data`  
-> **Auto-fetch**: App calls `GET /api/admin/price-data` when the form loads
+> **NOTE**: Prices are now **fetched per-district** from the `maize_prices` table based on the selected district.
+> Officers manage prices via the Admin Panel (direct Supabase writes) — no global price endpoints.
 
 ### B. User Enters Manually
 
-| Field            | Used for                                                   |
-| ---------------- | ---------------------------------------------------------- |
-| `district`       | Price history fetch from Supabase + one-hot encode feature |
-| `season`         | Passed as context (Yala / Maha)                            |
-| `seedVariety`    | Advisory / profit analysis only — NOT in ML model          |
-| `expectedYield`  | Advisory only                                              |
-| `farmArea`       | Advisory only                                              |
-| `seedCost`       | Advisory only                                              |
-| `fertilizerCost` | Advisory only                                              |
-| `labourCost`     | Advisory only                                              |
-| `otherCosts`     | Advisory only                                              |
-| `hasStorage`     | Advisory only                                              |
+| Field            | Used for                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| `district`       | Price history fetch from Supabase + one-hot encode + weather |
+| `season`         | Passed as context (Yala / Maha)                              |
+| `seedVariety`    | Advisory / profit analysis only — NOT in ML model            |
+| `expectedYield`  | Advisory only                                                |
+| `farmArea`       | Advisory only                                                |
+| `seedCost`       | Advisory only                                                |
+| `fertilizerCost` | Advisory only                                                |
+| `labourCost`     | Advisory only                                                |
+| `otherCosts`     | Advisory only                                                |
+| `hasStorage`     | Advisory only                                                |
 
 ---
 
@@ -464,30 +466,31 @@ File: `client/src/screens/PriceForecast/PriceForecastScreen.tsx`
 
 ## Key Files Reference
 
-| File                                                           | Role                                                        |
-| -------------------------------------------------------------- | ----------------------------------------------------------- |
-| `server/src/priceforecast/price_prediction_router.py`          | Main prediction API endpoint + walk-forward logic           |
-| `server/src/priceforecast/admin_router.py`                     | Admin endpoints to update fuel/tax/price config in Supabase |
-| `server/src/priceforecast/rf_price_delta_model.pkl`            | Trained Random Forest model (binary)                        |
-| `server/src/priceforecast/weather_service.py`                  | Weather data utilities                                      |
-| `client/src/screens/PriceForecast/PriceForecastFormScreen.tsx` | Input form — collects auto + manual data                    |
-| `client/src/screens/PriceForecast/PriceForecastScreen.tsx`     | Results display — chart, confidence, advisory               |
-| `client/src/services/priceForecastService.ts`                  | API call + response adapter                                 |
+| File                                                               | Role                                              |
+| ------------------------------------------------------------------ | ------------------------------------------------- |
+| `server/src/priceforecast/price_prediction_router.py`              | Main prediction API endpoint + walk-forward logic |
+| `server/src/priceforecast/admin_router.py`                         | Admin endpoints (global price endpoints removed)  |
+| `server/src/priceforecast/rf_price_delta_model.pkl`                | Trained Random Forest model (binary)              |
+| `server/src/priceforecast/weather_service.py`                      | Weather data utilities                            |
+| `client/src/screens/AdminPanel/PriceForecast/AdminPanelScreen.tsx` | Admin form — enter district prices with fuel/tax  |
+| `client/src/screens/PriceForecast/PriceForecastFormScreen.tsx`     | Input form — collects auto + manual data          |
+| `client/src/screens/PriceForecast/PriceForecastScreen.tsx`         | Results display — chart, confidence, advisory     |
+| `client/src/services/priceForecastService.ts`                      | API call + response adapter                       |
 
 ---
 
 ## Supabase Tables Used
 
-| Table          | Purpose                                               |
-| -------------- | ----------------------------------------------------- |
-| `maize_prices` | Historical weekly maize prices per district           |
-| `price_config` | Admin-managed fuel price, import tax, farm gate price |
+| Table          | Purpose                                                                               |
+| -------------- | ------------------------------------------------------------------------------------- |
+| `maize_prices` | **ALL price data**: Daily/weekly maize prices, fuel prices, import taxes per district |
 
 ---
 
 ## Important Notes
 
 1. **Minimum data requirement**: At least **8 weeks** of historical price data must exist in `maize_prices` for the selected district.
-2. **`demand_index`**: Currently hardcoded to `1.0` — not user-editable in the current UI.
-3. **Farm cost inputs** (seed, fertilizer, labour) are **not used** by the ML model — they are only used for profit/loss advisory calculations displayed alongside the forecast.
-4. **District drives everything**: The district selection determines both the one-hot feature column AND the historical price lookup from Supabase.
+2. **District-specific prices**: Officers must enter prices for the target district to ensure accuracy. Missing district prices should be handled with error messages.
+3. **`demand_index`**: Currently hardcoded to `1.0` — not user-editable in the current UI.
+4. **Farm cost inputs** (seed, fertilizer, labour) are **not used** by the ML model — they are only used for profit/loss advisory calculations.
+5. **District drives everything**: The district selection determines the one-hot feature column AND the historical price lookup from Supabase.

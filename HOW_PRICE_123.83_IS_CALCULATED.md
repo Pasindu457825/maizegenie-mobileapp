@@ -264,18 +264,18 @@ Supabase maize_prices
 
 ## Quick Reference — Where Each Value Comes From
 
-| Value in prediction   | Source                                     |
-| --------------------- | ------------------------------------------ |
-| `lag_1`               | Supabase `maize_prices` — newest row       |
-| `lag_2`               | Supabase `maize_prices` — 2nd newest row   |
-| `lag_4`               | Supabase `maize_prices` — 4th newest row   |
-| `roll_4`              | Average of last 4 rows from Supabase       |
-| `roll_8`              | Average of all 8 rows from Supabase        |
-| `rainfall`            | Open-Meteo weekly avg → normalized if < 5  |
-| `temperature`         | Open-Meteo weekly avg for the district     |
-| `fuel_price`          | Supabase `price_config` table (admin sets) |
-| `import_tax`          | Supabase `price_config` table (admin sets) |
-| `demand_index`        | Hardcoded: 0.85 (Maha) or 0.70 (Yala)      |
-| `year_trend`          | `year − 2020` (calculated)                 |
-| `dist_*`              | One-hot: 1 for selected district, 0 others |
-| **`last_price: 160`** | **⚠️ NOT used in ML — display only**       |
+| Value in prediction   | Source                                                       |
+| --------------------- | ------------------------------------------------------------ |
+| `lag_1`               | Supabase `maize_prices` — newest row                         |
+| `lag_2`               | Supabase `maize_prices` — 2nd newest row                     |
+| `lag_4`               | Supabase `maize_prices` — 4th newest row                     |
+| `roll_4`              | Average of last 4 rows from Supabase                         |
+| `roll_8`              | Average of all 8 rows from Supabase                          |
+| `rainfall`            | Open-Meteo weekly avg → normalized if < 5                    |
+| `temperature`         | Open-Meteo weekly avg for the district                       |
+| `fuel_price`          | Supabase `maize_prices` table (officer-entered per district) |
+| `import_tax`          | Supabase `maize_prices` table (officer-entered per district) |
+| `demand_index`        | Hardcoded: 0.85 (Maha) or 0.70 (Yala)                        |
+| `year_trend`          | `year − 2020` (calculated)                                   |
+| `dist_*`              | One-hot: 1 for selected district, 0 others                   |
+| **`last_price: 160`** | **⚠️ NOT used in ML — display only**                         |

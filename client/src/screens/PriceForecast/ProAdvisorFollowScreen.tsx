@@ -314,6 +314,18 @@ export default function ProAdvisorListScreen() {
             <Text style={styles.headerSubtitle}>{pageSub}</Text>
           </View>
 
+          {isOfficer ? (
+            <TouchableOpacity
+              onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
+              activeOpacity={0.85}
+              style={[styles.iconBtn, styles.addBtn]}
+            >
+              <Plus size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          ) : (
+            <View style={{ width: 42 }} />
+          )}
+
           {/* ✅ Notification Button */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Notifications")}
@@ -329,18 +341,6 @@ export default function ProAdvisorListScreen() {
               </View>
             )}
           </TouchableOpacity>
-
-          {isOfficer ? (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("ProAdvisorAdminAdd")}
-              activeOpacity={0.85}
-              style={[styles.iconBtn, styles.addBtn]}
-            >
-              <Plus size={20} color="#FFFFFF" />
-            </TouchableOpacity>
-          ) : (
-            <View style={{ width: 42 }} />
-          )}
         </View>
 
         {/* Stats Row */}
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F0FDF4" },
 
   headerWrap: {
-    paddingTop: 24,
+    paddingTop: 40,
     paddingBottom: 14,
     paddingHorizontal: 14,
     backgroundColor: "#FFFFFF",

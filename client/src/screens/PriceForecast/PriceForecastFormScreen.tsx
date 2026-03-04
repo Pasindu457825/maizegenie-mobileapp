@@ -51,11 +51,10 @@ import {
 } from "../../utils/storage";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { Modal } from "react-native";
+import { supabase } from "../../lib/supabase";
 
 // 🔥 ADD THIS HERE (top of file, after imports)
 
@@ -225,6 +224,101 @@ const PriceForecastFormScreen = () => {
       setIsLoadingDistrictWeather(false);
     }
   };
+
+  // 🔥 NEW: Fetch PREVIOUS WEEK prices for the selected district based on form week number
+  const fetchPricesByDistrict = async (
+    selectedDistrict: string,
+    selectedYear: string,
+    selectedWeek: string,
+  ) => {
+    if (!selectedDistrict || !selectedYear || !selectedWeek) {
+      // Clear prices if any required parameter is missing
+      setFuelPrice("");
+      setCornImportTax("");
+      setFarmGatePrice("");
+      return;
+    }
+
+    // Clear stale prices while fetching new ones
+    setFuelPrice("");
+    setCornImportTax("");
+    setFarmGatePrice("");
+
+    try {
+      // Calculate previous week
+      const currentWeek = parseInt(selectedWeek, 10);
+      const currentYear = parseInt(selectedYear, 10);
+
+      let prevWeek = currentWeek - 1;
+      let prevYear = currentYear;
+
+      // Handle edge case: if week = 1, previous week = 52 of previous year
+      if (currentWeek === 1) {
+        prevWeek = 52;
+        prevYear = currentYear - 1;
+      }
+
+      console.log(
+        `📅 Fetching previous week price: Year=${prevYear}, Week=${prevWeek}, District=${selectedDistrict}`,
+      );
+
+      // Query the SPECIFIC previous week price for the selected district
+      const { data, error } = await supabase
+        .from("maize_prices")
+        .select("price, fuel_price, import_tax")
+        .eq("district", selectedDistrict)
+        .eq("year", prevYear)
+        .eq("week", prevWeek)
+        .single();
+
+      if (error) {
+        console.warn(
+          `No price data found for ${selectedDistrict} on Year=${prevYear}, Week=${prevWeek}:`,
+          error,
+        );
+        // Prices already cleared above; leave them as empty
+        return;
+      }
+
+      if (data) {
+        // Format and set the prices
+        const fuelPriceFormatted =
+          language === "si"
+            ? `රු. ${data.fuel_price?.toFixed(2) || "0.00"}`
+            : language === "ta"
+              ? `Rs. ${data.fuel_price?.toFixed(2) || "0.00"}`
+              : `Rs. ${data.fuel_price?.toFixed(2) || "0.00"}`;
+
+        const farmGatePriceFormatted =
+          language === "si"
+            ? `රු. ${data.price?.toFixed(2) || "0.00"}/kg`
+            : language === "ta"
+              ? `Rs. ${data.price?.toFixed(2) || "0.00"}/kg`
+              : `Rs. ${data.price?.toFixed(2) || "0.00"}/kg`;
+
+        const taxFormatted = data.import_tax?.toFixed(2) || "0.00";
+
+        setFuelPrice(fuelPriceFormatted);
+        setCornImportTax(`${taxFormatted}%`);
+        setFarmGatePrice(farmGatePriceFormatted);
+
+        console.log(
+          `✅ Loaded PREVIOUS WEEK prices for ${selectedDistrict} (Year=${prevYear}, Week=${prevWeek}):`,
+          data,
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching prices by district:", error);
+      // Prices already cleared above; leave them as empty on error
+    }
+  };
+
+  // 🔥 NEW: Auto-load PREVIOUS WEEK prices when district, year, or week changes
+  useEffect(() => {
+    if (district && year && week) {
+      fetchPricesByDistrict(district, year, week);
+    }
+  }, [district, year, week, language]);
 
   // Re-fetch district weather whenever the selected district (or week) changes
   useEffect(() => {
@@ -628,7 +722,9 @@ const PriceForecastFormScreen = () => {
         setSeason(savedAuto.season);
       }
 
-      if (savedPrice) {
+      // Only load saved prices if we have a saved district
+      // This prevents stale data from a previous form session showing up
+      if (savedPrice && savedForm && savedForm.district) {
         setFuelPrice(savedPrice.fuelPrice);
         setCornImportTax(savedPrice.cornImportTax);
         setFarmGatePrice(savedPrice.farmGatePrice);
@@ -640,38 +736,9 @@ const PriceForecastFormScreen = () => {
     }
   };
 
-  // 🔥 NEW: Fetch price data from API
-  const fetchPriceDataFromAPI = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/admin/price-data`);
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        const fuelPriceFormatted =
-          language === "si"
-            ? `රු. ${data.data.fuelPrice.toFixed(2)}`
-            : `Rs. ${data.data.fuelPrice.toFixed(2)}`;
-
-        const farmGatePriceFormatted =
-          language === "si"
-            ? `රු. ${data.data.farmGatePrice.toFixed(2)}/kg`
-            : `Rs. ${data.data.farmGatePrice.toFixed(2)}/kg`;
-
-        setFuelPrice(fuelPriceFormatted);
-        setCornImportTax(`${data.data.importTax}%`);
-        setFarmGatePrice(farmGatePriceFormatted);
-
-        // 🔥 SAVE TO STORAGE
-        await savePriceData({
-          fuelPrice: fuelPriceFormatted,
-          cornImportTax: `${data.data.importTax}%`,
-          farmGatePrice: farmGatePriceFormatted,
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching price data:", error);
-    }
-  };
+  // � REMOVED: Global price fetching is no longer needed
+  // All prices are now district-specific and managed through the maize_prices table
+  // This is called by the admin panel during price entry
 
   const captureSystemData = async () => {
     try {
@@ -693,8 +760,7 @@ const PriceForecastFormScreen = () => {
         season: currentSeason,
       });
 
-      // 🔥 UPDATED: Fetch price data from API
-      await fetchPriceDataFromAPI();
+      // � Global price fetching removed - prices are now district-specific
     } catch (error) {
       console.error("Error capturing system data:", error);
       Alert.alert(
@@ -779,11 +845,8 @@ const PriceForecastFormScreen = () => {
           : "Yala Season";
     }
   };
-  useFocusEffect(
-    useCallback(() => {
-      fetchPriceDataFromAPI();
-    }, []),
-  );
+  // 🔄 Removed: useFocusEffect that called fetchPriceDataFromAPI()
+  // Global price data is no longer fetched on screen focus
   useEffect(() => {
     const now = new Date();
     const updatedSeason = determineSeason(now);
@@ -1085,35 +1148,50 @@ const PriceForecastFormScreen = () => {
               <Text style={styles.autoDataValue}>{season}</Text>
             </View>
 
-            <View style={styles.autoDataCard}>
-              <View style={styles.cardIconContainer}>
-                <DollarSign color="#10B981" size={22} />
-              </View>
-              <Text style={styles.autoDataLabel}>
-                {content[language].fuelPrice}
-              </Text>
-              <Text style={styles.autoDataValue}>{fuelPrice}</Text>
-            </View>
+            {/* Only show price fields after district is selected */}
+            {district ? (
+              <>
+                <View style={styles.autoDataCard}>
+                  <View style={styles.cardIconContainer}>
+                    <DollarSign color="#10B981" size={22} />
+                  </View>
+                  <Text style={styles.autoDataLabel}>
+                    {content[language].fuelPrice}
+                  </Text>
+                  <Text style={styles.autoDataValue}>{fuelPrice}</Text>
+                </View>
 
-            <View style={styles.autoDataCard}>
-              <View style={styles.cardIconContainer}>
-                <Package color="#10B981" size={22} />
-              </View>
-              <Text style={styles.autoDataLabel}>
-                {content[language].importTax}
-              </Text>
-              <Text style={styles.autoDataValue}>{cornImportTax}</Text>
-            </View>
+                <View style={styles.autoDataCard}>
+                  <View style={styles.cardIconContainer}>
+                    <Package color="#10B981" size={22} />
+                  </View>
+                  <Text style={styles.autoDataLabel}>
+                    {content[language].importTax}
+                  </Text>
+                  <Text style={styles.autoDataValue}>{cornImportTax}</Text>
+                </View>
 
-            <View style={styles.autoDataCard}>
-              <View style={styles.cardIconContainer}>
-                <DollarSign color="#10B981" size={22} />
+                <View style={styles.autoDataCard}>
+                  <View style={styles.cardIconContainer}>
+                    <DollarSign color="#10B981" size={22} />
+                  </View>
+                  <Text style={styles.autoDataLabel}>
+                    {content[language].currentPrice}
+                  </Text>
+                  <Text style={styles.autoDataValue}>{farmGatePrice}</Text>
+                </View>
+              </>
+            ) : (
+              <View style={[styles.autoDataCard, { opacity: 0.6 }]}>
+                <Text style={styles.autoDataLabel}>
+                  {language === "si"
+                    ? "දැනට පිරිවිතුරු දත්ත අදහස් නොකරයි"
+                    : language === "ta"
+                      ? "பொறுத்தமான விலை தரவு இல்லை"
+                      : "No price data yet"}
+                </Text>
               </View>
-              <Text style={styles.autoDataLabel}>
-                {content[language].currentPrice}
-              </Text>
-              <Text style={styles.autoDataValue}>{farmGatePrice}</Text>
-            </View>
+            )}
 
             <View style={styles.autoDataCard}>
               <View style={styles.cardIconContainer}>
