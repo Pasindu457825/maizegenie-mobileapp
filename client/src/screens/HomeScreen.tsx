@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -9,11 +15,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useApp } from "../context/AppContext";
-import {
-  useNavigation,
-  useRoute,
-  useFocusEffect,
-} from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   TrendingUp,
@@ -23,6 +25,7 @@ import {
   BarChart3,
   MessageSquare,
   Bell,
+  MapPin,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -156,13 +159,13 @@ export default function HomeScreen() {
   // ✅ Get translations based on language
   const t = useMemo(() => translations[language], [language]);
 
-  // ✨ Animations
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
-  const scaleAnim = new Animated.Value(0.8);
+  // ✨ Stable Animated refs — never recreated across renders
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // ✅ Re-trigger animations when language changes
-  useEffect(() => {
+  // ✅ Helper: reset and play the entrance animation
+  const playAnimation = useCallback(() => {
     fadeAnim.setValue(0);
     slideAnim.setValue(50);
     scaleAnim.setValue(0.8);
@@ -185,6 +188,25 @@ export default function HomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+  }, [fadeAnim, slideAnim, scaleAnim]);
+
+  // ✅ Re-play animation on every focus (covers back-navigation + language changes)
+  useFocusEffect(
+    useCallback(() => {
+      playAnimation();
+      // Return a cleanup function to stop any in-flight animations when
+      // the screen loses focus, preventing memory leaks.
+      return () => {
+        fadeAnim.stopAnimation();
+        slideAnim.stopAnimation();
+        scaleAnim.stopAnimation();
+      };
+    }, [playAnimation, fadeAnim, slideAnim, scaleAnim]),
+  );
+
+  // ✅ Also re-trigger when language changes while the screen is already focused
+  useEffect(() => {
+    playAnimation();
   }, [language]);
 
   // ✅ Build features array with language dependency
@@ -218,8 +240,25 @@ export default function HomeScreen() {
         color: "#8b5cf6",
         route: "PredictYield",
       },
+      {
+        icon: MapPin,
+        title:
+          language === "si"
+            ? "කෘෂිකර්ම කාර්යාල"
+            : language === "ta"
+              ? "விவசாய அலுவலகங்கள்"
+              : "Agriculture Offices",
+        description:
+          language === "si"
+            ? "ආසන්න කෘෂිකර්ම දෙපාර්තමේන්තු සොයන්න"
+            : language === "ta"
+              ? "அருகிலுள்ள விவசாய திணைக்களங்களை கண்டறியுங்கள்"
+              : "Find nearby agriculture departments",
+        color: "#059669",
+        route: "AgricultureDepartmentScreen", // ✅ DIRECT
+      },
     ],
-    [t]
+    [t],
   );
 
   return (

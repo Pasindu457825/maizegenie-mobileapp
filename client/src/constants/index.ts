@@ -1,3 +1,5 @@
+import Constants from "expo-constants";
+
 export const ROUTES = {
   AUTH: {
     LOGIN: "Login",
@@ -30,5 +32,8 @@ export const ROUTES = {
 // Expo Go App:          http://YOUR_COMPUTER_IP:8000
 // ─────────────────────────────────────────────────────────────
 
-// Set your API base URL here:
-export const API_BASE = "http://192.168.8.117:8000"; // Physical Device / Expo Go
+// Prefer env-configured API base for all environments.
+export const API_BASE =
+  Constants.expoConfig?.extra?.API_BASE ||
+  process.env.EXPO_PUBLIC_API_BASE ||
+  "http://localhost:8000";

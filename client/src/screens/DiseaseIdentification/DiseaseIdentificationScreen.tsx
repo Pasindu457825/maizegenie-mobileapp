@@ -28,13 +28,16 @@ import {
   Scan,
   Sparkles,
   ChevronRight,
+  ArrowRight,
+  Search,
+  TrendingUp,
   Volume2,
   Shield,
   ArrowLeft,
   RefreshCw,
 } from "lucide-react-native";
 import { API_BASE } from "../../services/api";
-import { useNavigation } from "@react-navigation/native";
+import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
 import { LinearGradient } from "expo-linear-gradient";
@@ -52,6 +55,10 @@ type NavProp = StackNavigationProp<
   DiseaseIdentifyStackParamList,
   "DiseaseDetection"
 >;
+type DiseaseDetectionRouteProp = RouteProp<
+  DiseaseIdentifyStackParamList,
+  "DiseaseDetection"
+>;
 
 const { width, height } = Dimensions.get("window");
 
@@ -61,6 +68,8 @@ interface Prediction {
   class_id: number;
   class_name: string;
   confidence: number;
+  box_xyxy?: number[];
+  impact_boxes?: number[][];
 }
 
 const normalizePredictions = (raw: any): Prediction[] => {
@@ -74,8 +83,9 @@ const REQUEST_TIMEOUT = 45000;
 
 const DiseaseIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
+  const route = useRoute<DiseaseDetectionRouteProp>();
   const { language: lang, setLanguage } = useLanguage();
-  const language = lang === "sinhala" ? "si" : "en";
+  const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   const content = {
     si: {
@@ -123,6 +133,18 @@ const DiseaseIdentificationScreen = () => {
         "ලප, කහ පැහැය, වියළීම, රස්ට් වැනි රෝග ලක්ෂණ පැහැදිලිව පෙනෙන කොළයක් භාවිතා කරන්න",
         "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
       ],
+      managePrices: "ප්‍රතිකාර මිල කළමනාකරණය",
+      managePricesDesc: "නිලධාරීන්ට පමණක්: බලන්න, එකතු කරන්න, යාවත්කාලීන කරන්න, මකන්න",
+      identifyDisease: "රෝගය හඳුනාගන්න",
+      identifyDiseaseDesc: "AI මගින් ඉක්මන් හඳුනාගැනීම",
+      openTreatmentPrices: "ප්‍රතිකාර මිල බලන්න",
+      openTreatmentPricesDesc: "නිලධාරීන්ට පමණක් මිල කළමනාකරණය",
+      chooseImageMethod: "ඡායාරූප මූලාශ්‍රය තෝරන්න",
+      homeDescription:
+        "කොළ රෝග හඳුනාගැනීම සහ ප්‍රතිකාර තීරණ සඳහා ඔබේ බුද්ධිමත් සහායක",
+      smartAI: "Smart AI",
+      realTime: "Real-time",
+      community: "Community",
     },
     en: {
       title: "🍃 Leaf Disease Detection",
@@ -169,6 +191,77 @@ const DiseaseIdentificationScreen = () => {
         "Ensure visible disease symptoms (spots, discoloration, rust, or drying)",
         "Avoid blurry or distant photos",
       ],
+      managePrices: "Manage Treatment Prices",
+      managePricesDesc: "Officers only: view, add, update, delete",
+      identifyDisease: "Identify Disease",
+      identifyDiseaseDesc: "Instant AI-powered identification",
+      openTreatmentPrices: "View Treatment Prices",
+      openTreatmentPricesDesc: "Officer-only price management",
+      chooseImageMethod: "Choose image source",
+      homeDescription:
+        "Your intelligent assistant for disease detection and treatment guidance",
+      smartAI: "Smart AI",
+      realTime: "Real-time",
+      community: "Community",
+    },
+    ta: {
+      title: "🍃 இலை நோய் கண்டறிதல்",
+      subtitle: "திறன்மிகு விவசாயம்",
+      headerTitle: "இலை நோய் கண்டறிதல்",
+      headerSubtitle: "புகைப்படங்களிலிருந்து இலை நோய்களைக் கண்டறியவும்",
+      cameraOption: "கேமராவைப் பயன்படுத்து",
+      uploadOption: "புகைப்படத்தைப் பதிவேற்று",
+      detectButton: "நோயைக் கண்டறி",
+      analyzing: "படத்தை பகுப்பாய்வு செய்கிறது...",
+      resultTitle: "நோய்கள் கண்டறியப்பட்டன",
+      noDiseases: "நோய்கள் எதுவும் கண்டறியப்படவில்லை! 🎉",
+      tryAgain: "மீண்டும் முயற்சி செய்",
+      pickImage: "ஒரு படத்தைத் தேர்ந்தெடு",
+      orText: "அல்லது",
+      successMessage: "வெற்றிகரமாக அடையாளம் காணப்பட்டது!",
+      selectImageFirst: "முதலில் ஒரு படத்தைத் தேர்ந்தெடுக்கவும்",
+      permissionDenied: "அனுமதி தேவை",
+      serverError: "சேவையகத்துடன் இணைக்க முடியவில்லை",
+      viewDetails: "மேலும் விவரங்களைக் காண்க",
+      uploadPhoto: "புகைப்படத்தைப் பதிவேற்று",
+      modernAgriculture: "நவீன விவசாயம்",
+      healthyCrop: "ஆரோக்கியமான பயிர்",
+      back: "பின்செல்",
+      newDetection: "புதிய கண்டறிதல்",
+      speak: "பேசு",
+      confidence: "நம்பிக்கை",
+      high: "அதிகம்",
+      medium: "நடுத்தரம்",
+      low: "குறைவு",
+      severity: "தொற்றுநோயின் அளவு",
+      detectionStatus: "கண்டறிதல் நிலை",
+      healthy: "ஆரோக்கியமானது",
+      location: "இடம்",
+      status: "நிலை",
+      invalidLeafTitle: "செல்லாத இலைப் படம்",
+      invalidLeafSubtitle:
+        "இந்தப் படம் மக்காச்சோள இலையாக இருக்காது. தெளிவான மக்காச்சோள இலைப் படத்தைப் பதிவேற்றவும்.",
+      invalidSuggestionsTitle: "சரியான படத்தைப் பதிவேற்றுவதற்கான உதவிக்குறிப்புகள்",
+      invalidSuggestions: [
+        "சேதமடைந்த அல்லது நோயுற்ற மக்காச்சோள இலையை மட்டும் படம்பிடிக்கவும்",
+        "நல்ல வெளிச்சம் மற்றும் தெளிவான மையத்தைப் பயன்படுத்தவும்",
+        "படத்தின் மையத்தில் இலையை முழுமையாக வைத்திருக்கவும்",
+        "தெளிவான நோய் அறிகுறிகளை (புள்ளிகள், நிறமாற்றம், துரு, அல்லது உலர்தல்) உறுதிசெய்யவும்",
+        "மங்கலான அல்லது தொலைதூரப் புகைப்படங்களைத் தவிர்க்கவும்",
+      ],
+      managePrices: "சிகிச்சை விலைகளை நிர்வகி",
+      managePricesDesc:
+        "அதிகாரிகளுக்கு மட்டும்: பார்வை, சேர்த்து, புதுப்பித்து, நீக்கு",
+      identifyDisease: "நோயை கண்டறி",
+      identifyDiseaseDesc: "உடனடி AI அடையாளம்",
+      openTreatmentPrices: "சிகிச்சை விலைகளை பார்க்க",
+      openTreatmentPricesDesc: "அதிகாரிகளுக்கு மட்டும் விலை மேலாண்மை",
+      chooseImageMethod: "பட மூலத்தைத் தேர்வு செய்க",
+      homeDescription:
+        "நோய் கண்டறிதலும் சிகிச்சை முடிவுகளுக்கும் உங்கள் புத்திசாலி உதவியாளர்",
+      smartAI: "Smart AI",
+      realTime: "Real-time",
+      community: "Community",
     },
   };
 
@@ -186,6 +279,7 @@ const DiseaseIdentificationScreen = () => {
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const [slideAnim] = useState(new Animated.Value(30));
   const [pulseAnim] = useState(new Animated.Value(1));
+  const [showIdentifyOptions, setShowIdentifyOptions] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
@@ -259,6 +353,10 @@ const DiseaseIdentificationScreen = () => {
           ? `කරුණාකර ${
               type === "camera" ? "කැමරා" : "ගැලරි"
             } ප්‍රවේශය ලබා දෙන්න!`
+          : language === "ta"
+          ? `தொடர ${
+              type === "camera" ? "கேமரா" : "கேலரி"
+            } அனுமதிகளை வழங்கவும்!`
           : `Please grant ${type} permissions to continue!`,
         [{ text: "OK" }]
       );
@@ -307,7 +405,7 @@ const DiseaseIdentificationScreen = () => {
     }
   };
 
-  const { diseaseModel } = useApp(); // ✅ global value
+  const { diseaseModel, user } = useApp(); // ✅ global value
 
   const uploadAndDetect = async () => {
     if (!imageUri) {
@@ -376,6 +474,8 @@ const DiseaseIdentificationScreen = () => {
         errorMsg =
           language === "si"
             ? "කාලය ඉක්මවී ගියේය! නැවත උත්සාහ කරන්න"
+            : language === "ta"
+            ? "நேரம் முடிந்தது! மீண்டும் முயற்சி செய்யவும்"
             : "Request timeout! Please try again";
       } else if (err.response?.data) {
         errorMsg =
@@ -432,9 +532,11 @@ const DiseaseIdentificationScreen = () => {
     Speech.speak(
       language === "si"
         ? `${cleanName} රෝගය හමුවිය`
+        : language === "ta"
+        ? `${cleanName} நோய் கண்டறியப்பட்டது`
         : `${cleanName} disease detected`,
       {
-        language: language === "si" ? "si-LK" : "en-US",
+        language: language === "si" ? "si-LK" : language === "ta" ? "ta-IN" : "en-US",
         rate: 0.9,
         pitch: 1.0,
         onDone: () => {
@@ -457,8 +559,15 @@ const DiseaseIdentificationScreen = () => {
     setImageUri(null);
     setResult(null);
     setError(null);
+    setShowIdentifyOptions(false);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
+
+  useEffect(() => {
+    if (route.params?.resetToken) {
+      resetScreen();
+    }
+  }, [route.params?.resetToken]);
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.8) return "#10B981";
@@ -532,6 +641,17 @@ const DiseaseIdentificationScreen = () => {
     return diseaseName;
   };
 
+  const getDiseaseNameTa = (rawClassName: string) => {
+    const key = formatDiseaseName(rawClassName).toLowerCase();
+
+    if (key.includes("blight")) return "இலை கருகல்";
+    if (key.includes("common rust")) return "பொதுவான துரு";
+    if (key.includes("gray") && key.includes("spot")) return "சாம்பல் புள்ளி";
+
+    // fallback (if unknown)
+    return diseaseName;
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#10ad79ff" />
@@ -595,6 +715,40 @@ const DiseaseIdentificationScreen = () => {
             </View>
           </View>
 
+          {!imageUri && !loading && !showIdentifyOptions && (
+            <View style={styles.homeInfoSection}>
+              <Text style={styles.homeInfoDescription}>
+                {content[language].homeDescription}
+              </Text>
+              <View style={styles.homeStatsRow}>
+                <View style={styles.homeStatCard}>
+                  <View style={styles.homeStatIcon}>
+                    <Shield size={18} color="#10B981" />
+                  </View>
+                  <Text style={styles.homeStatText}>
+                    {content[language].smartAI}
+                  </Text>
+                </View>
+                <View style={styles.homeStatCard}>
+                  <View style={styles.homeStatIcon}>
+                    <TrendingUp size={18} color="#10B981" />
+                  </View>
+                  <Text style={styles.homeStatText}>
+                    {content[language].realTime}
+                  </Text>
+                </View>
+                <View style={styles.homeStatCard}>
+                  <View style={styles.homeStatIcon}>
+                    <MessageSquare size={18} color="#10B981" />
+                  </View>
+                  <Text style={styles.homeStatText}>
+                    {content[language].community}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Image Preview Section */}
           {imageUri && (
             <Animated.View
@@ -635,112 +789,174 @@ const DiseaseIdentificationScreen = () => {
                 },
               ]}
             >
-              {/* Image Upload Guidance (Before Image Selection Only) */}
-              <View
-                style={{
-                  backgroundColor: "#ECFDF5",
-                  borderRadius: 16,
-                  padding: 16,
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: "#A7F3D0",
-                }}
-              >
+              {/* Image Upload Guidance */}
+              {showIdentifyOptions && (
                 <View
                   style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 10,
+                    backgroundColor: "#ECFDF5",
+                    borderRadius: 16,
+                    padding: 16,
+                    marginBottom: 20,
+                    borderWidth: 1,
+                    borderColor: "#A7F3D0",
                   }}
                 >
-                  <AlertCircle size={18} color="#059669" />
-                  <Text
+                  <View
                     style={{
-                      marginLeft: 8,
-                      fontWeight: "700",
-                      color: "#047857",
-                      fontSize: 14,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      marginBottom: 10,
                     }}
                   >
-                    {content[language].invalidSuggestionsTitle}
-                  </Text>
-                </View>
-
-                {content[language].invalidSuggestions.map(
-                  (tip: string, index: number) => (
+                    <AlertCircle size={18} color="#059669" />
                     <Text
-                      key={index}
                       style={{
+                        marginLeft: 8,
+                        fontWeight: "700",
                         color: "#047857",
-                        fontSize: 13,
-                        marginBottom: 6,
-                        lineHeight: 18,
+                        fontSize: 14,
                       }}
                     >
-                      • {tip}
+                      {content[language].invalidSuggestionsTitle}
                     </Text>
-                  )
-                )}
-              </View>
-              <View style={styles.actionCards}>
-                <TouchableOpacity
-                  style={[styles.actionCard, styles.actionCardPrimary]}
-                  onPress={pickImageFromCamera}
-                  activeOpacity={0.9}
-                >
-                  <View style={styles.actionIconContainer}>
-                    <Camera size={28} color="#FFFFFF" />
                   </View>
-                  <Text style={styles.actionCardTitle}>
-                    {content[language].cameraOption}
-                  </Text>
-                  <Text style={styles.actionCardDescription}>
-                    {language === "si"
-                      ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
-                      : "Take photo directly from camera"}
-                  </Text>
-                  <View style={styles.actionArrow}>
-                    <ChevronRight size={18} color="#FFFFFF" />
-                  </View>
-                </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.actionCard, styles.actionCardSecondary]}
-                  onPress={pickImageFromGallery}
-                  activeOpacity={0.9}
-                >
-                  <View
-                    style={[
-                      styles.actionIconContainer,
-                      styles.actionIconSecondary,
-                    ]}
-                  >
-                    <Upload size={28} color="#10B981" />
-                  </View>
-                  <Text
-                    style={[
-                      styles.actionCardTitle,
-                      styles.actionCardTitleSecondary,
-                    ]}
-                  >
-                    {content[language].uploadOption}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.actionCardDescription,
-                      styles.actionCardDescriptionSecondary,
-                    ]}
-                  >
-                    {language === "si"
-                      ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
-                      : "Choose existing photos from gallery"}
-                  </Text>
-                  <View
-                    style={[styles.actionArrow, styles.actionArrowSecondary]}
-                  >
-                    <ChevronRight size={18} color="#10B981" />
-                  </View>
-                </TouchableOpacity>
+                  {content[language].invalidSuggestions.map(
+                    (tip: string, index: number) => (
+                      <Text
+                        key={index}
+                        style={{
+                          color: "#047857",
+                          fontSize: 13,
+                          marginBottom: 6,
+                          lineHeight: 18,
+                        }}
+                      >
+                        • {tip}
+                      </Text>
+                    )
+                  )}
+                </View>
+              )}
+              <View style={styles.actionCards}>
+                {!showIdentifyOptions ? (
+                  <>
+                    <TouchableOpacity
+                      style={styles.primaryHomeAction}
+                      onPress={() => setShowIdentifyOptions(true)}
+                      activeOpacity={0.9}
+                    >
+                      <View style={styles.homeActionIconPrimary}>
+                        <Search size={24} color="#10B981" />
+                      </View>
+                      <View style={styles.homeActionContent}>
+                        <Text style={styles.homeCardTitle}>
+                          {content[language].identifyDisease}
+                        </Text>
+                        <Text style={styles.homeCardDesc}>
+                          {content[language].identifyDiseaseDesc}
+                        </Text>
+                      </View>
+                      <View style={styles.homeActionArrowPrimary}>
+                        <ArrowRight size={18} color="#10B981" />
+                      </View>
+                    </TouchableOpacity>
+
+                    {user?.role === "officer" && (
+                      <TouchableOpacity
+                        style={styles.secondaryHomeAction}
+                        onPress={() => navigation.navigate("TreatmentPricesAdmin")}
+                        activeOpacity={0.9}
+                      >
+                        <View style={styles.homeActionIconSecondary}>
+                          <Shield size={22} color="#38BDF8" />
+                        </View>
+                        <View style={styles.homeActionContent}>
+                          <Text style={styles.homeCardTitle}>
+                            {content[language].openTreatmentPrices}
+                          </Text>
+                          <Text style={styles.homeCardDesc}>
+                            {content[language].openTreatmentPricesDesc}
+                          </Text>
+                        </View>
+                        <View style={styles.homeActionArrowSecondary}>
+                          <ArrowRight size={16} color="#38BDF8" />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <View style={styles.chooseMethodBanner}>
+                      <Text style={styles.chooseMethodText}>
+                        {content[language].chooseImageMethod}
+                      </Text>
+                    </View>
+
+                    <TouchableOpacity
+                      style={[styles.actionCard, styles.actionCardPrimary]}
+                      onPress={pickImageFromCamera}
+                      activeOpacity={0.9}
+                    >
+                      <View style={styles.actionIconContainer}>
+                        <Camera size={28} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.actionCardTitle}>
+                        {content[language].cameraOption}
+                      </Text>
+                      <Text style={styles.actionCardDescription}>
+                        {language === "si"
+                          ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
+                          : language === "ta"
+                          ? "கேமராவிலிருந்து நேரடியாக புகைப்படம் எடுக்கவும்"
+                          : "Take photo directly from camera"}
+                      </Text>
+                      <View style={styles.actionArrow}>
+                        <ChevronRight size={18} color="#FFFFFF" />
+                      </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionCard, styles.actionCardSecondary]}
+                      onPress={pickImageFromGallery}
+                      activeOpacity={0.9}
+                    >
+                      <View
+                        style={[
+                          styles.actionIconContainer,
+                          styles.actionIconSecondary,
+                        ]}
+                      >
+                        <Upload size={28} color="#10B981" />
+                      </View>
+                      <Text
+                        style={[
+                          styles.actionCardTitle,
+                          styles.actionCardTitleSecondary,
+                        ]}
+                      >
+                        {content[language].uploadOption}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.actionCardDescription,
+                          styles.actionCardDescriptionSecondary,
+                        ]}
+                      >
+                        {language === "si"
+                          ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
+                          : language === "ta"
+                          ? "கேலரியில் இருந்து இருக்கும் புகைப்படங்களைத் தேர்ந்தெடுக்கவும்"
+                          : "Choose existing photos from gallery"}
+                      </Text>
+                      <View
+                        style={[styles.actionArrow, styles.actionArrowSecondary]}
+                      >
+                        <ChevronRight size={18} color="#10B981" />
+                      </View>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </Animated.View>
           )}
@@ -786,6 +1002,8 @@ const DiseaseIdentificationScreen = () => {
                   <Text style={styles.loadingSubtext}>
                     {language === "si"
                       ? "කරුණාකර රැඳී සිටින්න..."
+                      : language === "ta"
+                      ? "தயவுசெய்து காத்திருக்கவும்..."
                       : "Please wait..."}
                   </Text>
                 </View>
@@ -806,7 +1024,11 @@ const DiseaseIdentificationScreen = () => {
                   <AlertCircle size={36} color="#EF4444" />
                 </View>
                 <Text style={styles.errorTitle}>
-                  {language === "si" ? "දෝෂයක්" : "Error"}
+                  {language === "si"
+                    ? "දෝෂයක්"
+                    : language === "ta"
+                    ? "பிழை"
+                    : "Error"}
                 </Text>
                 <Text style={styles.errorMessage}>{error}</Text>
                 <TouchableOpacity
@@ -932,6 +1154,8 @@ const DiseaseIdentificationScreen = () => {
                           >
                             {language === "si"
                               ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : language === "ta"
+                              ? getDiseaseNameTa(primaryPrediction.class_name)
                               : diseaseName}{" "}
                             {content[language].resultTitle}
                           </Text>
@@ -966,7 +1190,11 @@ const DiseaseIdentificationScreen = () => {
                                 fontSize: 14,
                               }}
                             >
-                              {language === "si" ? "ශබ්දයෙන් අසන්න" : "Listen"}
+                              {language === "si"
+                                ? "ශබ්දයෙන් අසන්න"
+                                : language === "ta"
+                                ? "கேள்"
+                                : "Listen"}
                             </Text>
                           </TouchableOpacity>
                         ) : (
@@ -1008,7 +1236,11 @@ const DiseaseIdentificationScreen = () => {
                                 fontSize: 14,
                               }}
                             >
-                              {language === "si" ? "ශබ්දය නවත්වන්න" : "Stop"}
+                              {language === "si"
+                                ? "ශබ්දය නවත්වන්න"
+                                : language === "ta"
+                                ? "நிறுத்து"
+                                : "Stop"}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -1069,6 +1301,16 @@ const DiseaseIdentificationScreen = () => {
                                       .includes("medium")
                                   ? content.si.medium
                                   : content.si.low
+                                : language === "ta"
+                                ? result.severity_label
+                                    .toLowerCase()
+                                    .includes("high")
+                                  ? content.ta.high
+                                  : result.severity_label
+                                      .toLowerCase()
+                                      .includes("medium")
+                                  ? content.ta.medium
+                                  : content.ta.low
                                 : result.severity_label}
                             </Text>
                           </View>
@@ -1092,6 +1334,9 @@ const DiseaseIdentificationScreen = () => {
                             diseaseNameEn: diseaseName,
                             diseaseNameSi: primaryPrediction
                               ? getDiseaseNameSi(primaryPrediction.class_name)
+                              : diseaseName,
+                            diseaseNameTa: primaryPrediction
+                              ? getDiseaseNameTa(primaryPrediction.class_name)
                               : diseaseName,
                           })
                         }
@@ -1130,6 +1375,8 @@ const DiseaseIdentificationScreen = () => {
                 <Text style={styles.healthySubtitle}>
                   {language === "si"
                     ? "ඔබේ කොළය සෞඛ්‍ය සම්පන්න තත්ත්වයේ පවතී"
+                    : language === "ta"
+                    ? "உங்கள் இலை ஆரோக்கியமான நிலையில் இருப்பதாக தெரிகிறது"
                     : "Your leaf appears to be in healthy condition"}
                 </Text>
                 <TouchableOpacity
@@ -1359,6 +1606,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "500",
   },
+  homeInfoSection: {
+    paddingHorizontal: 20,
+    marginTop: 26,
+    marginBottom: 6,
+  },
+  homeInfoDescription: {
+    fontSize: 16,
+    color: "#475569",
+    textAlign: "center",
+    lineHeight: 24,
+    fontWeight: "500",
+  },
+  homeStatsRow: {
+    marginTop: 18,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+  },
+  homeStatCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    paddingVertical: 12,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  homeStatIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  homeStatText: {
+    fontSize: 11,
+    color: "#1F2937",
+    fontWeight: "700",
+    textAlign: "center",
+  },
   imageSection: {
     paddingHorizontal: 20,
     marginTop: 30,
@@ -1417,6 +1711,137 @@ const styles = StyleSheet.create({
   },
   actionCards: {
     gap: 16,
+  },
+  primaryHomeAction: {
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  secondaryHomeAction: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#D1FAE5",
+    backgroundColor: "#FFFFFF",
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  homeActionIconPrimary: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeActionIconSecondary: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeActionContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  homeCardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  homeCardDesc: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "#64748B",
+    fontWeight: "500",
+  },
+  homeActionArrowPrimary: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  homeActionArrowSecondary: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chooseMethodBanner: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  chooseMethodText: {
+    color: "#047857",
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  officerCard: {
+    backgroundColor: "#0F766E",
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#0F766E",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  officerIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  officerContent: {
+    flex: 1,
+    marginLeft: 10,
+  },
+  officerTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  officerDesc: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 11,
+    marginTop: 2,
+  },
+  officerArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   actionCard: {
     borderRadius: 20,

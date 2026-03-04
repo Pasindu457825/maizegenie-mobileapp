@@ -40,7 +40,7 @@ import { StackNavigationProp } from "@react-navigation/stack";
 import { RouteProp } from "@react-navigation/native";
 import { PriceForecastStackParamList } from "../../navigation/PriceForecastStack";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 type ProAdvisorPageNavProp = StackNavigationProp<
   PriceForecastStackParamList,
@@ -112,6 +112,37 @@ const FIRST_TIME_GUIDE: Record<
   Language,
   { seed: string; water: string; fertilizer: string; finance: string }
 > = {
+  ta: {
+    seed: [
+      "• தரமான கலப்பின விதைகள் அல்லது உள்ளூர் பரிந்துரைக்கப்பட்ட வகைகளை (எ.கா: A6604, PAC 7803, Lankamil 1) தேர்வு செய்யவும்",
+      "• நடவு செய்வதற்கு முன் மண் பரிசோதனை நடத்தி pH 6.0–6.8 அளவில் பராமரிக்கவும்",
+      "• நோய் மற்றும் பூச்சிகளிலிருந்து பாதுகாக்க பூஞ்சாணக்கொல்லி மற்றும் பூச்சிக்கொல்லிகளால் விதைகளை நேர்த்தி செய்யவும்",
+      "• விதைகளை 3–5 செ.மீ ஆழத்தில் 20–25 செ.மீ இடைவெளியில் வரிசைகளில் நடவும்; வரிசைகளுக்கு இடையே 60–75 செ.மீ இடம் விடவும்",
+      "• விதைகளுக்கு மண்ணை அழுத்தி உடனே நீர் பாய்ச்சவும்",
+    ].join("\n"),
+    water: [
+      "• மண்ணை ஈரமாக வைத்திருங்கள், ஆனால் நீர் தேங்காமல் பார்க்கவும்; மக்காச்சோளத்திற்கு நிலையான ஈரப்பதம் தேவை",
+      "• வாரத்திற்கு 1–1.5 அங்குல தண்ணீர் வழங்கவும்; வறண்ட காலங்களில் 2 அங்குலம் வரை அதிகரிக்கவும்",
+      "• கொத்துக்கட்டை நிலை (tasselling) இரண்டு வாரங்களுக்கு முன் அதிக நீர்ப்பாசனம் தவிர்க்கவும்",
+      "• நீரை சிக்கனமாக பயன்படுத்த சொட்டு அல்லது வாய்க்கால் நீர்ப்பாசன முறைகளை பயன்படுத்தவும்",
+      "• மழையை கண்காணிக்க மழைமானி பயன்படுத்தி நீர்ப்பாசனத்தை அதற்கேற்ப சரிசெய்யவும்",
+    ].join("\n"),
+    fertilizer: [
+      "• மண் பரிசோதனை அடிப்படையில் உர திட்டம் தயாரிக்கவும்; மக்காச்சோளத்திற்கு நைட்ரஜன், பாஸ்பரஸ் மற்றும் பொட்டாசியம் தேவை",
+      "• நிலம் தயாரிக்கும் போது கரிம பொருட்களை சேர்த்து மண் வளத்தை மேம்படுத்தவும்",
+      "• செடிகள் 30 செ.மீ உயரம் வரும்போது நைட்ரஜன் உரம் இடவும்; கொத்துக்கட்டை நிலையிலும் மீண்டும் இடவும்",
+      "• சிறந்த ஊட்டச்சத்து உட்கொள்ளலுக்கு மண் pH 6.0–6.8 அளவில் பராமரிக்கவும்",
+      "• இலைகள் மஞ்சளாகினால் மீன் கரைசல் போன்ற விரைவாக செயல்படும் நைட்ரஜன் மூலங்களை பயன்படுத்தவும்",
+    ].join("\n"),
+    finance: [
+      "• விதைகள், உரங்கள், பயிர் பாதுகாப்பு உப்புகள், நீர்ப்பாசனம், உழைப்பு, இயந்திர எரிபொருள், பழுதுபார்ப்பு உள்ளிட்ட செலவுகளை மதிப்பிடவும்",
+      "• உபகரண தேய்மானம், பண்ணை மேலணி மற்றும் நில வாடகை போன்ற உரிமை செலவுகளை பட்ஜெட்டில் சேர்க்கவும்",
+      "• சேமிப்பு, சந்தைப்படுத்தல், காப்பீடு மற்றும் ஆலோசனை கட்டணங்களுக்கு நிதி ஒதுக்கவும்",
+      "• அறுவடை நடவடிக்கைகளான உலர்த்துதல் மற்றும் போக்குவரத்துக்காக நிதி ஒதுக்கவும்",
+      "• எதிர்பாராத செலவுகளுக்கு அவசர நிதி வைத்திருங்கள்",
+      "• நிதி குறைவாக இருந்தால் அரசு மானியங்கள், கூட்டுறவு கொள்முதல் அல்லது நுண்கடன் திட்டங்களை ஆராயவும்",
+    ].join("\n"),
+  },
   en: {
     seed: [
       "• Choose high‑quality hybrid seeds or locally recommended varieties (e.g., A6604, PAC 7803, Lankamil 1)",
@@ -193,7 +224,8 @@ const ProAdvisorPage: React.FC = () => {
   const route = useRoute<ProAdvisorPageRouteProp>();
   const { formData } = route.params;
   const { language: globalLang } = useLanguage();
-  const language: Language = globalLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const { unreadCount } = useNotifications();
 
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -211,6 +243,35 @@ const ProAdvisorPage: React.FC = () => {
   });
 
   const T = {
+    ta: {
+      title: "Pro Advisor",
+      subtitle: "உங்கள் விவசாய திட்டம்",
+      loading: "ஏற்றுகிறது...",
+      noData: "தரவை பெற முடியவில்லை",
+      tryAgain: "மீண்டும் முயற்சிக்கவும்",
+      harvest: "🌽 அறுவடை & சேமிப்பு",
+      storage: "சேமிப்பு பரிசீலனை",
+      seed: "🌱 விதை வழிகாட்டுதல்",
+      water: "💧 நீர் மேலாண்மை",
+      fertilizer: "🧪 உர திட்டம்",
+      finance: "💰 நிதி திட்டம்",
+      risks: "⚠️ அபாய காரணிகள்",
+      opportunities: "⭐ சாத்தியங்கள்",
+      actions: "✅ செய்ய வேண்டியவை",
+      backToAdvice: "Advisor க்கு திரும்பு",
+      week: "வாரங்கள்",
+      readyToStart: "தயாராக உள்ளது",
+      needPrep: "தயாரிப்பு தேவை",
+      firstTimeNote: "முதல்முறை விவசாயிகளுக்கான படிப்படியான வழிகாட்டுதல்",
+      completeGuide: "📚 முழுமையான விவசாய வழிகாட்டி",
+      timelineTitle: "⏱️ விவசாய காலவரிசை",
+      readinessCheck: "✓ தயார்நிலை சரிபார்ப்பு",
+      marketStrategy: "📊 சந்தை உத்தி",
+      expertTips: "💡 நிபுணர் குறிப்புகள்",
+      weatherConsiderations: "🌤️ வானிலை பரிசீலனைகள்",
+      pestManagement: "🐛 பூச்சி மேலாண்மை",
+      yieldOptimization: "📈 விளைச்சல் மேம்பாடு",
+    },
     si: {
       title: "Pro Advisor",
       subtitle: "ඔබගේ සූදානම් වගා සැලසුම",
@@ -269,7 +330,7 @@ const ProAdvisorPage: React.FC = () => {
       pestManagement: "🐛 Pest Management",
       yieldOptimization: "📈 Yield Optimization",
     },
-  } as const;
+  };
 
   const t = T[language];
 
@@ -279,9 +340,11 @@ const ProAdvisorPage: React.FC = () => {
       duration: 500,
       useNativeDriver: true,
     }).start();
+  }, []);
 
+  useEffect(() => {
     generateProAdvice();
-  }, [formData]);
+  }, [formData, language]);
 
   const generateProAdvice = async () => {
     try {
@@ -305,6 +368,7 @@ const ProAdvisorPage: React.FC = () => {
           experience: formData.experienceLevel,
           landSize: formData.area || "0",
           irrigationAvailable: formData.hasIrrigation,
+          language,
           preparedness: {
             seedReady: formData.readiness.seeds,
             waterReady: formData.readiness.water,
@@ -329,13 +393,19 @@ const ProAdvisorPage: React.FC = () => {
           data.recommended_action ||
           (language === "si"
             ? "අස්වැන්න නිසි කාලයට ගබඩා කර විකිණින්න"
-            : "Store and sell harvest at proper time"),
+            : language === "ta"
+              ? "சரியான நேரத்தில் அறுவடையை சேமித்து விற்கவும்"
+              : "Store and sell harvest at proper time"),
         delayWeeks: data.storage_advice?.duration_weeks || 0,
         storageRequired: (data.storage_advice?.required ?? false) || false,
         storageDuration: data.storage_advice?.duration_weeks || 0,
         storageAdvice:
           data.storage_advice?.message_si ||
-          (language === "si" ? "වියලි ස්ථානයක් තෝරන්න" : "Choose a dry place"),
+          (language === "si"
+            ? "වියලි ස්ථානයක් තෝරන්න"
+            : language === "ta"
+              ? "வறண்ட இடத்தை தேர்வு செய்யவும்"
+              : "Choose a dry place"),
         seedGuidance: guide.seed || "",
         waterGuidance: guide.water || "",
         fertilizerGuidance: guide.fertilizer || "",
@@ -382,7 +452,9 @@ const ProAdvisorPage: React.FC = () => {
       risks.push(
         lang === "si"
           ? "අත්දැකීම අඩු නම් වගාවේ අවදානම වැඩිය"
-          : "Limited experience increases cultivation risk"
+          : lang === "ta"
+            ? "குறைந்த அனுபவம் பயிரிடல் அபாயத்தை அதிகரிக்கும்"
+            : "Limited experience increases cultivation risk",
       );
     }
 
@@ -390,7 +462,9 @@ const ProAdvisorPage: React.FC = () => {
       risks.push(
         lang === "si"
           ? "අඩු වියදම් නිසා ඇතැම් කටයුතු කිරීමට අපහසු විය හැක"
-          : "Low budget may limit some farming activities"
+          : lang === "ta"
+            ? "குறைந்த பட்ஜெட் சில விவசாய நடவடிக்கைகளை கட்டுப்படுத்தலாம்"
+            : "Low budget may limit some farming activities",
       );
     }
 
@@ -398,7 +472,9 @@ const ProAdvisorPage: React.FC = () => {
       risks.push(
         lang === "si"
           ? "වාරිමාර්ග නොමැතිවීම නිසා වැසි මත පමණක් විශ්වාස"
-          : "Without irrigation, depends entirely on rainfall"
+          : lang === "ta"
+            ? "நீர்ப்பாசனம் இல்லாமல் முழுவதும் மழையை நம்பியுள்ளது"
+            : "Without irrigation, depends entirely on rainfall",
       );
     }
 
@@ -406,7 +482,9 @@ const ProAdvisorPage: React.FC = () => {
       risks.push(
         lang === "si"
           ? "බීජ තිබුණත් තත්ත්වය හොඳ ද යන්න පරීක්ෂා කරන්න"
-          : "Verify seed quality before planting"
+          : lang === "ta"
+            ? "நடவு செய்வதற்கு முன் விதை தரத்தை சரிபார்க்கவும்"
+            : "Verify seed quality before planting",
       );
     }
 
@@ -414,7 +492,9 @@ const ProAdvisorPage: React.FC = () => {
       risks.push(
         lang === "si"
           ? "පොහොර සැලසුම නොමැතිවීම සිට අස්වැන්න අඩුවිය හැක"
-          : "Lack of fertilizer planning may reduce yield"
+          : lang === "ta"
+            ? "உர திட்டமிடல் இல்லாமை விளைச்சலை குறைக்கலாம்"
+            : "Lack of fertilizer planning may reduce yield",
       );
     }
 
@@ -422,12 +502,16 @@ const ProAdvisorPage: React.FC = () => {
       risks.push(
         lang === "si"
           ? "පළමු සති 4–6 තුළ උරුම නොකළ වැල් සංග්‍රහය බඩ ඉරිඟු වගාවේ සංවර්ධනය අඩාල කරයි"
-          : "Weed competition during the first 4–6 weeks can suppress corn growth"
+          : lang === "ta"
+            ? "முதல் 4–6 வாரங்களில் களை போட்டி மக்காச்சோள வளர்ச்சியை தடுக்கலாம்"
+            : "Weed competition during the first 4–6 weeks can suppress corn growth",
       );
       risks.push(
         lang === "si"
           ? "කෘමී හා රෝග පාලනය නොකිරීම අස්වැන්න විශාල ලෙස අඩු කරයි"
-          : "Uncontrolled pests and diseases may significantly reduce yield"
+          : lang === "ta"
+            ? "கட்டுப்படுத்தப்படாத பூச்சிகள் மற்றும் நோய்கள் விளைச்சலை கணிசமாக குறைக்கலாம்"
+            : "Uncontrolled pests and diseases may significantly reduce yield",
       );
     }
 
@@ -436,7 +520,9 @@ const ProAdvisorPage: React.FC = () => {
       : [
           lang === "si"
             ? "ප්‍රධාන අවදානම් නොමතුණු බව පෙනේ"
-            : "No major risks identified",
+            : lang === "ta"
+              ? "முக்கிய அபாயங்கள் எதுவும் கண்டறியப்படவில்லை"
+              : "No major risks identified",
         ];
   };
 
@@ -447,7 +533,9 @@ const ProAdvisorPage: React.FC = () => {
       opps.push(
         lang === "si"
           ? "ඔබගේ අත්දැකීම ගැන ගිණුම් ගෙන උච්ච අස්වැන්ණක් අපේක්ෂා කිරීම"
-          : "Your experience can help achieve higher yields"
+          : lang === "ta"
+            ? "உங்கள் அனுபவம் அதிக விளைச்சலை அடைய உதவும்"
+            : "Your experience can help achieve higher yields",
       );
     }
 
@@ -455,7 +543,9 @@ const ProAdvisorPage: React.FC = () => {
       opps.push(
         lang === "si"
           ? "ප්‍රචුර වියදම ශ්‍රේෂ්ඨ බීජ සහ පෝහොර ලබාගැනීමට ඉඩ දෙයි"
-          : "Higher budget allows quality seeds and premium inputs"
+          : lang === "ta"
+            ? "அதிக பட்ஜெட் தரமான விதைகள் மற்றும் உயர்தர உள்ளீடுகளை அனுமதிக்கிறது"
+            : "Higher budget allows quality seeds and premium inputs",
       );
     }
 
@@ -463,7 +553,9 @@ const ProAdvisorPage: React.FC = () => {
       opps.push(
         lang === "si"
           ? "වාරිමාර්ග නිසා වගාව අධිකරණ යුතුකර ගත හැක"
-          : "Irrigation enables better crop management"
+          : lang === "ta"
+            ? "நீர்ப்பாசனம் சிறந்த பயிர் மேலாண்மையை செயல்படுத்துகிறது"
+            : "Irrigation enables better crop management",
       );
     }
 
@@ -471,7 +563,9 @@ const ProAdvisorPage: React.FC = () => {
       opps.push(
         lang === "si"
           ? "මුදල් සැලසුමක් තිබිම නිසා නිසි වෙලාවට සියල්ල කිරීමට හැකිවේ"
-          : "Financial planning ensures timely implementation"
+          : lang === "ta"
+            ? "நிதி திட்டமிடல் சரியான நேரத்தில் செயல்படுத்துவதை உறுதி செய்கிறது"
+            : "Financial planning ensures timely implementation",
       );
     }
 
@@ -480,7 +574,9 @@ const ProAdvisorPage: React.FC = () => {
       : [
           lang === "si"
             ? "සුයෝගයන් සඳහා දැන් සූදානම් වන්න"
-            : "Prepare to seize opportunities",
+            : lang === "ta"
+              ? "வாய்ப்புகளை பயன்படுத்திக்கொள்ள தயாராகுங்கள்"
+              : "Prepare to seize opportunities",
         ];
   };
 
@@ -491,7 +587,9 @@ const ProAdvisorPage: React.FC = () => {
       actions.push(
         lang === "si"
           ? "✅ හොඳ බීජ ලබාගෙන තෝරාගන්න"
-          : "✅ Procure and select quality seeds"
+          : lang === "ta"
+            ? "✅ தரமான விதைகளை கொள்முதல் செய்து தேர்வு செய்யவும்"
+            : "✅ Procure and select quality seeds",
       );
     }
 
@@ -499,7 +597,9 @@ const ProAdvisorPage: React.FC = () => {
       actions.push(
         lang === "si"
           ? "✅ ජල සැලසුම සකස් කරන්න"
-          : "✅ Prepare water management plan"
+          : lang === "ta"
+            ? "✅ நீர் மேலாண்மை திட்டத்தை தயாரிக்கவும்"
+            : "✅ Prepare water management plan",
       );
     }
 
@@ -507,7 +607,9 @@ const ProAdvisorPage: React.FC = () => {
       actions.push(
         lang === "si"
           ? "✅ භූමිය සකස් කර අසල තිබි දූෂිතයන් ඉවත් කරන්න"
-          : "✅ Prepare land and remove weeds"
+          : lang === "ta"
+            ? "✅ நிலத்தை தயாரித்து களைகளை அகற்றவும்"
+            : "✅ Prepare land and remove weeds",
       );
     }
 
@@ -515,7 +617,9 @@ const ProAdvisorPage: React.FC = () => {
       actions.push(
         lang === "si"
           ? "✅ පොහොර සැලසුම සකස් කරන්න"
-          : "✅ Plan and procure fertilizers"
+          : lang === "ta"
+            ? "✅ உரங்களை திட்டமிட்டு கொள்முதல் செய்யவும்"
+            : "✅ Plan and procure fertilizers",
       );
     }
 
@@ -523,7 +627,9 @@ const ProAdvisorPage: React.FC = () => {
       actions.push(
         lang === "si"
           ? "✅ අවශ්‍ය මුදල් සම්පූර්ණයෙන් සැලසුම් කරගන්න"
-          : "✅ Finalize capital requirements"
+          : lang === "ta"
+            ? "✅ மூலதன தேவைகளை இறுதி செய்யவும்"
+            : "✅ Finalize capital requirements",
       );
     }
 
@@ -531,49 +637,67 @@ const ProAdvisorPage: React.FC = () => {
       actions.push(
         lang === "si"
           ? "✅ පස පරීක්ෂා කර pH 6.0–6.8 අතර පවත්වා ගැනීමට සැලසුම් කරන්න"
-          : "✅ Conduct a soil test and maintain pH around 6.0–6.8"
+          : lang === "ta"
+            ? "✅ மண் பரிசோதனை நடத்தி pH 6.0–6.8 அளவில் பராமரிக்கவும்"
+            : "✅ Conduct a soil test and maintain pH around 6.0–6.8",
       );
       actions.push(
         lang === "si"
           ? "✅ ඉඩම 20–25 සෙ.මී. පහලින් යම්කර පස ටිල් කර හොඳ බීජ නිදහසක් සාදාගන්න"
-          : "✅ Prepare the land by ploughing 20–25 cm deep and tilling to create a fine seedbed"
+          : lang === "ta"
+            ? "✅ 20–25 செ.மீ ஆழத்தில் உழுது நுண்ணிய விதை படுக்கை தயாரிக்கவும்"
+            : "✅ Prepare the land by ploughing 20–25 cm deep and tilling to create a fine seedbed",
       );
       actions.push(
         lang === "si"
           ? "✅ බීජ ආරක්ෂා කිරීම සඳහා දිලේව් හා කෘමි නාශක වලින් සකස් කරන්න"
-          : "✅ Treat seeds with fungicide and insecticide before sowing"
+          : lang === "ta"
+            ? "✅ விதைப்பதற்கு முன் பூஞ்சாணக்கொல்லி மற்றும் பூச்சிக்கொல்லியால் விதைகளை நேர்த்தி செய்யவும்"
+            : "✅ Treat seeds with fungicide and insecticide before sowing",
       );
       actions.push(
         lang === "si"
           ? "✅ බීජ 3–5 සෙ.මී. ගැඹුරෙන් 20–25 සෙ.මී. දුරින් හා පේළි අතර 60–75 සෙ.මී. තබා වගා කරන්න"
-          : "✅ Plant seeds 3–5 cm deep, spaced 20–25 cm apart, with 60–75 cm between rows"
+          : lang === "ta"
+            ? "✅ விதைகளை 3–5 செ.மீ ஆழத்தில் 20–25 செ.மீ இடைவெளியில் 60–75 செ.மீ வரிசை இடைவெளியில் நடவும்"
+            : "✅ Plant seeds 3–5 cm deep, spaced 20–25 cm apart, with 60–75 cm between rows",
       );
       actions.push(
         lang === "si"
           ? "✅ පළමු සති 4–6 තුළ වැල් හා උරුම ද්‍රව්‍ය ඉවත් කර වගාව පිරිසිදුව තබන්න"
-          : "✅ Weed regularly during the first 4–6 weeks to reduce competition"
+          : lang === "ta"
+            ? "✅ முதல் 4–6 வாரங்களில் களைகளை தொடர்ந்து அகற்றவும்"
+            : "✅ Weed regularly during the first 4–6 weeks to reduce competition",
       );
       actions.push(
         lang === "si"
           ? "✅ පැල 12 අඟල් උසට ළඟාවන විට හා tasselling අවස්ථාවේ නයිට්‍රජන් පොහොර යොදන්න"
-          : "✅ Apply nitrogen fertiliser when plants reach 12 inches and again at the tasselling stage"
+          : lang === "ta"
+            ? "✅ செடிகள் 30 செ.மீ உயரம் வரும்போதும் கொத்துக்கட்டை நிலையிலும் நைட்ரஜன் உரம் இடவும்"
+            : "✅ Apply nitrogen fertiliser when plants reach 12 inches and again at the tasselling stage",
       );
       actions.push(
         lang === "si"
           ? "✅ වාරිමාර්ගය නිවැරදිව කර සතියකට අඟල් 1–1.5 ජලය ලබා දී වියළි කාලවලදී අඟල් 2 දක්වා ඉහළ දැමීමට සැලසුම් කරන්න"
-          : "✅ Irrigate consistently (1–1.5 inches of water per week, increasing to 2 inches in dry periods) and monitor rainfall"
+          : lang === "ta"
+            ? "✅ வாரத்திற்கு 1–1.5 அங்குல தண்ணீர் வழங்கவும்; வறண்ட காலத்தில் 2 அங்குலம் வரை அதிகரிக்கவும்"
+            : "✅ Irrigate consistently (1–1.5 inches of water per week, increasing to 2 inches in dry periods) and monitor rainfall",
       );
       actions.push(
         lang === "si"
           ? "✅ කෘමී හා රෝග සීරුමාරු සඳහා ක්ෂේත්‍රය නිතර පරීක්ෂා කර අවශ්‍ය විට ප්‍රතිකාර කරන්න"
-          : "✅ Scout for pests and diseases frequently and apply control measures when needed"
+          : lang === "ta"
+            ? "✅ பூச்சிகள் மற்றும் நோய்களுக்கு தொடர்ந்து கண்காணித்து தேவைப்படும்போது கட்டுப்பாட்டு நடவடிக்கை எடுக்கவும்"
+            : "✅ Scout for pests and diseases frequently and apply control measures when needed",
       );
     }
 
     actions.push(
       lang === "si"
         ? "✅ අපේක්ෂිත අස්වැන්න සඳහා දිනපතා පර්යේෂණ සටහන තබන්න"
-        : "✅ Keep daily field notes and observations"
+        : lang === "ta"
+          ? "✅ தினசரி வயல் குறிப்புகள் மற்றும் கவனிப்புகளை பதிவு செய்யவும்"
+          : "✅ Keep daily field notes and observations",
     );
 
     return actions;
@@ -905,8 +1029,8 @@ const ProAdvisorPage: React.FC = () => {
                   percentage >= 80
                     ? "#10B981"
                     : percentage >= 50
-                    ? "#F59E0B"
-                    : "#EF4444",
+                      ? "#F59E0B"
+                      : "#EF4444",
               }}
             />
           </View>
@@ -924,11 +1048,32 @@ const ProAdvisorPage: React.FC = () => {
 
         <View style={{ gap: 8 }}>
           {Object.entries({
-            seeds: language === "si" ? "බීජ" : "Seeds",
-            water: language === "si" ? "ජලය" : "Water",
-            land: language === "si" ? "ඉඩම" : "Land",
-            fertilizer: language === "si" ? "පොහොර" : "Fertilizer",
-            capital: language === "si" ? "මුදල්" : "Capital",
+            seeds:
+              language === "si"
+                ? "බීජ"
+                : language === "ta"
+                  ? "விதைகள்"
+                  : "Seeds",
+            water:
+              language === "si"
+                ? "ජලය"
+                : language === "ta"
+                  ? "தண்ணீர்"
+                  : "Water",
+            land:
+              language === "si" ? "ඉඩම" : language === "ta" ? "நிலம்" : "Land",
+            fertilizer:
+              language === "si"
+                ? "පොහොර"
+                : language === "ta"
+                  ? "உரம்"
+                  : "Fertilizer",
+            capital:
+              language === "si"
+                ? "මුදල්"
+                : language === "ta"
+                  ? "மூலதனம்"
+                  : "Capital",
           }).map(([key, label]) => (
             <View
               key={key}
@@ -978,7 +1123,11 @@ const ProAdvisorPage: React.FC = () => {
             <View style={styles.timelineDot} />
             <View style={{ flex: 1 }}>
               <Text style={styles.timelineLabel}>
-                {language === "si" ? "වගා කිරීමේ දිනය" : "Planting Date"}
+                {language === "si"
+                  ? "වගා කිරීමේ දිනය"
+                  : language === "ta"
+                    ? "நடவு தேதி"
+                    : "Planting Date"}
               </Text>
               <Text style={styles.timelineDate}>
                 {plantingDate.toLocaleDateString()}
@@ -992,7 +1141,11 @@ const ProAdvisorPage: React.FC = () => {
             />
             <View style={{ flex: 1 }}>
               <Text style={styles.timelineLabel}>
-                {language === "si" ? "වගා කාලය" : "Growing Period"}
+                {language === "si"
+                  ? "වගා කාලය"
+                  : language === "ta"
+                    ? "வளரும் காலம்"
+                    : "Growing Period"}
               </Text>
               <Text style={styles.timelineDate}>
                 {durationWeeks} {t.week}
@@ -1008,7 +1161,9 @@ const ProAdvisorPage: React.FC = () => {
               <Text style={styles.timelineLabel}>
                 {language === "si"
                   ? "අස්වැන්න නෙළීමේ දිනය"
-                  : "Expected Harvest"}
+                  : language === "ta"
+                    ? "எதிர்பார்க்கப்படும் அறுவடை"
+                    : "Expected Harvest"}
               </Text>
               <Text style={styles.timelineDate}>
                 {harvestDate.toLocaleDateString()}
@@ -1025,11 +1180,17 @@ const ProAdvisorPage: React.FC = () => {
                 <Text style={styles.timelineLabel}>
                   {language === "si"
                     ? "අලෙවිකරණය සඳහා හොඳම කාලය"
-                    : "Best Selling Time"}
+                    : language === "ta"
+                      ? "சிறந்த விற்பனை நேரம்"
+                      : "Best Selling Time"}
                 </Text>
                 <Text style={styles.timelineDate}>
                   +{proAdvice.delayWeeks} {t.week}{" "}
-                  {language === "si" ? "පසුව" : "later"}
+                  {language === "si"
+                    ? "පසුව"
+                    : language === "ta"
+                      ? "பிறகு"
+                      : "later"}
                 </Text>
               </View>
             </View>
@@ -1103,7 +1264,9 @@ const ProAdvisorPage: React.FC = () => {
                   <Text style={styles.summaryTitle}>
                     {language === "si"
                       ? "ඔබගේ Pro වගා සැලසුම"
-                      : "Your Pro Cultivation Plan"}
+                      : language === "ta"
+                        ? "உங்கள் Pro விவசாய திட்டம்"
+                        : "Your Pro Cultivation Plan"}
                   </Text>
                   <Text style={styles.summarySubtitle}>
                     {formData.district} • {formData.seedVariety}
@@ -1137,7 +1300,11 @@ const ProAdvisorPage: React.FC = () => {
                   <MapPin size={20} color="#10B981" />
                   <Text style={styles.detailText}>
                     {formData.area || "0"}{" "}
-                    {language === "si" ? "හෙක්ටයාර්" : "hectares"}
+                    {language === "si"
+                      ? "හෙක්ටයාර්"
+                      : language === "ta"
+                        ? "ஹெக்டேர்"
+                        : "hectares"}
                   </Text>
                 </View>
 
@@ -1155,13 +1322,19 @@ const ProAdvisorPage: React.FC = () => {
                       ? formData.experienceLevel === "new"
                         ? "🆕 අත්දැකීම අඩු"
                         : formData.experienceLevel === "some"
-                        ? "📖 සරිසරි අත්දැකීම"
-                        : "👨‍🌾 ඉතා අත්දැකීමක්"
-                      : formData.experienceLevel === "new"
-                      ? "🆕 New farmer"
-                      : formData.experienceLevel === "some"
-                      ? "📖 Some experience"
-                      : "👨‍🌾 Experienced"}
+                          ? "📖 සරිසරි අත්දැකීම"
+                          : "👨‍🌾 ඉතා අත්දැකීමක්"
+                      : language === "ta"
+                        ? formData.experienceLevel === "new"
+                          ? "🆕 புதிய விவசாயி"
+                          : formData.experienceLevel === "some"
+                            ? "📖 சிறிது அனுபவம்"
+                            : "👨‍🌾 அனுபவமுள்ளவர்"
+                        : formData.experienceLevel === "new"
+                          ? "🆕 New farmer"
+                          : formData.experienceLevel === "some"
+                            ? "📖 Some experience"
+                            : "👨‍🌾 Experienced"}
                   </Text>
                 </View>
 
@@ -1171,7 +1344,9 @@ const ProAdvisorPage: React.FC = () => {
                     <Text style={styles.detailText}>
                       {language === "si"
                         ? "වාරිමාර්ග පහසුකම් ඇත"
-                        : "Irrigation Available"}
+                        : language === "ta"
+                          ? "நீர்ப்பாசன வசதி உள்ளது"
+                          : "Irrigation Available"}
                     </Text>
                   </View>
                 )}
@@ -1195,10 +1370,14 @@ const ProAdvisorPage: React.FC = () => {
                 proAdvice.delayWeeks > 0
                   ? language === "si"
                     ? `💰 වෙළඳපොළ උපාය: සති ${proAdvice.delayWeeks}ක් ගබඩා කර ඉහළ මිල ගණන් ලබාගන්න`
-                    : `💰 Market Strategy: Store for ${proAdvice.delayWeeks} weeks to get better prices`
+                    : language === "ta"
+                      ? `💰 சந்தை உத்தி: ${proAdvice.delayWeeks} வாரங்கள் சேமித்து அதிக விலை பெறுங்கள்`
+                      : `💰 Market Strategy: Store for ${proAdvice.delayWeeks} weeks to get better prices`
                   : language === "si"
-                  ? "✅ දැන් විකිණීමට හොඳ කාලයක්"
-                  : "✅ Good time to sell immediately"
+                    ? "✅ දැන් විකිණීමට හොඳ කාලයක්"
+                    : language === "ta"
+                      ? "✅ இப்போதே விற்க நல்ல நேரம்"
+                      : "✅ Good time to sell immediately"
               }`}
               accentColor="#10B981"
             />
@@ -1275,7 +1454,9 @@ const ProAdvisorPage: React.FC = () => {
               <Text style={styles.ctaButtonText}>
                 {language === "si"
                   ? "මෙම උපදෙස් අනුගමනය කරන්න"
-                  : "Follow These Recommendations"}
+                  : language === "ta"
+                    ? "இந்த பரிந்துரைகளை பின்பற்றவும்"
+                    : "Follow These Recommendations"}
               </Text>
             </TouchableOpacity>
 

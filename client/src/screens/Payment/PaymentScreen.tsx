@@ -1,5 +1,5 @@
 // PaymentScreen.tsx - PayHere Payment Gateway Integration UI
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -21,7 +21,12 @@ import {
 } from "lucide-react-native";
 import { TextInput } from "react-native-paper";
 import { useLanguage } from "../../context/LanguageContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useApp } from "../../context/AppContext";
+import {
+  BillingCycle,
+  confirmCheckout,
+  createCheckout,
+} from "../../services/subscriptionApi";
 
 // Translations
 const translations = {
@@ -181,10 +186,17 @@ const translations = {
 } as Record<string, any>;
 
 export default function PaymentScreen({ navigation, route }: any) {
+  const { refreshProfile, setDiseaseModel } = useApp();
   const { language } = useLanguage();
   const t = translations[language];
 
-  const { plan = "pro", amount = 2499 } = route.params || {};
+  const {
+    plan = "pro_monthly",
+    amount = 300,
+    billingCycle: routeBillingCycle,
+  } = route.params || {};
+  const billingCycle: BillingCycle =
+    routeBillingCycle || (amount >= 2000 ? "annual" : "monthly");
 
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [cardNumber, setCardNumber] = useState("");
@@ -193,8 +205,8 @@ export default function PaymentScreen({ navigation, route }: any) {
   const [cvv, setCvv] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const originalPrice = 4999;
-  const discount = 2500;
+  const originalPrice = amount;
+  const discount = 0;
   const totalAmount = amount;
 
   const formatCardNumber = (text: string) => {
@@ -240,79 +252,36 @@ export default function PaymentScreen({ navigation, route }: any) {
     setLoading(true);
 
     try {
-      // Get user info
-      const userStr = await AsyncStorage.getItem("user");
-      const user = userStr ? JSON.parse(userStr) : null;
+      const checkout = await createCheckout(billingCycle as BillingCycle);
 
-      // Prepare payment data for PayHere
-      const paymentData = {
-        merchant_id: "YOUR_MERCHANT_ID", // TODO: Replace with actual PayHere merchant ID
-        return_url: "maizegenie://payment/success",
-        cancel_url: "maizegenie://payment/cancel",
-        notify_url: "https://your-backend.com/api/payment/notify",
-        order_id: `PRO_${Date.now()}`,
-        items: "MaizeGenie Pro - Lifetime",
-        currency: "LKR",
-        amount: totalAmount.toFixed(2),
-        first_name: user?.name?.split(" ")[0] || "",
-        last_name: user?.name?.split(" ")[1] || "",
-        email: user?.email || "",
-        phone: user?.phone || "",
-        address: "",
-        city: "",
-        country: "Sri Lanka",
-        // Card details (for PayHere integration)
+      const confirmed = await confirmCheckout({
+        order_id: checkout.order_id,
+        billing_cycle: billingCycle as BillingCycle,
         card_number: cardNumber.replace(/\s/g, ""),
-        card_holder: cardHolder,
+        card_holder: cardHolder.trim(),
         expiry_date: expiryDate,
-        cvv: cvv,
-      };
+        cvv,
+      });
 
-      console.log("Payment Data:", paymentData);
-
-      // TODO: Integrate with PayHere SDK
-      // For now, simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Simulate successful payment
-      const paymentSuccess = true; // This will come from PayHere response
-
-      if (paymentSuccess) {
-        // Save Pro status
-        await AsyncStorage.setItem("userPlan", "pro");
-        await AsyncStorage.setItem("proActivatedAt", new Date().toISOString());
-        await AsyncStorage.setItem("proExpiryDate", "lifetime");
-
-        // Show success message
-        Alert.alert(
-          t.successTitle,
-          t.successMessage,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Main" }],
-                });
-              },
-            },
-          ]
-        );
-
-        // TODO: Send payment confirmation to backend
-        // await fetch(`${API_URL}/payment/confirm`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ order_id: paymentData.order_id, user_id: user.id })
-        // });
-      } else {
+      if (!confirmed.success) {
         Alert.alert(t.errorTitle, t.errorMessage);
+        return;
       }
 
+      await refreshProfile();
+      await setDiseaseModel("roboflow");
+
+      navigation.replace("PaymentSuccess", {
+        orderId: checkout.order_id,
+        amount: totalAmount,
+        plan,
+      });
     } catch (error) {
       console.error("Payment error:", error);
-      Alert.alert(t.errorTitle, t.errorMessage);
+      Alert.alert(
+        t.errorTitle,
+        error instanceof Error ? error.message : t.errorMessage,
+      );
     } finally {
       setLoading(false);
     }

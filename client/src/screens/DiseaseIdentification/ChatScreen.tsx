@@ -23,6 +23,7 @@ import { getOrCreateRoom } from "../../services/chatRoomApi";
 import { getChatHistory } from "../../services/chatApi";
 import { useChatWebSocket } from "../../hooks/useChatWebSocket";
 import { useApp } from "../../context/AppContext";
+import { useLanguage } from "../../context/LanguageContext";
 import * as ImagePicker from "expo-image-picker";
 import { Image } from "react-native";
 import { uploadChatImage } from "../../services/chatUploadApi";
@@ -66,6 +67,8 @@ function formatDate(timestamp: string | number | Date | undefined) {
 
 export default function ChatScreen({ route, navigation }: any) {
   const { user } = useApp();
+  const { language: lang } = useLanguage();
+  const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   // Params for officer mode
   const incomingRoomId = route?.params?.roomId ?? null;
@@ -239,7 +242,33 @@ export default function ChatScreen({ route, navigation }: any) {
   };
 
   const currentUserId = isOfficer ? String(incomingUserId) : String(farmerId);
-  const chatTitle = isOfficer ? "Farmer Chat" : "Agriculture Officer";
+  const labels = {
+    en: {
+      farmerChat: "Farmer Chat",
+      agricultureOfficer: "Agriculture Officer",
+      activeNow: "Active now",
+      agricultureSupport: "Agriculture Support",
+      typeMessage: "Type a message...",
+    },
+    si: {
+      farmerChat: "ගොවි කතාබස්",
+      agricultureOfficer: "කෘෂිකාර්මික නිලධාරී",
+      activeNow: "දැන් සක්‍රියයි",
+      agricultureSupport: "කෘෂිකාර්මික සහාය",
+      typeMessage: "පණිවිඩයක් ටයිප් කරන්න...",
+    },
+    ta: {
+      farmerChat: "விவசாயி உரையாடல்",
+      agricultureOfficer: "விவசாய அதிகாரி",
+      activeNow: "இப்போது செயலில்",
+      agricultureSupport: "விவசாய ஆதரவு",
+      typeMessage: "ஒரு செய்தியைத் தட்டச்சு செய்யவும்...",
+    },
+  } as const;
+
+  const chatTitle = isOfficer
+    ? labels[language].farmerChat
+    : labels[language].agricultureOfficer;
 
   // Add this component inside your ChatScreen component, before the return statement
   const AnimatedWaveDots = () => {
@@ -336,7 +365,9 @@ export default function ChatScreen({ route, navigation }: any) {
           <View style={styles.headerInfo}>
             <Text style={styles.headerTitle}>{chatTitle}</Text>
             <Text style={styles.headerSubtitle}>
-              {isOfficer ? "Active now" : "Agriculture Support"}
+              {isOfficer
+                ? labels[language].activeNow
+                : labels[language].agricultureSupport}
             </Text>
           </View>
         </View>
@@ -478,7 +509,7 @@ export default function ChatScreen({ route, navigation }: any) {
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder="Type a message..."
+            placeholder={labels[language].typeMessage}
             placeholderTextColor="#9ca3af"
             multiline
           />

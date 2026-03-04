@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { API_BASE } from "../services/api";
+import { API_BASE } from "../constants";
 import { supabase } from "../lib/supabase"; // ⭐ IMPORTANT
 import { useEffect } from "react";
 
@@ -15,6 +15,12 @@ type User = {
   phone?: string;
   district?: string;
   role?: string;
+  is_paid_user?: boolean;
+  subscription_plan?: string | null;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
+  last_payment_order_id?: string | null;
+  last_payment_amount_lkr?: number | null;
 } | null;
 
 type AppCtx = {
@@ -24,10 +30,11 @@ type AppCtx = {
   setLoading: (v: boolean) => void;
   signIn: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 
   // 🔽 ADD THESE
   diseaseModel: "local" | "roboflow";
-  setDiseaseModel: (v: "local" | "roboflow") => void;
+  setDiseaseModel: (v: "local" | "roboflow") => Promise<void>;
 };
 
 const Ctx = createContext<AppCtx | undefined>(undefined);
@@ -47,6 +54,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const setDiseaseModel = async (value: "local" | "roboflow") => {
     setDiseaseModelState(value);
     await AsyncStorage.setItem("disease_model", value);
+  };
+
+  const isSubscriptionActive = (endDate?: string | null): boolean => {
+    if (!endDate) return false;
+    const parsed = new Date(endDate);
+    if (Number.isNaN(parsed.getTime())) return false;
+    return parsed.getTime() > Date.now();
   };
 
   useEffect(() => {
@@ -102,6 +116,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // --------------------------------------------------
       // 3️⃣ SAVE USER + TOKEN
       // --------------------------------------------------
+      const paidActive =
+        Boolean(profile.is_paid_user) &&
+        isSubscriptionActive(profile.subscription_end_date);
+
       setUser({
         id: authUser.id,
         email: authUser.email,
@@ -109,7 +127,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         phone: profile.phone ?? "",
         district: profile.district ?? "",
         role: profile.role ?? "",
+        is_paid_user: paidActive,
+        subscription_plan: profile.subscription_plan ?? null,
+        subscription_start_date: profile.subscription_start_date ?? null,
+        subscription_end_date: profile.subscription_end_date ?? null,
+        last_payment_order_id: profile.last_payment_order_id ?? null,
+        last_payment_amount_lkr: profile.last_payment_amount_lkr ?? null,
       });
+
+      if (!paidActive) {
+        setDiseaseModelState("local");
+        await AsyncStorage.setItem("disease_model", "local");
+      }
 
       setToken(accessToken);
       await AsyncStorage.setItem("auth_token", accessToken);
@@ -121,6 +150,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (!token || !user?.id) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/subscription/me`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) return;
+
+      const sub = await res.json();
+      const paidActive = Boolean(sub.is_paid_user) && Boolean(sub.is_active);
+      setUser((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          is_paid_user: paidActive,
+          subscription_plan: sub.subscription_plan ?? null,
+          subscription_start_date: sub.subscription_start_date ?? null,
+          subscription_end_date: sub.subscription_end_date ?? null,
+          last_payment_order_id: sub.last_payment_order_id ?? null,
+          last_payment_amount_lkr: sub.last_payment_amount_lkr ?? null,
+        };
+      });
+
+      if (!paidActive && diseaseModel === "roboflow") {
+        setDiseaseModelState("local");
+        await AsyncStorage.setItem("disease_model", "local");
+      }
+    } catch (e) {
+      console.log("refreshProfile failed:", e);
     }
   };
 
@@ -151,6 +218,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setLoading,
       signIn,
       signOut,
+      refreshProfile,
 
       // 🔽 ADD THESE
       diseaseModel,

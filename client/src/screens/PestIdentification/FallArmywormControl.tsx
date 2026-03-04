@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -30,12 +30,13 @@ import {
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
+type LocalizedText = { si: string; en: string; ta?: string };
 
 type TodoItem = {
   id: number;
-  title: { si: string; en: string };
-  desc: { si: string; en: string };
+  title: LocalizedText;
+  desc: LocalizedText;
   done: boolean;
   date: Date | null;
   notificationId?: string | null;
@@ -44,9 +45,9 @@ type TodoItem = {
 type PreventionStep = {
   key: string;
   icon: React.ReactNode;
-  title: { si: string; en: string };
-  description: { si: string; en: string };
-  why: { si: string; en: string };
+  title: LocalizedText;
+  description: LocalizedText;
+  why: LocalizedText;
 };
 
 const TODO_STORAGE_KEY = "FAW_TODO_STATE_V1";
@@ -95,7 +96,11 @@ function atCustomTime(dateOnly: Date, timeOfDay: Date) {
 
 export default function FallArmywormControl() {
   const { language: appLang } = useLanguage();
-  const language: Language = appLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
+  const tr = (si: string, en: string, ta: string) =>
+    language === "si" ? si : language === "ta" ? ta : en;
+  const localize = (value: LocalizedText) => value[language] ?? value.en;
 
   const [todoMode, setTodoMode] = useState<boolean>(false);
   const [expandedInfo, setExpandedInfo] = useState<boolean>(true);
@@ -113,14 +118,17 @@ export default function FallArmywormControl() {
         title: {
           si: "ඉක්මන් ක්ෂේත්‍ර ක්‍රියා (පළමු පැය 24)",
           en: "Immediate Field Actions (First 24 Hours)",
+        ta: "உடனடி வயல் நடவடிக்கைகள் (முதல் 24 மணி)",
         },
         description: {
           si: "පත්‍ර මධ්‍යයේ (whorl) පරීක්ෂා කර දැකිය හැකි Fall Armyworm larva සහ බිත්තර කණ්ඩායම් අතින් ඉවත් කරන්න. සවස හෝ උදේ වේලාවන්හි පරීක්ෂා කිරීම වඩාත් සුදුසුය.",
           en: "Inspect the leaf whorl and manually remove visible Fall Armyworm larvae and egg masses. Early morning or late evening scouting is recommended.",
+        ta: "இலை whorl பகுதியை பரிசோதித்து காணப்படும் பால் ஆர்மிவோர்ம் இருவில் மற்றும் முட்டைக் குழுக்களை கையால் அகற்றவும். அதிகாலை அல்லது மாலை நேரத்தில் கண்காணிப்பு சிறந்தது.",
         },
         why: {
           si: "Larva stage එකේදී ඉක්මනින් ගණන අඩු කරගත්තොත් පසුකාලීනව බෝගයට වෙන හානිය අඩුවේ. Whorl තුළට ගැඹුරු වීමෙන් පසු පාලනය අමාරුයි.",
           en: "Early intervention reduces later crop damage. Once larvae move deeper into the whorl/stem, control becomes difficult.",
+        ta: "ஆரம்ப நடவடிக்கை பின்னர் ஏற்படும் சேதத்தை குறைக்கும். இருவில் whorl/தண்டிற்குள் சென்று விட்டால் கட்டுப்படுத்துவது கடினம்.",
         },
       },
       {
@@ -129,14 +137,17 @@ export default function FallArmywormControl() {
         title: {
           si: "ජෛව හා යාන්ත්‍රික පාලනය (දින කිහිපය තුළ)",
           en: "Mechanical & Biological Control (Next Few Days)",
+        ta: "இயந்திர மற்றும் உயிரியல் கட்டுப்பாடு (அடுத்த சில நாட்கள்)",
         },
         description: {
           si: "Neem-based ජෛව පාලන ක්‍රම භාවිතා කරන්න. පාලන සහාය ලෙස pheromone traps භාවිතා කර මදුරු (moths) ගණන අඩු කිරීමට කටයුතු කරන්න.",
           en: "Use neem-based biopesticides as biological control. Support control with pheromone traps to reduce adult moth populations.",
+        ta: "நீம் அடிப்படையிலான உயிரியல் பூச்சிக்கொல்லிகளைப் பயன்படுத்தவும். முழுவயது வண்டுகளை குறைக்க pheromone traps பயன்படுத்தவும்.",
         },
         why: {
           si: "IPM ක්‍රමයේදී රසායනික පාලනයට පෙර ජෛව/යාන්ත්‍රික ක්‍රම භාවිතා කිරීම පරිසරයට හානි අඩු කරයි සහ ප්‍රතිරෝධීත්ව අවදානම අඩු කරයි.",
           en: "IPM prioritizes biological/mechanical methods before chemicals, reducing environmental harm and lowering resistance risk.",
+        ta: "IPM முறையில் இரசாயனத்திற்கு முன் உயிரியல்/இயந்திர முறைகளுக்கு முன்னுரிமை அளிக்கப்படுகிறது; இதனால் சுற்றுச்சூழல் சேதமும் எதிர்ப்பு அபாயமும் குறைகிறது.",
         },
       },
       {
@@ -145,14 +156,17 @@ export default function FallArmywormControl() {
         title: {
           si: "බෝග පිරිසිදුකම සහ ආරක්ෂාව",
           en: "Crop Sanitation & Protection",
+        ta: "பயிர் சுத்தம் மற்றும் பாதுகாப்பு",
         },
         description: {
           si: "ආසාදිත පත්‍ර සහ ශාක කොටස් ඉවත් කර නිසි ලෙස විනාශ කරන්න. කුඹුර පිරිසිදු තත්ත්වයේ තබා ගන්න. ආසාදිත ඉතිරි කොටස් කුඹුරේ තැබීමෙන් වළකින්න.",
           en: "Remove and properly destroy infected leaves and plant residues. Maintain field sanitation and avoid leaving infested residues in the field.",
+        ta: "தொற்றிய இலைகள் மற்றும் தாவர எச்சங்களை அகற்றி முறையாக அழிக்கவும். வயல் சுத்தத்தைப் பேணி, பாதிக்கப்பட்ட எச்சங்களை வயலில் விட வேண்டாம்.",
         },
         why: {
           si: "ශාක ඉතිරි කොටස් තුළ කෘමීන් රැඳී සිටිය හැක. පිරිසිදුකම මඟින් නැවත ආසාදනය අවම වේ.",
           en: "Pests can persist in residues. Sanitation reduces reinfestation and disease/pest carryover.",
+        ta: "எச்சங்களில் பூச்சிகள் தொடரலாம். சுத்தம் மீண்டும் தொற்று மற்றும் பூச்சி பரவலை குறைக்கும்.",
         },
       },
       {
@@ -161,14 +175,17 @@ export default function FallArmywormControl() {
         title: {
           si: "රසායනික පාලනය (දැනුවත් කිරීම පමණි)",
           en: "Chemical Control (Awareness Only)",
+        ta: "இரசாயன கட்டுப்பாடு (விழிப்புணர்வுக்கு மட்டும்)",
         },
         description: {
           si: "දැඩි හානියක් පවතින බව පෙනී යන අවස්ථාවලදී පමණක් කෘෂි උපදේශකයෙකුගෙන්/නිල ආයතනයකින් උපදේශනය ලබා ගන්න. අධික රසායනික භාවිතයෙන් වළකින්න.",
           en: "Only if severe damage is observed, seek official guidance from agricultural officers/authorities. Avoid excessive chemical use.",
+        ta: "கடுமையான சேதம் இருந்தால் மட்டுமே வேளாண் அதிகாரிகளின் அதிகாரப்பூர்வ ஆலோசனையைப் பெறவும். அதிக இரசாயன பயன்பாட்டைத் தவிர்க்கவும்.",
         },
         why: {
           si: "අධික රසායනික භාවිතය පරිසරයට හානි කරයි සහ කෘමීන්ට resistance ඇති විය හැක. ඒ නිසා මෙය awareness ලෙස පමණයි.",
           en: "Overuse can harm the environment and lead to pesticide resistance. Hence this is provided as awareness only.",
+        ta: "அதிகப்படியான பயன்பாடு சுற்றுச்சூழலுக்கு சேதம் செய்து பூச்சிக்கொல்லி எதிர்ப்பை உருவாக்கலாம். ஆகவே இது விழிப்புணர்வுக்காக மட்டும் வழங்கப்படுகிறது.",
         },
       },
       {
@@ -177,14 +194,17 @@ export default function FallArmywormControl() {
         title: {
           si: "අනාගත වැළැක්වීම (ඊළඟ වගා කාලය)",
           en: "Future Prevention (Next Season)",
+        ta: "எதிர்காலத் தடுப்பு (அடுத்த பருவம்)",
         },
         description: {
           si: "වගා කාලය අවසානයේ ආසාදිත ශාක කොටස් ඉවත් කර විනාශ කරන්න. වගා මාරු කිරීම සහ ක්ෂේත්‍ර කළමනාකරණය මඟින් ආසාදන අවම කළ හැක.",
           en: "Destroy infected crop residues after harvest. Crop rotation and good field management reduce future infestations.",
+        ta: "அறுவடை பின் பாதிக்கப்பட்ட பயிர் எச்சங்களை அழிக்கவும். பயிர் மாறுதல் மற்றும் நல்ல வயல் மேலாண்மை எதிர்கால தாக்குதலை குறைக்கும்.",
         },
         why: {
           si: "අනාගත ආසාදන අඩු කළහොත් පාලන වියදම් අඩුවේ. Preventive practices long-term solution එකක්.",
           en: "Reducing future infestations lowers control costs. Preventive practices provide long-term protection.",
+        ta: "எதிர்கால தாக்குதலைக் குறைப்பது கட்டுப்பாட்டு செலவை குறைக்கும். தடுப்பு நடைமுறைகள் நீண்டகால பாதுகாப்பை தரும்.",
         },
       },
     ],
@@ -197,10 +217,12 @@ export default function FallArmywormControl() {
       title: {
         si: "පත්‍ර මධ්‍යයේ (whorl) පරීක්ෂා කරන්න",
         en: "Inspect the leaf whorl",
+        ta: "இலை whorl பகுதியை பரிசோதிக்கவும்",
       },
       desc: {
         si: "Larva බොහෝවිට whorl තුළ සඟවා සිටී. අදම පරීක්ෂා කරන්න.",
         en: "Larvae often hide inside the whorl. Inspect today.",
+        ta: "இருவில் பெரும்பாலும் whorl உள்ளே மறையும். இன்று பரிசோதிக்கவும்.",
       },
       done: false,
       date: null,
@@ -211,10 +233,12 @@ export default function FallArmywormControl() {
       title: {
         si: "දැකිය හැකි larva සහ බිත්තර ඉවත් කරන්න",
         en: "Remove visible larvae and egg masses",
+        ta: "காணப்படும் இருவில் மற்றும் முட்டைக் குழுக்களை அகற்றவும்",
       },
       desc: {
         si: "අතින් ඉවත් කිරීම සරල හා ආරක්ෂිත පළමු පියවරක්.",
         en: "Manual removal is a safe and effective first step.",
+        ta: "கையால் அகற்றுவது பாதுகாப்பான மற்றும் பயனுள்ள முதல் படியாகும்.",
       },
       done: false,
       date: null,
@@ -225,10 +249,12 @@ export default function FallArmywormControl() {
       title: {
         si: "ජෛව පාලන ක්‍රම (Neem/Traps) සකස් කරන්න",
         en: "Set up biological control (Neem/Traps)",
+        ta: "உயிரியல் கட்டுப்பாடு அமைக்கவும் (நீம்/கண்ணிகள்)",
       },
       desc: {
         si: "Neem-based ජෛව පාලනය සහ pheromone traps භාවිතා කිරීමෙන් ව්‍යාප්තිය අඩු වේ.",
         en: "Neem-based control and pheromone traps reduce spread and adult moths.",
+        ta: "நீம் அடிப்படையிலான கட்டுப்பாடு மற்றும் pheromone traps பரவலையும் முழுவயது வண்டுகளையும் குறைக்கும்.",
       },
       done: false,
       date: null,
@@ -239,10 +265,12 @@ export default function FallArmywormControl() {
       title: {
         si: "දින 3කින් නැවත පරීක්ෂා කරන්න",
         en: "Re-check after 3 days",
+        ta: "3 நாட்களுக்கு பின் மீண்டும் பரிசோதிக்கவும்",
       },
       desc: {
         si: "Rapid spread නිසා නැවත පරීක්ෂාව අත්‍යවශ්‍යයි.",
         en: "Re-checking is essential due to rapid spread.",
+        ta: "வேகமான பரவலால் மீண்டும் பரிசோதித்தல் அவசியம்.",
       },
       done: false,
       date: null,
@@ -325,14 +353,16 @@ export default function FallArmywormControl() {
 
   const resetTodos = () => {
     Alert.alert(
-      language === "si" ? "Reset කරන්නද?" : "Reset?",
-      language === "si"
-        ? "To-Do ලැයිස්තුව නැවත ආරම්භ කරන්නද?"
-        : "Reset the To-Do planner?",
+      tr("Reset කරන්නද?", "Reset?", "மீட்டமைக்கவா?"),
+      tr(
+        "To-Do ලැයිස්තුව නැවත ආරම්භ කරන්නද?",
+        "Reset the To-Do planner?",
+        "To-Do திட்டத்தை மீட்டமைக்கவா?"
+      ),
       [
-        { text: language === "si" ? "නැහැ" : "No", style: "cancel" },
+        { text: tr("නැහැ", "No", "இல்லை"), style: "cancel" },
         {
-          text: language === "si" ? "ඔව්" : "Yes",
+          text: tr("ඔව්", "Yes", "ஆம்"),
           style: "destructive",
           onPress: async () => {
             const ids = todos
@@ -362,18 +392,20 @@ export default function FallArmywormControl() {
     const withDates = todos.filter((t) => t.date);
     if (withDates.length === 0) {
       Alert.alert(
-        language === "si" ? "දිනයක් නැහැ" : "No dates",
-        language === "si"
-          ? "Calendar එකට එක් කිරීමට පෙර To-Do වලට දිනයක් තෝරන්න."
-          : "Please select dates for tasks before adding to Google Calendar."
+        tr("දිනයක් නැහැ", "No dates", "தேதி இல்லை"),
+        tr(
+          "Calendar එකට එක් කිරීමට පෙර To-Do වලට දිනයක් තෝරන්න.",
+          "Please select dates for tasks before adding to Google Calendar.",
+          "Google Calendar-க்கு சேர்ப்பதற்கு முன் பணிகளுக்கான தேதியை தேர்வு செய்யவும்."
+        )
       );
       return;
     }
 
     for (const t of withDates) {
       const url = buildGoogleCalendarURL(
-        t.title[language],
-        t.desc[language],
+        localize(t.title),
+        localize(t.desc),
         t.date as Date
       );
       await Linking.openURL(url);
@@ -384,10 +416,12 @@ export default function FallArmywormControl() {
     const ok = await ensureNotificationPermission();
     if (!ok) {
       Alert.alert(
-        language === "si" ? "Permission නැහැ" : "Permission denied",
-        language === "si"
-          ? "Reminders සක්‍රීය කිරීමට Notification permission අවශ්‍යයි."
-          : "Notification permission is required to enable reminders."
+        tr("Permission නැහැ", "Permission denied", "அனுமதி இல்லை"),
+        tr(
+          "Reminders සක්‍රීය කිරීමට Notification permission අවශ්‍යයි.",
+          "Notification permission is required to enable reminders.",
+          "நினைவூட்டல்களை செயல்படுத்த அறிவிப்பு அனுமதி தேவை."
+        )
       );
       return;
     }
@@ -396,10 +430,12 @@ export default function FallArmywormControl() {
 
     if (schedulable.length === 0) {
       Alert.alert(
-        language === "si" ? "Reminders නැහැ" : "Nothing to schedule",
-        language === "si"
-          ? "Date දාපු tasks නැතිවෙන්නත් පුළුවන්, නැත්නම් tasks Done වෙලා තියෙන්නත් පුළුවන්."
-          : "No dated tasks found, or tasks are already completed."
+        tr("Reminders නැහැ", "Nothing to schedule", "நினைவூட்ட ஒன்றுமில்லை"),
+        tr(
+          "Date දාපු tasks නැතිවෙන්නත් පුළුවන්, නැත්නම් tasks Done වෙලා තියෙන්නත් පුළුවන්.",
+          "No dated tasks found, or tasks are already completed.",
+          "தேதி உள்ள பணிகள் இல்லை, அல்லது பணிகள் ஏற்கனவே முடிக்கப்பட்டுள்ளன."
+        )
       );
       return;
     }
@@ -425,9 +461,8 @@ export default function FallArmywormControl() {
 
       const nid = await Notifications.scheduleNotificationAsync({
         content: {
-          title:
-            language === "si" ? "MaizeGenie Reminder" : "MaizeGenie Reminder",
-          body: t.title[language],
+          title: "MaizeGenie Reminder",
+          body: localize(t.title),
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -449,10 +484,12 @@ export default function FallArmywormControl() {
       reminderTime.getMinutes()
     ).padStart(2, "0")}`;
     Alert.alert(
-      language === "si" ? "Reminders සකස් වුනා" : "Reminders scheduled",
-      language === "si"
-        ? `Date දාපු tasks වලට ${timeStr} reminder එකක් set කළා.`
-        : `Scheduled ${timeStr} reminders for dated tasks.`
+      tr("Reminders සකස් වුනා", "Reminders scheduled", "நினைவூட்டல்கள் அமைக்கப்பட்டன"),
+      tr(
+        `Date දාපු tasks වලට ${timeStr} reminder එකක් set කළා.`,
+        `Scheduled ${timeStr} reminders for dated tasks.`,
+        `தேதியிட்ட பணிகளுக்கு ${timeStr} நேர நினைவூட்டல் அமைக்கப்பட்டது.`
+      )
     );
   };
 
@@ -473,14 +510,10 @@ export default function FallArmywormControl() {
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>
-              {language === "si"
-                ? "Fall Armyworm පාලන හා වැළැක්වීම"
-                : "Fall Armyworm Control & Prevention"}
+              {tr("Fall Armyworm පාලන හා වැළැක්වීම", "Fall Armyworm Control & Prevention", "பால் ஆர்மிவோர்ம் கட்டுப்பாடு மற்றும் தடுப்பு")}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {language === "si"
-                ? "YOLO හඳුනාගැනීමෙන් පසු IPM මත පදනම් වූ ක්‍රියාමාර්ග"
-                : "IPM-based actions after YOLO detection"}
+              {tr("YOLO හඳුනාගැනීමෙන් පසු IPM මත පදනම් වූ ක්‍රියාමාර්ග", "IPM-based actions after YOLO detection", "YOLO கண்டறிதலுக்குப் பிறகு IPM அடிப்படையிலான செயல்கள்")}
             </Text>
           </View>
         </View>
@@ -496,7 +529,7 @@ export default function FallArmywormControl() {
           >
             <Info size={18} color={!todoMode ? "#ffffff" : "#10ad79"} />
             <Text style={[styles.modeText, !todoMode && styles.modeTextActive]}>
-              {language === "si" ? "මඟ පෙන්වීම" : "Guidance"}
+              {tr("මඟ පෙන්වීම", "Guidance", "வழிகாட்டல்")}
             </Text>
           </TouchableOpacity>
 
@@ -507,7 +540,7 @@ export default function FallArmywormControl() {
           >
             <CalendarCheck size={18} color={todoMode ? "#ffffff" : "#10ad79"} />
             <Text style={[styles.modeText, todoMode && styles.modeTextActive]}>
-              {language === "si" ? "To-Do සැලසුම" : "To-Do Planner"}
+              {tr("To-Do සැලසුම", "To-Do Planner", "To-Do திட்டம்")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -532,9 +565,7 @@ export default function FallArmywormControl() {
                     <Info size={20} color="#10ad79" />
                   </View>
                   <Text style={styles.infoSectionTitle}>
-                    {language === "si"
-                      ? "විස්තර / තොරතුරු"
-                      : "Information & Context"}
+                    {tr("විස්තර / තොරතුරු", "Information & Context", "தகவல் மற்றும் பின்னணி")}
                   </Text>
                 </View>
                 {expandedInfo ? (
@@ -548,12 +579,14 @@ export default function FallArmywormControl() {
                 <View style={styles.infoContent}>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si" ? "කෘමි හැඳින්වීම" : "Pest Overview"}
+                      {tr("කෘමි හැඳින්වීම", "Pest Overview", "பூச்சி அறிமுகம்")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "Fall Armyworm (Spodoptera frugiperda) යනු බඩ ඉරිඟු වගාවට දැඩි හානි කරන ආක්‍රමණශීලී කෘමියකි. මෙය පත්‍ර කුහර, whorl damage සහ වේගවත් ව්‍යාප්තිය හේතුවෙන් බෝගයට දැඩි හානි සිදු කරයි."
-                        : "Fall Armyworm (Spodoptera frugiperda) is an invasive pest that severely damages maize through leaf defoliation, whorl damage, and rapid spread."}
+                      {tr(
+                        "Fall Armyworm (Spodoptera frugiperda) යනු බඩ ඉරිඟු වගාවට දැඩි හානි කරන ආක්‍රමණශීලී කෘමියකි. මෙය පත්‍ර කුහර, whorl damage සහ වේගවත් ව්‍යාප්තිය හේතුවෙන් බෝගයට දැඩි හානි සිදු කරයි.",
+                        "Fall Armyworm (Spodoptera frugiperda) is an invasive pest that severely damages maize through leaf defoliation, whorl damage, and rapid spread.",
+                        "Fall Armyworm (Spodoptera frugiperda) மக்காச்சோளத்திற்கு கடுமையாக சேதம் விளைவிக்கும் ஆக்கிரமிப்பு பூச்சி. இது இலை சேதம், whorl சேதம் மற்றும் வேகமான பரவலால் விளைச்சலை பாதிக்கிறது."
+                      )}
                     </Text>
                   </View>
 
@@ -561,14 +594,14 @@ export default function FallArmywormControl() {
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si"
-                        ? "ඉක්මන් ක්‍රියා අවශ්‍ය ඇයි?"
-                        : "Why early action matters"}
+                      {tr("ඉක්මන් ක්‍රියා අවශ්‍ය ඇයි?", "Why early action matters", "ஆரம்ப நடவடிக்கை ஏன் முக்கியம்?")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "Larva අවස්ථාවේදී ඉක්මනින් පාලනය නොකළහොත් කෘමිය whorl/කඳ තුළ ගැඹුරු විය හැකි අතර පසුව පාලනය කිරීම අමාරු වේ."
-                        : "If larvae are not controlled early, they move deeper into the whorl/stem, making control difficult and costly later."}
+                      {tr(
+                        "Larva අවස්ථාවේදී ඉක්මනින් පාලනය නොකළහොත් කෘමිය whorl/කඳ තුළ ගැඹුරු විය හැකි අතර පසුව පාලනය කිරීම අමාරු වේ.",
+                        "If larvae are not controlled early, they move deeper into the whorl/stem, making control difficult and costly later.",
+                        "இருவில் நிலையை ஆரம்பத்தில் கட்டுப்படுத்தாவிட்டால் அவை whorl/தண்டிற்குள் ஆழமாக சென்று பின்னர் கட்டுப்படுத்துவது கடினமாகும்."
+                      )}
                     </Text>
                   </View>
 
@@ -576,12 +609,14 @@ export default function FallArmywormControl() {
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si" ? "IPM සංකල්පය" : "IPM concept"}
+                      {tr("IPM සංකල්පය", "IPM concept", "IPM கருத்து")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "මෙය Integrated Pest Management (IPM) මත පදනම් වේ: යාන්ත්‍රික + ජෛව + සංස්කෘතික ක්‍රම මුල් කරගෙන, අවශ්‍ය වූ විට පමණක් රසායනික උපදේශනය ලබා ගැනීම."
-                        : "This follows Integrated Pest Management (IPM): prioritize mechanical, biological, and cultural control, while seeking chemical guidance only when necessary."}
+                      {tr(
+                        "මෙය Integrated Pest Management (IPM) මත පදනම් වේ: යාන්ත්‍රික + ජෛව + සංස්කෘතික ක්‍රම මුල් කරගෙන, අවශ්‍ය වූ විට පමණක් රසායනික උපදේශනය ලබා ගැනීම.",
+                        "This follows Integrated Pest Management (IPM): prioritize mechanical, biological, and cultural control, while seeking chemical guidance only when necessary.",
+                        "இது ஒருங்கிணைந்த பூச்சி மேலாண்மை (IPM) முறையை பின்பற்றுகிறது: இயந்திர, உயிரியல் மற்றும் பயிர் மேலாண்மை முறைகளுக்கு முன்னுரிமை கொடுத்து, அவசியமானபோது மட்டுமே இரசாயன ஆலோசனையைப் பெற வேண்டும்."
+                      )}
                     </Text>
                   </View>
 
@@ -589,14 +624,14 @@ export default function FallArmywormControl() {
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si"
-                        ? "රසායනික දැනුවත් කිරීම"
-                        : "Chemical awareness"}
+                      {tr("රසායනික දැනුවත් කිරීම", "Chemical awareness", "இரசாயன விழிப்புணர்வு")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "අධික රසායනික භාවිතය පරිසරයට හානි කළ හැකි අතර කෘමීන්ට resistance ඇති විය හැක. ඒ නිසා මෙය awareness ලෙස පමණයි."
-                        : "Overuse of chemicals can harm the environment and cause pesticide resistance. Therefore, this module provides awareness only."}
+                      {tr(
+                        "අධික රසායනික භාවිතය පරිසරයට හානි කළ හැකි අතර කෘමීන්ට resistance ඇති විය හැක. ඒ නිසා මෙය awareness ලෙස පමණයි.",
+                        "Overuse of chemicals can harm the environment and cause pesticide resistance. Therefore, this module provides awareness only.",
+                        "அதிக இரசாயன பயன்பாடு சுற்றுச்சூழலுக்கு சேதம் செய்து பூச்சிகளில் எதிர்ப்பு திறன் உருவாகக் கூடும். ஆகவே இது விழிப்புணர்விற்காக மட்டுமே வழங்கப்படுகிறது."
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -606,14 +641,10 @@ export default function FallArmywormControl() {
             {/* IPM Steps */}
             <View style={styles.stepsHeader}>
               <Text style={styles.stepsTitle}>
-                {language === "si"
-                  ? "IPM පියවර (Step-by-step)"
-                  : "IPM Steps (Step-by-step)"}
+                {tr("IPM පියවර (Step-by-step)", "IPM Steps (Step-by-step)", "IPM படிகள் (படிப்படியாக)")}
               </Text>
               <Text style={styles.stepsSubtitle}>
-                {language === "si"
-                  ? "පියවරෙන් පියවර ක්‍රියාමාර්ග"
-                  : "Follow these steps sequentially"}
+                {tr("පියවරෙන් පියවර ක්‍රියාමාර්ග", "Follow these steps sequentially", "இந்த படிகளை வரிசையாக பின்பற்றவும்")}
               </Text>
             </View>
 
@@ -624,17 +655,17 @@ export default function FallArmywormControl() {
                 </View>
                 <View style={styles.stepIconContainer}>{step.icon}</View>
                 <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>{step.title[language]}</Text>
+                  <Text style={styles.stepTitle}>{localize(step.title)}</Text>
                   <Text style={styles.stepDescription}>
-                    {step.description[language]}
+                    {localize(step.description)}
                   </Text>
                   <View style={styles.whyContainer}>
                     <View style={styles.whyBadge}>
                       <Text style={styles.whyBadgeText}>
-                        {language === "si" ? "හේතුව" : "Why"}
+                        {tr("හේතුව", "Why", "ஏன்")}
                       </Text>
                     </View>
-                    <Text style={styles.whyText}>{step.why[language]}</Text>
+                    <Text style={styles.whyText}>{localize(step.why)}</Text>
                   </View>
                 </View>
               </View>
@@ -650,12 +681,10 @@ export default function FallArmywormControl() {
               <View style={styles.todoHeaderTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.todoMainTitle}>
-                    {language === "si" ? "To-Do සැලසුම" : "To-Do Planner"}
+                    {tr("To-Do සැලසුම", "To-Do Planner", "To-Do திட்டம்")}
                   </Text>
                   <Text style={styles.todoMainSubtitle}>
-                    {language === "si"
-                      ? "Date දාගෙන Done ලෙස ලකුණු කරන්න"
-                      : "Assign dates and mark tasks as done"}
+                    {tr("Date දාගෙන Done ලෙස ලකුණු කරන්න", "Assign dates and mark tasks as done", "தேதிகளை சேர்த்து பணிகளை முடித்ததாக குறியிடவும்")}
                   </Text>
                 </View>
                 <View style={styles.progressCircle}>
@@ -682,7 +711,7 @@ export default function FallArmywormControl() {
                   <Clock size={20} color="#10ad79" />
                 </View>
                 <Text style={styles.timePickerLabel}>
-                  {language === "si" ? "Reminder වේලාව" : "Reminder Time"}
+                  {tr("Reminder වේලාව", "Reminder Time", "நினைவூட்ட நேரம்")}
                 </Text>
               </View>
               <TouchableOpacity
@@ -721,9 +750,7 @@ export default function FallArmywormControl() {
               >
                 <Calendar size={18} color="#ffffff" />
                 <Text style={styles.calendarButtonText}>
-                  {language === "si"
-                    ? "Google Calendar"
-                    : "Add to Calendar"}
+                  {tr("Google Calendar", "Add to Calendar", "காலெண்டரில் சேர்க்க")}
                 </Text>
               </TouchableOpacity>
 
@@ -734,7 +761,7 @@ export default function FallArmywormControl() {
               >
                 <Bell size={18} color="#ffffff" />
                 <Text style={styles.reminderButtonText}>
-                  {language === "si" ? "Reminders" : "Set Reminders"}
+                  {tr("Reminders", "Set Reminders", "நினைவூட்டல்கள் அமைக்க")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -746,7 +773,7 @@ export default function FallArmywormControl() {
               activeOpacity={0.8}
             >
               <Text style={styles.resetButtonText}>
-                {language === "si" ? "Reset To-Do" : "Reset To-Do"}
+                {tr("Reset To-Do", "Reset To-Do", "To-Do மீட்டமை")}
               </Text>
             </TouchableOpacity>
 
@@ -777,12 +804,12 @@ export default function FallArmywormControl() {
                         todo.done && styles.todoTitleDone,
                       ]}
                     >
-                      {todo.title[language]}
+                      {localize(todo.title)}
                     </Text>
                   </View>
 
                   <Text style={[styles.todoDesc, todo.done && styles.todoDescDone]}>
-                    {todo.desc[language]}
+                    {localize(todo.desc)}
                   </Text>
 
                   <TouchableOpacity
@@ -794,9 +821,7 @@ export default function FallArmywormControl() {
                     <Text style={styles.dateButtonText}>
                       {todo.date
                         ? formatDate(todo.date)
-                        : language === "si"
-                        ? "දිනය තෝරන්න"
-                        : "Select date"}
+                        : tr("දිනය තෝරන්න", "Select date", "தேதி தேர்வு செய்க")}
                     </Text>
                   </TouchableOpacity>
 
@@ -822,13 +847,11 @@ export default function FallArmywormControl() {
               <View style={styles.infoNoteHeader}>
                 <Info size={16} color="#10ad79" />
                 <Text style={styles.infoNoteTitle}>
-                  {language === "si" ? "සටහන" : "Note"}
+                  {tr("සටහන", "Note", "குறிப்பு")}
                 </Text>
               </View>
               <Text style={styles.infoNoteText}>
-                {language === "si"
-                  ? "Calendar එකට add කරන්නේ date දාපු tasks පමණයි. Reminders ඔබ තෝරපු වේලාවට set වෙනවා (date future එකක් නම්)."
-                  : "Only dated tasks are added to Calendar. Reminders are scheduled at your chosen time (only for future dates)."}
+                {tr("Calendar එකට add කරන්නේ date දාපු tasks පමණයි. Reminders ඔබ තෝරපු වේලාවට set වෙනවා (date future එකක් නම්).", "Only dated tasks are added to Calendar. Reminders are scheduled at your chosen time (only for future dates).", "தேதி கொடுத்த பணிகளே காலெண்டரில் சேர்க்கப்படும். நினைவூட்டல்கள் நீங்கள் தேர்ந்த நேரத்தில் (எதிர்கால தேதிகளுக்கு மட்டும்) அமைக்கப்படும்.")}
               </Text>
             </View>
           </>
@@ -1379,3 +1402,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+

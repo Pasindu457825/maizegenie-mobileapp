@@ -1,20 +1,20 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Speech from "expo-speech";
 import { useLanguage } from "../../context/LanguageContext";
 
-type LangKey = "si" | "en";
+type LangKey = "si" | "en" | "ta";
 
 const stages = [
   {
     key: "egg",
-    label: { si: "බිත්තරය", en: "Egg" },
+    label: { si: "බිත්තරය", en: "Egg", ta: "முட்டை" },
     image: require("../../../assets/pest_lifecycle/asiancornborer/asian_egg.jpg"),
     description: { 
       si: "බිත්තර පොකුරු ලෙස පත්‍ර පහළ පැත්තට තබනු ලබන අතර මත්ස්‍ය කොරල් මෙන් පෙනේ.", 
-      en: "Eggs are laid in groups on the underside of leaves, appearing like fish scales." 
-    },
+      en: "Eggs are laid in groups on the underside of leaves, appearing like fish scales.",
+      ta: "முட்டைகள் இலைகளின் அடிப்புறத்தில் குழுக்களாக இடப்படுகின்றன; அவை மீன் செதில்களைப் போல தோன்றும்." },
     voiceTextEn:
       "Asian Corn Borer eggs are laid in clusters on the underside of maize leaves. The eggs look like overlapping fish scales. Regular inspection of leaves allows farmers to remove egg masses early and prevent larval outbreaks.",
     voiceTextSi:
@@ -22,12 +22,12 @@ const stages = [
   },
   {
     key: "larva",
-    label: { si: "කීටයා", en: "Larva" },
+    label: { si: "කීටයා", en: "Larva", ta: "இருவில்" },
     image: require("../../../assets/pest_lifecycle/asiancornborer/asian_larva.jpg"),
     description: { 
       si: "කීටයින් (කූඹියන්) කඳට විදිමින් ප්‍රධාන හානි කරනවා.", 
-      en: "Larvae (caterpillars) bore into stems and cause major damage to the corn plant." 
-    },
+      en: "Larvae (caterpillars) bore into stems and cause major damage to the corn plant.",
+      ta: "இருவில் (புழுக்கள்) தண்டுக்குள் துளையிட்டு சோளச் செடிக்கு பெரிய சேதத்தை உண்டாக்குகின்றன." },
     voiceTextEn:
       "The larva stage is the most destructive. The caterpillars bore into stems, weaken the plant, and interfere with nutrient flow. This can lead to broken stems and reduced yields. Early detection and control are very important.",
     voiceTextSi:
@@ -35,12 +35,12 @@ const stages = [
   },
   {
     key: "pupa",
-    label: { si: "පියුපාව", en: "Pupa" },
+    label: { si: "පියුපාව", en: "Pupa", ta: "பூப்பா" },
     image: require("../../../assets/pest_lifecycle/asiancornborer/asian_pupa.jpg"),
     description: { 
       si: "පියුපා අවධිය සාමාන්‍යයෙන් කඳ තුළ හෝ වගා අපද්‍රව්‍යයේ සිදුවේ.", 
-      en: "Pupation usually takes place inside the stem or in crop debris." 
-    },
+      en: "Pupation usually takes place inside the stem or in crop debris.",
+      ta: "பூப்பா நிலை பொதுவாக தண்டின் உள்ளே அல்லது பயிர் எச்சங்களில் ஏற்படும்." },
     voiceTextEn:
       "During the pupa stage, the larva hides inside the stem or in leftover crop debris and begins transforming into an adult moth. No feeding occurs at this time. Good field sanitation helps reduce pest numbers.",
     voiceTextSi:
@@ -48,12 +48,12 @@ const stages = [
   },
   {
     key: "adult",
-    label: { si: "වැඩිහිටියා (මදුවා)", en: "Adult (Moth)" },
+    label: { si: "වැඩිහිටියා (මදුවා)", en: "Adult (Moth)", ta: "முழுவயது (வண்டு)" },
     image: require("../../../assets/pest_lifecycle/asiancornborer/asian_adult.jpg"),
     description: { 
       si: "වැඩිහිටියෝ කුඩා මදුවන් වන අතර රාත්‍රියේ පියාසර කරති.", 
-      en: "Adults are small moths that fly at night and lay eggs to continue the cycle." 
-    },
+      en: "Adults are small moths that fly at night and lay eggs to continue the cycle.",
+      ta: "முழுவயது சிறிய வண்டுகள் இரவில் பறந்து, சுழற்சியைத் தொடர முட்டைகள் இடுகின்றன." },
     voiceTextEn:
       "The adult Asian Corn Borer is a small, pale moth that flies at night. It lays clusters of eggs on leaves, restarting the life cycle. Light traps and regular monitoring can help control adult moth populations.",
     voiceTextSi:
@@ -64,7 +64,8 @@ const stages = [
 export default function AsianCornBorerLifecycleScreen() {
   /* 🌐 GLOBAL LANGUAGE */
   const { language: appLang } = useLanguage();
-  const language: LangKey = appLang === "sinhala" ? "si" : "en";
+  const language: LangKey =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
   /* 📝 TEXT CONTENT */
   const content = {
@@ -83,6 +84,14 @@ export default function AsianCornBorerLifecycleScreen() {
       sinhalaBtn: "සිංහල",
       englishBtn: "English",
       stopBtn: "Stop",
+    },
+    ta: {
+      headerTitle: "ஆசியன் கார்ன் போரர் வாழ்க்கைச் சுழற்சி",
+      headerSubtitle: "பூச்சியின் வளர்ச்சி நிலைகளை புரிந்துகொள்ளுங்கள்",
+      voiceLabel: "விரிவான தகவலை கேளுங்கள்:",
+      sinhalaBtn: "சிங்களம்",
+      englishBtn: "English",
+      stopBtn: "நிறுத்து",
     },
   };
 

@@ -31,6 +31,7 @@ async def signup_user(data: SignupRequest, supabase: Client = supabase):
     # 3. Insert into profiles table
     profile_data = {
         "id": user.id,
+        "email": user.email or data.email,
         "full_name": data.full_name,
         "phone": data.phone,
         "district": data.district,

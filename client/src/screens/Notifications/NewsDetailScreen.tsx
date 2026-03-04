@@ -334,7 +334,7 @@ export default function NewsDetailScreen() {
 
         {/* Header Content */}
         <View style={styles.headerContent}>
-          {/* Back Button */}
+          {/* Back Button — anchored to the left */}
           <Pressable
             onPress={() => navigation.goBack()}
             style={styles.backButton}
@@ -342,12 +342,13 @@ export default function NewsDetailScreen() {
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </Pressable>
 
-          {/* Title in header (visible when collapsed) */}
+          {/* Title — absolutely centered, independent of back button */}
           <Animated.View
             style={[
               styles.headerTitleContainer,
               { opacity: headerBackgroundOpacity },
             ]}
+            pointerEvents="none"
           >
             <Text style={styles.headerTitle} numberOfLines={1}>
               {news.title}
@@ -363,7 +364,7 @@ export default function NewsDetailScreen() {
         scrollEventThrottle={16}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
       >
         {/* Spacer for header */}
@@ -411,7 +412,7 @@ export default function NewsDetailScreen() {
                       year: "numeric",
                       month: "long",
                       day: "numeric",
-                    }
+                    },
                   )}
                 </Text>
               </View>
@@ -552,11 +553,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#16a34a",
   },
   headerContent: {
-    flex: 1,
-    paddingTop: 50,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: HEADER_MIN_HEIGHT,
     paddingHorizontal: 20,
     flexDirection: "row",
-    alignItems: "flex-start",
+    alignItems: "center",
   },
   backButton: {
     width: 44,
@@ -567,16 +571,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
+    zIndex: 1,
   },
   headerTitleContainer: {
-    flex: 1,
-    marginLeft: 12,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 72, // 44 (button) + 20 (edge padding) + 8 (gap)
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#ffffff",
+    textAlign: "center",
   },
 
   /* ================= SCROLL CONTENT ================= */

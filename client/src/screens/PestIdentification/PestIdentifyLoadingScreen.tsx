@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -23,23 +23,39 @@ import {
   CheckCircle,
   ArrowRight,
   Info,
+  BarChart3,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { PestIdentifyStackParamList } from "src/navigation/PestIdentifyStack";
 import { useLanguage } from "../../context/LanguageContext";
 
 const { width } = Dimensions.get("window");
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 interface Prediction {
   class_id: number;
   class_name: string;
   confidence: number;
+  box_xyxy?: number[];
+}
+
+interface PestFrequencyItem {
+  class_name: string;
+  count: number;
+}
+
+interface PestFrequencyResponse {
+  success: boolean;
+  total_requests: number;
+  no_pest_requests: number;
+  total_detections: number;
+  top_pests: PestFrequencyItem[];
 }
 
 type NavProp = StackNavigationProp<PestIdentifyStackParamList>;
@@ -63,10 +79,40 @@ const PestIdentificationScreen = () => {
   const [result, setResult] = useState<Prediction[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [frequencyStats, setFrequencyStats] = useState<PestFrequencyResponse | null>(null);
+  const [frequencyLoading, setFrequencyLoading] = useState(false);
+  const [imageNaturalSize, setImageNaturalSize] = useState({
+    width: 1,
+    height: 1,
+  });
+  const [imageLayoutSize, setImageLayoutSize] = useState({ width: 1, height: 1 });
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const { language: appLang } = useLanguage();
-  const language: Language = appLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
+
+  const fetchPestFrequency = async () => {
+    try {
+      setFrequencyLoading(true);
+      const token = await AsyncStorage.getItem("auth_token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const res = await axios.get(`${API_URL}/api/pest/frequency?days=30&top_n=3`, {
+        headers,
+        timeout: 15000,
+      });
+      if (res.data?.success) {
+        setFrequencyStats(res.data);
+      }
+    } catch (freqErr) {
+      console.warn("Failed to load pest frequency stats:", freqErr);
+    } finally {
+      setFrequencyLoading(false);
+    }
+  };
 
   const content = {
     si: {
@@ -115,6 +161,29 @@ const PestIdentificationScreen = () => {
       instruction4: "✗ Avoid blurry or dark photos",
       instruction5: "✗ Avoid photos taken from too far",
     },
+    ta: {
+      title: "பூச்சி அடையாளம்",
+      subtitle: "AI மூலம் கண்டறிதல்",
+      headerTitle: "பூச்சி அடையாளம்",
+      headerSubtitle: "படங்களில் இருந்து பூச்சியை கண்டறியுங்கள்",
+      cameraOption: "கேமரா",
+      uploadOption: "கேலரி",
+      detectButton: "பூச்சியை கண்டறி",
+      analyzing: "பரிசோதித்து வருகிறது...",
+      resultTitle: "கண்டறியப்பட்ட பூச்சிகள்",
+      noPests: "பூச்சிகள் கண்டறியப்படவில்லை",
+      tryAgain: "மீண்டும் முயற்சி",
+      pickImage: "ஒரு படத்தை தேர்வு செய்",
+      orText: "அல்லது",
+      viewControl: "கட்டுப்பாட்டை பார்க்க",
+      viewLifecycle: "வாழ்க்கைச் சுழற்சியை பார்க்க",
+      instructionsTitle: "📸 சிறந்த முடிவுகளுக்கான குறிப்புகள்",
+      instruction1: "✓ தெளிவான மற்றும் கவனம் உள்ள படங்களை பயன்படுத்தவும்",
+      instruction2: "✓ போதுமான ஒளி இருப்பதை உறுதி செய்யவும்",
+      instruction3: "✓ பூச்சியை நெருக்கமாகவும் நடுவிலும் படம் எடுக்கவும்",
+      instruction4: "✗ மங்கலான அல்லது இருண்ட புகைப்படங்களை தவிர்க்கவும்",
+      instruction5: "✗ மிகத் தூரத்தில் இருந்து எடுத்த புகைப்படங்களை தவிர்க்கவும்",
+    },
   };
 
   useEffect(() => {
@@ -129,6 +198,8 @@ const PestIdentificationScreen = () => {
       friction: 4,
       useNativeDriver: true,
     }).start();
+
+    fetchPestFrequency();
   }, [fadeAnim, scaleAnim]);
 
   const pickImageFromGallery = async () => {
@@ -138,7 +209,9 @@ const PestIdentificationScreen = () => {
       alert(
         language === "si"
           ? "කරුණාකර ගැලරි ප්‍රවේශය ලබා දෙන්න!"
-          : "Sorry, we need gallery permissions!"
+          : language === "ta"
+            ? "கேலரி அணுக அனுமதி வழங்கவும்!"
+            : "Sorry, we need gallery permissions!"
       );
       return;
     }
@@ -164,7 +237,9 @@ const PestIdentificationScreen = () => {
       alert(
         language === "si"
           ? "කරුණාකර කැමරා ප්‍රවේශය ලබා දෙන්න!"
-          : "Sorry, we need camera permissions!"
+          : language === "ta"
+            ? "கேமரா அணுக அனுமதி வழங்கவும்!"
+            : "Sorry, we need camera permissions!"
       );
       return;
     }
@@ -187,7 +262,9 @@ const PestIdentificationScreen = () => {
       alert(
         language === "si"
           ? "කරුණාකර පළමුව ඡායාරූපයක් තෝරන්න"
-          : "Please select an image first"
+          : language === "ta"
+            ? "முதலில் ஒரு படத்தைத் தேர்வு செய்யவும்"
+            : "Please select an image first"
       );
       return;
     }
@@ -200,6 +277,7 @@ const PestIdentificationScreen = () => {
       console.log("Image URI:", imageUri);
 
       let formData = new FormData();
+      const authToken = await AsyncStorage.getItem("auth_token");
 
       if (Platform.OS === "web") {
         const response = await fetch(imageUri);
@@ -217,7 +295,10 @@ const PestIdentificationScreen = () => {
         `${API_URL}/api/pest/identify?conf=0.4&return_image=false`,
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data",
+            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          },
           timeout: 30000,
         }
       );
@@ -225,17 +306,27 @@ const PestIdentificationScreen = () => {
       console.log("Response:", res.data);
 
       if (res.data.success) {
-        setResult(res.data.predictions);
-        if (!res.data.predictions || res.data.predictions.length === 0) {
+        const normalizedPredictions: Prediction[] = (res.data.predictions || []).filter(
+          (p: Prediction) => p.class_id >= 0 && p.class_name !== "No pest detected"
+        );
+        setResult(normalizedPredictions);
+        fetchPestFrequency();
+        if (normalizedPredictions.length === 0) {
           setError(
             language === "si"
               ? "ඡායාරූපයේ කෘමි හමු නොවීය"
-              : "No pests detected in the image"
+              : language === "ta"
+                ? "படத்தில் பூச்சிகள் கண்டறியப்படவில்லை"
+                : "No pests detected in the image"
           );
         }
       } else {
         setError(
-          language === "si" ? "හඳුනාගැනීම අසාර්ථකයි" : "Detection failed"
+          language === "si"
+            ? "හඳුනාගැනීම අසාර්ථකයි"
+            : language === "ta"
+              ? "கண்டறிதல் தோல்வியடைந்தது"
+              : "Detection failed"
         );
       }
     } catch (err: any) {
@@ -245,7 +336,9 @@ const PestIdentificationScreen = () => {
       let errorMsg =
         language === "si"
           ? "සර්වරය සමඟ සම්බන්ධ විය නොහැක!"
-          : "Failed to connect to server!";
+          : language === "ta"
+            ? "சர்வருடன் இணைக்க முடியவில்லை!"
+            : "Failed to connect to server!";
 
       if (err.response?.data) {
         if (typeof err.response.data === "string") {
@@ -266,18 +359,52 @@ const PestIdentificationScreen = () => {
   // Check if Fall Armyworm is detected
   const isFallArmywormDetected = () => {
     if (!result || result.length === 0) return false;
-    return result.some((p) => p.class_name.toLowerCase().includes("armyworm"));
+    return result.some(
+      (p) => p.class_id >= 0 && p.class_name.toLowerCase().includes("armyworm")
+    );
   };
 
   const isBollwormDetected = () => {
     if (!result || result.length === 0) return false;
-    return result.some((p) => p.class_name.toLowerCase().includes("bollworm"));
+    return result.some(
+      (p) => p.class_id >= 0 && p.class_name.toLowerCase().includes("bollworm")
+    );
   };
 
   const isAsianCornBorerDetected = () => {
     if (!result?.length) return false;
 
-    return result.some((p) => p.class_name.toLowerCase() === "asian-corn-borer");
+    return result.some(
+      (p) => p.class_id >= 0 && p.class_name.toLowerCase() === "asian-corn-borer"
+    );
+  };
+
+  const validPredictions =
+    result?.filter((p) => p.class_id >= 0 && p.class_name !== "No pest detected") ||
+    [];
+
+  const getBoxStyle = (box: number[]) => {
+    const [x1, y1, x2, y2] = box;
+    const scale = Math.min(
+      imageLayoutSize.width / imageNaturalSize.width,
+      imageLayoutSize.height / imageNaturalSize.height
+    );
+    const renderedWidth = imageNaturalSize.width * scale;
+    const renderedHeight = imageNaturalSize.height * scale;
+    const offsetX = (imageLayoutSize.width - renderedWidth) / 2;
+    const offsetY = (imageLayoutSize.height - renderedHeight) / 2;
+
+    const clampedX1 = Math.max(0, Math.min(imageNaturalSize.width, x1));
+    const clampedY1 = Math.max(0, Math.min(imageNaturalSize.height, y1));
+    const clampedX2 = Math.max(0, Math.min(imageNaturalSize.width, x2));
+    const clampedY2 = Math.max(0, Math.min(imageNaturalSize.height, y2));
+
+    return {
+      left: offsetX + clampedX1 * scale,
+      top: offsetY + clampedY1 * scale,
+      width: Math.max(1, (clampedX2 - clampedX1) * scale),
+      height: Math.max(1, (clampedY2 - clampedY1) * scale),
+    };
   };
 
   const resetScreen = () => {
@@ -335,6 +462,75 @@ const PestIdentificationScreen = () => {
             <Text style={styles.subtitle}>{content[language].subtitle}</Text>
           </View>
 
+          {/* Pest Frequency Snapshot */}
+          <View style={styles.frequencyCard}>
+            <Text style={styles.frequencyTitle}>
+              {language === "si"
+                ? "Pest Frequency (Last 30 days)"
+                : language === "ta"
+                  ? "பூச்சி நிகழ்திறன் (கடைசி 30 நாட்கள்)"
+                  : "Pest Frequency (Last 30 days)"}
+            </Text>
+
+            {frequencyLoading ? (
+              <Text style={styles.frequencyLoadingText}>
+                {language === "ta" ? "போக்குகள் ஏற்றப்படுகிறது..." : "Loading trends..."}
+              </Text>
+            ) : frequencyStats ? (
+              <>
+                <View style={styles.frequencySummaryRow}>
+                  <View style={styles.frequencySummaryItem}>
+                    <Text style={styles.frequencySummaryValue}>
+                      {frequencyStats.total_requests}
+                    </Text>
+                    <Text style={styles.frequencySummaryLabel}>
+                      {language === "ta" ? "கோரிக்கைகள்" : "Requests"}
+                    </Text>
+                  </View>
+                  <View style={styles.frequencySummaryItem}>
+                    <Text style={styles.frequencySummaryValue}>
+                      {frequencyStats.total_detections}
+                    </Text>
+                    <Text style={styles.frequencySummaryLabel}>
+                      {language === "ta" ? "கண்டறிதல்கள்" : "Detections"}
+                    </Text>
+                  </View>
+                </View>
+
+                {frequencyStats.top_pests?.length ? (
+                  frequencyStats.top_pests.map((item, idx) => (
+                    <View key={`${item.class_name}-${idx}`} style={styles.frequencyItem}>
+                      <Text style={styles.frequencyItemName}>{item.class_name}</Text>
+                      <View style={styles.frequencyCountBadge}>
+                        <Text style={styles.frequencyCountText}>{item.count}</Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={styles.frequencyEmptyText}>
+                    {language === "ta" ? "இன்னும் கண்டறிதல் பதிவுகள் இல்லை." : "No detection records yet."}
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  style={styles.analysisButton}
+                  onPress={() => navigation.navigate("PestFrequencyAnalysis")}
+                  activeOpacity={0.85}
+                >
+                  <BarChart3 color="#FFFFFF" size={18} />
+                  <Text style={styles.analysisButtonText}>
+                    {language === "ta" ? "பூச்சி நிகழ்திறன் பகுப்பாய்வு" : "Pest Frequency Analysis"}
+                  </Text>
+                  <ArrowRight color="#FFFFFF" size={16} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.frequencyEmptyText}>
+                {language === "ta" ? "போக்கு தரவு இல்லை." : "No trend data available."}
+              </Text>
+            )}
+          </View>
+
           {/* Instructions Card - Show only when no image */}
           {!imageUri && !result && (
             <View style={styles.instructionsCard}>
@@ -377,12 +573,35 @@ const PestIdentificationScreen = () => {
 
           {/* Image Preview */}
           {imageUri && (
-            <View style={styles.imagePreviewContainer}>
+            <View
+              style={styles.imagePreviewContainer}
+              onLayout={(e) => {
+                const { width: w, height: h } = e.nativeEvent.layout;
+                setImageLayoutSize({ width: w, height: h });
+              }}
+            >
               <Image
                 source={{ uri: imageUri }}
                 style={styles.imagePreview}
-                resizeMode="cover"
+                resizeMode="contain"
+                onLoad={(e) => {
+                  const { width: w, height: h } = e.nativeEvent.source;
+                  if (w > 0 && h > 0) {
+                    setImageNaturalSize({ width: w, height: h });
+                  }
+                }}
               />
+              {validPredictions.map((p, i) => {
+                if (!p.box_xyxy || p.box_xyxy.length !== 4) return null;
+                const boxStyle = getBoxStyle(p.box_xyxy);
+                return (
+                  <View key={`${p.class_name}-${i}`} style={[styles.boxOverlay, boxStyle]}>
+                    <Text style={styles.boxLabel}>
+                      {p.class_name} {Math.round(p.confidence * 100)}%
+                    </Text>
+                  </View>
+                );
+              })}
               <TouchableOpacity
                 style={styles.removeImageButton}
                 onPress={resetScreen}
@@ -472,7 +691,7 @@ const PestIdentificationScreen = () => {
           )}
 
           {/* Results */}
-          {result && result.length > 0 && (
+          {validPredictions.length > 0 && (
             <View style={styles.resultContainer}>
               <View style={styles.resultHeader}>
                 <CheckCircle color="#10AD79" size={28} />
@@ -480,7 +699,7 @@ const PestIdentificationScreen = () => {
                   {content[language].resultTitle}
                 </Text>
               </View>
-              {result.map((p, i) => (
+              {validPredictions.map((p, i) => (
                 <View key={i} style={styles.resultItem}>
                   <View style={styles.resultItemLeft}>
                     <Bug color="#10AD79" size={20} />
@@ -619,7 +838,7 @@ const PestIdentificationScreen = () => {
             </View>
           )}
 
-          {result && result.length === 0 && (
+          {result && validPredictions.length === 0 && (
             <View style={styles.noPestsContainer}>
               <CheckCircle color="#10AD79" size={48} />
               <Text style={styles.noPestsText}>
@@ -747,6 +966,106 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     textAlign: "center",
   },
+  frequencyCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 24,
+    width: "100%",
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  frequencyTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#065F46",
+    marginBottom: 12,
+  },
+  frequencyLoadingText: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  frequencySummaryRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 12,
+  },
+  frequencySummaryItem: {
+    flex: 1,
+    backgroundColor: "#ECFDF5",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+  },
+  frequencySummaryValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#047857",
+  },
+  frequencySummaryLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  frequencyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  frequencyItemName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1F2937",
+    flex: 1,
+    marginRight: 10,
+  },
+  frequencyCountBadge: {
+    backgroundColor: "#10AD79",
+    minWidth: 32,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 16,
+    alignItems: "center",
+  },
+  frequencyCountText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  frequencyEmptyText: {
+    fontSize: 13,
+    color: "#6B7280",
+  },
+  analysisButton: {
+    marginTop: 10,
+    backgroundColor: "#10AD79",
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  analysisButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+  },
   instructionsCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -815,6 +1134,25 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: "100%",
     height: "100%",
+    backgroundColor: "#000000",
+  },
+  boxOverlay: {
+    position: "absolute",
+    borderWidth: 2,
+    borderColor: "#22C55E",
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+  },
+  boxLabel: {
+    position: "absolute",
+    top: 2,
+    left: 2,
+    backgroundColor: "#22C55E",
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   removeImageButton: {
     position: "absolute",
@@ -1058,3 +1396,7 @@ const styles = StyleSheet.create({
 });
 
 export default PestIdentificationScreen;
+
+
+
+
