@@ -207,7 +207,7 @@ const PriceForecastScreen = () => {
       const url =
         `${API_URL}/api/price-forecast/district-weather` +
         `?district=${encodeURIComponent(district)}&year=${year}&week=${week}`;
-      const res  = await fetch(url);
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -217,13 +217,16 @@ const PriceForecastScreen = () => {
         );
         return {
           avg_temperature: data.avg_temperature as number,
-          avg_rainfall:    data.avg_rainfall    as number,
-          source:          data.source          as string,
+          avg_rainfall: data.avg_rainfall as number,
+          source: data.source as string,
         };
       }
       throw new Error("success=false");
     } catch (err) {
-      console.warn("fetchDistrictWeather failed, using seasonal defaults:", err);
+      console.warn(
+        "fetchDistrictWeather failed, using seasonal defaults:",
+        err,
+      );
       return null;
     }
   };
@@ -231,12 +234,15 @@ const PriceForecastScreen = () => {
   // Fetch district weather whenever we have a district + valid week
   useEffect(() => {
     const district = formData?.district;
-    const yearNum  = Number(formData?.year);
-    const weekNum  = Number(formData?.week);
+    const yearNum = Number(formData?.year);
+    const weekNum = Number(formData?.week);
     if (
       district &&
-      Number.isFinite(yearNum) && yearNum >= 2020 &&
-      Number.isFinite(weekNum) && weekNum >= 1 && weekNum <= 53
+      Number.isFinite(yearNum) &&
+      yearNum >= 2020 &&
+      Number.isFinite(weekNum) &&
+      weekNum >= 1 &&
+      weekNum <= 53
     ) {
       fetchDistrictWeather(district, yearNum, weekNum).then((w) => {
         // Always set (even if null) so the trigger useEffect can react
@@ -244,13 +250,13 @@ const PriceForecastScreen = () => {
           w ?? {
             // Season-based fallback so forecast still runs
             avg_temperature: weekNum >= 40 || weekNum <= 13 ? 26.5 : 28.5,
-            avg_rainfall:    weekNum >= 40 || weekNum <= 13 ? 28.0 : 12.0,
+            avg_rainfall: weekNum >= 40 || weekNum <= 13 ? 28.0 : 12.0,
             source: "fallback_client",
           },
         );
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData?.district, formData?.year, formData?.week]);
 
   const content = {
@@ -748,13 +754,15 @@ const PriceForecastScreen = () => {
         districtWeather && districtWeather.avg_rainfall > 0
           ? districtWeather.avg_rainfall
           : seasonCode === "Maha"
-            ? 30  // realistic Maha fallback
+            ? 30 // realistic Maha fallback
             : 10;
 
       let temperatureValue =
         districtWeather && districtWeather.avg_temperature > 0
           ? districtWeather.avg_temperature
-          : seasonCode === "Maha" ? 26 : 28;
+          : seasonCode === "Maha"
+            ? 26
+            : 28;
 
       // Sri Lanka validity guard
       if (temperatureValue < 10 || temperatureValue > 45) {
@@ -763,7 +771,7 @@ const PriceForecastScreen = () => {
 
       console.log(
         `🌡️ Forecast inputs: temp=${temperatureValue}°C  ` +
-        `rain=${rainfallValue}mm  source=${districtWeather?.source ?? "fallback"}`,
+          `rain=${rainfallValue}mm  source=${districtWeather?.source ?? "fallback"}`,
       );
 
       const demandIndexValue = seasonCode === "Maha" ? 0.85 : 0.7;
@@ -914,7 +922,7 @@ const PriceForecastScreen = () => {
       hasRunForecastRef.current = true;
       generateForecast();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [districtWeather]);
 
   const calculateProfit = () => {
@@ -1696,12 +1704,24 @@ const PriceForecastScreen = () => {
                     {content[language].fuelEffect}
                   </Text>
                   <Text style={styles.factorValue}>
-                    {formData?.fuelPrice} - {content[language].high}
+                    {formData?.fuelPrice} -{" "}
+                    {Number(formData?.fuelPrice) > 0
+                      ? content[language].high
+                      : content[language].low}
                   </Text>
                 </View>
-                <View style={[styles.factorBadge, styles.factorBadgeNegative]}>
+                <View
+                  style={[
+                    styles.factorBadge,
+                    Number(formData?.fuelPrice) > 0
+                      ? styles.factorBadgeNegative
+                      : styles.factorBadgePositive,
+                  ]}
+                >
                   <Text style={styles.factorBadgeText}>
-                    {content[language].negative}
+                    {Number(formData?.fuelPrice) > 0
+                      ? content[language].negative
+                      : content[language].positive}
                   </Text>
                 </View>
               </View>

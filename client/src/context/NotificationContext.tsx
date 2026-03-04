@@ -1,5 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { API_BASE } from "../services/api";
 
 /* =======================
    TYPES
@@ -71,63 +74,108 @@ export const NotificationProvider = ({
 }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
   /* =======================
-     LOAD USER + INITIAL DATA
+     LISTEN FOR AUTH CHANGES & LOAD INITIAL DATA
   ======================= */
   useEffect(() => {
-    const init = async () => {
+    let mounted = true;
+
+    const initAuth = async () => {
+      // Get current user from Supabase
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user) return;
-
-      setUserId(user.id);
-
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("❌ Fetch notifications failed", error);
+      if (!user) {
+        // User is not logged in, clear everything
+        if (mounted) {
+          setUserId(null);
+          setToken(null);
+          setNotifications([]);
+        }
         return;
       }
 
-      if (data) setNotifications(data as AppNotification[]);
+      // Get the token for API requests
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        console.warn("⚠️ No access token available");
+        return;
+      }
+
+      if (mounted) {
+        setUserId(user.id);
+        setToken(session.access_token);
+      }
+
+      // Fetch notifications from authenticated server endpoint
+      await fetchNotificationsFromServer(session.access_token);
     };
 
-    init();
+    initAuth();
+
+    // 🔥 Listen for auth state changes (login/logout)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`🔐 Auth state changed: ${event}`);
+
+      if (event === "SIGNED_OUT" || !session) {
+        // User logged out - clear everything
+        if (mounted) {
+          setUserId(null);
+          setToken(null);
+          setNotifications([]);
+        }
+      } else if (event === "SIGNED_IN" && session?.user) {
+        // User signed in - load their notifications
+        if (mounted) {
+          setUserId(session.user.id);
+          setToken(session.access_token);
+        }
+        await fetchNotificationsFromServer(session.access_token);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   /* =======================
-     REFETCH WHEN USER CHANGES
+     FETCH FROM SERVER WITH AUTH
   ======================= */
-  useEffect(() => {
-    if (!userId) {
-      setNotifications([]);
-      return;
-    }
+  const fetchNotificationsFromServer = async (accessToken: string) => {
+    if (!accessToken) return;
 
-    const refetch = async () => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+    try {
+      const response = await axios.get(`${API_BASE}/api/notifications/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-      if (error) {
-        console.error("❌ Fetch notifications failed", error);
-        return;
+      if (response.data?.notifications) {
+        setNotifications(response.data.notifications as AppNotification[]);
       }
+    } catch (error: any) {
+      console.error(
+        "❌ Failed to fetch notifications from server:",
+        error.response?.data || error.message,
+      );
+      // Don't clear notifications on fetch error - keep stale data
+    }
+  };
 
-      if (data) setNotifications(data as AppNotification[]);
-    };
-
-    refetch();
-  }, [userId]);
+  /* =======================
+     REALTIME LISTENER
+  ======================= */
   useEffect(() => {
     if (!userId) return;
 
@@ -222,26 +270,24 @@ export const NotificationProvider = ({
      DELETE
   ======================= */
   const deleteNotification = async (id: string) => {
-    if (!userId) return;
+    if (!token) return;
 
     setNotifications((prev) => prev.filter((n) => n.id !== id));
 
-    const { error } = await supabase
-      .from("notifications")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
+    try {
+      await axios.delete(`${API_BASE}/api/notifications/delete`, {
+        data: { notification_id: id },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Delete failed:", error);
 
-    if (error) {
-      console.error("❌ Delete failed", error);
-
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (data) setNotifications(data as AppNotification[]);
+      // Reload notifications on error
+      if (token) {
+        await fetchNotificationsFromServer(token);
+      }
     }
   };
 
@@ -249,26 +295,45 @@ export const NotificationProvider = ({
      MARK READ
   ======================= */
   const markAsRead = async (id: string) => {
+    if (!token) return;
+
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
 
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("id", id)
-      .eq("user_id", userId);
+    try {
+      await axios.post(
+        `${API_BASE}/api/notifications/mark-as-read`,
+        { notification_id: id },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+    } catch (error) {
+      console.error("❌ Mark as read failed:", error);
+    }
   };
 
   const markAllAsRead = async () => {
-    if (!userId) return;
+    if (!token) return;
 
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("user_id", userId);
+    try {
+      await axios.post(
+        `${API_BASE}/api/notifications/mark-all-as-read`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+    } catch (error) {
+      console.error("❌ Mark all as read failed:", error);
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
