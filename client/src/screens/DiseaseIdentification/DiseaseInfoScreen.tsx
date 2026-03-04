@@ -450,6 +450,21 @@ export default function DiseaseInfoScreen({ route }: Props) {
 
   const severityUI = getSeverityUI(severity_label);
 
+  const uniquePredictions = React.useMemo(() => {
+    if (!predictions?.length) return [];
+
+    const byDisease = new Map<string, (typeof predictions)[number]>();
+    for (const prediction of predictions) {
+      const normalizedKey = prediction.class_name.toLowerCase().replace(/ /g, "_");
+      const existing = byDisease.get(normalizedKey);
+      if (!existing || prediction.confidence > existing.confidence) {
+        byDisease.set(normalizedKey, prediction);
+      }
+    }
+
+    return Array.from(byDisease.values());
+  }, [predictions]);
+
   // 🌐 UI TRANSLATIONS
   const content = {
     si: {
@@ -605,7 +620,7 @@ export default function DiseaseInfoScreen({ route }: Props) {
         {/* Chat Assistant Button */}
 
         {/* Disease Information */}
-        {predictions?.map((p, i) => {
+        {uniquePredictions.map((p, i) => {
           const key = p.class_name.toLowerCase().replace(/ /g, "_");
           const disease = DISEASE_INFO[key]?.[language];
 
