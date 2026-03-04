@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { useApp } from "../context/AppContext";
 import { getFarmerPredictionHistory } from "../services/yieldPredictionApi";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import {
   User,
   Calendar,
@@ -191,6 +191,8 @@ const ProfileScreen = () => {
       fast: "வேகமானது",
       offline: "ஆஃப்லைன்",
       highAccuracy: "அதிக துல்லியம்",
+      adminPestForum: "நிர்வாக பூச்சி மன்றம்",
+      adminPestForumDesc: "பூச்சி தரவு மற்றும் அறிக்கைகளை நிர்வகிக்கவும்",
 
       // Settings Section
       settings: "அமைப்புகள்",
@@ -359,21 +361,24 @@ Status: ${prediction.status || "Active"}`;
     });
   };
 
-  const handleLogout = () => {
-    Alert.alert(t.logout, t.logoutConfirm, [
-      { text: t.cancel, style: "cancel" },
-      {
-        text: t.logoutText,
-        style: "destructive",
-        onPress: async () => {
-          await signOut();
-          navigation.reset({
-            index: 0,
-            routes: [{ name: ROUTES.AUTH.LOGIN }],
-          });
-        },
-      },
-    ]);
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.warn("Logout failed, forcing navigation to login:", error);
+    } finally {
+      const rootNavigation =
+        navigation.getParent()?.getParent() ??
+        navigation.getParent() ??
+        navigation;
+
+      rootNavigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: ROUTES.AUTH.LOGIN }],
+        })
+      );
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -493,11 +498,14 @@ Status: ${prediction.status || "Active"}`;
 
               <TouchableOpacity
                 style={styles.heroLogoutButton}
-                onPress={handleLogout}
+                onPress={() => {
+                  void handleLogout();
+                }}
                 activeOpacity={0.7}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <LinearGradient
-                  colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.1)"]}
+                  colors={["#ef4444", "#dc2626"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.heroLogoutContent}
