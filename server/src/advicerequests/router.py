@@ -26,7 +26,9 @@ from .service import (
     update_advice_request,
     assign_officer_to_request,
     complete_advice_request,
-    delete_advice_request
+    delete_advice_request,
+    notify_officers_new_request,
+    notify_farmer_advice_completed,
 )
 
 # Create router
@@ -73,6 +75,13 @@ async def create_request(
         result = await create_advice_request(
             farmer_id=farmer_id,
             data=request.model_dump()
+        )
+        
+        # 🔔 Notify all officers about the new request
+        notify_officers_new_request(
+            request_id=result.get("id", ""),
+            request_type=result.get("request_type", "both"),
+            district=result.get("district")
         )
         
         return AdviceRequestResponse(**result)
@@ -312,6 +321,14 @@ async def update_request(
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update advice request"
+            )
+        
+        # 🔔 If completed, notify the farmer
+        if result.get("status") == "completed" and existing.get("farmer_id"):
+            notify_farmer_advice_completed(
+                farmer_id=existing["farmer_id"],
+                request_id=request_id,
+                request_type=existing.get("request_type", "both")
             )
         
         return AdviceRequestResponse(**result)

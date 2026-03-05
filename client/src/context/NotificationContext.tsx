@@ -19,6 +19,7 @@ export const NOTIFICATION_TYPE = {
   OFFER: "offer",
   MESSAGE: "message",
   MARKETPLACE: "marketplace",
+  ADVICE_REQUEST: "advice_request",
 } as const;
 
 /** Derives the union type from the object — no duplication. */
@@ -43,6 +44,7 @@ export type AppNotification = {
   created_at: string;
   read: boolean;
   user_id?: string;
+  metadata?: Record<string, any>;
 };
 
 type NotificationContextType = {
@@ -51,10 +53,18 @@ type NotificationContextType = {
   markAllAsRead: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
   unreadCount: number;
+  refetchNotifications: () => Promise<void>;
   sendNotification: (
     title: string,
     message: string,
     type: NotificationType,
+  ) => Promise<void>;
+  sendNotificationToUser: (
+    targetUserId: string,
+    title: string,
+    message: string,
+    type: NotificationType,
+    metadata?: Record<string, any>,
   ) => Promise<void>;
 };
 
@@ -103,6 +113,27 @@ export const NotificationProvider = ({
   }, []);
 
   /* =======================
+     REFETCH NOTIFICATIONS
+  ======================= */
+  const refetchNotifications = async () => {
+    const currentUserId = userId;
+    if (!currentUserId) return;
+
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", currentUserId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Refetch notifications failed", error);
+      return;
+    }
+
+    if (data) setNotifications(data as AppNotification[]);
+  };
+
+  /* =======================
      REFETCH WHEN USER CHANGES
   ======================= */
   useEffect(() => {
@@ -111,22 +142,7 @@ export const NotificationProvider = ({
       return;
     }
 
-    const refetch = async () => {
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("❌ Fetch notifications failed", error);
-        return;
-      }
-
-      if (data) setNotifications(data as AppNotification[]);
-    };
-
-    refetch();
+    refetchNotifications();
   }, [userId]);
   useEffect(() => {
     if (!userId) return;
@@ -185,7 +201,7 @@ export const NotificationProvider = ({
     if (!isNotificationType(type)) {
       console.error(
         `❌ sendNotification: invalid type "${type}". ` +
-          `Allowed: ${[...VALID_NOTIFICATION_TYPES].join(", ")}`,
+        `Allowed: ${[...VALID_NOTIFICATION_TYPES].join(", ")}`,
       );
       return;
     }
@@ -216,6 +232,49 @@ export const NotificationProvider = ({
     if (data) {
       setNotifications((prev) => [data as AppNotification, ...prev]);
     }
+  };
+
+  /* =======================
+     SEND NOTIFICATION TO SPECIFIC USER
+  ======================= */
+  const sendNotificationToUser = async (
+    targetUserId: string,
+    title: string,
+    message: string,
+    type: NotificationType,
+    metadata?: Record<string, any>,
+  ) => {
+    if (!isNotificationType(type)) {
+      console.error(
+        `❌ sendNotificationToUser: invalid type "${type}". ` +
+        `Allowed: ${[...VALID_NOTIFICATION_TYPES].join(", ")}`,
+      );
+      return;
+    }
+
+    const insertData: any = {
+      user_id: targetUserId,
+      title,
+      message,
+      type,
+      read: false,
+    };
+
+    // Only include metadata if provided (column may not exist yet)
+    if (metadata) {
+      insertData.metadata = metadata;
+    }
+
+    const { error } = await supabase
+      .from("notifications")
+      .insert(insertData);
+
+    if (error) {
+      console.error("❌ Send notification to user failed", error);
+      return;
+    }
+
+    console.log(`✅ Notification sent to user ${targetUserId}`);
   };
 
   /* =======================
@@ -281,7 +340,9 @@ export const NotificationProvider = ({
         markAllAsRead,
         deleteNotification,
         unreadCount,
+        refetchNotifications,
         sendNotification,
+        sendNotificationToUser,
       }}
     >
       {children}
