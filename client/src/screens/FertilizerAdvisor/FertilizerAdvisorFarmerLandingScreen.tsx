@@ -13,7 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
     si: {
@@ -36,22 +36,32 @@ const content = {
         knowledgeBank: "Read Fertilizer Guidelines",
         knowledgeBankDescription: "Get important nutrient information for cultivation",
     },
+    ta: {
+        title: "உர ஆலோசனை",
+        subtitle: "உங்கள் சேவைகள்",
+        nlpAdvisory: "உங்கள் உர ஆலோசனை உதவியாளர்",
+        nlpDescription: "கண்ணுக்குத் தெரியும் அறிகுறிகளின் அடிப்படையில் உர ஆலோசனை பெறுங்கள்",
+        farmerChat: "விவசாய அதிகாரியுடன் பேசுங்கள்",
+        farmerChatDescription: "நிபுணர் ஆலோசனைக்கான நேரடி அரட்டை",
+        knowledgeBank: "உர வழிகாட்டுதல்களைப் படியுங்கள்",
+        knowledgeBankDescription: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்களைப் பெறுங்கள்",
+    },
 };
 
 export default function FertilizerAdvisorLandingScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     // Check if user is a farmer
     useEffect(() => {
         if (!user || user.role !== "farmer") {
             Alert.alert(
-                language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
-                language === "si" 
+                language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied",
+                language === "si"
                     ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි."
-                    : "This feature is only available for farmers.",
+                    : language === "ta" ? "இந்த அம்சம் விவசாயிகளுக்கு மட்டுமே." : "This feature is only available for farmers.",
                 [{
                     text: "OK",
                     onPress: () => navigation.goBack()
@@ -81,7 +91,7 @@ export default function FertilizerAdvisorLandingScreen() {
                         </TouchableOpacity>
                         <View style={styles.headerCenter}>
                             <Text style={styles.headerTitle}>
-                                {language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied"}
+                                {language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied"}
                             </Text>
                         </View>
                     </View>
@@ -89,19 +99,20 @@ export default function FertilizerAdvisorLandingScreen() {
                 <View style={styles.accessDeniedContainer}>
                     <AlertCircle color="#ef4444" size={64} />
                     <Text style={styles.accessDeniedTitle}>
-                        {language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied"}
+                        {language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied"}
                     </Text>
                     <Text style={styles.accessDeniedText}>
-                        {language === "si" 
+                        {language === "si"
                             ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි. කරුණාකර ගොවි ගිණුමකින් පුරනය වන්න."
-                            : "This feature is only available for farmers. Please log in with a farmer account."}
+                            : language === "ta" ? "இந்த அம்சம் விவசாயிகளுக்கு மட்டுமே. விவசாயி கணக்கில் உள்நுழையவும்."
+                                : "This feature is only available for farmers. Please log in with a farmer account."}
                     </Text>
                     <TouchableOpacity
                         style={styles.backButtonLarge}
                         onPress={() => navigation.goBack()}
                     >
                         <Text style={styles.backButtonText}>
-                            {language === "si" ? "ආපසු යන්න" : "Go Back"}
+                            {language === "si" ? "ආපසු යන්න" : language === "ta" ? "திரும்பிச் செல்" : "Go Back"}
                         </Text>
                     </TouchableOpacity>
                 </View>

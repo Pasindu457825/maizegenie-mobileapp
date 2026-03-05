@@ -13,7 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
     si: {
@@ -40,22 +40,34 @@ const content = {
         recommendations: "Recommendation History",
         recommendationsDescription: "View and manage past recommendations",
     },
+    ta: {
+        title: "உர பரிந்துரை",
+        subtitle: "அதிகாரி சேவைகள்",
+        ruleBasedAdvisory: "விதிமுறை அடிப்படையிலான ஆலோசனை",
+        ruleBasedDescription: "கட்டமைக்கப்பட்ட தரவுகளைப் பயன்படுத்தி விரிவான உர பகுப்பாய்வு",
+        farmerRequests: "விவசாயிகளின் கோரிக்கைகள்",
+        farmerRequestsDescription: "விவசாயிகளின் உர ஆலோசனை கோரிக்கைகளைப் பார்க்கவும்",
+        chatWithFarmers: "விவசாயிகளுடன் பேசுங்கள்",
+        chatWithFarmersDescription: "விவசாயிகளுக்கு நேரடி ஆலோசனை வழங்குங்கள்",
+        recommendations: "பரிந்துரை வரலாறு",
+        recommendationsDescription: "முந்தைய பரிந்துரைகளைப் பார்க்கவும் நிர்வகிக்கவும்",
+    },
 };
 
 export default function FertilizerAdvisorOfficerLandingScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     // Check if user is an officer
     useEffect(() => {
         if (!user || user.role !== "officer") {
             Alert.alert(
-                language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
-                language === "si" 
+                language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied",
+                language === "si"
                     ? "මෙම විශේෂාංගය නිලධාරීන් සඳහා පමණි."
-                    : "This feature is only available for officers.",
+                    : language === "ta" ? "இந்த அம்சம் அதிகாரிகளுக்கு மட்டுமே." : "This feature is only available for officers.",
                 [{
                     text: "OK",
                     onPress: () => navigation.goBack()
@@ -85,7 +97,7 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                         </TouchableOpacity>
                         <View style={styles.headerCenter}>
                             <Text style={styles.headerTitle}>
-                                {language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied"}
+                                {language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied"}
                             </Text>
                         </View>
                     </View>
@@ -93,19 +105,20 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                 <View style={styles.accessDeniedContainer}>
                     <AlertCircle color="#ef4444" size={64} />
                     <Text style={styles.accessDeniedTitle}>
-                        {language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied"}
+                        {language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied"}
                     </Text>
                     <Text style={styles.accessDeniedText}>
-                        {language === "si" 
+                        {language === "si"
                             ? "මෙම විශේෂාංගය නිලධාරීන් සඳහා පමණි. කරුණාකර නිලධාරී ගිණුමකින් පුරනය වන්න."
-                            : "This feature is only available for officers. Please log in with an officer account."}
+                            : language === "ta" ? "இந்த அம்சம் அதிகாரிகளுக்கு மட்டுமே. அதிகாரி கணக்கில் உள்நுழையவும்."
+                                : "This feature is only available for officers. Please log in with an officer account."}
                     </Text>
                     <TouchableOpacity
                         style={styles.backButtonLarge}
                         onPress={() => navigation.goBack()}
                     >
                         <Text style={styles.backButtonText}>
-                            {language === "si" ? "ආපසු යන්න" : "Go Back"}
+                            {language === "si" ? "ආපසු යන්න" : language === "ta" ? "திரும்பிச் செல்" : "Go Back"}
                         </Text>
                     </TouchableOpacity>
                 </View>
@@ -115,10 +128,10 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
 
     const handleComingSoon = (feature: string) => {
         Alert.alert(
-            language === "si" ? "ඉදිරි දිනවල" : "Coming Soon",
+            language === "si" ? "ඉදිරි දිනවල" : language === "ta" ? "விரைவில் வருகிறது" : "Coming Soon",
             language === "si"
                 ? `${feature} ඉක්මනින් ලබා දෙනු ඇත.`
-                : `${feature} will be available soon.`
+                : language === "ta" ? `${feature} விரைவில் கிடைக்கும்.` : `${feature} will be available soon.`
         );
     };
 
@@ -152,12 +165,13 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                 {/* Welcome Card */}
                 <View style={styles.welcomeCard}>
                     <Text style={styles.welcomeTitle}>
-                        {language === "si" ? "සාදරයෙන් පිළිගනිමු, නිලධාරී" : "Welcome, Officer"}
+                        {language === "si" ? "සාදරයෙන් පිළිගනිමු, නිලධාරී" : language === "ta" ? "வரவேற்கிறோம், அதிகாரி" : "Welcome, Officer"}
                     </Text>
                     <Text style={styles.welcomeText}>
-                        {language === "si" 
+                        {language === "si"
                             ? "ගොවීන්ට පොහොර උපදේශ සහ නිර්දේශ සපයන්න"
-                            : "Provide fertilizer advice and recommendations to farmers"}
+                            : language === "ta" ? "விவசாயிகளுக்கு உர ஆலோசனை மற்றும் பரிந்துரைகளை வழங்குங்கள்"
+                                : "Provide fertilizer advice and recommendations to farmers"}
                     </Text>
                 </View>
 
