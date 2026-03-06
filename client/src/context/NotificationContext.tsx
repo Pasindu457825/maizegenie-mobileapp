@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import { supabase } from "../lib/supabase";
 
 /* =======================
@@ -81,6 +82,38 @@ export const NotificationProvider = ({
 }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+
+  // 🔥 Dynamic API URL
+  const API_URL = Platform.OS === "android"
+    ? process.env.EXPO_PUBLIC_API_BASE || "http://10.0.2.2:8000"
+    : "http://localhost:8000";
+
+  /* =======================
+     HELPER: fetch with auth
+  ======================= */
+  const apiFetch = async (path: string, options: RequestInit = {}) => {
+    const session = (await supabase.auth.getSession()).data.session;
+    const token = session?.access_token;
+    if (!token) {
+      console.error("❌ No auth token for API call");
+      return null;
+    }
+    try {
+      const resp = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          ...(options.headers || {}),
+        },
+      });
+      return resp;
+    } catch (e) {
+      console.error(`❌ API fetch failed: ${path}`, e);
+      return null;
+    }
+  };
 
   /* =======================
      LOAD USER + INITIAL DATA
@@ -95,18 +128,14 @@ export const NotificationProvider = ({
 
       setUserId(user.id);
 
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("❌ Fetch notifications failed", error);
-        return;
+      // Fetch via server API (bypasses RLS)
+      const resp = await apiFetch("/api/v1/notifications/my");
+      if (resp && resp.ok) {
+        const data = await resp.json();
+        setNotifications(data as AppNotification[]);
+      } else {
+        console.error("❌ Fetch notifications failed", resp?.status);
       }
-
-      if (data) setNotifications(data as AppNotification[]);
     };
 
     init();
@@ -116,21 +145,15 @@ export const NotificationProvider = ({
      REFETCH NOTIFICATIONS
   ======================= */
   const refetchNotifications = async () => {
-    const currentUserId = userId;
-    if (!currentUserId) return;
+    if (!userId) return;
 
-    const { data, error } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("user_id", currentUserId)
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("❌ Refetch notifications failed", error);
-      return;
+    const resp = await apiFetch("/api/v1/notifications/my");
+    if (resp && resp.ok) {
+      const data = await resp.json();
+      setNotifications(data as AppNotification[]);
+    } else {
+      console.error("❌ Refetch notifications failed", resp?.status);
     }
-
-    if (data) setNotifications(data as AppNotification[]);
   };
 
   /* =======================
@@ -285,22 +308,12 @@ export const NotificationProvider = ({
 
     setNotifications((prev) => prev.filter((n) => n.id !== id));
 
-    const { error } = await supabase
-      .from("notifications")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
+    const resp = await apiFetch(`/api/v1/notifications/${id}`, { method: "DELETE" });
 
-    if (error) {
-      console.error("❌ Delete failed", error);
-
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (data) setNotifications(data as AppNotification[]);
+    if (!resp || !resp.ok) {
+      console.error("❌ Delete failed", resp?.status);
+      // Refetch to restore correct state
+      refetchNotifications();
     }
   };
 
@@ -312,11 +325,7 @@ export const NotificationProvider = ({
       prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
 
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("id", id)
-      .eq("user_id", userId);
+    await apiFetch(`/api/v1/notifications/${id}/read`, { method: "PATCH" });
   };
 
   const markAllAsRead = async () => {
@@ -324,10 +333,7 @@ export const NotificationProvider = ({
 
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("user_id", userId);
+    await apiFetch("/api/v1/notifications/read-all", { method: "PATCH" });
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;

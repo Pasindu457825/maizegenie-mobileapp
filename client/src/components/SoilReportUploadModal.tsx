@@ -18,7 +18,7 @@ interface SoilReportUploadModalProps {
     onClose: () => void;
     onPickDocument: () => void;
     onPickImage: () => void;
-    language: "si" | "en";
+    language: "si" | "en" | "ta";
 }
 
 const SoilReportUploadModal: React.FC<SoilReportUploadModalProps> = ({
@@ -50,9 +50,18 @@ const SoilReportUploadModal: React.FC<SoilReportUploadModalProps> = ({
             photoDescription: "Take a photo of your soil test report",
             cancel: "Cancel",
         },
+        ta: {
+            title: "மண் அறிக்கையை பதிவேற்றவும்",
+            subtitle: "மண் பரிசோதனை அறிக்கையை எவ்வாறு பதிவேற்ற விரும்புகிறீர்கள் என்பதை தேர்ந்தெடுக்கவும்",
+            pdfTitle: "PDF ஆவணம்",
+            pdfDescription: "உங்கள் சாதனத்திலிருந்து சேமிக்கப்பட்ட மண் பரிசோதனை அறிக்கை PDF ஐ தேர்ந்தெடுக்கவும்",
+            photoTitle: "புகைப்படம் எடுக்கவும்",
+            photoDescription: "உங்கள் மண் பரிசோதனை அறிக்கையின் புகைப்படம் எடுக்கவும்",
+            cancel: "ரத்து செய்",
+        },
     };
 
-    const text = content[language];
+    const text = content[language] ?? content["en"];
 
     const handlePickDocument = () => {
         onClose();
