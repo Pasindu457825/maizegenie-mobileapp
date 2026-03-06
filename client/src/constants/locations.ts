@@ -32,8 +32,6 @@ export const DISTRICTS = [
   "Ampara",
   "Anuradhapura",
   "Badulla",
-  "Colombo",
-  "Kalutara",
   "Matale",
   "Monaragala"
 ];
@@ -43,8 +41,6 @@ export const DISTRICTS_SINHALA: Record<string, string> = {
   "Ampara": "අම්පාර",
   "Anuradhapura": "අනුරාධපුරය",
   "Badulla": "බදුල්ල",
-  "Colombo": "කොළඹ",
-  "Kalutara": "කළුතර",
   "Matale": "මාතලේ",
   "Monaragala": "මොණරාගල"
 };
@@ -66,14 +62,6 @@ export const LOCATIONS_SINHALA: Record<string, Record<string, string>> = {
   "Badulla": {
     "Mahiyanganaya": "මහියංගනය",
     "Rideemaliyadda": "රිදීමලියද්ද"
-  },
-  "Colombo": {
-    "Kaduwela": "කඩුවෙල",
-    "Malabe": "මාලබේ",
-    "Pittugala": "පිට්ටුගල"
-  },
-  "Kalutara": {
-    "Panadura": "පානදුර"
   },
   "Matale": {
     "Dambulla": "දඹුල්ල",
@@ -103,14 +91,6 @@ export const LOCATIONS_BY_DISTRICT: Record<string, string[]> = {
   "Badulla": [
     "Mahiyanganaya",
     "Rideemaliyadda"
-  ],
-  "Colombo": [
-    "Kaduwela",
-    "Malabe",
-    "Pittugala"
-  ],
-  "Kalutara": [
-    "Panadura"
   ],
   "Matale": [
     "Dambulla",
@@ -183,30 +163,6 @@ export const LOCATION_COORDINATES: Record<string, Record<string, LocationData>> 
       latitude: 7.2000,
       longitude: 81.1500,
       soilTypes: ["Red-Yellow Podzolic", "Reddish Brown Earth"]
-    }
-  },
-  "Colombo": {
-    "Kaduwela": {
-      latitude: 6.9333,
-      longitude: 79.9833,
-      soilTypes: ["Red-Yellow Podzolic", "Alluvial Soil"]
-    },
-    "Malabe": {
-      latitude: 6.9167,
-      longitude: 79.9667,
-      soilTypes: ["Red-Yellow Podzolic", "Lateritic Soil"]
-    },
-    "Pittugala": {
-      latitude: 6.9000,
-      longitude: 79.9500,
-      soilTypes: ["Red-Yellow Podzolic", "Alluvial Soil"]
-    }
-  },
-  "Kalutara": {
-    "Panadura": {
-      latitude: 6.7133,
-      longitude: 79.9025,
-      soilTypes: ["Red-Yellow Podzolic", "Lateritic Soil"]
     }
   },
   "Matale": {
