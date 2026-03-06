@@ -51,7 +51,15 @@ const { width } = Dimensions.get("window");
 const PEST_OFFICER_EMAIL = "pestofficer@gmail.com";
 
 const ProfileScreen = () => {
-  const { user, signOut, diseaseModel, setDiseaseModel, refreshProfile } =
+  const {
+    user,
+    signOut,
+    diseaseModel,
+    setDiseaseModel,
+    pestModel,
+    setPestModel,
+    refreshProfile,
+  } =
     useApp();
   const { language, setLanguage } = useLanguage();
   const navigation = useNavigation<any>();
@@ -79,11 +87,15 @@ const ProfileScreen = () => {
       location: "ස්ථානය",
       scans: "ස්කෑන්",
       diseaseDetection: "රෝග හඳුනාගැනීම",
+      pestDetection: "කෘමි හඳුනාගැනීම",
       chooseAIModel: "AI ආකෘතිය තෝරන්න",
+      choosePestModel: "කෘමි AI ආකෘතිය තෝරන්න",
       standard: "ප්‍රමිතිය",
       standardDesc: "වේගවත් උපාංග-පාදක හඳුනාගැනීම",
       advanced: "උසස්",
       advancedDesc: "මෙව්ව-පාදක උසස් නිරවද්‍යතාව",
+      premium: "ප්‍රිමියම්",
+      premiumDesc: "ගෙවීම් සාමාජිකයින්ට වැඩි කෘමි හඳුනාගැනීම",
       selected: "තෝරාගත්",
       available: "ලබාගත හැකි",
       fast: "වේගවත්",
@@ -143,11 +155,15 @@ const ProfileScreen = () => {
       location: "Location",
       scans: "Scans",
       diseaseDetection: "Disease Detection",
+      pestDetection: "Pest Detection",
       chooseAIModel: "Choose your AI model",
+      choosePestModel: "Choose your pest model",
       standard: "Standard",
       standardDesc: "Fast on-device detection",
       advanced: "Advanced",
       advancedDesc: "Cloud-based high accuracy",
+      premium: "Premium",
+      premiumDesc: "Detect more pests for paid members",
       selected: "Selected",
       available: "Available",
       fast: "Fast",
@@ -212,11 +228,15 @@ const ProfileScreen = () => {
 
       // Disease Detection Section
       diseaseDetection: "நோய் கண்டறிதல்",
+      pestDetection: "பூச்சி கண்டறிதல்",
       chooseAIModel: "AI மாதிரியை தேர்வு செய்க",
+      choosePestModel: "பூச்சி AI மாதிரியை தேர்வு செய்க",
       standard: "தரநிலை",
       standardDesc: "வேகமான சாதன கண்டறிதல்",
       advanced: "மேம்பட்டது",
       advancedDesc: "கிளவுட் அதிக துல்லியம்",
+      premium: "பிரீமியம்",
+      premiumDesc: "கட்டண உறுப்பினர்களுக்கு அதிக பூச்சி கண்டறிதல்",
       selected: "தேர்ந்தெடுக்கப்பட்டது",
       available: "கிடைக்கிறது",
       fast: "வேகமானது",
@@ -732,6 +752,124 @@ Status: ${prediction.status || "Active"}`;
                   </View>
                   <Text style={styles.modelName}>{t.advanced}</Text>
                   <Text style={styles.modelDescription}>{t.advancedDesc}</Text>
+                  <View style={styles.modelFeatures}>
+                    <Text style={styles.modelFeature}>🎯 {t.highAccuracy}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Pest Model Selection */}
+          {user?.role === "farmer" && (
+            <View style={styles.modelSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Bug size={20} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.sectionTitle}>{t.pestDetection}</Text>
+                  <Text style={styles.sectionSubtitle}>{t.choosePestModel}</Text>
+                </View>
+              </View>
+
+              <View style={styles.modelSelection}>
+                <TouchableOpacity
+                  style={[
+                    styles.modelCard,
+                    pestModel === "local" && styles.modelCardActive,
+                  ]}
+                  onPress={() => {
+                    void setPestModel("local");
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modelCardHeader}>
+                    <View
+                      style={[
+                        styles.modelIconContainer,
+                        {
+                          backgroundColor:
+                            pestModel === "local" ? "#10b98120" : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <Smartphone
+                        size={24}
+                        color={pestModel === "local" ? "#10b981" : "#64748b"}
+                      />
+                    </View>
+                    <View style={styles.modelStatus}>
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          pestModel === "local"
+                            ? styles.statusActive
+                            : styles.statusInactive,
+                        ]}
+                      />
+                      <Text style={styles.statusText}>
+                        {pestModel === "local" ? t.selected : t.available}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modelName}>{t.standard}</Text>
+                  <Text style={styles.modelDescription}>{t.standardDesc}</Text>
+                  <View style={styles.modelFeatures}>
+                    <Text style={styles.modelFeature}>⚡ {t.fast}</Text>
+                    <Text style={styles.modelFeature}>📱 {t.offline}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modelCard,
+                    pestModel === "premium" && styles.modelCardActive,
+                  ]}
+                  onPress={() => {
+                    if (hasActiveSubscription) {
+                      void setPestModel("premium");
+                      return;
+                    }
+                    navigation.navigate("SubscriptionPlans");
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modelCardHeader}>
+                    <View
+                      style={[
+                        styles.modelIconContainer,
+                        {
+                          backgroundColor:
+                            pestModel === "premium" ? "#f59e0b20" : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <Crown
+                        size={24}
+                        color={pestModel === "premium" ? "#f59e0b" : "#64748b"}
+                      />
+                    </View>
+                    <View style={styles.modelStatus}>
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          pestModel === "premium"
+                            ? styles.statusActive
+                            : styles.statusInactive,
+                        ]}
+                      />
+                      <Text style={styles.statusText}>
+                        {pestModel === "premium"
+                          ? t.selected
+                          : hasActiveSubscription
+                            ? t.available
+                            : t.locked}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modelName}>{t.premium}</Text>
+                  <Text style={styles.modelDescription}>{t.premiumDesc}</Text>
                   <View style={styles.modelFeatures}>
                     <Text style={styles.modelFeature}>🎯 {t.highAccuracy}</Text>
                   </View>

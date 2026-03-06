@@ -1,15 +1,46 @@
+from datetime import datetime, timezone
+from typing import Literal
+
 from fastapi import APIRouter, UploadFile, File, HTTPException, Query, Depends
 from fastapi.responses import JSONResponse
 from core.auth_dependencies import get_current_user
+from core.supabase_client import supabase
 from .service import predict_pest
+from .premium_service import predict_pest_premium
 from .frequency_service import log_pest_detection, get_pest_frequency_stats
 
 router = APIRouter(prefix="/api/pest", tags=["Pest Detection"])
+
+
+def _has_active_subscription(user_id: str) -> bool:
+    profile = (
+        supabase.table("profiles")
+        .select("is_paid_user, subscription_end_date")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    data = profile.data or {}
+    if not data.get("is_paid_user"):
+        return False
+
+    end_raw = data.get("subscription_end_date")
+    if not end_raw:
+        return False
+
+    try:
+        end_date = datetime.fromisoformat(str(end_raw).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+
+    return end_date > datetime.now(timezone.utc)
+
 
 @router.post("/identify")
 async def identify_pest(
     file: UploadFile = File(...),
     conf: float = Query(0.4, ge=0.0, le=1.0),
+    model: Literal["local", "premium"] = Query("local"),
     return_image: bool = Query(False, description="Return annotated image as base64"),
     current_user: dict = Depends(get_current_user),
 ):
@@ -22,8 +53,21 @@ async def identify_pest(
         if not content:
             raise HTTPException(status_code=400, detail="Empty upload")
 
-        # Call the pest prediction service
-        result = predict_pest(content, conf=conf, return_image=return_image)
+        if model == "premium":
+            user_id = current_user.get("id")
+            if not user_id:
+                raise HTTPException(status_code=401, detail="Authentication required")
+            if not _has_active_subscription(user_id):
+                raise HTTPException(
+                    status_code=403,
+                    detail="Premium pest model requires an active subscription",
+                )
+
+        # Run selected pest model.
+        if model == "premium":
+            result = predict_pest_premium(content, conf=conf, return_image=return_image)
+        else:
+            result = predict_pest(content, conf=conf, return_image=return_image, model_name="local")
 
         # Log detection for frequency analytics (best-effort, non-blocking)
         try:
@@ -39,6 +83,10 @@ async def identify_pest(
         # Return JSON response
         return JSONResponse(content={"success": True, **result})
 
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
