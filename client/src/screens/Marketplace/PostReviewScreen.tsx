@@ -19,7 +19,6 @@ import {
   Package,
   DollarSign,
   MapPin,
-  AlertTriangle,
   Calendar,
   CheckCircle,
 } from "lucide-react-native";
@@ -68,8 +67,6 @@ const PostReviewScreen = () => {
       price: "කිලෝවකට මිල",
       totalValue: "මුළු අගය",
       district: "දිස්ත්‍රික්කය",
-      warningTitle: "අවවාදයයි",
-      warningText: "මෙය ප්‍රකාශනය කිරීමෙන් පසු පහසුවෙන් සංස්කරණය කළ නොහැක.",
       publishNow: "දැන් ප්‍රකාශනය කරන්න",
       schedule: "පසුවට සකසන්න",
       pickDate: "දිනය තෝරන්න",
@@ -88,8 +85,6 @@ const PostReviewScreen = () => {
       price: "Price per kg",
       totalValue: "Total value",
       district: "District",
-      warningTitle: "Important",
-      warningText: "Once published, this post cannot be easily edited.",
       publishNow: "Publish now",
       schedule: "Schedule later",
       pickDate: "Pick publish date",
@@ -108,9 +103,6 @@ const PostReviewScreen = () => {
       price: "ஒரு கிலோவிட்டு விலை",
       totalValue: "மொத்த மதிப்யீடு",
       district: "மாவட்டம்",
-      warningTitle: "முக்கியம்",
-      warningText:
-        "பிரசுரித்ததற்கு பிறகு, இந்த பதிவை எளிதில் திருத்த முடியாது.",
       publishNow: "இப்போது பிரசுரிக்கவும்",
       schedule: "பின்னர் திட்டமிடுக",
       pickDate: "பிரசுரிப்பு தேதி தேர்ந்தெடுக",
@@ -270,14 +262,6 @@ const PostReviewScreen = () => {
               required
             />
           )}
-
-          {/* Warning */}
-          <View style={styles.warningBox}>
-            <AlertTriangle size={20} color="#F59E0B" />
-            <Text style={styles.warningText}>
-              {content[language].warningText}
-            </Text>
-          </View>
         </View>
       </ScrollView>
 
@@ -425,14 +409,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   scheduleText: { color: "#047857", fontWeight: "600" },
-  warningBox: {
-    flexDirection: "row",
-    gap: 10,
-    backgroundColor: "#FFFBEB",
-    padding: 14,
-    borderRadius: 10,
-  },
-  warningText: { fontSize: 12, color: "#92400E", flex: 1 },
   footer: {
     flexDirection: "row",
     gap: 12,
