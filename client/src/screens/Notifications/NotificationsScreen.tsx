@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
   View,
   Text,
@@ -10,10 +10,11 @@ import {
   Animated,
 } from "react-native";
 import { ArrowLeft, Bell, Trash2, CheckCheck } from "lucide-react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, CommonActions, useFocusEffect } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useApp } from "../../context/AppContext";
 import type { RootStackParamList } from "../../navigation";
 
 
@@ -45,7 +46,66 @@ export default function NotificationsScreen() {
     markAsRead,
     markAllAsRead,
     deleteNotification,
+    refetchNotifications,
   } = useNotifications();
+  const { user } = useApp();
+
+  // 🔄 Refetch notifications every time screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      refetchNotifications();
+    }, [refetchNotifications])
+  );
+
+  /* =======================
+     HANDLE NOTIFICATION PRESS
+  ======================= */
+  const handleNotificationPress = async (item: any) => {
+    // Mark as read first
+    if (!item.read) {
+      await markAsRead(item.id);
+    }
+
+    // Navigate for advice_request notifications (stored as type 'message' with notification_category in metadata)
+    const isAdviceRequest = item.metadata?.notification_category === "advice_request" || item.type === "advice_request";
+    if (isAdviceRequest && item.metadata?.request_id) {
+      const requestId = item.metadata.request_id;
+      const isOfficer = user?.role?.toLowerCase() === "officer";
+
+      // Build a proper navigation stack so the back button works:
+      // Officer: Landing → FarmerAdviceRequestsScreen → ViewAdviceRequestDetailsScreen
+      // Farmer: Landing → MyAdviceRequestsScreen → ViewAdviceRequestDetailsScreen
+      const listScreen = isOfficer ? "FarmerAdviceRequestsScreen" : "MyAdviceRequestsScreen";
+
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [
+            {
+              name: "Main",
+              state: {
+                routes: [
+                  {
+                    name: "PredictYield",
+                    state: {
+                      routes: [
+                        { name: "YieldPredictionLoadingScreen" },
+                        { name: listScreen },
+                        { name: "ViewAdviceRequestDetailsScreen", params: { requestId } },
+                      ],
+                      index: 2,
+                    },
+                  },
+                ],
+                index: 0,
+              },
+            },
+          ],
+        })
+      );
+      return;
+    }
+  };
 
   /* =======================
      CONFIRM DELETE (WEB + MOBILE)
@@ -89,12 +149,12 @@ export default function NotificationsScreen() {
     >
       {/* Unread indicator dot */}
       {!item.read && <View style={styles.unreadDot} />}
-      
+
       <View style={styles.row}>
         {/* READ AREA */}
         <Pressable
           style={{ flex: 1 }}
-          onPress={() => !item.read && markAsRead(item.id)}
+          onPress={() => handleNotificationPress(item)}
         >
           <View style={styles.titleRow}>
             <Text style={styles.title}>{item.title}</Text>
@@ -144,7 +204,7 @@ export default function NotificationsScreen() {
       {/* HEADER with gradient effect */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
@@ -163,7 +223,7 @@ export default function NotificationsScreen() {
           </View>
 
           {notifications.some((n) => !n.read) ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={markAllAsRead}
               style={styles.markAllButton}
             >
@@ -211,9 +271,9 @@ export default function NotificationsScreen() {
 ======================= */
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#F0FDF4" 
+  container: {
+    flex: 1,
+    backgroundColor: "#F0FDF4"
   },
 
   header: {
