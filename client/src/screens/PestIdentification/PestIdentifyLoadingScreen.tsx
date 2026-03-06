@@ -33,6 +33,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { PestIdentifyStackParamList } from "src/navigation/PestIdentifyStack";
 import { useLanguage } from "../../context/LanguageContext";
+import { useApp } from "../../context/AppContext";
 
 const { width } = Dimensions.get("window");
 
@@ -73,6 +74,13 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
+const normalizePestName = (name: string) =>
+  (name || "")
+    .toLowerCase()
+    .replace(/[-_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -89,6 +97,7 @@ const PestIdentificationScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const { language: appLang } = useLanguage();
+  const { pestModel } = useApp();
   const language: Language =
     appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
@@ -292,7 +301,7 @@ const PestIdentificationScreen = () => {
       }
 
       const res = await axios.post(
-        `${API_URL}/api/pest/identify?conf=0.4&return_image=false`,
+        `${API_URL}/api/pest/identify?conf=0.4&return_image=false&model=${pestModel}`,
         formData,
         {
           headers: {
@@ -340,7 +349,15 @@ const PestIdentificationScreen = () => {
             ? "சர்வருடன் இணைக்க முடியவில்லை!"
             : "Failed to connect to server!";
 
-      if (err.response?.data) {
+      if (err.response?.status === 403) {
+        errorMsg =
+          language === "si"
+            ? "Premium කෘමි ආකෘතිය භාවිතා කිරීමට සක්‍රීය දායකත්වයක් අවශ්‍යයි."
+            : language === "ta"
+              ? "Premium பூச்சி மாதிரியை பயன்படுத்த செயலில் உள்ள சந்தா அவசியம்."
+              : "Active subscription is required for premium pest model.";
+        (navigation as any).navigate("SubscriptionPlans");
+      } else if (err.response?.data) {
         if (typeof err.response.data === "string") {
           errorMsg = err.response.data;
         } else if (err.response.data.detail) {
@@ -360,7 +377,16 @@ const PestIdentificationScreen = () => {
   const isFallArmywormDetected = () => {
     if (!result || result.length === 0) return false;
     return result.some(
-      (p) => p.class_id >= 0 && p.class_name.toLowerCase().includes("armyworm")
+      (p) => {
+        if (p.class_id < 0) return false;
+        const normalized = normalizePestName(p.class_name);
+        return (
+          normalized.includes("armyworm") ||
+          normalized.includes("army worm") ||
+          normalized.includes("fall armyworm") ||
+          normalized.includes("fall army worm")
+        );
+      }
     );
   };
 
@@ -375,7 +401,15 @@ const PestIdentificationScreen = () => {
     if (!result?.length) return false;
 
     return result.some(
-      (p) => p.class_id >= 0 && p.class_name.toLowerCase() === "asian-corn-borer"
+      (p) => {
+        if (p.class_id < 0) return false;
+        const normalized = normalizePestName(p.class_name);
+        return (
+          normalized === "asian corn borer" ||
+          normalized === "corn borer" ||
+          normalized === "corn borers"
+        );
+      }
     );
   };
 
