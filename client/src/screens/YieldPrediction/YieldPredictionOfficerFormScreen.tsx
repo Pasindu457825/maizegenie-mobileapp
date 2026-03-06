@@ -29,7 +29,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Archive } from "lucide-react-native";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type NavProp = StackNavigationProp<
     YieldPredictionStackParamList,
     "YieldPredictionOfficerFormScreen"
@@ -70,27 +70,27 @@ const SOIL_TYPES = [
 ];
 
 const getSoilConditions = (language: Language) => [
-    { label: language === "si" ? "හොඳ" : "Good", value: "Good" },
-    { label: language === "si" ? "මධ්‍යම" : "Medium", value: "Medium" },
-    { label: language === "si" ? "දුර්වල" : "Poor", value: "Poor" },
+    { label: language === "si" ? "හොඳ" : language === "ta" ? "நல்லது" : "Good", value: "Good" },
+    { label: language === "si" ? "මධ්‍යම" : language === "ta" ? "நடுத்தரம்" : "Medium", value: "Medium" },
+    { label: language === "si" ? "දුර්වල" : language === "ta" ? "மோசமானது" : "Poor", value: "Poor" },
 ];
 
 const getNPKStatus = (language: Language) => [
-    { label: language === "si" ? "ඉහළ" : "High", value: "High" },
-    { label: language === "si" ? "මධ්‍යම" : "Medium", value: "Medium" },
-    { label: language === "si" ? "අඩු" : "Low", value: "Low" },
+    { label: language === "si" ? "ඉහළ" : language === "ta" ? "உயர்ந்தது" : "High", value: "High" },
+    { label: language === "si" ? "මධ්‍යම" : language === "ta" ? "நடுத்தரம்" : "Medium", value: "Medium" },
+    { label: language === "si" ? "අඩු" : language === "ta" ? "குறைவு" : "Low", value: "Low" },
 ];
 
 const getIrrigationTypes = (language: Language) => [
-    { label: language === "si" ? "වාරිමාර්ග" : "Irrigated", value: "Irrigated" },
-    { label: language === "si" ? "මිශ්‍ර" : "Mixed", value: "Mixed" },
-    { label: language === "si" ? "වැසි මත යැපෙන" : "Rainfed", value: "Rainfed" },
+    { label: language === "si" ? "වාරිමාර්ග" : language === "ta" ? "நீர்பாசனம்" : "Irrigated", value: "Irrigated" },
+    { label: language === "si" ? "මිශ්‍ර" : language === "ta" ? "கலப்பு" : "Mixed", value: "Mixed" },
+    { label: language === "si" ? "වැසි මත යැපෙන" : language === "ta" ? "மழைநீர் அடிப்படை" : "Rainfed", value: "Rainfed" },
 ];
 
 const getRainfallConditions = (language: Language) => [
-    { label: language === "si" ? "ඉහළ" : "High", value: "High" },
-    { label: language === "si" ? "සාමාන්‍ය" : "Normal", value: "Normal" },
-    { label: language === "si" ? "අඩු" : "Low", value: "Low" },
+    { label: language === "si" ? "ඉහළ" : language === "ta" ? "உயர்ந்தது" : "High", value: "High" },
+    { label: language === "si" ? "සාමාන්‍ය" : language === "ta" ? "சாதாரணம்" : "Normal", value: "Normal" },
+    { label: language === "si" ? "අඩු" : language === "ta" ? "குறைவு" : "Low", value: "Low" },
 ];
 
 const getSeedVarieties = (language: Language) => [
@@ -99,12 +99,12 @@ const getSeedVarieties = (language: Language) => [
     { label: "GT 709", value: "GT 709" },
     { label: "GT200", value: "GT200" },
     { label: "Commando", value: "Commando" },
-    { label: language === "si" ? "දේශීය ප්‍රභේදය" : "Local Variety", value: "Local Variety" },
+    { label: language === "si" ? "දේශීය ප්‍රභේදය" : language === "ta" ? "உள்ளூர் வகை" : "Local Variety", value: "Local Variety" },
 ];
 
 const getSeasons = (language: Language) => [
-    { label: language === "si" ? "මහ" : "Maha", value: "Maha" },
-    { label: language === "si" ? "යල" : "Yala", value: "Yala" },
+    { label: language === "si" ? "මහ" : language === "ta" ? "மகா" : "Maha", value: "Maha" },
+    { label: language === "si" ? "යල" : language === "ta" ? "யாலா" : "Yala", value: "Yala" },
 ];
 
 const YieldPredictionOfficerFormScreenNew = () => {
@@ -113,7 +113,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
     const { role } = route.params as { role: "farmer" | "officer" };
 
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     // Step management
     const [currentStep, setCurrentStep] = useState(1);
@@ -388,6 +388,48 @@ const YieldPredictionOfficerFormScreenNew = () => {
             required: "Required",
             optional: "Optional",
         },
+        ta: {
+            title: "விளைச்சல் கணிப்பு",
+            subtitle: "தொழில்முனை/மேம்பட்ட பகுப்பாய்வு - விவசாய அதிகாரி",
+            step: "படி",
+            of: "இல்",
+            next: "அடுத்தது",
+            previous: "முந்தையது",
+            submit: "சமர்ப்பிக்கவும்",
+            locationSoil: "இடம் மற்றும் மண் விவரங்கள்",
+            district: "மாவட்டம்",
+            location: "இடம்",
+            soilType: "மண் வகை",
+            soilCondition: "மண் நிலை",
+            soilPh: "மண் pH",
+            soilNitrogen: "மண் நைட்ரஜன் (N)",
+            soilPhosphorus: "மண் பாஸ்பரஸ் (P)",
+            soilPotassium: "மண் பொட்டாசியம் (K)",
+            fertilityIndex: "மண் வளமை குறியீடு",
+            nStatus: "N நிலை",
+            pStatus: "P நிலை",
+            kStatus: "K நிலை",
+            climateData: "காலநிலை தரவுகள்",
+            irrigation: "நீர்பாசன வகை",
+            rainfallCondition: "மழையளவு நிலை",
+            rainfall30d: "30 நாள் மழையளவு (mm)",
+            seasonalRainfall: "பருவகால மழையளவு (mm)",
+            avgTemp: "சராசரி வெப்பநிலை (°C)",
+            maxTemp: "அதிகபட்ச வெப்பநிலை (°C)",
+            humidity: "சராசரி ஈரப்பதன்மை (%)",
+            sunshine: "சூரிய ஒளி மணி நேரங்கள்",
+            cultivationInfo: "பயிர் தகவல்கள்",
+            variety: "விதை வகை",
+            plantingDate: "நடுகை திகதி",
+            season: "பருவகாலம்",
+            fieldSize: "நில அளவு",
+            fieldSizeUnit: "அலகு",
+            firstFert: "முதல் உர திகதி",
+            secondFert: "இரண்டாவது உர திகதி",
+            select: "தேர்வுசெய்க",
+            required: "தேவை",
+            optional: "விருப்பமானது",
+        },
     };
 
     const validateStep1 = () => {
@@ -448,7 +490,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             );
             return false;
         }
-        
+
         // Validate field size is greater than 0
         const fieldSize = parseFloat(fieldSizeHa);
         if (isNaN(fieldSize) || fieldSize <= 0) {
@@ -460,7 +502,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             );
             return false;
         }
-        
+
         return true;
     };
 
@@ -531,8 +573,8 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     planting_date: plantingDate,
                     planting_month: plantingMonth,
                     season,
-                    field_size_ha: fieldSizeUnit === "Acres" 
-                        ? parseFloat(fieldSizeHa) * 0.404686 
+                    field_size_ha: fieldSizeUnit === "Acres"
+                        ? parseFloat(fieldSizeHa) * 0.404686
                         : parseFloat(fieldSizeHa),
                 },
                 fertilizer_dates: {
@@ -554,7 +596,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             if (response.ok) {
                 navigation.navigate("YieldPredictionOfficerResultsScreen", {
                     data: result,
-                    language,
+                    language: language === "ta" ? "en" : language,
                     requestData: payload, // Pass original request for report generation
                 });
             } else {
@@ -563,7 +605,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
                 if (result.detail) {
                     if (Array.isArray(result.detail)) {
                         // FastAPI validation errors are arrays
-                        errorMessage = result.detail.map((err: any) => 
+                        errorMessage = result.detail.map((err: any) =>
                             err.msg || err.message || JSON.stringify(err)
                         ).join(", ");
                     } else if (typeof result.detail === "string") {
@@ -572,7 +614,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
                         errorMessage = JSON.stringify(result.detail);
                     }
                 }
-                
+
                 Alert.alert(
                     language === "si" ? "දෝෂයකි" : "Error",
                     errorMessage

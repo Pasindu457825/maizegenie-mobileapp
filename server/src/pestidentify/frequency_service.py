@@ -25,6 +25,25 @@ def _safe_float(value: Any) -> float:
         return 0.0
 
 
+def _canonical_pest_name(name: str) -> str:
+    cleaned = " ".join((name or "").strip().lower().replace("-", " ").split())
+    if not cleaned:
+        return ""
+
+    alias_map = {
+        "army worm": "Armyworm",
+        "armyworm": "Armyworm",
+        "fall armyworm": "Armyworm",
+        "boll worm": "Bollworm",
+        "bollworm": "Bollworm",
+        "corn borer": "Asian-Corn-Borer",
+        "corn borers": "Asian-Corn-Borer",
+        "asian corn borer": "Asian-Corn-Borer",
+        "asian-corn-borer": "Asian-Corn-Borer",
+    }
+    return alias_map.get(cleaned, cleaned.title())
+
+
 def _is_supabase_enabled() -> bool:
     return os.getenv("PEST_FREQUENCY_SUPABASE", "true").lower() in {"1", "true", "yes"}
 
@@ -42,7 +61,7 @@ def _extract_detected_pests(predictions: List[Dict[str, Any]]) -> List[Dict[str,
     detected: List[Dict[str, Any]] = []
     for p in predictions or []:
         class_id = p.get("class_id", -1)
-        class_name = (p.get("class_name") or "").strip()
+        class_name = _canonical_pest_name((p.get("class_name") or "").strip())
         if class_id is None or int(class_id) < 0:
             continue
         if not class_name or class_name.lower() == "no pest detected":
@@ -177,7 +196,7 @@ def get_pest_frequency_stats(days: int = 30, top_n: int = 5, user_id: str | None
             continue
 
         for pest in pests:
-            name = (pest.get("class_name") or "").strip()
+            name = _canonical_pest_name((pest.get("class_name") or "").strip())
             if not name:
                 continue
             pest_counts[name] += 1

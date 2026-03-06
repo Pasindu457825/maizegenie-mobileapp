@@ -167,7 +167,7 @@ const ProvideAdviceScreen = () => {
       setSubmitting(true);
 
       // Prepare cultivation advice text
-      const cultivationText = customAdvice.trim() || 
+      const cultivationText = customAdvice.trim() ||
         (cultivationAdvice ? [
           ...cultivationAdvice.variety_specific,
           ...cultivationAdvice.general_tips,
@@ -321,8 +321,8 @@ const ProvideAdviceScreen = () => {
             <View style={styles.nutrientSummary}>
               <Text style={styles.nutrientTitle}>{t.totalNutrients}:</Text>
               <Text style={styles.nutrientText}>
-                N: {fertilizerPlan.total_nutrients.nitrogen_kg} kg | 
-                P: {fertilizerPlan.total_nutrients.phosphorus_kg} kg | 
+                N: {fertilizerPlan.total_nutrients.nitrogen_kg} kg |
+                P: {fertilizerPlan.total_nutrients.phosphorus_kg} kg |
                 K: {fertilizerPlan.total_nutrients.potassium_kg} kg
               </Text>
             </View>
