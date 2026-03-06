@@ -19,36 +19,104 @@ if platform.system() == "Windows":
 router = APIRouter(prefix="/api/v1/soil-data", tags=["Soil Data Extraction"])
 
 
+# =============================================================================
+# SOIL REPORT HEURISTIC VALIDATOR
+# =============================================================================
+
+# Keywords that are strong indicators of a soil testing report
+_SOIL_KEYWORDS = [
+    'ph', 'soil', 'nitrogen', 'phosphorus', 'potassium', 'fertility',
+    'organic carbon', 'organic', 'n (', '(n)', 'p (', '(p)', 'k (', '(k)',
+    'available n', 'available p', 'available k',
+    'npk', 'micro nutrient', 'micronutrient', 'macro nutrient',
+    'soil test', 'soil analysis', 'soil report', 'soil quality',
+    'ppm', 'mg/kg', 'meq', 'ec ', 'electrical conductivity',
+    'low', 'medium', 'high', 'deficient', 'sufficient', 'adequate',
+    'slightly acidic', 'neutral', 'alkaline', 'acidic',
+]
+
+def _is_soil_report_text(text: str) -> bool:
+    """
+    Heuristic check: does the extracted text look like a soil testing report?
+    Returns True if soil-related keywords are found, False otherwise.
+    Requires at least 2 distinct keyword matches to avoid false positives.
+    """
+    if not text or len(text.strip()) < 20:
+        return False
+    text_lower = text.lower()
+    matched = sum(1 for kw in _SOIL_KEYWORDS if kw in text_lower)
+    return matched >= 2
+
+
 @router.post("/extract")
 async def extract_soil_data(file: UploadFile = File(...)):
     """
     Extract soil test data from PDF or image (in-memory processing).
     File is NOT saved - processed in RAM only.
-    
+
     Returns:
         dict: Extracted soil parameters including values and status classifications
+
+    Error codes returned in detail.code:
+        - NOT_SOIL_REPORT: The uploaded file does not appear to be a soil test report.
+        - NO_DATA_EXTRACTED: Looks like a soil report but values could not be parsed.
     """
     try:
         content = await file.read()
-        
+
         if file.content_type == "application/pdf":
+            # --- Quick pre-check: is this a soil report? ---
+            quick_text = _quick_extract_pdf_text(content)
+            if quick_text and not _is_soil_report_text(quick_text):
+                print(f"⚠️  PDF keyword check failed — not a soil report. Text preview: {quick_text[:300]}")
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "NOT_SOIL_REPORT",
+                        "message": "The uploaded PDF does not appear to be a soil test report."
+                    }
+                )
+
             extracted_data = extract_from_pdf(content)
+
         elif file.content_type and file.content_type.startswith("image/"):
             text = extract_text_from_image(content)
             print(f"📝 OCR text ({len(text)} chars):\n{text[:800]}")
+
+            # --- Quick pre-check: is this a soil report? ---
+            if text and not _is_soil_report_text(text):
+                print(f"⚠️  Image keyword check failed — not a soil report. Text preview: {text[:300]}")
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "NOT_SOIL_REPORT",
+                        "message": "The uploaded image does not appear to be a soil test report."
+                    }
+                )
+
             extracted_data = extract_soil_values(text)
+
         else:
-            raise HTTPException(status_code=400, detail="Unsupported file type. Please upload PDF or image.")
-        
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "UNSUPPORTED_FILE_TYPE",
+                    "message": "Unsupported file type. Please upload a PDF or image."
+                }
+            )
+
         if not extracted_data:
             raise HTTPException(
-                status_code=422, 
-                detail="Could not extract soil data. Please ensure the document contains a soil test report table with values for pH, Nitrogen, Phosphorus, Potassium."
+                status_code=422,
+                detail={
+                    "code": "NO_DATA_EXTRACTED",
+                    "message": "Could not extract soil data. Please ensure the document contains a soil test report table with values for pH, Nitrogen, Phosphorus, Potassium."
+                }
             )
-        
+
         print(f"✅ Final result: {extracted_data}")
         return extracted_data
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -59,6 +127,26 @@ async def extract_soil_data(file: UploadFile = File(...)):
 # =============================================================================
 # PDF EXTRACTION (3-strategy approach)
 # =============================================================================
+
+def _quick_extract_pdf_text(content: bytes) -> str:
+    """
+    Quickly extract a preview of text from a PDF using pdfplumber (text layer only, no OCR).
+    Used for the soil-report heuristic check before running full extraction.
+    Returns up to 2000 chars from page 1, or empty string if pdfplumber is unavailable.
+    """
+    try:
+        import pdfplumber
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            for page in pdf.pages:
+                text = page.extract_text()
+                if text and text.strip():
+                    return text[:2000]
+        return ""
+    except Exception:
+        # If anything goes wrong (corrupt PDF, pdfplumber missing, etc.),
+        # return empty string so the heuristic check is skipped gracefully.
+        return ""
+
 
 def extract_from_pdf(content: bytes) -> dict:
     """
