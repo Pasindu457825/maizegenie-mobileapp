@@ -39,7 +39,7 @@ type AgricultureDepartment = {
 
 type LanguageType = "si" | "en" | "ta";
 
-// ✨ Translations
+// Translations
 const translations: Record<
   LanguageType,
   {
@@ -226,12 +226,12 @@ const AgricultureDepartmentScreen = () => {
   const navigation = useNavigation();
   const { language: lang } = useLanguage();
 
-  // ✅ Ensure language is properly tracked
+  //  Ensure language is properly tracked
   const language: LanguageType = useMemo(() => {
     return lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
   }, [lang]);
 
-  // ✅ Get translations based on language
+  //  Get translations based on language
   const t = useMemo(() => translations[language], [language]);
 
   const {
@@ -315,7 +315,7 @@ out center tags;
       const tags = el.tags || {};
       const name = (tags.name || "").toLowerCase();
 
-      // ❌ Global blacklist — always skip regardless of any other matching
+      //  Global blacklist — always skip regardless of any other matching
       const GLOBAL_BLACKLIST = [
         "bank",
         "finance",
@@ -338,7 +338,7 @@ out center tags;
       ];
       if (GLOBAL_BLACKLIST.some((w) => name.includes(w))) continue;
 
-      // ✅ Tag-based gate — must have at least one recognised official tag
+      //  Tag-based gate — must have at least one recognised official tag
       const isTaggedOfficial =
         tags.office === "government" ||
         tags.office === "agriculture" ||
@@ -348,7 +348,7 @@ out center tags;
 
       let officeType: string | null = null;
 
-      // ✅ CIC Office — word-boundary "cic" + whitelist to exclude CICRA and similar
+      //  CIC Office — word-boundary "cic" + whitelist to exclude CICRA and similar
       const CIC_WHITELIST = [
         "cic agri",
         "cic seeds",
@@ -361,7 +361,7 @@ out center tags;
         officeType = "CIC Office";
       }
 
-      // ✅ Research Institute
+      //  Research Institute
       if (
         !officeType &&
         (name.includes("research") || name.includes("පර්යේෂණ"))
@@ -369,12 +369,12 @@ out center tags;
         officeType = "Research Institute";
       }
 
-      // ✅ Extension Center
+      //  Extension Center
       if (!officeType && (name.includes("extension") || name.includes("සහය"))) {
         officeType = "Extension Center";
       }
 
-      // ✅ Head Office
+      //  Head Office
       if (
         !officeType &&
         (name.includes("head office") || name.includes("headquarters"))
@@ -382,7 +382,7 @@ out center tags;
         officeType = "Head Office";
       }
 
-      // ✅ District Office — requires BOTH a matching keyword AND a recognised OSM tag
+      //  District Office — requires BOTH a matching keyword AND a recognised OSM tag
       if (!officeType) {
         const AGRI_KEYWORDS = [
           "agriculture",
@@ -828,12 +828,6 @@ out center tags;
               </View>
             </View>
           )}
-          ListFooterComponent={
-            <View style={styles.footer}>
-              <Text style={styles.footerNote}>* {t.source}</Text>
-              <Text style={styles.footerTip}>{t.tip}</Text>
-            </View>
-          }
         />
       )}
     </View>
@@ -1131,28 +1125,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontWeight: "600",
-  },
-  footer: {
-    padding: 20,
-    paddingTop: 30,
-    alignItems: "center",
-  },
-  footerNote: {
-    fontSize: 12,
-    color: "#9ca3af",
-    textAlign: "center",
-    marginBottom: 12,
-  },
-  footerTip: {
-    fontSize: 13,
-    color: "#4b5563",
-    textAlign: "center",
-    lineHeight: 18,
-    backgroundColor: "#fef3c7",
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#fde68a",
   },
 });
 
