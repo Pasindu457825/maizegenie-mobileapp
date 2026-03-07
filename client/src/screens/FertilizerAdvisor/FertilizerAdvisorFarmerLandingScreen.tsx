@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -8,10 +8,11 @@ import {
     Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, Sparkles, MessageCircle, AlertCircle, BookOpen } from "lucide-react-native";
+import { ArrowLeft, Sparkles, MessageCircle, AlertCircle, BookOpen, TestTube, Lock, Users } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import ProUpgradePopup from "../../components/ProUpgradePopup";
 
 type Language = "si" | "en" | "ta";
 
@@ -25,6 +26,12 @@ const content = {
         farmerChatDescription: "විශේෂඥ උපදේශ සඳහා සජීවී චැට්",
         knowledgeBank: "පෝෂක මාර්ගෝපදේශ කියවන්න",
         knowledgeBankDescription: "වගාව සඳහා වැදගත් වන පෝෂක තොරතුරු ලබාගන්න",
+        myAdviceRequests: "මාගේ උපදේශ ඉල්ලීම්",
+        myAdviceRequestsDescription: "නිලධාරීන්ගෙන් ලැබුණ උපදෙස් බලන්න",
+        soilTestRequest: "පස් පරීක්ෂණ ඉල්ලීම",
+        soilTestDescription: "ඔබේ ඉඩමේ පස් පරීක්ෂා කිරීමට ඉල්ලීමක් කරන්න",
+        soilTestLocked: "Pro විශේෂාංගය",
+        proTag: "Pro",
     },
     en: {
         title: "Fertilizer Advisory",
@@ -35,6 +42,12 @@ const content = {
         farmerChatDescription: "Live chat for expert advice",
         knowledgeBank: "Read Fertilizer Guidelines",
         knowledgeBankDescription: "Get important nutrient information for cultivation",
+        myAdviceRequests: "My Advice Requests",
+        myAdviceRequestsDescription: "View advice received from officers",
+        soilTestRequest: "Request Soil Testing",
+        soilTestDescription: "Request a soil test for your land - Contact nearest agri officer",
+        soilTestLocked: "Pro Feature",
+        proTag: "Pro",
     },
     ta: {
         title: "உர ஆலோசனை",
@@ -45,6 +58,12 @@ const content = {
         farmerChatDescription: "நிபுணர் ஆலோசனைக்கான நேரடி அரட்டை",
         knowledgeBank: "உர வழிகாட்டுதல்களைப் படியுங்கள்",
         knowledgeBankDescription: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்களைப் பெறுங்கள்",
+        myAdviceRequests: "என் ஆலோசனை கோரிக்கைகள்",
+        myAdviceRequestsDescription: "அதிகாரிகளிடமிருந்து பெற்ற ஆலோசனைகளைப் பார்க்கவும்",
+        soilTestRequest: "மண் பரிசோதனை கோரிக்கை",
+        soilTestDescription: "உங்கள் நிலத்திற்கு மண் பரிசோதனை கோருங்கள்",
+        soilTestLocked: "Pro அம்சம்",
+        proTag: "Pro",
     },
 };
 
@@ -53,6 +72,20 @@ export default function FertilizerAdvisorLandingScreen() {
     const { user } = useApp();
     const { language: lang } = useLanguage();
     const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
+    const [showProPopup, setShowProPopup] = useState(false);
+
+    // Compute active subscription status from user profile
+    const hasActiveSubscription = (() => {
+        if (!user?.is_paid_user) return false;
+        const endRaw = user?.subscription_end_date;
+        if (!endRaw) return false;
+        try {
+            const endDate = new Date(String(endRaw).replace("Z", "+00:00"));
+            return endDate > new Date();
+        } catch {
+            return false;
+        }
+    })();
 
     // Check if user is a farmer
     useEffect(() => {
@@ -203,10 +236,10 @@ export default function FertilizerAdvisorLandingScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Knowledge Bank Card */}
+                    {/* My Advice Requests Card */}
                     <TouchableOpacity
                         style={styles.serviceCard}
-                        onPress={() => navigation.navigate("KnowledgeBankMain")}
+                        onPress={() => navigation.navigate("MyAdviceRequests")}
                         activeOpacity={0.7}
                     >
                         <LinearGradient
@@ -216,15 +249,57 @@ export default function FertilizerAdvisorLandingScreen() {
                             style={styles.serviceCardGradient}
                         >
                             <View style={[styles.serviceIconContainer, { backgroundColor: "#FDE68A" }]}>
-                                <BookOpen color="#F59E0B" size={28} />
+                                <Users color="#F59E0B" size={28} />
                             </View>
                             <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.knowledgeBank}</Text>
+                                <Text style={styles.serviceTitle}>{t.myAdviceRequests}</Text>
                                 <Text style={styles.serviceDescription}>
-                                    {t.knowledgeBankDescription}
+                                    {t.myAdviceRequestsDescription}
                                 </Text>
                             </View>
                             <View style={styles.serviceArrow}>
+                                <Text style={styles.serviceArrowText}>→</Text>
+                            </View>
+                        </LinearGradient>
+                    </TouchableOpacity>
+
+                    {/* Request Soil Testing Card (Pro) */}
+                    <TouchableOpacity
+                        style={styles.serviceCard}
+                        onPress={() => {
+                            if (hasActiveSubscription) {
+                                navigation.navigate("SoilTestRequest");
+                            } else {
+                                setShowProPopup(true);
+                            }
+                        }}
+                        activeOpacity={0.75}
+                    >
+                        <LinearGradient
+                            colors={["#EDE9FE", "#DDD6FE"]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.serviceCardGradient}
+                        >
+                            {/* Pro badge */}
+                            <View style={styles.soilProBadge}>
+                                <Text style={styles.soilProBadgeText}>✦ {t.proTag}</Text>
+                            </View>
+
+                            <View style={[styles.serviceIconContainer, { backgroundColor: "#DDD6FE" }]}>
+                                {hasActiveSubscription
+                                    ? <TestTube color="#7c3aed" size={28} />
+                                    : <Lock color="#7c3aed" size={24} />}
+                            </View>
+                            <View style={styles.serviceContent}>
+                                <Text style={[styles.serviceTitle, { color: "#4c1d95" }]}>
+                                    {t.soilTestRequest}
+                                </Text>
+                                <Text style={styles.serviceDescription}>
+                                    {t.soilTestDescription}
+                                </Text>
+                            </View>
+                            <View style={[styles.serviceArrow, { backgroundColor: "rgba(124,58,237,0.15)" }]}>
                                 <Text style={styles.serviceArrowText}>→</Text>
                             </View>
                         </LinearGradient>
@@ -233,6 +308,16 @@ export default function FertilizerAdvisorLandingScreen() {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Pro Upgrade Popup */}
+            <ProUpgradePopup
+                visible={showProPopup}
+                onClose={() => setShowProPopup(false)}
+                onUpgrade={() => {
+                    setShowProPopup(false);
+                    navigation.navigate("SubscriptionPlans");
+                }}
+            />
         </View>
     );
 }
@@ -373,5 +458,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "700",
         color: "#ffffff",
+    },
+    soilProBadge: {
+        position: "absolute",
+        top: 8,
+        left: 12,
+        backgroundColor: "#7c3aed",
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: 8,
+    },
+    soilProBadgeText: {
+        fontSize: 10,
+        fontWeight: "800",
+        color: "#ffffff",
+        letterSpacing: 0.5,
     },
 });
