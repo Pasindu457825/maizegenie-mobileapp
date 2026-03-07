@@ -326,7 +326,7 @@ export default function ProAdvisorListScreen() {
             <View style={{ width: 42 }} />
           )}
 
-          {/* ✅ Notification Button */}
+          {/* Notification Button */}
           <TouchableOpacity
             onPress={() => navigation.navigate("Notifications")}
             style={styles.notifBtn}
@@ -716,7 +716,7 @@ const styles = StyleSheet.create({
     borderColor: "#047857",
   },
 
-  // ✅ NEW — Notification Button
+  // Notification Button
   notifBtn: {
     width: 42,
     height: 42,
@@ -734,7 +734,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // ✅ NEW — Notification Badge
+  // Notification Badge
   notifBadge: {
     position: "absolute",
     top: -4,
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
 
   cardLeftAccent: {
     width: 10,
-    alignSelf: "stretch", // ✅ replaces height:"100%" which breaks on Android
+    alignSelf: "stretch", 
     borderRadius: 10,
     backgroundColor: "#10B981",
   },

@@ -2,7 +2,7 @@ from .model import PriceWindowModel
 from datetime import datetime
 
 # ==================================================
-# 🌍 LANGUAGE SUPPORT — SINGLE SOURCE OF TRUTH
+# LANGUAGE SUPPORT — SINGLE SOURCE OF TRUTH
 # ==================================================
 
 LANGUAGE_MESSAGES = {
@@ -77,7 +77,7 @@ LANGUAGE_MESSAGES = {
 }
 
 # --------------------------------------------------
-# ✅ Seed maturity (weeks) — SINGLE SOURCE OF TRUTH
+# Seed maturity (weeks) — SINGLE SOURCE OF TRUTH
 # --------------------------------------------------
 SEED_MATURITY_WEEKS = {
     "GT 709": 16,
@@ -121,7 +121,7 @@ def resolve_duration_weeks(seed_variety: str | None) -> int:
 
 
 # ==================================================
-# 🌍 HELPER: Get localized message
+# HELPER: Get localized message
 # ==================================================
 
 def get_message(lang: str, key: str, **kwargs) -> str:
@@ -173,7 +173,7 @@ def build_recommendation(
     label = row["Label"]
     confidence = row["Confidence"]
 
-    # ✅ Get localized message
+    # Get localized message
     msg = get_message(language, label)
 
     return {
@@ -234,7 +234,7 @@ def best_planting_window(
     options.sort(key=lambda x: x["high_price_score"], reverse=True)
     
     best = options[0]
-    # ✅ Add localized message to best option
+    # Add localized message to best option
     best["message"] = get_message(language, best["label"])
     best["message_si"] = get_message("si", best["label"])
     
@@ -283,7 +283,7 @@ def harvest_time_advisory(
 
     best = max(options, key=lambda x: x["score"])
 
-    # ✅ Decision logic with language support
+    # Decision logic with language support
     if best["delay_weeks"] == 0 and best["label"] == "STRONG":
         action_key = "HARVEST_NOW"
     elif best["delay_weeks"] > 0:

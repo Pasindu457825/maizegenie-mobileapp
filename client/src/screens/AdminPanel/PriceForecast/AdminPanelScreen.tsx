@@ -53,7 +53,7 @@ const AdminPanelScreen = () => {
 
   const [saving, setSaving] = useState(false);
 
-  // 🔄 Auto-calculate current and previous week
+  // Auto-calculate current and previous week
   const [currentYear, setCurrentYear] = useState("");
   const [currentWeek, setCurrentWeek] = useState("");
   const [previousYear, setPreviousYear] = useState("");
@@ -69,7 +69,7 @@ const AdminPanelScreen = () => {
   const [histSaving, setHistSaving] = useState(false);
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
 
-  // 📋 Price History & Edit Feature
+  // Price History & Edit Feature
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -83,7 +83,7 @@ const AdminPanelScreen = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // 📅 Calculate ISO week number
+  // Calculate ISO week number
   const getISOWeek = (date: Date): number => {
     const target = new Date(date.valueOf());
     const dayNr = (date.getDay() + 6) % 7;
@@ -93,7 +93,7 @@ const AdminPanelScreen = () => {
     return 1 + Math.ceil(dayDiff / 7);
   };
 
-  // 🔄 Initialize current week and previous week on component mount
+  // Initialize current week and previous week on component mount
   useEffect(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -155,7 +155,7 @@ const AdminPanelScreen = () => {
 
     setHistSaving(true);
     try {
-      // 🔍 Check if record already exists
+      // Check if record already exists
       const { data: existingRecord, error: checkError } = await supabase
         .from("maize_prices")
         .select("id")
@@ -193,7 +193,7 @@ const AdminPanelScreen = () => {
         return;
       }
 
-      // 💾 Save the new record
+      // Save the new record
       const { error } = await supabase.from("maize_prices").insert({
         year: yearNum,
         week: weekNum,
@@ -253,7 +253,7 @@ const AdminPanelScreen = () => {
     }
   };
 
-  // 📋 Fetch price history for display (latest 3 records per district)
+  // Fetch price history for display (latest 3 records per district)
   const fetchPriceHistory = async (district: string) => {
     if (!district) return;
     setLoadingHistory(true);
@@ -289,7 +289,7 @@ const AdminPanelScreen = () => {
     setShowEditModal(true);
   };
 
-  // 💾 Update existing price record
+  // Update existing price record
   const handleUpdatePrice = async () => {
     if (
       !editingRecord ||
@@ -358,7 +358,7 @@ const AdminPanelScreen = () => {
     }
   };
 
-  // 🗑️ Delete price record
+  // Delete price record
   const handleDeletePrice = (record: any) => {
     Alert.alert(
       language === "sinhala"
@@ -436,7 +436,7 @@ const AdminPanelScreen = () => {
 
   const API_URL = getApiUrl();
 
-  // ✨ FIXED: Changed language type keys from "si"/"en" to "sinhala"/"english"
+  // Changed language type keys from "si"/"en" to "sinhala"/"english"
   const content = {
     sinhala: {
       title: "මිල යාවත්කාලීන කිරීම",
@@ -704,7 +704,7 @@ const AdminPanelScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* 📋 Price History Section */}
+          {/* Price History Section */}
           <View style={[styles.inputCard, styles.historyCard]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardLabelRow}>
@@ -822,7 +822,7 @@ const AdminPanelScreen = () => {
             </TouchableOpacity>
           </Modal>
 
-          {/* ✏️ Edit Price Modal */}
+          {/* Edit Price Modal */}
           <Modal
             visible={showEditModal}
             transparent

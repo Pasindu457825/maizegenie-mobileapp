@@ -15,7 +15,7 @@ from src.priceforecast.district_weather_service import fetch_district_weekly_wea
 from src.priceforecast.model_metrics import get_confidence_with_metrics, metrics_calc
 
 # ===============================
-# 🔕 SUPPRESS SKLEARN WARNINGS
+# SUPPRESS SKLEARN WARNINGS
 # ===============================
 import warnings
 warnings.filterwarnings(

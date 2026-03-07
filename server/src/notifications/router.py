@@ -21,7 +21,7 @@ async def get_user_notifications(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    ✅ Get authenticated user's notifications
+    Get authenticated user's notifications
     
     Security:
     - Requires valid JWT token
@@ -37,7 +37,7 @@ async def get_user_notifications(
     user_id = current_user["id"]
     
     try:
-        # 🔐 Query notifications ONLY for this user
+        # Query notifications ONLY for this user
         response = (
             supabase
             .table("notifications")
@@ -69,7 +69,7 @@ async def mark_notification_as_read(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    ✅ Mark a notification as read
+    Mark a notification as read
     
     Security:
     - Verifies user owns the notification before updating
@@ -85,7 +85,7 @@ async def mark_notification_as_read(
     notification_id = request.notification_id
     
     try:
-        # 🔐 Verify this notification belongs to the current user
+        # Verify this notification belongs to the current user
         notification = (
             supabase
             .table("notifications")
@@ -121,7 +121,7 @@ async def mark_all_notifications_as_read(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    ✅ Mark all notifications as read for the user
+    Mark all notifications as read for the user
     
     Security:
     - Only marks user's own notifications
@@ -170,7 +170,7 @@ async def delete_notification(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    ✅ Delete a notification
+    Delete a notification
     
     Security:
     - Verifies user owns the notification before deleting
@@ -186,7 +186,7 @@ async def delete_notification(
     notification_id = request.notification_id
     
     try:
-        # 🔐 Verify this notification belongs to the current user
+        # Verify this notification belongs to the current user
         notification = (
             supabase
             .table("notifications")
@@ -222,7 +222,7 @@ async def get_unread_count(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    ✅ Get count of unread notifications for user
+    Get count of unread notifications for user
     
     Security:
     - Only counts user's own unread notifications

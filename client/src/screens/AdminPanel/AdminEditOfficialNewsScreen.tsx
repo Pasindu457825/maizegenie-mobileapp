@@ -46,7 +46,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   const uiLang: "si" | "en" | "ta" =
     language === "sinhala" ? "si" : language === "tamil" ? "ta" : "en";
 
-  // 🌐 Bilingual text
+  // Bilingual text
   const content = {
     si: {
       title: "නිල ප්‍රවෘත්ති සංස්කරණය",
@@ -162,7 +162,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
 
   const t = content[uiLang];
 
-  // 📝 Form state
+  // Form state
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState("");
@@ -285,7 +285,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   const updateNews = async () => {
     let hasError = false;
 
-    // 🔴 Title validation
+    // Title validation
     if (!title.trim()) {
       setTitleError(
         uiLang === "si"
@@ -302,7 +302,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       return;
     }
 
-    // 🔴 Category validation
+    // Category validation
     if (!category) {
       setCategoryError(
         uiLang === "si"
@@ -318,7 +318,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       return;
     }
 
-    // 🔴 Source validation
+    // Source validation
     if (!source.trim()) {
       setSourceError(
         uiLang === "si"

@@ -119,7 +119,7 @@ export const NotificationProvider = ({
 
     initAuth();
 
-    // 🔥 Listen for auth state changes (login/logout)
+    // Listen for auth state changes (login/logout)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
