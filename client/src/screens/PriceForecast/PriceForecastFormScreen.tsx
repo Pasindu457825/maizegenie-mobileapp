@@ -925,7 +925,7 @@ const PriceForecastFormScreen = () => {
       const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
       const productionCostPerKg = totalCost / totalYield;
 
-      // Save Form Data Locally 🔥
+      // Save Form Data Locally 
       await saveFormData({
         seedVariety,
         expectedYield,

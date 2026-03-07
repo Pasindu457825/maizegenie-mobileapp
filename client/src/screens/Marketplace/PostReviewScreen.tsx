@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -38,6 +39,22 @@ type NavProp = StackNavigationProp<
 interface RouteParams {
   postDraft: PostDraft;
 }
+
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
 
 const PostReviewScreen = () => {
   const navigation = useNavigation<NavProp>();

@@ -20,7 +20,7 @@ import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
 import { useNavigation } from "@react-navigation/native";
 
-// 🌐 Language
+// Language
 import { useLanguage } from "../../context/LanguageContext";
 
 // Icons
@@ -36,6 +36,22 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react-native";
+
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
 
 export default function AdminEditOfficialNewsScreen({ route }: any) {
   const { newsId } = route.params;

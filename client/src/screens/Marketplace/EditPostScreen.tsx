@@ -35,6 +35,22 @@ interface RouteParams {
   };
 }
 
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 const SEASONS = ["Maha", "Yala"] as const;
 
 const EditPostScreen = () => {

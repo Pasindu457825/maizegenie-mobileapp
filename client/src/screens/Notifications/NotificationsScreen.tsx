@@ -17,7 +17,7 @@ import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation";
 
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     return process.env.EXPO_PUBLIC_API_BASE;
