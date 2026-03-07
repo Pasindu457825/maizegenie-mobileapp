@@ -19,21 +19,22 @@ import {
 
 const translations = {
   sinhala: {
-    title: "Advanced Model Subscription",
-    subtitle: "උසස් AI මාදිලිය සඳහා සැලසුමක් තෝරන්න",
+    title: "MaizeGenie Pro Subscription",
+    subtitle: "Unlock premium tools for smarter maize farming",
     monthly: "මාසික",
     annual: "වාර්ෂික",
     save: "ඉතිරි කරන්න",
     continue: "ඉදිරියට",
-    loading: "සැලසුම් පූරණය වෙමින්...",  
+    loading: "සැලසුම් පූරණය වෙමින්...",
     error: "සැලසුම් ලබා ගැනීමට නොහැකි විය",
     feature1: "Advanced cloud model",
     feature2: "High accuracy disease detection",
     feature3: "Subscription auto unlock",
+    feature4: "Soil Testing Request",
   },
   english: {
-    title: "Advanced Model Subscription",
-    subtitle: "Choose a plan to unlock advanced AI model",
+    title: "MaizeGenie Pro Subscription",
+    subtitle: "Unlock premium tools for smarter maize farming",
     monthly: "Monthly",
     annual: "Annual",
     save: "Save",
@@ -43,10 +44,11 @@ const translations = {
     feature1: "Advanced cloud model",
     feature2: "High accuracy disease detection",
     feature3: "Subscription auto unlock",
+    feature4: "Soil Testing Request",
   },
   tamil: {
-    title: "Advanced Model Subscription",
-    subtitle: "மேம்பட்ட AI மாதிரியைத் திறக்க திட்டத்தைத் தேர்ந்தெடுக்கவும்",
+    title: "MaizeGenie Pro Subscription",
+    subtitle: "Unlock premium tools for smarter maize farming",
     monthly: "மாதாந்திர",
     annual: "வருடாந்திர",
     save: "சேமிக்கவும்",
@@ -56,6 +58,7 @@ const translations = {
     feature1: "Advanced cloud model",
     feature2: "High accuracy disease detection",
     feature3: "Subscription auto unlock",
+    feature4: "Soil Testing Request",
   },
 } as Record<string, any>;
 
@@ -142,6 +145,7 @@ export default function SubscriptionPlansScreen({ navigation }: any) {
             <Feature text={t.feature1} />
             <Feature text={t.feature2} />
             <Feature text={t.feature3} />
+            <Feature text={t.feature4} />
           </View>
 
           <PlanCard
@@ -155,7 +159,7 @@ export default function SubscriptionPlansScreen({ navigation }: any) {
             label={t.annual}
             amount={annual.amount_lkr}
             selected={selectedCycle === "annual"}
-            badge={`${t.save} 31%`}
+            badge={`${t.save} 50%`}
             onPress={() => setSelectedCycle("annual")}
           />
         </ScrollView>
@@ -297,3 +301,4 @@ const styles = StyleSheet.create({
   },
   ctaText: { color: "#fff", fontWeight: "800", fontSize: 15 },
 });
+

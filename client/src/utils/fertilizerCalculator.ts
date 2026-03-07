@@ -13,6 +13,8 @@ import {
   getOrganicRecommendation,
   formatDate
 } from '../constants/cornKnowledgeBase';
+import { getEffectivePlan } from '../services/fertilizerPlanService';
+import type { FertilizerPlanRecord } from '../services/fertilizerPlanService';
 
 // ============================================================
 // TYPES
@@ -64,6 +66,7 @@ export interface FarmerInputData {
   rainfall_condition?: string;
   predicted_yield_kg_ha?: number;
   include_organic?: boolean;
+  language?: 'si' | 'en';
 }
 
 // ============================================================
@@ -194,6 +197,41 @@ export function generateCultivationAdvice(input: FarmerInputData): {
 } {
   const varietyInfo = getVarietyRecommendation(input.variety);
   const isHybrid = varietyInfo?.type === 'hybrid';
+  const si = input.language === 'si';
+
+  if (si) {
+    const varietyType = isHybrid ? 'දෙමුහුන්' : varietyInfo?.type === 'open_pollinated' ? 'විවෘත පරාග' : 'දේශීය';
+    const characteristics = varietyInfo?.characteristics?.map(c => translateCharacteristic(c)) || [];
+
+    return {
+      variety_specific: [
+        `${input.variety} යනු ${varietyType} ප්‍රභේදයක් වන අතර අස්වැන්න විභවය ${varietyInfo?.yieldPotential.min}-${varietyInfo?.yieldPotential.max} ටොන්/හෙක්ටයාරයට වේ`,
+        ...characteristics
+      ],
+      general_tips: [
+        'පේළි අතර සෙන්ටිමීටර 75 ක් සහ පැළ අතර සෙන්ටිමීටර 25 ක් පරතරය පවත්වන්න',
+        'ජලය බැස යාම සහතික කර ජලය රැඳීම වළක්වන්න',
+        'බෝග වර්ධන කාලය තුළ 2-3 වතාවක් වල් පැලෑටි ඉවත් කරන්න (සෑම පොහොර යෙදීමකට පෙර)',
+        'සේනා පණුවා සහ කඳ විදින පණුවන් සඳහා නිරීක්ෂණය කරන්න',
+        'පොහොර යෙදීමෙන් දින 1-2 කට පසු ජලය සපයන්න',
+        'මුල් සති 6 තුළ කෙත වල් නැති ලෙස පවත්වන්න'
+      ],
+      yield_improvement: [
+        'නිර්දේශිත පොහොර කාලසටහන හරියටම අනුගමනය කරන්න',
+        'පසේ ප්‍රමාණවත් තෙතමනය ඇති විට පොහොර යොදන්න',
+        'දිගුකාලීන පස සෞඛ්‍යයට කාබනික පදාර්ථ එකතු කරන්න',
+        isHybrid ? 'දෙමුහුන් ප්‍රභේද සඳහා උපරිම අස්වැන්නට සම්පූර්ණ පොහොර මාත්‍රාව අවශ්‍යයි' : 'විවෘත පරාග ප්‍රභේද සඳහා දෙමුහුන් පොහොර අනුපාතයෙන් 75% ක් ප්‍රමාණවත්ය',
+        'මල් පිපීමේ අවධියේ කාලෝචිත පොහොර යෙදීම ධාන්‍ය පිරවීම සඳහා ඉතා වැදගත්ය'
+      ],
+      warnings: [
+        'වියළි පසට පොහොර නොයොදන්න',
+        'නයිට්‍රජන් අධික ලෙස යෙදීමෙන් වළකින්න (බෝගය වැටීමට හේතු වේ)',
+        'බලවත් වැසි වේලාවට පොහොර නොයොදන්න (සෝදා යාමට හේතු වේ)',
+        'පෝෂක තරඟය වැළැක්වීමට පොහොර යෙදීමට පෙර වල් පැලෑටි ඉවත් කරන්න',
+        'පෝෂක ඌනතා රෝග ලක්ෂණ නිරීක්ෂණය කරන්න (කහ පැහැ වීම = නයිට්‍රජන් ඌනතාව)'
+      ]
+    };
+  }
 
   const advice = {
     variety_specific: [
@@ -225,6 +263,36 @@ export function generateCultivationAdvice(input: FarmerInputData): {
   };
 
   return advice;
+}
+
+function translateCharacteristic(c: string): string {
+  const map: Record<string, string> = {
+    'High-yielding hybrid': 'ඉහළ අස්වැන්නක් ලබා දෙන දෙමුහුන් ප්‍රභේදය',
+    'Good drought tolerance': 'නියඟ සහිත තත්ත්වයන්ට හොඳ ඔරොත්තු දීමේ හැකියාව',
+    'Promoted by CIC Agri Businesses': 'CIC කෘෂි ව්‍යාපාර මගින් ප්‍රවර්ධනය කෙරේ',
+    'Excellent grain quality': 'ඉතා හොඳ ධාන්‍ය ගුණාත්මක බව',
+    'Widely grown hybrid': 'බහුලව වගා කරන දෙමුහුන් ප්‍රභේදය',
+    'Improved pest resistance': 'වැඩි දියුණු කළ පළිබෝධ ප්‍රතිරෝධය',
+    'Stable performance': 'ස්ථාවර කාර්ය සාධනය',
+    'Good for Dry Zone': 'වියළි කලාපයට සුදුසුය',
+    'Top-performing hybrid in Sri Lanka': 'ශ්‍රී ලංකාවේ ඉහළම කාර්ය සාධනය ඇති දෙමුහුන් ප්‍රභේදය',
+    'Highest yield potential (9-10 t/ha)': 'ඉහළම අස්වැන්න විභවය (හෙක්ටයාරයට ටොන් 9-10)',
+    'Requires optimal management': 'ප්‍රශස්ත කළමනාකරණය අවශ්‍යයි',
+    'Best for well-managed farms': 'හොඳින් කළමනාකරණය කරන ගොවිපලවලට වඩාත් සුදුසුය',
+    'Vigorous growth': 'ශක්තිමත් වර්ධනය',
+    'Stable yields across seasons': 'සෑම කන්නයකම ස්ථාවර අස්වැන්නක්',
+    'Popular in Dry Zone': 'වියළි කලාපයේ ජනප්‍රියයි',
+    'Used in fertilizer trials': 'පොහොර අත්හදා බැලීම් සඳහා යොදා ගැනේ',
+    'Large cob with deep kernels': 'ගැඹුරු ධාන්‍ය සහිත විශාල බඩ ඉරිඟු කරල්',
+    'High yield potential': 'ඉහළ අස්වැන්න විභවය',
+    'Strong farmer uptake': 'ගොවීන් අතර ඉහළ ප්‍රචලිතභාවය',
+    'Good performance across seasons': 'සෑම කන්නයකම හොඳ කාර්ය සාධනය',
+    'Traditional local maize variety': 'සම්ප්‍රදායික දේශීය බඩ ඉරිඟු ප්‍රභේදය',
+    'Hardy and reliable under low-input conditions': 'අඩු යෙදවුම් තත්ත්වයන්හි ශක්තිමත් සහ විශ්වාසදායකය',
+    'Lower fertilizer requirements (75% of hybrid rates)': 'අඩු පොහොර අවශ්‍යතා (දෙමුහුන් අනුපාතයෙන් 75%)',
+    'Well-adapted to local conditions': 'දේශීය තත්ත්වයන්ට හොඳින් අනුවර්තනය වී ඇත',
+  };
+  return map[c] || c;
 }
 
 // ============================================================
@@ -343,4 +411,102 @@ function translateNote(note: string, language: 'si'): string {
   };
 
   return translations[note] || note;
+}
+
+// ============================================================
+// SUPABASE-AWARE FERTILIZER PLAN GENERATOR
+// ============================================================
+
+/**
+ * Async version of generateFertilizerPlan that fetches the plan from Supabase first.
+ * Falls back to the hardcoded DOA defaults if Supabase has no data.
+ */
+export async function generateFertilizerPlanAsync(input: FarmerInputData): Promise<FertilizerPlan> {
+  const { variety, land_size_ha, planting_date, include_organic = true } = input;
+
+  try {
+    const dbPlan = await getEffectivePlan(variety);
+    return buildPlanFromRecord(dbPlan, land_size_ha, planting_date, include_organic);
+  } catch (err) {
+    console.warn('⚠️ Supabase plan fetch failed, using hardcoded defaults:', err);
+    return generateFertilizerPlan(input);
+  }
+}
+
+/**
+ * Build a FertilizerPlan from a Supabase FertilizerPlanRecord.
+ */
+function buildPlanFromRecord(
+  record: FertilizerPlanRecord,
+  landSizeHa: number,
+  plantingDate: string,
+  includeOrganic: boolean
+): FertilizerPlan {
+  const plantDate = new Date(plantingDate);
+
+  // Calculate schedule dates
+  const basalDate = new Date(plantDate);
+  const td1Date = new Date(plantDate);
+  td1Date.setDate(td1Date.getDate() + record.top_dress_1_days_after_planting);
+  const td2Date = new Date(plantDate);
+  td2Date.setDate(td2Date.getDate() + record.top_dress_2_days_after_planting);
+
+  // Scale per-ha amounts by land size only
+  // NOTE: DB values already include the variety multiplier (applied in buildDefaultPlans),
+  //       so we must NOT multiply by fertilizer_multiplier again here.
+  const basalTsp = Math.round(Number(record.basal_tsp_kg_per_ha) * landSizeHa * 10) / 10;
+  const basalMop = Math.round(Number(record.basal_mop_kg_per_ha) * landSizeHa * 10) / 10;
+  const basalUrea = Math.round(Number(record.basal_urea_kg_per_ha) * landSizeHa * 10) / 10;
+  const td1Urea = Math.round(Number(record.top_dress_1_urea_kg_per_ha) * landSizeHa * 10) / 10;
+  const td2Urea = Math.round(Number(record.top_dress_2_urea_kg_per_ha) * landSizeHa * 10) / 10;
+
+  const totalUrea = Math.round((basalUrea + td1Urea + td2Urea) * 10) / 10;
+
+  const plan: FertilizerPlan = {
+    basal: {
+      tsp_kg: basalTsp,
+      mop_kg: basalMop,
+      urea_kg: basalUrea,
+      timing: record.basal_timing,
+      date: formatDate(basalDate),
+      notes: record.basal_instructions || [],
+    },
+    top_dress_1: {
+      urea_kg: td1Urea,
+      timing: record.top_dress_1_timing,
+      date: formatDate(td1Date),
+      notes: record.top_dress_1_instructions || [],
+    },
+    top_dress_2: {
+      urea_kg: td2Urea,
+      timing: record.top_dress_2_timing,
+      date: formatDate(td2Date),
+      notes: record.top_dress_2_instructions || [],
+    },
+    total_nutrients: {
+      nitrogen_kg: Math.round(totalUrea * 0.46 * 10) / 10,
+      phosphorus_kg: Math.round(basalTsp * 0.46 * 10) / 10,
+      potassium_kg: Math.round(basalMop * 0.60 * 10) / 10,
+    },
+    summary: `Fertilizer plan for ${landSizeHa} hectares of ${record.variety} (${record.variety_type}). ` +
+      `Total fertilizer: ${totalUrea} kg Urea, ${basalTsp} kg TSP, ${basalMop} kg MOP. ` +
+      `Expected yield: ${record.yield_potential_avg} tons/ha.`,
+  };
+
+  if (includeOrganic) {
+    plan.organic = {
+      compost_tons: Math.round(Number(record.organic_compost_tons_per_ha) * landSizeHa * 10) / 10,
+      cattle_manure_tons: Math.round(Number(record.organic_cattle_manure_tons_per_ha) * landSizeHa * 10) / 10,
+      poultry_manure_tons: Math.round(Number(record.organic_poultry_manure_tons_per_ha) * landSizeHa * 10) / 10,
+      timing: 'During land preparation (2-3 weeks before planting)',
+      notes: [
+        'Use well-decomposed compost or manure',
+        'Incorporate thoroughly into soil',
+        'Choose one organic source based on availability',
+        'Organic matter improves soil health and water retention',
+      ],
+    };
+  }
+
+  return plan;
 }

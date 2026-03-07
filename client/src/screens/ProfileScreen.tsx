@@ -38,10 +38,13 @@ import {
   Cloud,
   Bug,
   Crown,
+  TestTube,
+  Lock,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../context/LanguageContext";
 import { ROUTES } from "../constants";
+import ProUpgradePopup from "../components/ProUpgradePopup";
 
 // ✅ REMOVED: import { PestIdentifyStackParamList } from "../navigation/PestIdentifyStack";
 //    (was causing module-not-found error and was not needed here)
@@ -68,6 +71,7 @@ const ProfileScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showProPopup, setShowProPopup] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -133,6 +137,8 @@ const ProfileScreen = () => {
       maizeCrop: "බඩ ඉරිඟු බෝගය",
       active: "සක්‍රිය",
       shareWithOfficer: "නිලධාරියා සමඟ බෙදාගන්න",
+      requestSoilTest: "පස් පරීක්ෂණ ඉල්ලීම 🔬",
+      soilTestLocked: "Pro විශේෂාංගය — Upgrade කරන්න",
       copied: "පිටපත් කරන ලදී!",
       copyFailed: "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය",
       logout: "ඉවත්වීම",
@@ -201,6 +207,8 @@ const ProfileScreen = () => {
       maizeCrop: "Maize Crop",
       active: "Active",
       shareWithOfficer: "Share with Officer",
+      requestSoilTest: "Request Soil Test 🔬",
+      soilTestLocked: "Pro Feature — Upgrade to Request",
       copied: "Copied!",
       copyFailed: "Failed to copy prediction details",
       logout: "Logout",
@@ -279,6 +287,8 @@ const ProfileScreen = () => {
       maizeCrop: "சோளப் பயிர்",
       active: "செயல்பாடு",
       shareWithOfficer: "அதிகாரியுடன் பகிர்ந்துகொள்க",
+      requestSoilTest: "மண் பரிசோதனை கோரிக்கை 🔬",
+      soilTestLocked: "Pro அம்சம் — மேம்படுத்தவும்",
 
       // Alerts
       copied: "நகலெடுக்கப்பட்டது!",
@@ -409,6 +419,26 @@ Status: ${prediction.status || "Active"}`;
     }
   };
 
+  const handleRequestSoilTest = (prediction: any) => {
+    if (!hasActiveSubscription) {
+      setShowProPopup(true);
+      return;
+    }
+
+    const soilTestMessage =
+      language === "sinhala"
+        ? `🔬 පස් පරීක්ෂණ ඉල්ලීම\n\n👨‍🌾 ගොවිතැන් විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌽 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\n📋 ඉල්ලීම:\nමගේ ගොවිතැනේ නිල පස් පරීක්ෂණයක් ඉල්ලා සිටිමි. ඉහත පුරෝකථන දත්ත මත පදනම්ව නිවැරදි පස් පරීක්ෂණ නිර්දේශ ලබා ගැනීමට කැමැත්තෙමි. 🙏`
+        : language === "tamil"
+          ? `🔬 மண் பரிசோதனை கோரிக்கை\n\n👨‍🌾 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌽 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\n📋 கோரிக்கை:\nஎன் வயலுக்கு அதிகாரப்பூர்வ மண் பரிசோதனை கோருகிறேன். மேலே உள்ள மதிப்பீட்டு தரவின் அடிப்படையில் சரியான மண் பரிசோதனை பரிந்துரைகளை பெற விரும்புகிறேன். 🙏`
+          : `🔬 Soil Test Request\n\n👨‍🌾 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌽 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\n📋 Request:\nI would like to request an official soil test for my field. Based on the above prediction data, I am seeking proper soil testing recommendations to improve my yield. 🙏`;
+
+    navigation.navigate("Chat", {
+      prefilledMessage: soilTestMessage,
+      context: "soil_test_request",
+      predictionData: prediction,
+    });
+  };
+
   const handleShareWithOfficer = (prediction: any) => {
     const contextMessage =
       language === "sinhala"
@@ -464,10 +494,10 @@ Status: ${prediction.status || "Active"}`;
     key: "sinhala" | "english" | "tamil";
     label: string;
   }> = [
-    { key: "sinhala", label: "සිංහල" },
-    { key: "english", label: "English" },
-    { key: "tamil", label: "தமிழ்" },
-  ];
+      { key: "sinhala", label: "සිංහල" },
+      { key: "english", label: "English" },
+      { key: "tamil", label: "தமிழ்" },
+    ];
 
   const getInitials = (name: string) => {
     return name
@@ -1064,6 +1094,36 @@ Status: ${prediction.status || "Active"}`;
                         {t.shareWithOfficer}
                       </Text>
                     </TouchableOpacity>
+
+                    {/* Soil Test Request Button (Pro Only) */}
+                    <TouchableOpacity
+                      style={[
+                        styles.soilTestAction,
+                        !hasActiveSubscription && styles.soilTestActionLocked,
+                      ]}
+                      onPress={() => handleRequestSoilTest(prediction)}
+                    >
+                      {hasActiveSubscription ? (
+                        <LinearGradient
+                          colors={["#6366f1", "#4f46e5"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.soilTestGradient}
+                        >
+                          <TestTube size={15} color="#ffffff" />
+                          <Text style={styles.soilTestActionText}>
+                            {t.requestSoilTest}
+                          </Text>
+                        </LinearGradient>
+                      ) : (
+                        <>
+                          <Lock size={14} color="#9ca3af" />
+                          <Text style={styles.soilTestLockedText}>
+                            {t.soilTestLocked}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 ))
               )}
@@ -1191,6 +1251,16 @@ Status: ${prediction.status || "Active"}`;
           </View>
         </View>
       </Modal>
+
+      {/* Pro Upgrade Popup (shown when free user taps locked soil test button) */}
+      <ProUpgradePopup
+        visible={showProPopup}
+        onClose={() => setShowProPopup(false)}
+        onUpgrade={() => {
+          setShowProPopup(false);
+          navigation.navigate("SubscriptionPlans");
+        }}
+      />
     </View>
   );
 };
@@ -1881,6 +1951,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  soilTestAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  soilTestActionLocked: {
+    backgroundColor: "#f3f4f6",
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  soilTestGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    width: "100%",
+  },
+  soilTestActionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  soilTestLockedText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#9ca3af",
   },
   bottomSpacer: {
     height: 100,
