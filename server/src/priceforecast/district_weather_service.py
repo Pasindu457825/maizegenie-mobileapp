@@ -43,6 +43,7 @@ DISTRICT_COORDS: Dict[str, Tuple[float, float]] = {
     "Monaragala":   (6.8728,  81.3507),
     # Southern
     "Hambantota":   (6.1241,  81.1185),
+    "Tissamaharama": (6.1241, 81.1185),  # Town in Hambantota district
     "Matara":       (5.9485,  80.5353),
     "Galle":        (6.0535,  80.2210),
     # Northern
