@@ -109,7 +109,7 @@ def best_planting(
 
 
 # --------------------------------------------------
-# 3) ✅ UPDATED — Date-based harvest advisory (seed-aware)
+# 3) Date-based harvest advisory (seed-aware)
 # --------------------------------------------------
 @router.get("/by-date")
 def price_window_by_date(
@@ -129,7 +129,7 @@ def price_window_by_date(
     # 1) Date → planting week
     planting_week = date_to_week(planting_date)
 
-    # 2) ✅ Seed-based harvest duration
+    # 2) Seed-based harvest duration
     duration_weeks = SEED_MATURITY_WEEKS.get(seed_variety, 14)
 
     # 3) Base harvest week
