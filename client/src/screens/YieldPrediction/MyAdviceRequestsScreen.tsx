@@ -43,7 +43,7 @@ const MyAdviceRequestsScreen = () => {
     const navigation = useNavigation<NavProp>();
     const { language: lang } = useLanguage();
     const { user } = useApp();
-    const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
+    const language: "si" | "en" | "ta" = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     const [requests, setRequests] = useState<AdviceRequest[]>([]);
     const [loading, setLoading] = useState(true);
@@ -88,6 +88,25 @@ const MyAdviceRequestsScreen = () => {
             responded: "Responded",
             notResponded: "Still Not Responded",
         },
+        ta: {
+            title: "என் ஆலோசனை கோரிக்கைகள்",
+            subtitle: "விவசாய அதிகாரிகளிடமிருந்து ஆலோசனை பெறுங்கள்",
+            pending: "காத்திருக்கிறது",
+            inProgress: "செயல்பாட்டில்",
+            completed: "முடிவுற்றது",
+            noRequests: "கோரிக்கைகள் இல்லை",
+            noRequestsDesc: "நீங்கள் இன்னும் ஆலோசனை கோரவில்லை",
+            viewDetails: "விரிவுகளை பார்க்கவும்",
+            yieldEnhancement: "விளைச்சல் மேம்பாடு",
+            seedVariety: "விதை தேர்வு",
+            both: "இரண்டும்",
+            ago: "முன்",
+            hours: "மணி நேரங்கள்",
+            days: "நாட்கள்",
+            minutes: "நிமிடங்கள்",
+            responded: "பதிலளிக்கப்பட்டது",
+            notResponded: "இன்னும் பதிலளிக்கப்படவில்லை",
+        },
     };
 
     const t = content[language];
@@ -109,7 +128,7 @@ const MyAdviceRequestsScreen = () => {
             console.log('🔍 Fetching with filters:', filters);
             const result = await listAdviceRequests(filters, 1, 50);
             console.log('📦 Received result:', result);
-            
+
             // Safely handle the response
             if (result && result.requests && Array.isArray(result.requests)) {
                 setRequests(result.requests);

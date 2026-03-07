@@ -49,7 +49,7 @@ import {
     CloudFog,
 } from "lucide-react-native";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type NavProp = StackNavigationProp<
     YieldPredictionStackParamList,
     "YieldPredictionFormScreen"
@@ -133,7 +133,7 @@ const YieldPredictionFormScreen = () => {
     };
 
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     // Use universal location hook for GPS and weather
     const {
@@ -143,7 +143,7 @@ const YieldPredictionFormScreen = () => {
         weatherCondition: autoWeatherCondition,
         weatherIcon: autoWeatherIcon,
         isLoading: locationLoading,
-    } = useUniversalLocation(language);
+    } = useUniversalLocation(language === "ta" ? "en" : language);
     const [district, setDistrict] = useState("");
     const [location, setLocation] = useState("");
     const [plantingDate, setPlantingDate] = useState<Date | null>(null);
@@ -557,9 +557,19 @@ const YieldPredictionFormScreen = () => {
 
             if (!response.ok) {
                 const errorBody = await response.json().catch(() => null);
-                const detail = errorBody?.detail || "Extraction failed";
-                console.error("Server extraction error:", detail);
-                throw new Error(detail);
+                // detail may be a string (legacy) or an object {code, message}
+                const detail = errorBody?.detail;
+                let errorStr: string;
+                if (detail && typeof detail === "object" && detail.code) {
+                    // Include the code so catch block can detect NOT_SOIL_REPORT, etc.
+                    errorStr = `${detail.code}: ${detail.message || "Extraction failed"}`;
+                } else if (typeof detail === "string") {
+                    errorStr = detail;
+                } else {
+                    errorStr = "Extraction failed";
+                }
+                console.log("Server extraction error (handled):", errorStr);
+                throw new Error(errorStr);
             }
 
             const extractedData = await response.json();
@@ -609,17 +619,86 @@ const YieldPredictionFormScreen = () => {
                     : "Soil data has been auto-filled. Please verify the values."
             );
         } catch (error) {
-            console.error("Extraction error:", error);
-            Alert.alert(
-                language === "si" ? "දෝෂයකි" : "Error",
-                language === "si"
-                    ? "පස් දත්ත උකහා ගැනීමට අසමත් විය. කරුණාකර අතින් ඇතුළත් කරන්න."
-                    : "Failed to extract soil data. Please enter manually."
-            );
+            console.log("Extraction error (handled):", error);
+
+            // Parse the error message to detect specific server error codes
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const isNotSoilReport = errorMessage.includes("NOT_SOIL_REPORT");
+            const isNoDataExtracted = errorMessage.includes("NO_DATA_EXTRACTED");
+            const isUnsupportedType = errorMessage.includes("UNSUPPORTED_FILE_TYPE");
+
+            // Farmer-friendly, language-specific alert messages
+            const errorMessages = {
+                notSoilReport: {
+                    si: {
+                        title: "⚠️ හඳුනා නොගත හැකි ලේඛනය",
+                        message:
+                            "ඔබ උඩුගත කළ ලේඛනය පස් පරීක්ෂණ වාර්තාවක් නොවේ.\n\nකරුණාකර:\n• pH, නයිට්‍රජන්, පොස්පරස් සහ පොටෑසියම් අගයන් අඩංගු නිල පස් පරීක්ෂණ වාර්තාවක් උඩුගත කරන්න.\n• PDF ලේඛනයක් හෝ ලේඛනවල ඡායාරූපයක් භාවිත කරන්න.",
+                    },
+                    en: {
+                        title: "⚠️ Not a Soil Test Report",
+                        message:
+                            "The file you uploaded does not appear to be a soil test report.\n\nPlease:\n• Upload an official soil test report containing pH, Nitrogen, Phosphorus, and Potassium values.\n• Use a PDF document or a clear photo of the report.",
+                    },
+                    ta: {
+                        title: "⚠️ மண் பரிசோதனை அறிக்கை இல்லை",
+                        message:
+                            "நீங்கள் பதிவேற்றிய கோப்பு மண் பரிசோதனை அறிக்கையாக தெரியவில்லை.\n\nதயவுசெய்து:\n• pH, நைட்ரஜன், பாஸ்பரஸ் மற்றும் பொட்டாசியம் மதிப்புகள் கொண்ட உத்தியோகபூர்வ மண் பரிசோதனை அறிக்கையை பதிவேற்றவும்.\n• PDF ஆவணம் அல்லது அறிக்கையின் தெளிவான புகைப்படத்தை பயன்படுத்தவும்.",
+                    },
+                },
+                noDataExtracted: {
+                    si: {
+                        title: "📋 දත්ත ලබා ගැනීම අසාර්ථකයි",
+                        message:
+                            "ලේඛනය පස් වාර්තාවක් ලෙස හඳුනාගත් නමුත් අගයන් ලබා ගැනීමට නොහැකි විය.\n\n• වාර්තාව pH, NPK අගයන් ඇති bula කොටස් ඇති බව සහතික කරන්න.\n• ඡායාරූපයක් නම් එය පැහැදිලිව ගන්න.\n• නොහැකි නම් අතින් ඇතුළත් කරන්න.",
+                    },
+                    en: {
+                        title: "📋 Could Not Read Values",
+                        message:
+                            "The document looks like a soil report, but we could not read the values from it.\n\n• Ensure the report clearly shows pH, Nitrogen, Phosphorus, and Potassium values.\n• If it's a photo, retake it in good lighting.\n• Alternatively, enter the values manually.",
+                    },
+                    ta: {
+                        title: "📋 மதிப்புகளை படிக்க முடியவில்லை",
+                        message:
+                            "ஆவணம் மண் அறிக்கையாக தெரிகிறது, ஆனால் மதிப்புகளை படிக்க முடியவில்லை.\n\n• அறிக்கையில் pH, நைட்ரஜன், பாஸ்பரஸ் மற்றும் பொட்டாசியம் மதிப்புகள் தெளிவாக காண்பிக்கப்படுகின்றனவா என்பதை உறுதிப்படுத்தவும்.\n• புகைப்படமாக இருந்தால், நல்ல வெளிச்சத்தில் மீண்டும் எடுக்கவும்.\n• மாற்றாக, மதிப்புகளை கைமுறையாக உள்ளிடவும்.",
+                    },
+                },
+                generic: {
+                    si: {
+                        title: "❌ දෝෂයකි",
+                        message:
+                            "පස් දත්ත උකහා ගැනීමට අසමත් විය. කරුණාකර අතින් ඇතුළත් කරන්න.",
+                    },
+                    en: {
+                        title: "❌ Extraction Failed",
+                        message:
+                            "Failed to extract soil data. Please enter the values manually.",
+                    },
+                    ta: {
+                        title: "❌ பிழை ஏற்பட்டது",
+                        message:
+                            "மண் தரவை பிரித்தெடுக்க முடியவில்லை. மதிப்புகளை கைமுறையாக உள்ளிடவும்.",
+                    },
+                },
+            };
+
+            // Select message set based on error code
+            const msgSet = isNotSoilReport
+                ? errorMessages.notSoilReport
+                : isNoDataExtracted
+                    ? errorMessages.noDataExtracted
+                    : errorMessages.generic;
+
+            const lang3 = language as "si" | "en" | "ta";
+            const msgLang = (lang3 === "ta" ? "ta" : lang3 === "si" ? "si" : "en") as keyof typeof msgSet;
+            const { title, message } = msgSet[msgLang];
+
+            Alert.alert(title, message);
         } finally {
             setIsAnalyzingPDF(false);
         }
     };
+
 
     // Format weather display text
     const getWeatherDisplayText = () => {
@@ -737,6 +816,31 @@ const YieldPredictionFormScreen = () => {
             submit: "Get Prediction",
             locationPlaceholder: "e.g., Medawachchiya",
             selectVariety: "Select a seed variety",
+        },
+        ta: {
+            title: "விளைச்சல் கணிப்பு",
+            subtitle: "தகவல்களை உள்ளிடவும்",
+            yourInputs: "உங்கள் தரவுகள்",
+            district: "மாவட்டம்",
+            location: "இடம்",
+            plantingDate: "நடுகை திகதி",
+            season: "பருவகாலம்",
+            landSize: "நில அளவு",
+            landSizeUnit: "அலகு",
+            autoFill: "தானியங்கி நிரப்புதல்",
+            autoDetected: "தானியங்கி கண்டறியப்பட்டது",
+            rainfall30d: "மழையளவு 30d (mm)",
+            seasonalTemperature: "பருவகால வெப்பநிலை (°C)",
+            seasonalHumidity: "பருவகால ஈரப்பதன்மை (%)",
+            rainfallSeasonal: "பருவகால மழையளவு (mm)",
+            soilType: "மண் வகை",
+            soilCondition: "மண் நிலை",
+            irrigationType: "நீர்பாசன வகை",
+            seedVariety: "விதை வகை",
+            rainfallCondition: "மழையளவு நிலை",
+            submit: "கணிப்பை பெறுங்கள்",
+            locationPlaceholder: "உதா., மேதவாச்சியா",
+            selectVariety: "விதை வகையை தேர்ந்தெடுக்கவும்",
         },
     };
 
@@ -1037,7 +1141,7 @@ const YieldPredictionFormScreen = () => {
             // Navigate to results with real data and farmer input
             navigation.navigate("YieldPredictionResultsScreen", {
                 data: response,
-                language,
+                language: language === "ta" ? "en" : language,
                 farmerInput: {
                     district: district,
                     location: location || '',
@@ -1704,13 +1808,13 @@ const YieldPredictionFormScreen = () => {
                 onClose={() => setShowUploadModal(false)}
                 onPickDocument={() => pickDocument()}
                 onPickImage={() => pickImage()}
-                language={language}
+                language={language === "ta" ? "en" : language}
             />
 
             {/* Extraction Animation */}
             <SoilExtractionAnimation
                 visible={isAnalyzingPDF}
-                language={language}
+                language={language === "ta" ? "en" : language}
                 fileName={uploadedFileName}
             />
         </View>

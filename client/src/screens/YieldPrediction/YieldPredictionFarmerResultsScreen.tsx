@@ -60,7 +60,7 @@ const YieldPredictionResultsScreen = () => {
   };
 
   const { language: lang } = useLanguage();
-  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" | "ta" = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
   const [showAdviceModal, setShowAdviceModal] = useState(false);
@@ -169,6 +169,52 @@ const YieldPredictionResultsScreen = () => {
       convertTo: "Convert To",
       bushels: "Bushels",
     },
+    ta: {
+      title: "விளைச்சல் கணிப்பு",
+      subtitle: "உங்கள் முடிவுகள்",
+      predictedYield: "கணிக்கப்பட்ட விளைச்சல்",
+      confidence: "நம்பகத்தன்மை",
+      impactFactors: "பாதிப்பு காரணிகள்",
+      recommendations: "பரிந்துரைகள்",
+      summary: "சுருக்கம்",
+      newPrediction: "புதிய கணிப்பு",
+      requestAdvice: "ஆலோசனை கோருங்கள்",
+      requestAdviceDesc: "விளைச்சல் மேம்பாடு மற்றும் விதை தேர்வு குறித்த ஆலோசனை பெறுங்கள்",
+      back: "பின்",
+      high: "உயர்ந்தது",
+      medium: "நடுத்தரம்",
+      low: "குறைவு",
+      kgPerHa: "kg/ha",
+      tonsPerHa: "tons/ha",
+      expectedRange: "எதிர்பார்க்கப்பட்ட வரம்பு",
+      positive: "நேர்மறையானது",
+      negative: "எதிர்மறையானது",
+      yieldComparison: "விளைச்சல் ஒப்பீடு",
+      yourPrediction: "உங்கள் கணிப்பு",
+      districtOptimal: "மாவட்ட உகந்தம்",
+      difference: "வேறுபாடு",
+      predictionMethod: "கணிப்பு முறை",
+      mlModel: "ML மாதிரி",
+      ruleBased: "விதி அடிப்படை",
+      varietyComparison: "விதை வகை ஒப்பீடு",
+      currentVariety: "நடப்பிலுள்ள வகை",
+      suggestedVariety: "பரிந்துரைக்கப்பட்ட வகை",
+      potentialYield: "சாத்தியமான விளைச்சல்",
+      yieldIncrease: "விளைச்சல் அதிகரிப்பு",
+      irrigationComparison: "நீர்பாசனம் ஒப்பீடு",
+      currentIrrigation: "நடப்பிலுள்ள நீர்பாசனம்",
+      suggestedIrrigation: "பரிந்துரைக்கப்பட்ட நீர்பாசனம்",
+      harvestCalculator: "அறுவடை கணக்கி",
+      landSize: "நில அளவு",
+      totalHarvest: "மொத்த அறுவடை",
+      hectares: "ஹெக்டேர்கள்",
+      kilograms: "கிலோகிராம்கள்",
+      tons: "டன்கள்",
+      yieldConverter: "விளைச்சல் மாற்றி",
+      enterExpectedYield: "எதிர்பார்க்கப்பட்ட விளைச்சலை உள்ளிடவும்",
+      convertTo: "மாற்றுக",
+      bushels: "புஷல்கள்",
+    },
   };
 
   const getConfidenceColor = (level: string) => {
@@ -180,9 +226,9 @@ const YieldPredictionResultsScreen = () => {
 
   const getConfidenceLabel = (level: string) => {
     const l = level?.toLowerCase() || "";
-    if (l.includes("high")) return language === "si" ? "ඉහළ" : "High";
-    if (l.includes("medium")) return language === "si" ? "මධ්‍යම" : "Medium";
-    return language === "si" ? "අඩු" : "Low";
+    if (l.includes("high")) return language === "si" ? "ඉහළ" : language === "ta" ? "உயர்ந்தது" : "High";
+    if (l.includes("medium")) return language === "si" ? "මධ්‍යම" : language === "ta" ? "நடுத்தரம்" : "Medium";
+    return language === "si" ? "අඩු" : language === "ta" ? "குறைவு" : "Low";
   };
 
   const handleGoBack = () => {
@@ -217,7 +263,7 @@ const YieldPredictionResultsScreen = () => {
       // Extract all prediction data
       const predictionId = data?.prediction_id || data?.farmer_input_id || '';
       const yieldKgHa = data?.prediction?.predicted_yield_kg_per_ha || 0;
-      
+
       // Get farmer input data from route params
       const district = farmerInput?.district || '';
       const location = farmerInput?.location || '';
@@ -226,23 +272,26 @@ const YieldPredictionResultsScreen = () => {
       const irrigationType = farmerInput?.irrigation_type || '';
       const rainfallCondition = farmerInput?.rainfall_condition || '';
       const plantingDate = farmerInput?.planting_date || '';
-      
+
       // Generate message based on request type
       let farmerMessage = '';
       if (requestType === 'yield_enhancement') {
-        farmerMessage = language === "si" 
+        farmerMessage = language === "si"
           ? "අස්වැන්න වැඩිදියුණු කිරීම සඳහා උපදේශ අවශ්‍යයි"
-          : "Need advice on yield enhancement";
+          : language === "ta" ? "விளைச்சல் மேம்பாடு குறித்த ஆலோசனை தேவை"
+            : "Need advice on yield enhancement";
       } else if (requestType === 'seed_variety') {
-        farmerMessage = language === "si" 
+        farmerMessage = language === "si"
           ? "බීජ වර්ගය තෝරාගැනීම සඳහා උපදේශ අවශ්‍යයි"
-          : "Need advice on seed variety selection";
+          : language === "ta" ? "விதை தேர்வு குறித்த ஆலோசனை தேவை"
+            : "Need advice on seed variety selection";
       } else {
-        farmerMessage = language === "si" 
+        farmerMessage = language === "si"
           ? "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ තෝරාගැනීම සඳහා උපදේශ අවශ්‍යයි"
-          : "Need advice on yield enhancement and seed variety selection";
+          : language === "ta" ? "விளைச்சல் மேம்பாடு மற்றும் விதை தேர்வு குறித்த ஆலோசனை தேவை"
+            : "Need advice on yield enhancement and seed variety selection";
       }
-      
+
       await createAdviceRequest({
         yield_prediction_id: predictionId,
         request_type: requestType,
@@ -256,20 +305,22 @@ const YieldPredictionResultsScreen = () => {
         rainfall_condition: rainfallCondition,
         planting_date: plantingDate,
       });
-      
+
       showAlert(
-        language === "si" ? "සාර්ථකයි!" : "Success!",
-        language === "si" 
+        language === "si" ? "සාර්ථකයි!" : language === "ta" ? "வெற்றி!" : "Success!",
+        language === "si"
           ? "ඔබේ උපදේශ ඉල්ලීම සාර්ථකව යවන ලදී. නිලධාරියෙක් ඉක්මනින් ඔබව සම්බන්ධ කරගනු ඇත."
-          : "Your advice request has been sent successfully. An officer will contact you soon."
+          : language === "ta" ? "உங்கள் ஆலோசனை கோரிக்கை வெற்றிகரமாக அனுப்பப்பட்டது. அதிகாரி விரைவில் உங்களை தொடர்புகொள்வார்."
+            : "Your advice request has been sent successfully. An officer will contact you soon."
       );
     } catch (error: any) {
       console.error('Failed to submit advice request:', error);
       showAlert(
-        language === "si" ? "දෝෂයකි" : "Error",
-        error.message || (language === "si" 
+        language === "si" ? "දෝෂයකි" : language === "ta" ? "பிழை" : "Error",
+        error.message || (language === "si"
           ? "උපදේශ ඉල්ලීම යැවීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න."
-          : "Failed to send advice request. Please try again.")
+          : language === "ta" ? "ஆலோசனை கோரிக்கையை அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+            : "Failed to send advice request. Please try again.")
       );
     } finally {
       setIsSubmittingAdvice(false);
@@ -278,55 +329,56 @@ const YieldPredictionResultsScreen = () => {
 
   // Extract data with fallbacks - matching officer's structure
   const prediction = data?.prediction || {};
-  
+
   // Primary yield data
   const predictedYield = prediction.predicted_yield || prediction.predicted_yield_kg_per_ha || 0;
   const yieldKgHa = predictedYield;
   const yieldTonsHa = (predictedYield / 1000);
-  
+
   // Confidence data - Fix: handle both decimal (0.6) and percentage (60) formats
   const rawConfidenceScore = prediction.confidence_score || 0;
   const confidenceScore = rawConfidenceScore > 1 ? rawConfidenceScore / 100 : rawConfidenceScore;
-  const confidenceLevel = prediction.confidence_level || 
+  const confidenceLevel = prediction.confidence_level ||
     (confidenceScore >= 0.8 ? "High" : confidenceScore >= 0.6 ? "Medium" : "Low");
-  
+
   // Yield bounds
   const yieldLower = prediction.yield_lower_bound || predictedYield * 0.85;
   const yieldUpper = prediction.yield_upper_bound || predictedYield * 1.15;
-  
+
   // Prediction method
   const predictionMethod = prediction.prediction_method || "rule_based";
   const isPredictionML = predictionMethod === "ml_model" || predictionMethod === "ML";
-  
+
   // Analysis data
   const analysisData = data?.analysis_data || {};
   const yieldComparison = data?.yield_comparison || analysisData.yield_comparison || null;
-  
+
   // Impact factors - extract from analysis_data
   const impactFactors = data?.impact_factors || [];
-  
+
   // Recommendations
   const recommendations = data?.recommendations || [];
-  
+
   // Summary text
-  const summaryText = language === "si" 
+  const summaryText = language === "si"
     ? (data?.summary_sinhala || data?.summary_english || "")
-    : (data?.summary_english || data?.summary_sinhala || "");
-  
+    : language === "ta" ? (data?.summary_tamil || data?.summary_english || "")
+      : (data?.summary_english || data?.summary_sinhala || "");
+
   // Variety comparison data
   const varietyComparison = data?.variety_comparison || null;
   const currentVariety = farmerInput?.variety || "Unknown";
   const suggestedVariety = varietyComparison?.suggested_variety || null;
   const varietyPotentialYield = varietyComparison?.potential_yield || null;
   const varietyYieldIncrease = varietyComparison?.yield_increase_percentage || null;
-  
+
   // Irrigation comparison data
   const irrigationComparison = data?.irrigation_comparison || null;
   const currentIrrigation = farmerInput?.irrigation_type || "Unknown";
   const suggestedIrrigation = irrigationComparison?.suggested_irrigation || null;
   const irrigationPotentialYield = irrigationComparison?.potential_yield || null;
   const irrigationYieldIncrease = irrigationComparison?.yield_increase_percentage || null;
-  
+
   // Harvest calculator
   const landSizeHa = farmerInput?.field_size_ha || 0;
   const totalHarvestKg = landSizeHa * yieldKgHa;
@@ -339,7 +391,7 @@ const YieldPredictionResultsScreen = () => {
     if (fromUnit === "kg") kg = value;
     else if (fromUnit === "tons") kg = value * 1000;
     else if (fromUnit === "bushels") kg = value * 25.4;
-    
+
     return {
       kg: kg,
       tons: kg / 1000,
@@ -366,7 +418,7 @@ const YieldPredictionResultsScreen = () => {
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : "Yield Prediction Results"}
+              {language === "si" ? "අස්වැන්න පුරෝකථන ප්‍රතිඵල" : language === "ta" ? "விளைச்சல் கணிப்பு முடிவுகள்" : "Yield Prediction Results"}
             </Text>
             {farmerInput && (farmerInput.district || farmerInput.variety) && (
               <Text style={styles.headerSubtitle}>
@@ -461,7 +513,7 @@ const YieldPredictionResultsScreen = () => {
           {/* Recommendations */}
           {recommendations.length > 0 && (
             <View style={styles.section}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.sectionHeader}
                 onPress={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
                 activeOpacity={0.7}
@@ -484,15 +536,17 @@ const YieldPredictionResultsScreen = () => {
                   <View style={styles.recommendationHeader}>
                     <View style={styles.recommendationBullet} />
                     <Text style={styles.recommendationTitle}>
-                      {language === "si" 
+                      {language === "si"
                         ? (rec.title_sinhala || rec.title_si || rec.title_english || rec.title_en || rec.title)
-                        : (rec.title_english || rec.title_en || rec.title_sinhala || rec.title_si || rec.title)}
+                        : language === "ta" ? (rec.title_tamil || rec.title_ta || rec.title_english || rec.title_en || rec.title)
+                          : (rec.title_english || rec.title_en || rec.title_sinhala || rec.title_si || rec.title)}
                     </Text>
                   </View>
                   <Text style={styles.recommendationText}>
-                    {language === "si" 
+                    {language === "si"
                       ? (rec.description_sinhala || rec.description_si || rec.description_english || rec.description_en || rec.description)
-                      : (rec.description_english || rec.description_en || rec.description_sinhala || rec.description_si || rec.description)}
+                      : language === "ta" ? (rec.description_tamil || rec.description_ta || rec.description_english || rec.description_en || rec.description)
+                        : (rec.description_english || rec.description_en || rec.description_sinhala || rec.description_si || rec.description)}
                   </Text>
                   {rec.priority && (
                     <View style={[
@@ -502,8 +556,8 @@ const YieldPredictionResultsScreen = () => {
                           rec.priority === "high" || rec.priority === "High"
                             ? "#FEE2E2"
                             : rec.priority === "medium" || rec.priority === "Medium"
-                            ? "#FEF3C7"
-                            : "#DBEAFE",
+                              ? "#FEF3C7"
+                              : "#DBEAFE",
                       },
                     ]}>
                       <Text style={[
@@ -513,8 +567,8 @@ const YieldPredictionResultsScreen = () => {
                             rec.priority === "high" || rec.priority === "High"
                               ? "#EF4444"
                               : rec.priority === "medium" || rec.priority === "Medium"
-                              ? "#F59E0B"
-                              : "#3B82F6",
+                                ? "#F59E0B"
+                                : "#3B82F6",
                         },
                       ]}>
                         {rec.priority.toUpperCase()}
@@ -563,9 +617,10 @@ const YieldPredictionResultsScreen = () => {
               <View style={styles.infoBox}>
                 <AlertCircle color="#10B981" size={16} />
                 <Text style={styles.infoBoxText}>
-                  {language === "si" 
+                  {language === "si"
                     ? `${suggestedVariety} භාවිතා කිරීමෙන් ඔබට අස්වැන්න ${varietyYieldIncrease?.toFixed(1)}% කින් වැඩි කර ගත හැකිය`
-                    : `By using ${suggestedVariety}, you can increase yield by ${varietyYieldIncrease?.toFixed(1)}%`}
+                    : language === "ta" ? `${suggestedVariety} பயன்படுத்துவதன் மூலம் விளைச்சலை ${varietyYieldIncrease?.toFixed(1)}% அதிகரிக்கலாம்`
+                      : `By using ${suggestedVariety}, you can increase yield by ${varietyYieldIncrease?.toFixed(1)}%`}
                 </Text>
               </View>
             </View>
@@ -608,9 +663,10 @@ const YieldPredictionResultsScreen = () => {
               <View style={styles.infoBox}>
                 <AlertCircle color="#10B981" size={16} />
                 <Text style={styles.infoBoxText}>
-                  {language === "si" 
+                  {language === "si"
                     ? `${suggestedIrrigation} වාරිමාර්ග භාවිතා කිරීමෙන් අස්වැන්න ${irrigationYieldIncrease?.toFixed(1)}% කින් වැඩි කර ගත හැකිය`
-                    : `By using ${suggestedIrrigation} irrigation, you can increase yield by ${irrigationYieldIncrease?.toFixed(1)}%`}
+                    : language === "ta" ? `${suggestedIrrigation} நீர்பாசனம் பயன்படுத்துவதன் மூலம் விளைச்சலை ${irrigationYieldIncrease?.toFixed(1)}% அதிகரிக்கலாம்`
+                      : `By using ${suggestedIrrigation} irrigation, you can increase yield by ${irrigationYieldIncrease?.toFixed(1)}%`}
                 </Text>
               </View>
             </View>
@@ -682,7 +738,7 @@ const YieldPredictionResultsScreen = () => {
                     placeholder="0"
                     placeholderTextColor="#9CA3AF"
                   />
-                  
+
                   {/* Unit Selector */}
                   <View style={styles.unitSelector}>
                     <TouchableOpacity
@@ -719,7 +775,7 @@ const YieldPredictionResultsScreen = () => {
                   <Text style={styles.converterResultsTitle}>
                     {content[language].convertTo}:
                   </Text>
-                  
+
                   <View style={styles.converterResultRow}>
                     <View style={styles.converterResultItem}>
                       <Text style={styles.converterResultLabel}>{content[language].kilograms}</Text>
@@ -727,14 +783,14 @@ const YieldPredictionResultsScreen = () => {
                         {convertedYields.kg.toFixed(2)}
                       </Text>
                     </View>
-                    
+
                     <View style={styles.converterResultItem}>
                       <Text style={styles.converterResultLabel}>{content[language].tons}</Text>
                       <Text style={styles.converterResultValue}>
                         {convertedYields.tons.toFixed(3)}
                       </Text>
                     </View>
-                    
+
                     <View style={styles.converterResultItem}>
                       <Text style={styles.converterResultLabel}>{content[language].bushels}</Text>
                       <Text style={styles.converterResultValue}>
@@ -778,8 +834,8 @@ const YieldPredictionResultsScreen = () => {
             )}
             <View style={styles.requestAdviceContent}>
               <Text style={styles.requestAdviceTitle}>
-                {isSubmittingAdvice 
-                  ? (language === "si" ? "යවමින්..." : "Sending...")
+                {isSubmittingAdvice
+                  ? (language === "si" ? "යවමින්..." : language === "ta" ? "அனுப்புகிறது..." : "Sending...")
                   : content[language].requestAdvice}
               </Text>
               <Text style={styles.requestAdviceDesc}>
@@ -821,7 +877,7 @@ const YieldPredictionResultsScreen = () => {
                 {language === "si" ? "උපදේශ ඉල්ලීම" : "Request Advice"}
               </Text>
               <Text style={styles.modalSubtitle}>
-                {language === "si" 
+                {language === "si"
                   ? "ඔබට අවශ්‍ය උපදේශ වර්ගය තෝරන්න:"
                   : "Select the type of advice you need:"}
               </Text>
@@ -838,7 +894,7 @@ const YieldPredictionResultsScreen = () => {
                     {language === "si" ? "අස්වැන්න වැඩිදියුණු කිරීම" : "Yield Enhancement"}
                   </Text>
                   <Text style={styles.modalOptionDesc}>
-                    {language === "si" 
+                    {language === "si"
                       ? "වැඩි අස්වැන්නක් ලබාගැනීම සඳහා උපදේශ"
                       : "Get advice on improving your yield"}
                   </Text>
@@ -855,7 +911,7 @@ const YieldPredictionResultsScreen = () => {
                     {language === "si" ? "බීජ වර්ගය තෝරාගැනීම" : "Seed Variety Selection"}
                   </Text>
                   <Text style={styles.modalOptionDesc}>
-                    {language === "si" 
+                    {language === "si"
                       ? "හොඳම බීජ වර්ගය තෝරාගැනීමට උපදේශ"
                       : "Get help choosing the best seed variety"}
                   </Text>
@@ -872,7 +928,7 @@ const YieldPredictionResultsScreen = () => {
                     {language === "si" ? "දෙකම" : "Both"}
                   </Text>
                   <Text style={styles.modalOptionDesc}>
-                    {language === "si" 
+                    {language === "si"
                       ? "අස්වැන්න සහ බීජ තෝරාගැනීම දෙකටම උපදේශ"
                       : "Get advice on both yield and seed selection"}
                   </Text>
@@ -896,246 +952,246 @@ const YieldPredictionResultsScreen = () => {
 };
 
 const styles = StyleSheet.create({
-container: {
-flex: 1,
-backgroundColor: "#F0FDF4",
-},
-header: {
-paddingTop: 16,
-paddingBottom: 24,
-paddingHorizontal: 20,
-borderBottomLeftRadius: 24,
-borderBottomRightRadius: 24,
-minHeight: 100,
-},
-headerContent: {
-flexDirection: "row",
-alignItems: "center",
-justifyContent: "space-between",
-},
-backButton: {
-marginRight: 12,
-},
-headerCenter: {
-flex: 1,
-alignItems: "center",
-justifyContent: "center",
-},
-headerTitle: {
-fontSize: 22,
-fontWeight: "700",
-color: "#ffffff",
-textAlign: "center",
-letterSpacing: 0.5,
-},
-headerSubtitle: {
-fontSize: 14,
-fontWeight: "500",
-color: "#D1FAE5",
-textAlign: "center",
-marginTop: 4,
-},
-langButton: {
-backgroundColor: "#D1FAE5",
-paddingHorizontal: 12,
-paddingVertical: 6,
-borderRadius: 12,
-},
-langText: {
-color: "#047857",
-fontSize: 14,
-fontWeight: "600",
-},
-scrollContainer: {
-flex: 1,
-},
-scrollContent: {
-paddingHorizontal: 16,
-paddingTop: 20,
-},
-yieldCard: {
-backgroundColor: "#FFFFFF",
-borderRadius: 20,
-padding: 24,
-alignItems: "center",
-marginBottom: 20,
-shadowColor: "#000",
-shadowOffset: { width: 0, height: 4 },
-shadowOpacity: 0.1,
-shadowRadius: 12,
-elevation: 6,
-borderWidth: 2,
-borderColor: "#D1FAE5",
-},
-yieldIconContainer: {
-width: 64,
-height: 64,
-borderRadius: 32,
-backgroundColor: "#D1FAE5",
-alignItems: "center",
-justifyContent: "center",
-marginBottom: 16,
-},
-yieldLabel: {
-fontSize: 14,
-color: "#6B7280",
-marginBottom: 8,
-},
-yieldValue: {
-fontSize: 48,
-fontWeight: "700",
-color: "#065F46",
-marginBottom: 4,
-},
-yieldUnit: {
-fontSize: 16,
-color: "#10B981",
-fontWeight: "600",
-marginBottom: 8,
-},
-yieldSubValue: {
-fontSize: 14,
-color: "#6B7280",
-},
-rangeContainer: {
-marginTop: 16,
-paddingTop: 16,
-borderTopWidth: 1,
-borderTopColor: "#E5E7EB",
-alignItems: "center",
-},
-rangeLabel: {
-fontSize: 12,
-color: "#6B7280",
-marginBottom: 4,
-},
-rangeValue: {
-fontSize: 14,
-fontWeight: "600",
-color: "#065F46",
-},
-section: {
-marginBottom: 20,
-},
-sectionHeader: {
-flexDirection: "row",
-alignItems: "center",
-marginBottom: 12,
-flex: 1,
-},
-sectionIconContainer: {
-width: 36,
-height: 36,
-borderRadius: 18,
-backgroundColor: "#D1FAE5",
-alignItems: "center",
-justifyContent: "center",
-marginRight: 12,
-},
-sectionTitle: {
-fontSize: 18,
-fontWeight: "700",
-color: "#065F46",
-flex: 1,
-},
-confidenceCard: {
-backgroundColor: "#FFFFFF",
-borderRadius: 12,
-padding: 16,
-shadowColor: "#000",
-shadowOffset: { width: 0, height: 1 },
-shadowOpacity: 0.05,
-shadowRadius: 4,
-elevation: 2,
-},
-confidenceHeader: {
-flexDirection: "row",
-justifyContent: "space-between",
-alignItems: "center",
-marginBottom: 12,
-},
-confidenceLabel: {
-fontSize: 16,
-fontWeight: "600",
-color: "#065F46",
-},
-confidenceScore: {
-fontSize: 24,
-fontWeight: "700",
-color: "#10B981",
-},
-progressBarContainer: {
-height: 8,
-backgroundColor: "#E5E7EB",
-borderRadius: 4,
-overflow: "hidden",
-},
-progressBar: {
-height: "100%",
-borderRadius: 4,
-},
-factorCard: {
-backgroundColor: "#FFFFFF",
-borderRadius: 12,
-padding: 16,
-marginBottom: 12,
-shadowColor: "#000",
-shadowOffset: { width: 0, height: 1 },
-shadowOpacity: 0.05,
-shadowRadius: 4,
-elevation: 2,
-},
-factorHeader: {
-flexDirection: "row",
-alignItems: "center",
-marginBottom: 8,
-},
-factorIconContainer: {
-width: 32,
-height: 32,
-borderRadius: 16,
-backgroundColor: "#D1FAE5",
-alignItems: "center",
-justifyContent: "center",
-marginRight: 12,
-},
-factorName: {
-fontSize: 15,
-fontWeight: "600",
-color: "#065F46",
-flex: 1,
-},
-factorDescription: {
-fontSize: 13,
-color: "#6B7280",
-marginBottom: 12,
-lineHeight: 18,
-},
-factorImpactContainer: {
-flexDirection: "row",
-alignItems: "center",
-},
-factorImpactBar: {
-height: 6,
-borderRadius: 3,
-marginRight: 8,
-},
-factorImpactText: {
-fontSize: 14,
-fontWeight: "600",
-},
-recommendationCard: {
-backgroundColor: "#FFFFFF",
-borderRadius: 12,
-padding: 16,
-marginBottom: 12,
-shadowColor: "#000",
-shadowOffset: { width: 0, height: 1 },
-shadowOpacity: 0.05,
-shadowRadius: 4,
-elevation: 2,
-},
-recommendationHeader: {
+  container: {
+    flex: 1,
+    backgroundColor: "#F0FDF4",
+  },
+  header: {
+    paddingTop: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    minHeight: 100,
+  },
+  headerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    marginRight: 12,
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#ffffff",
+    textAlign: "center",
+    letterSpacing: 0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#D1FAE5",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  langButton: {
+    backgroundColor: "#D1FAE5",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  langText: {
+    color: "#047857",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  scrollContainer: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+  yieldCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: "#D1FAE5",
+  },
+  yieldIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#D1FAE5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  yieldLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginBottom: 8,
+  },
+  yieldValue: {
+    fontSize: 48,
+    fontWeight: "700",
+    color: "#065F46",
+    marginBottom: 4,
+  },
+  yieldUnit: {
+    fontSize: 16,
+    color: "#10B981",
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  yieldSubValue: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  rangeContainer: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    alignItems: "center",
+  },
+  rangeLabel: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginBottom: 4,
+  },
+  rangeValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#065F46",
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+    flex: 1,
+  },
+  sectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#D1FAE5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#065F46",
+    flex: 1,
+  },
+  confidenceCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  confidenceHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  confidenceLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#065F46",
+  },
+  confidenceScore: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#10B981",
+  },
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  progressBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  factorCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  factorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  factorIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#D1FAE5",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  factorName: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#065F46",
+    flex: 1,
+  },
+  factorDescription: {
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  factorImpactContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  factorImpactBar: {
+    height: 6,
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  factorImpactText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  recommendationCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  recommendationHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 8,

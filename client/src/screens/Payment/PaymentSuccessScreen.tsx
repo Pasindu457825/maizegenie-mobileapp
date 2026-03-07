@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
@@ -29,6 +30,7 @@ const translations = {
     feature3: "විශේෂඥ උපදෙස්",
     feature4: "සවිස්තර වාර්තා",
     feature5: "දැන්වීම් රහිත අත්දැකීම",
+    feature6: "Pro රෝග හඳුනාගැනීමේ ආකෘතිය අගුළුහැර ඇත",
 
     orderDetails: "ඇණවුම් විස්තර:",
     orderId: "ඇණවුම් අංකය",
@@ -36,7 +38,7 @@ const translations = {
     amount: "මුදල",
     date: "දිනය",
 
-    getStarted: "ආරම්භ කරමු",
+    getStarted: "නව විශේෂාංග සමඟ ඉදිරියට යන්න",
     backToHome: "මුල් පිටුවට",
   },
   english: {
@@ -50,6 +52,7 @@ const translations = {
     feature3: "Expert Consultation",
     feature4: "Detailed Reports",
     feature5: "Ad-Free Experience",
+    feature6: "Pro Disease Detection Model Unlocked",
 
     orderDetails: "Order Details:",
     orderId: "Order ID",
@@ -57,7 +60,7 @@ const translations = {
     amount: "Amount",
     date: "Date",
 
-    getStarted: "Get Started",
+    getStarted: "Continue with new features",
     backToHome: "Back to Home",
   },
   tamil: {
@@ -71,6 +74,7 @@ const translations = {
     feature3: "நிபுணர் ஆலோசனை",
     feature4: "விரிவான அறிக்கைகள்",
     feature5: "விளம்பரம் இல்லாத அனுபவம்",
+    feature6: "Pro நோய் கண்டறிதல் மாதிரி திறக்கப்பட்டது",
 
     orderDetails: "ஆர்டர் விரிவுகள்:",
     orderId: "ஆர்டர் எண்",
@@ -78,7 +82,7 @@ const translations = {
     amount: "தொகை",
     date: "தேதி",
 
-    getStarted: "தொடங்குங்கள்",
+    getStarted: "புதிய அம்சங்களுடன் தொடரவும்",
     backToHome: "முகப்புக்கு திரும்பு",
   },
 } as Record<string, any>;
@@ -131,73 +135,78 @@ export default function PaymentSuccessScreen({ navigation, route }: any) {
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
       />
-
-      {/* Success Icon */}
-      <Animated.View
-        style={[
-          styles.iconContainer,
-          {
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.iconBg}>
-          <CheckCircle size={80} color="#10b981" strokeWidth={2} />
-        </View>
-        <View style={styles.crownBadge}>
-          <Crown size={32} color="#fbbf24" strokeWidth={2} />
-        </View>
-      </Animated.View>
+        {/* Success Icon */}
+        <Animated.View
+          style={[
+            styles.iconContainer,
+            {
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <View style={styles.iconBg}>
+            <CheckCircle size={80} color="#10b981" strokeWidth={2} />
+          </View>
+          <View style={styles.crownBadge}>
+            <Crown size={32} color="#fbbf24" strokeWidth={2} />
+          </View>
+        </Animated.View>
 
-      {/* Content */}
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-          },
-        ]}
-      >
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.subtitle}>{t.subtitle}</Text>
-        <Text style={styles.message}>{t.message}</Text>
+        {/* Content */}
+        <Animated.View
+          style={[
+            styles.content,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <Text style={styles.title}>{t.title}</Text>
+          <Text style={styles.subtitle}>{t.subtitle}</Text>
+          <Text style={styles.message}>{t.message}</Text>
 
-        {/* Order Details Card */}
-        <View style={styles.detailsCard}>
-          <Text style={styles.detailsTitle}>{t.orderDetails}</Text>
+          {/* Order Details Card */}
+          <View style={styles.detailsCard}>
+            <Text style={styles.detailsTitle}>{t.orderDetails}</Text>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t.orderId}:</Text>
-            <Text style={styles.detailValue}>{orderId}</Text>
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t.orderId}:</Text>
+              <Text style={styles.detailValue}>{orderId}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t.plan}:</Text>
+              <Text style={styles.detailValue}>MaizeGenie Pro</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t.amount}:</Text>
+              <Text style={styles.detailValue}>රු. {amount.toLocaleString()}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={styles.detailLabel}>{t.date}:</Text>
+              <Text style={styles.detailValue}>
+                {new Date().toLocaleDateString(language === "sinhala" ? "si-LK" : language === "tamil" ? "ta-IN" : "en-US")}
+              </Text>
+            </View>
           </View>
 
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t.plan}:</Text>
-            <Text style={styles.detailValue}>MaizeGenie Pro</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t.amount}:</Text>
-            <Text style={styles.detailValue}>රු. {amount.toLocaleString()}</Text>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>{t.date}:</Text>
-            <Text style={styles.detailValue}>
-              {new Date().toLocaleDateString(language === "sinhala" ? "si-LK" : language === "tamil" ? "ta-IN" : "en-US")}
-            </Text>
-          </View>
-        </View>
-
-        {/* Features List */}
-        <View style={styles.featuresCard}>
-          <View style={styles.featuresHeader}>
-            <Sparkles size={20} color="#fbbf24" />
-            <Text style={styles.featuresTitle}>{t.features}</Text>
-          </View>
+          {/* Features List */}
+          <View style={styles.featuresCard}>
+            <View style={styles.featuresHeader}>
+              <Sparkles size={20} color="#fbbf24" />
+              <Text style={styles.featuresTitle}>{t.features}</Text>
+            </View>
 
           <View style={styles.featuresList}>
+            <FeatureItem text={t.feature6} />
             <FeatureItem text={t.feature1} />
             <FeatureItem text={t.feature2} />
             <FeatureItem text={t.feature3} />
@@ -206,23 +215,24 @@ export default function PaymentSuccessScreen({ navigation, route }: any) {
           </View>
         </View>
 
-        {/* Get Started Button */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={handleGetStarted}
-        >
-          <LinearGradient
-            colors={["#10b981", "#059669"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.button}
+          {/* Get Started Button */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={handleGetStarted}
           >
-            <Crown size={20} color="#ffffff" />
-            <Text style={styles.buttonText}>{t.getStarted}</Text>
-            <ArrowRight size={20} color="#ffffff" strokeWidth={2.5} />
-          </LinearGradient>
-        </TouchableOpacity>
-      </Animated.View>
+            <LinearGradient
+              colors={["#10b981", "#059669"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.button}
+            >
+              <Crown size={20} color="#ffffff" />
+              <Text style={styles.buttonText}>{t.getStarted}</Text>
+              <ArrowRight size={20} color="#ffffff" strokeWidth={2.5} />
+            </LinearGradient>
+          </TouchableOpacity>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 }
@@ -240,6 +250,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 80,
     paddingHorizontal: 20,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 28,
   },
   iconContainer: {
     alignItems: "center",
@@ -276,7 +292,7 @@ const styles = StyleSheet.create({
   },
 
   content: {
-    flex: 1,
+    paddingBottom: 10,
   },
   title: {
     fontSize: 32,
