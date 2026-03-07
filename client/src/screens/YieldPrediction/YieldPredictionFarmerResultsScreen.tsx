@@ -64,8 +64,6 @@ const YieldPredictionResultsScreen = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [isSubmittingAdvice, setIsSubmittingAdvice] = useState(false);
   const [showAdviceModal, setShowAdviceModal] = useState(false);
-  const [isRecommendationsExpanded, setIsRecommendationsExpanded] = useState(true);
-  const [expectedYieldInput, setExpectedYieldInput] = useState("");
   const [yieldUnit, setYieldUnit] = useState<"kg" | "tons" | "bushels">("kg");
 
   React.useEffect(() => {
@@ -384,23 +382,22 @@ const YieldPredictionResultsScreen = () => {
   const totalHarvestKg = landSizeHa * yieldKgHa;
   const totalHarvestTons = totalHarvestKg / 1000;
 
-  // Yield converter - real-time conversion
-  // 1 bushel of maize = 25.4 kg (56 lbs)
-  const convertYield = (value: number, fromUnit: "kg" | "tons" | "bushels") => {
-    let kg = 0;
-    if (fromUnit === "kg") kg = value;
-    else if (fromUnit === "tons") kg = value * 1000;
-    else if (fromUnit === "bushels") kg = value * 25.4;
+  // Convert hectare to acre (1 hectare = 2.47105 acres)
+  const HECTARE_TO_ACRE = 2.47105;
+  const yieldKgPerAcre = yieldKgHa / HECTARE_TO_ACRE;
+  const yieldTonsPerAcre = yieldKgPerAcre / 1000;
 
+  // Yield converter - uses harvest calculator output
+  // 1 bushel of maize = 25.4 kg (56 lbs)
+  const convertYield = (valueKg: number) => {
     return {
-      kg: kg,
-      tons: kg / 1000,
-      bushels: kg / 25.4,
+      kg: valueKg,
+      tons: valueKg / 1000,
+      bushels: valueKg / 25.4,
     };
   };
 
-  const expectedYieldValue = parseFloat(expectedYieldInput) || 0;
-  const convertedYields = convertYield(expectedYieldValue, yieldUnit);
+  const convertedYields = convertYield(totalHarvestKg);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -452,14 +449,16 @@ const YieldPredictionResultsScreen = () => {
               {yieldKgHa.toFixed(0)} {content[language].kgPerHa}
             </Text>
 
-            {/* Expected Range */}
+            {/* Predicted Yield Per Acre */}
             <View style={styles.rangeContainer}>
               <Text style={styles.rangeLabel}>
-                {content[language].expectedRange}
+                {language === "si" ? "අක්කරයකට අස්වැන්න" : language === "ta" ? "ஏக்கருக்கு விளைச்சல்" : "Yield Per Acre"}
               </Text>
               <Text style={styles.rangeValue}>
-                {(yieldLower / 1000).toFixed(2)} - {(yieldUpper / 1000).toFixed(2)}{" "}
-                {content[language].tonsPerHa}
+                {yieldTonsPerAcre.toFixed(2)} {language === "si" ? "ටොන්/අක්කරය" : language === "ta" ? "டன்கள்/ஏக்கர்" : "tons/acre"}
+              </Text>
+              <Text style={styles.yieldSubValue}>
+                {yieldKgPerAcre.toFixed(0)} {language === "si" ? "කි.ග්‍රෑ/අක්කරය" : language === "ta" ? "kg/ஏக்கர்" : "kg/acre"}
               </Text>
             </View>
           </View>
@@ -510,121 +509,7 @@ const YieldPredictionResultsScreen = () => {
             </View>
           )}
 
-          {/* Recommendations */}
-          {recommendations.length > 0 && (
-            <View style={styles.section}>
-              <TouchableOpacity
-                style={styles.sectionHeader}
-                onPress={() => setIsRecommendationsExpanded(!isRecommendationsExpanded)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.sectionIconContainer}>
-                  <AlertCircle color="#10B981" size={20} />
-                </View>
-                <Text style={styles.sectionTitle}>
-                  {content[language].recommendations}
-                </Text>
-                {isRecommendationsExpanded ? (
-                  <ChevronDown color="#10B981" size={20} />
-                ) : (
-                  <ChevronUp color="#10B981" size={20} />
-                )}
-              </TouchableOpacity>
 
-              {isRecommendationsExpanded && recommendations.map((rec: any, index: number) => (
-                <View key={index} style={styles.recommendationCard}>
-                  <View style={styles.recommendationHeader}>
-                    <View style={styles.recommendationBullet} />
-                    <Text style={styles.recommendationTitle}>
-                      {language === "si"
-                        ? (rec.title_sinhala || rec.title_si || rec.title_english || rec.title_en || rec.title)
-                        : language === "ta" ? (rec.title_tamil || rec.title_ta || rec.title_english || rec.title_en || rec.title)
-                          : (rec.title_english || rec.title_en || rec.title_sinhala || rec.title_si || rec.title)}
-                    </Text>
-                  </View>
-                  <Text style={styles.recommendationText}>
-                    {language === "si"
-                      ? (rec.description_sinhala || rec.description_si || rec.description_english || rec.description_en || rec.description)
-                      : language === "ta" ? (rec.description_tamil || rec.description_ta || rec.description_english || rec.description_en || rec.description)
-                        : (rec.description_english || rec.description_en || rec.description_sinhala || rec.description_si || rec.description)}
-                  </Text>
-                  {rec.priority && (
-                    <View style={[
-                      styles.priorityBadge,
-                      {
-                        backgroundColor:
-                          rec.priority === "high" || rec.priority === "High"
-                            ? "#FEE2E2"
-                            : rec.priority === "medium" || rec.priority === "Medium"
-                              ? "#FEF3C7"
-                              : "#DBEAFE",
-                      },
-                    ]}>
-                      <Text style={[
-                        styles.priorityText,
-                        {
-                          color:
-                            rec.priority === "high" || rec.priority === "High"
-                              ? "#EF4444"
-                              : rec.priority === "medium" || rec.priority === "Medium"
-                                ? "#F59E0B"
-                                : "#3B82F6",
-                        },
-                      ]}>
-                        {rec.priority.toUpperCase()}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Seed Variety Comparison */}
-          {suggestedVariety && varietyPotentialYield && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Leaf color="#10B981" size={20} />
-                </View>
-                <Text style={styles.sectionTitle}>
-                  {content[language].varietyComparison}
-                </Text>
-              </View>
-
-              <View style={styles.comparisonTable}>
-                <View style={styles.comparisonRow}>
-                  <Text style={styles.comparisonLabel}>{content[language].currentVariety}</Text>
-                  <Text style={styles.comparisonValue}>{currentVariety}</Text>
-                </View>
-                <View style={styles.comparisonRow}>
-                  <Text style={styles.comparisonLabel}>{content[language].suggestedVariety}</Text>
-                  <Text style={[styles.comparisonValue, { color: "#10B981", fontWeight: "700" }]}>{suggestedVariety}</Text>
-                </View>
-                <View style={styles.comparisonRow}>
-                  <Text style={styles.comparisonLabel}>{content[language].potentialYield}</Text>
-                  <Text style={styles.comparisonValue}>
-                    {(varietyPotentialYield / 1000).toFixed(2)} {content[language].tonsPerHa}
-                  </Text>
-                </View>
-                <View style={[styles.comparisonRow, styles.comparisonRowHighlight]}>
-                  <Text style={styles.comparisonLabelBold}>{content[language].yieldIncrease}</Text>
-                  <Text style={[styles.comparisonValueBold, { color: "#10B981" }]}>
-                    +{varietyYieldIncrease?.toFixed(1)}%
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.infoBox}>
-                <AlertCircle color="#10B981" size={16} />
-                <Text style={styles.infoBoxText}>
-                  {language === "si"
-                    ? `${suggestedVariety} භාවිතා කිරීමෙන් ඔබට අස්වැන්න ${varietyYieldIncrease?.toFixed(1)}% කින් වැඩි කර ගත හැකිය`
-                    : language === "ta" ? `${suggestedVariety} பயன்படுத்துவதன் மூலம் விளைச்சலை ${varietyYieldIncrease?.toFixed(1)}% அதிகரிக்கலாம்`
-                      : `By using ${suggestedVariety}, you can increase yield by ${varietyYieldIncrease?.toFixed(1)}%`}
-                </Text>
-              </View>
-            </View>
-          )}
 
           {/* Irrigation System Comparison */}
           {suggestedIrrigation && irrigationPotentialYield && currentIrrigation !== suggestedIrrigation && (
@@ -712,114 +597,52 @@ const YieldPredictionResultsScreen = () => {
             </View>
           )}
 
-          {/* Yield Converter - Real-time Calculator */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionIconContainer}>
-                <TrendingUp color="#10B981" size={20} />
-              </View>
-              <Text style={styles.sectionTitle}>
-                {content[language].yieldConverter}
-              </Text>
-            </View>
-
-            <View style={styles.converterCard}>
-              {/* Input Section */}
-              <View style={styles.converterInputSection}>
-                <Text style={styles.converterLabel}>
-                  {content[language].enterExpectedYield}:
-                </Text>
-                <View style={styles.converterInputRow}>
-                  <TextInput
-                    style={styles.converterInput}
-                    value={expectedYieldInput}
-                    onChangeText={setExpectedYieldInput}
-                    keyboardType="decimal-pad"
-                    placeholder="0"
-                    placeholderTextColor="#9CA3AF"
-                  />
-
-                  {/* Unit Selector */}
-                  <View style={styles.unitSelector}>
-                    <TouchableOpacity
-                      style={[styles.unitButton, yieldUnit === "kg" && styles.unitButtonActive]}
-                      onPress={() => setYieldUnit("kg")}
-                    >
-                      <Text style={[styles.unitButtonText, yieldUnit === "kg" && styles.unitButtonTextActive]}>
-                        {content[language].kilograms}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.unitButton, yieldUnit === "tons" && styles.unitButtonActive]}
-                      onPress={() => setYieldUnit("tons")}
-                    >
-                      <Text style={[styles.unitButtonText, yieldUnit === "tons" && styles.unitButtonTextActive]}>
-                        {content[language].tons}
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.unitButton, yieldUnit === "bushels" && styles.unitButtonActive]}
-                      onPress={() => setYieldUnit("bushels")}
-                    >
-                      <Text style={[styles.unitButtonText, yieldUnit === "bushels" && styles.unitButtonTextActive]}>
-                        {content[language].bushels}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+          {/* Yield Converter - Based on Harvest Calculator */}
+          {landSizeHa > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <TrendingUp color="#10B981" size={20} />
                 </View>
+                <Text style={styles.sectionTitle}>
+                  {content[language].yieldConverter}
+                </Text>
               </View>
 
-              {/* Conversion Results */}
-              {expectedYieldValue > 0 && (
-                <View style={styles.converterResults}>
-                  <Text style={styles.converterResultsTitle}>
-                    {content[language].convertTo}:
-                  </Text>
+              <View style={styles.converterCard}>
+                <Text style={styles.converterLabel}>
+                  {language === "si" ? "ඔබේ මුළු අස්වැන්න:" : language === "ta" ? "உங்கள் மொத்த அறுவடை:" : "Your Total Harvest:"}
+                </Text>
 
+                {/* Conversion Results */}
+                <View style={styles.converterResults}>
                   <View style={styles.converterResultRow}>
                     <View style={styles.converterResultItem}>
                       <Text style={styles.converterResultLabel}>{content[language].kilograms}</Text>
                       <Text style={styles.converterResultValue}>
-                        {convertedYields.kg.toFixed(2)}
+                        {convertedYields.kg.toFixed(0)}
                       </Text>
                     </View>
 
                     <View style={styles.converterResultItem}>
                       <Text style={styles.converterResultLabel}>{content[language].tons}</Text>
                       <Text style={styles.converterResultValue}>
-                        {convertedYields.tons.toFixed(3)}
+                        {convertedYields.tons.toFixed(2)}
                       </Text>
                     </View>
 
                     <View style={styles.converterResultItem}>
                       <Text style={styles.converterResultLabel}>{content[language].bushels}</Text>
                       <Text style={styles.converterResultValue}>
-                        {convertedYields.bushels.toFixed(2)}
+                        {convertedYields.bushels.toFixed(1)}
                       </Text>
                     </View>
                   </View>
                 </View>
-              )}
-            </View>
-          </View>
-
-          {/* Summary */}
-          {summaryText && (
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <View style={styles.sectionIconContainer}>
-                  <Leaf color="#10B981" size={20} />
-                </View>
-                <Text style={styles.sectionTitle}>
-                  {content[language].summary}
-                </Text>
-              </View>
-
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryText}>{summaryText}</Text>
               </View>
             </View>
           )}
+
 
           {/* Request Advice Button */}
           <TouchableOpacity

@@ -24,6 +24,7 @@ import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNe
 import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
 import SubscriptionPlansScreen from "../screens/Payment/SubscriptionPlansScreen";
+import SoilTestRequestScreen from "../screens/YieldPrediction/SoilTestRequestScreen";
 import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
 import ProAdvisorAdminEditScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminEditScreen";
 import ProAdvisorFollowScreen from "../screens/PriceForecast/ProAdvisorFollowScreen";
@@ -170,6 +171,9 @@ export default function RootNavigator() {
       <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+
+      {/* SOIL TEST REQUEST (Pro) */}
+      <Stack.Screen name="SoilTestRequest" component={SoilTestRequestScreen} />
 
       <Stack.Screen
         name="AgricultureDepartmentScreen"

@@ -30,6 +30,13 @@ import ViewAdviceRequestDetailsScreen from "../screens/YieldPrediction/ViewAdvic
 import ProvideAdviceScreen from "../screens/YieldPrediction/ProvideAdviceScreen";
 import MyAdviceRequestsScreen from "../screens/YieldPrediction/MyAdviceRequestsScreen";
 
+// Soil Test Request Screen
+import SoilTestRequestScreen from "../screens/YieldPrediction/SoilTestRequestScreen";
+
+// Edit Fertilizer Plans Screens
+import EditFertilizerPlansScreen from "../screens/YieldPrediction/EditFertilizerPlansScreen";
+import EditFertilizerPlanDetailScreen from "../screens/YieldPrediction/EditFertilizerPlanDetailScreen";
+
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
@@ -60,6 +67,9 @@ export type YieldPredictionStackParamList = {
   ViewAdviceRequestDetailsScreen: { requestId: string };
   ProvideAdviceScreen: { requestId: string };
   MyAdviceRequestsScreen: undefined;
+  SoilTestRequest: undefined;
+  EditFertilizerPlans: undefined;
+  EditFertilizerPlanDetail: { plan: any; isFromSupabase?: boolean };
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -137,6 +147,18 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="MyAdviceRequestsScreen"
         component={MyAdviceRequestsScreen}
+      />
+      <Stack.Screen
+        name="SoilTestRequest"
+        component={SoilTestRequestScreen}
+      />
+      <Stack.Screen
+        name="EditFertilizerPlans"
+        component={EditFertilizerPlansScreen}
+      />
+      <Stack.Screen
+        name="EditFertilizerPlanDetail"
+        component={EditFertilizerPlanDetailScreen}
       />
     </Stack.Navigator>
   );

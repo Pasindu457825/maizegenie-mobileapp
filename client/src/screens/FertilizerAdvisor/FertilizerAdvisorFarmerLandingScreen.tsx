@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
@@ -8,10 +8,11 @@ import {
     Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { ArrowLeft, Sparkles, MessageCircle, AlertCircle, BookOpen } from "lucide-react-native";
+import { ArrowLeft, Sparkles, MessageCircle, AlertCircle } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import ProUpgradePopup from "../../components/ProUpgradePopup";
 
 type Language = "si" | "en" | "ta";
 
@@ -53,6 +54,20 @@ export default function FertilizerAdvisorLandingScreen() {
     const { user } = useApp();
     const { language: lang } = useLanguage();
     const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
+    const [showProPopup, setShowProPopup] = useState(false);
+
+    // Compute active subscription status from user profile
+    const hasActiveSubscription = (() => {
+        if (!user?.is_paid_user) return false;
+        const endRaw = user?.subscription_end_date;
+        if (!endRaw) return false;
+        try {
+            const endDate = new Date(String(endRaw).replace("Z", "+00:00"));
+            return endDate > new Date();
+        } catch {
+            return false;
+        }
+    })();
 
     // Check if user is a farmer
     useEffect(() => {
@@ -203,36 +218,20 @@ export default function FertilizerAdvisorLandingScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Knowledge Bank Card */}
-                    <TouchableOpacity
-                        style={styles.serviceCard}
-                        onPress={() => navigation.navigate("KnowledgeBankMain")}
-                        activeOpacity={0.7}
-                    >
-                        <LinearGradient
-                            colors={["#FEF3C7", "#FDE68A"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.serviceCardGradient}
-                        >
-                            <View style={[styles.serviceIconContainer, { backgroundColor: "#FDE68A" }]}>
-                                <BookOpen color="#F59E0B" size={28} />
-                            </View>
-                            <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.knowledgeBank}</Text>
-                                <Text style={styles.serviceDescription}>
-                                    {t.knowledgeBankDescription}
-                                </Text>
-                            </View>
-                            <View style={styles.serviceArrow}>
-                                <Text style={styles.serviceArrowText}>→</Text>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
                 </View>
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Pro Upgrade Popup */}
+            <ProUpgradePopup
+                visible={showProPopup}
+                onClose={() => setShowProPopup(false)}
+                onUpgrade={() => {
+                    setShowProPopup(false);
+                    navigation.navigate("SubscriptionPlans");
+                }}
+            />
         </View>
     );
 }

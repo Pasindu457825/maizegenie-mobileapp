@@ -177,33 +177,6 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
 
                 {/* Services Section */}
                 <View style={styles.servicesSection}>
-                    {/* Rule-Based Advisory Card */}
-                    <TouchableOpacity
-                        style={styles.serviceCard}
-                        onPress={() => navigation.navigate("OfficerAdvisoryInputScreen")}
-                        activeOpacity={0.7}
-                    >
-                        <LinearGradient
-                            colors={["#ECFDF5", "#D1FAE5"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.serviceCardGradient}
-                        >
-                            <View style={[styles.serviceIconContainer, { backgroundColor: "#A7F3D0" }]}>
-                                <Sparkles color="#059669" size={28} />
-                            </View>
-                            <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.ruleBasedAdvisory}</Text>
-                                <Text style={styles.serviceDescription}>
-                                    {t.ruleBasedDescription}
-                                </Text>
-                            </View>
-                            <View style={styles.serviceArrow}>
-                                <Text style={styles.serviceArrowText}>→</Text>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
-
                     {/* Chat With Farmers Card */}
                     <TouchableOpacity
                         style={styles.serviceCard}
@@ -231,32 +204,6 @@ export default function FertilizerAdvisorOfficerLandingScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    {/* Recommendation History Card */}
-                    <TouchableOpacity
-                        style={styles.serviceCard}
-                        onPress={() => handleComingSoon(t.recommendations)}
-                        activeOpacity={0.7}
-                    >
-                        <LinearGradient
-                            colors={["#F3E8FF", "#E9D5FF"]}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.serviceCardGradient}
-                        >
-                            <View style={[styles.serviceIconContainer, { backgroundColor: "#E9D5FF" }]}>
-                                <FileText color="#9333ea" size={28} />
-                            </View>
-                            <View style={styles.serviceContent}>
-                                <Text style={styles.serviceTitle}>{t.recommendations}</Text>
-                                <Text style={styles.serviceDescription}>
-                                    {t.recommendationsDescription}
-                                </Text>
-                            </View>
-                            <View style={styles.serviceArrow}>
-                                <Text style={styles.serviceArrowText}>→</Text>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
                 </View>
 
                 <View style={{ height: 40 }} />

@@ -10,7 +10,7 @@
 export interface CornVariety {
   id: string;
   name: string;
-  type: 'hybrid' | 'open_pollinated';
+  type: 'hybrid' | 'open_pollinated' | 'local';
   yieldPotential: {
     min: number; // tons/ha
     max: number; // tons/ha
@@ -38,9 +38,9 @@ export const CORN_VARIETIES: Record<string, CornVariety> = {
     growthDuration: 110,
     suitableSeasons: ['Maha', 'Yala']
   },
-  'GT 200': {
-    id: 'gt_200',
-    name: 'GT 200',
+  'GT200': {
+    id: 'gt200',
+    name: 'GT200',
     type: 'hybrid',
     yieldPotential: { min: 4.5, max: 6, average: 5.2 },
     characteristics: [
@@ -49,7 +49,7 @@ export const CORN_VARIETIES: Record<string, CornVariety> = {
       'Stable performance',
       'Good for Dry Zone'
     ],
-    fertilizerMultiplier: 1.0,
+    fertilizerMultiplier: 0.95,
     growthDuration: 105,
     suitableSeasons: ['Maha', 'Yala']
   },
@@ -64,7 +64,7 @@ export const CORN_VARIETIES: Record<string, CornVariety> = {
       'Requires optimal management',
       'Best for well-managed farms'
     ],
-    fertilizerMultiplier: 1.0,
+    fertilizerMultiplier: 1.1,
     growthDuration: 115,
     suitableSeasons: ['Maha', 'Yala']
   },
@@ -79,7 +79,7 @@ export const CORN_VARIETIES: Record<string, CornVariety> = {
       'Popular in Dry Zone',
       'Used in fertilizer trials'
     ],
-    fertilizerMultiplier: 1.0,
+    fertilizerMultiplier: 1.03,
     growthDuration: 110,
     suitableSeasons: ['Maha', 'Yala']
   },
@@ -94,38 +94,23 @@ export const CORN_VARIETIES: Record<string, CornVariety> = {
       'Strong farmer uptake',
       'Good performance across seasons'
     ],
-    fertilizerMultiplier: 1.0,
+    fertilizerMultiplier: 1.05,
     growthDuration: 112,
     suitableSeasons: ['Maha', 'Yala']
   },
-  'Bhadra': {
-    id: 'bhadra',
-    name: 'Bhadra',
-    type: 'open_pollinated',
-    yieldPotential: { min: 2.5, max: 3.5, average: 3.0 },
+  'Local Variety': {
+    id: 'local_variety',
+    name: 'Local Variety',
+    type: 'local',
+    yieldPotential: { min: 2.5, max: 4, average: 3.2 },
     characteristics: [
-      'Popular yellow-grain variety',
-      'DOA-released OP variety',
-      'Hardy and reliable',
-      'Lower input requirements'
+      'Traditional local maize variety',
+      'Hardy and reliable under low-input conditions',
+      'Lower fertilizer requirements (75% of hybrid rates)',
+      'Well-adapted to local conditions'
     ],
     fertilizerMultiplier: 0.75,
     growthDuration: 100,
-    suitableSeasons: ['Maha', 'Yala']
-  },
-  'MI Maize Hybrid 02': {
-    id: 'mi_hybrid_02',
-    name: 'MI Maize Hybrid 02',
-    type: 'hybrid',
-    yieldPotential: { min: 5.5, max: 8, average: 6.5 },
-    characteristics: [
-      'DOA hybrid variety',
-      'Good yield potential',
-      'Suitable for local conditions',
-      'Proven in trials'
-    ],
-    fertilizerMultiplier: 1.0,
-    growthDuration: 110,
     suitableSeasons: ['Maha', 'Yala']
   }
 };
@@ -357,7 +342,7 @@ export const YIELD_FACTORS = {
   variety_selection: {
     hybrid_advantage: 'Hybrids yield ~40% higher than OP varieties',
     top_hybrids: 'GT 709, Pacific 808, Commando for maximum yield',
-    op_varieties: 'Bhadra, Ruwan for lower-input farming'
+    op_varieties: 'Local varieties for lower-input farming'
   }
 };
 
