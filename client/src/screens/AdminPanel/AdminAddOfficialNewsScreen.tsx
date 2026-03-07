@@ -39,20 +39,20 @@ export default function AdminAddOfficialNewsScreen() {
   const { language } = useLanguage();
 
   // Dynamic API URL using .env + Platform detection
-const getApiUrl = () => {
-  if (Platform.OS === "android") {
-    // Real Android Device → Uses .env
-    return process.env.EXPO_PUBLIC_API_BASE;
-  } else if (Platform.OS === "ios") {
-    // iOS simulator
-    return "http://localhost:8000";
-  } else {
-    // Expo Web fallback
-    return "http://localhost:8000";
-  }
-};
+  const getApiUrl = () => {
+    if (Platform.OS === "android") {
+      // Real Android Device → Uses .env
+      return process.env.EXPO_PUBLIC_API_BASE;
+    } else if (Platform.OS === "ios") {
+      // iOS simulator
+      return "http://localhost:8000";
+    } else {
+      // Expo Web fallback
+      return "http://localhost:8000";
+    }
+  };
 
-const API_URL = getApiUrl();
+  const API_URL = getApiUrl();
 
   // UI language
   const uiLang: "si" | "en" | "ta" =
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F8E9",
   },
   header: {
-    paddingTop: Platform.OS === "ios" ? 52 : 18,
+    paddingTop: Platform.OS === "ios" ? 72 : 28,
     paddingBottom: 16,
     paddingHorizontal: 16,
     backgroundColor: "#2E7D32",
