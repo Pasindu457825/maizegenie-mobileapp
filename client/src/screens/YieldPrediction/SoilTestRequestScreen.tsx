@@ -11,37 +11,50 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
+    TextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { TextInput } from "react-native-paper";
 import {
     ArrowLeft,
     TestTube,
     Send,
     User,
     MapPin,
-    Leaf,
     Ruler,
     Droplets,
-    Calendar,
-    FlaskConical,
+    FileText,
+    Archive,
 } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { getOrCreateRoom } from "../../services/chatRoomApi";
+import CustomDropdown from "../../components/CustomDropdown";
+import { DISTRICTS as DISTRICT_LIST, DISTRICTS_SINHALA, LOCATIONS_BY_DISTRICT, LOCATIONS_SINHALA } from "../../constants/locations";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ─── Translations ────────────────────────────────────────────────────────────
 
+const IRRIGATION_TYPES_SI = [
+    { label: "වාරිමාර්ග", value: "Irrigated" },
+    { label: "වැසි ජලය", value: "Rainfed" },
+    { label: "මිශ්‍ර", value: "Mixed" },
+];
+
+const IRRIGATION_TYPES_EN = [
+    { label: "Irrigated", value: "Irrigated" },
+    { label: "Rainfed", value: "Rainfed" },
+    { label: "Mixed", value: "Mixed" },
+];
+
 const content = {
-    sinhala: {
+    si: {
         headerTitle: "පස් පරීක්ෂණ ඉල්ලීම",
         headerSubtitle: "ඔබේ භූමිය පිළිබඳ විවරණය",
         intro:
-            "පහත ඇති පෝරමය සම්පූර්ණ කරා. ඔබේ කෘෂිකාර්මික නිලධාරියාට ඉල්ලීම යැවෙනු ඇත.",
+            "පහත ඇති පෝරමය සම්පූර්ණ කරන්න. ඔබේ කෘෂිකාර්මික නිලධාරියාට ඉල්ලීම යැවෙනු ඇත.",
         sectionPersonal: "🧑‍🌾 පෞද්ගලික තොරතුරු",
-        sectionLand: "🌱 ඉඩම් හා ගොවිතැන් තොරතුරු",
-        sectionSoil: "🔬 පස් සහ ජල විස්තර",
+        sectionLand: "🌱 ඉඩම් විස්තර",
         fullName: "සම්පූර්ණ නම",
         fullNamePH: "ඔබේ නම ඇතුළත් කරන්න",
         nic: "ජාතික හැඳුනුම්පත් අංකය",
@@ -49,23 +62,15 @@ const content = {
         phone: "දූරකථන අංකය",
         phonePH: "07XXXXXXXX",
         district: "දිස්ත්‍රික්කය",
-        districtPH: "දිස්ත්‍රික්කය ඇතුළත් කරන්න",
-        village: "ග්‍රාමය / ප්‍රදේශය",
-        villagePH: "ග්‍රාමය ඇතුළත් කරන්න",
+        districtPH: "දිස්ත්‍රික්කය තෝරන්න",
+        location: "ස්ථානය",
+        locationPH: "ස්ථානය තෝරන්න",
         landSize: "ඉඩම් ප්‍රමාණය (අක්කර)",
         landSizePH: "උදා: 2.5",
-        cropVariety: "රෝපිත ප්‍රභේදය",
-        cropVarietyPH: "උදා: H614D",
-        plantingDate: "රෝපිත දිනය",
-        plantingDatePH: "YYYY-MM-DD",
-        season: "ඍතුව",
-        seasonPH: "yala / maha",
         irrigationType: "ජල සපයා ගැනීමේ ක්‍රමය",
-        irrigationTypePH: "rain-fed / irrigated",
-        previousCrop: "කලින් ගොවිතැන් කළ බෝගය",
-        previousCropPH: "කලිනි බෝගය",
+        irrigationTypePH: "තෝරන්න",
         additionalNotes: "වෙනත් සටහන්",
-        additionalNotesPH: "අමතර තොරතුරු...",
+        additionalNotesPH: "අමතර තොරතුරු ඇතුළත් කරන්න...",
         submit: "ඉල්ලීම යවන්න",
         submitting: "යවමින්...",
         requiredError: "කරුණාකර සියලු අවශ්‍ය ක්ෂේත්‍ර සම්පූර්ණ කරන්න",
@@ -75,14 +80,13 @@ const content = {
         errorTitle: "දෝෂයකි",
         errorMsg: "ඉල්ලීම යවීමේදී දෝෂයක් ඇතිවිය. නැවත උත්සාහ කරන්න.",
     },
-    english: {
+    en: {
         headerTitle: "Soil Test Request",
         headerSubtitle: "Tell us about your field",
         intro:
             "Fill the form below. Your request will be sent directly to your district Agriculture Officer.",
         sectionPersonal: "🧑‍🌾 Personal Information",
-        sectionLand: "🌱 Land & Cultivation Details",
-        sectionSoil: "🔬 Soil & Water Details",
+        sectionLand: "🌱 Land Details",
         fullName: "Full Name",
         fullNamePH: "Enter your full name",
         nic: "NIC Number",
@@ -90,23 +94,15 @@ const content = {
         phone: "Phone Number",
         phonePH: "07XXXXXXXX",
         district: "District",
-        districtPH: "Enter your district",
-        village: "Village / Area",
-        villagePH: "Enter village",
+        districtPH: "Select district",
+        location: "Location",
+        locationPH: "Select location",
         landSize: "Land Size (acres)",
         landSizePH: "e.g. 2.5",
-        cropVariety: "Crop Variety",
-        cropVarietyPH: "e.g. H614D",
-        plantingDate: "Planting Date",
-        plantingDatePH: "YYYY-MM-DD",
-        season: "Season",
-        seasonPH: "yala / maha",
         irrigationType: "Irrigation Type",
-        irrigationTypePH: "rain-fed / irrigated",
-        previousCrop: "Previous Crop",
-        previousCropPH: "Previous crop grown",
+        irrigationTypePH: "Select",
         additionalNotes: "Additional Notes",
-        additionalNotesPH: "Any extra information...",
+        additionalNotesPH: "Enter any additional information...",
         submit: "Send Request",
         submitting: "Sending...",
         requiredError: "Please fill in all required fields",
@@ -116,47 +112,6 @@ const content = {
         errorTitle: "Error",
         errorMsg: "Failed to send the request. Please try again.",
     },
-    tamil: {
-        headerTitle: "மண் பரிசோதனை கோரிக்கை",
-        headerSubtitle: "உங்கள் நிலம் பற்றி சொல்லுங்கள்",
-        intro:
-            "கீழே உள்ள படிவத்தை நிரப்புங்கள். உங்கள் கோரிக்கை மாவட்ட விவசாய அதிகாரிக்கு அனுப்பப்படும்.",
-        sectionPersonal: "🧑‍🌾 தனிப்பட்ட தகவல்",
-        sectionLand: "🌱 நில & சாகுபடி விவரங்கள்",
-        sectionSoil: "🔬 மண் & நீர் விவரங்கள்",
-        fullName: "முழு பெயர்",
-        fullNamePH: "உங்கள் பெயரை உள்ளிடுங்கள்",
-        nic: "தேசிய அடையாள அட்டை எண்",
-        nicPH: "NIC உள்ளிடுங்கள்",
-        phone: "தொலைபேசி எண்",
-        phonePH: "07XXXXXXXX",
-        district: "மாவட்டம்",
-        districtPH: "மாவட்டத்தை உள்ளிடுங்கள்",
-        village: "கிராமம் / பகுதி",
-        villagePH: "கிராமத்தை உள்ளிடுங்கள்",
-        landSize: "நில அளவு (ஏக்கர்)",
-        landSizePH: "எ.கா: 2.5",
-        cropVariety: "பயிர் வகை",
-        cropVarietyPH: "எ.கா: H614D",
-        plantingDate: "நடும் தேதி",
-        plantingDatePH: "YYYY-MM-DD",
-        season: "பருவம்",
-        seasonPH: "yala / maha",
-        irrigationType: "நீர்ப்பாசன வகை",
-        irrigationTypePH: "மழை / நீர்ப்பாசனம்",
-        previousCrop: "முந்தைய பயிர்",
-        previousCropPH: "முந்தைய பயிர்",
-        additionalNotes: "கூடுதல் குறிப்புகள்",
-        additionalNotesPH: "கூடுதல் தகவல்...",
-        submit: "கோரிக்கை அனுப்பு",
-        submitting: "அனுப்புகிறோம்...",
-        requiredError: "அனைத்து தேவையான புலங்களையும் நிரப்பவும்",
-        successTitle: "கோரிக்கை அனுப்பப்பட்டது! ✅",
-        successMsg:
-            "உங்கள் மண் பரிசோதனை கோரிக்கை மாவட்ட விவசாய அதிகாரிக்கு வெற்றிகரமாக அனுப்பப்பட்டது.",
-        errorTitle: "பிழை",
-        errorMsg: "கோரிக்கையை அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
-    },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -165,7 +120,7 @@ export default function SoilTestRequestScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const { language: lang } = useLanguage();
-    const language = lang === "sinhala" ? "sinhala" : lang === "tamil" ? "tamil" : "english";
+    const language = lang === "sinhala" ? "si" : lang === "tamil" ? "en" : "en";
     const t = content[language];
 
     // ── Form state ──
@@ -173,18 +128,153 @@ export default function SoilTestRequestScreen() {
     const [nic, setNic] = useState("");
     const [phone, setPhone] = useState("");
     const [district, setDistrict] = useState(user?.district || "");
-    const [village, setVillage] = useState("");
+    const [location, setLocation] = useState("");
     const [landSize, setLandSize] = useState("");
-    const [cropVariety, setCropVariety] = useState("");
-    const [plantingDate, setPlantingDate] = useState("");
-    const [season, setSeason] = useState("");
     const [irrigationType, setIrrigationType] = useState("");
-    const [previousCrop, setPreviousCrop] = useState("");
     const [additionalNotes, setAdditionalNotes] = useState("");
     const [submitting, setSubmitting] = useState(false);
 
+    // Get districts based on language
+    const getDistrictKey = (displayName: string): string => {
+        if (language === "si") {
+            const entry = Object.entries(DISTRICTS_SINHALA).find(([_, sinhala]) => sinhala === displayName);
+            return entry ? entry[0] : displayName;
+        }
+        return displayName;
+    };
+
+    const districts = language === "si" 
+        ? Object.values(DISTRICTS_SINHALA)
+        : DISTRICT_LIST;
+    const districtOptions = Array.isArray(districts) 
+        ? districts.map((d: string) => ({ label: d, value: d }))
+        : [];
+    const irrigationOptions = language === "si" ? IRRIGATION_TYPES_SI : IRRIGATION_TYPES_EN;
+
+    // Get locations based on selected district
+    const districtKey = getDistrictKey(district);
+    const availableLocations = districtKey && LOCATIONS_BY_DISTRICT[districtKey] 
+        ? LOCATIONS_BY_DISTRICT[districtKey] 
+        : [];
+    
+    const locationOptions = availableLocations.map((loc: string) => {
+        if (language === "si" && LOCATIONS_SINHALA[districtKey]?.[loc]) {
+            return { label: LOCATIONS_SINHALA[districtKey][loc], value: loc };
+        }
+        return { label: loc, value: loc };
+    });
+
+    // Reset location when district changes
+    React.useEffect(() => {
+        setLocation("");
+    }, [district]);
+
+    // Load saved form data on mount (silent load without alert)
+    React.useEffect(() => {
+        const loadSilently = async () => {
+            try {
+                const saved = await AsyncStorage.getItem("soilTestRequestForm");
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    if (data.fullName) setFullName(data.fullName);
+                    if (data.nic) setNic(data.nic);
+                    if (data.phone) setPhone(data.phone);
+                    if (data.district) setDistrict(data.district);
+                    if (data.location) setLocation(data.location);
+                    if (data.landSize) setLandSize(data.landSize);
+                    if (data.irrigationType) setIrrigationType(data.irrigationType);
+                    if (data.additionalNotes) setAdditionalNotes(data.additionalNotes);
+                }
+            } catch (error) {
+                console.error("Error loading form data:", error);
+            }
+        };
+        loadSilently();
+    }, []);
+
+    const loadFormData = async () => {
+        try {
+            const saved = await AsyncStorage.getItem("soilTestRequestForm");
+            if (saved) {
+                const data = JSON.parse(saved);
+                setFullName(data.fullName || user?.full_name || "");
+                setNic(data.nic || "");
+                setPhone(data.phone || "");
+                setDistrict(data.district || user?.district || "");
+                setLocation(data.location || "");
+                setLandSize(data.landSize || "");
+                setIrrigationType(data.irrigationType || "");
+                setAdditionalNotes(data.additionalNotes || "");
+                
+                Alert.alert(
+                    language === "si" ? "පෝරමය පූරණය කරන ලදී" : "Form Loaded",
+                    language === "si" ? "සුරකින ලද දත්ත පූරණය කරන ලදී" : "Saved data has been loaded"
+                );
+            } else {
+                Alert.alert(
+                    language === "si" ? "දත්ත නැත" : "No Data",
+                    language === "si" ? "සුරකින ලද පෝරම දත්ත නොමැත" : "No saved form data found"
+                );
+            }
+        } catch (error) {
+            console.error("Error loading form data:", error);
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "දත්ත පූරණය කිරීමේදී දෝෂයක් ඇතිවිය" : "Error loading data"
+            );
+        }
+    };
+
+    // Refs for text inputs to prevent keyboard dismissal
+    const nicInputRef = React.useRef<TextInput>(null);
+    const phoneInputRef = React.useRef<TextInput>(null);
+    const landSizeInputRef = React.useRef<TextInput>(null);
+
+    const saveFormData = async () => {
+        try {
+            const formData = {
+                fullName,
+                nic,
+                phone,
+                district,
+                location,
+                landSize,
+                irrigationType,
+                additionalNotes,
+                timestamp: new Date().toISOString(),
+            };
+            await AsyncStorage.setItem("soilTestRequestForm", JSON.stringify(formData));
+        } catch (error) {
+            console.error("Error saving form data:", error);
+        }
+    };
+
+    const handleManualSave = async () => {
+        try {
+            await saveFormData();
+            Alert.alert(
+                language === "si" ? "සුරකින ලදී" : "Saved",
+                language === "si" ? "පෝරම දත්ත සාර්ථකව සුරකින ලදී" : "Form data saved successfully"
+            );
+        } catch (error) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "දත්ත සුරැකීමේදී දෝෂයක් ඇතිවිය" : "Error saving data"
+            );
+        }
+    };
+
+    // Auto-save form data when fields change (debounced)
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            saveFormData();
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [fullName, nic, phone, district, location, landSize, irrigationType, additionalNotes]);
+
+
     const validate = () => {
-        if (!fullName.trim() || !phone.trim() || !district.trim() || !landSize.trim()) {
+        if (!fullName.trim() || !phone.trim() || !district.trim() || !landSize.trim() || !irrigationType.trim()) {
             Alert.alert(t.errorTitle, t.requiredError);
             return false;
         }
@@ -202,17 +292,13 @@ export default function SoilTestRequestScreen() {
             nic ? `NIC        : ${nic}` : null,
             `Phone      : ${phone}`,
             `District   : ${district}`,
-            village ? `Village    : ${village}` : null,
+            location ? `Location   : ${location}` : null,
             ``,
-            `🌱 CULTIVATION DETAILS`,
+            `🌱 LAND DETAILS`,
             `Land Size  : ${landSize} acres`,
-            cropVariety ? `Crop Variety: ${cropVariety}` : null,
-            plantingDate ? `Planted On  : ${plantingDate}` : null,
-            season ? `Season      : ${season}` : null,
-            irrigationType ? `Irrigation  : ${irrigationType}` : null,
-            previousCrop ? `Prev. Crop  : ${previousCrop}` : null,
+            `Irrigation : ${irrigationType}`,
             ``,
-            additionalNotes ? `📋 NOTES\n${additionalNotes}` : null,
+            additionalNotes ? `📋 ADDITIONAL NOTES\n${additionalNotes}` : null,
             ``,
             `━━━━━━━━━━━━━━━━━━━━━━`,
             `[PRO MEMBER - Soil Test Request]`,
@@ -231,9 +317,11 @@ export default function SoilTestRequestScreen() {
         setSubmitting(true);
         try {
             // Get or create the farmer ↔ officer chat room
-            const room = await getOrCreateRoom(String(user.id), user.district);
+            const districtForRoom = getDistrictKey(district) || user.district;
+            const room = await getOrCreateRoom(String(user.id), districtForRoom);
             const roomId = String(room.id);
 
+            // Navigate to chat with prefilled message
             navigation.navigate("Chat", {
                 roomId: null,
                 userId: null,
@@ -241,12 +329,8 @@ export default function SoilTestRequestScreen() {
                 context: "soil_test_request",
             });
 
-            Alert.alert(t.successTitle, t.successMsg, [
-                {
-                    text: "OK",
-                    onPress: () => { },
-                },
-            ]);
+            // Clear saved form data after successful submission
+            await AsyncStorage.removeItem("soilTestRequestForm");
         } catch (e) {
             console.error("Soil test request error:", e);
             Alert.alert(t.errorTitle, t.errorMsg);
@@ -255,40 +339,6 @@ export default function SoilTestRequestScreen() {
         }
     };
 
-    const InputField = ({
-        label,
-        value,
-        onChange,
-        placeholder,
-        icon,
-        keyboardType = "default" as any,
-        multiline = false,
-    }: {
-        label: string;
-        value: string;
-        onChange: (v: string) => void;
-        placeholder: string;
-        icon: any;
-        keyboardType?: any;
-        multiline?: boolean;
-    }) => (
-        <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>{label}</Text>
-            <TextInput
-                mode="outlined"
-                value={value}
-                onChangeText={onChange}
-                placeholder={placeholder}
-                keyboardType={keyboardType}
-                multiline={multiline}
-                numberOfLines={multiline ? 3 : 1}
-                style={[styles.input, multiline && { height: 80 }]}
-                outlineColor="#d1d5db"
-                activeOutlineColor="#6366f1"
-                left={<TextInput.Icon icon={() => <>{icon}</>} />}
-            />
-        </View>
-    );
 
     return (
         <KeyboardAvoidingView
@@ -298,7 +348,7 @@ export default function SoilTestRequestScreen() {
             <View style={styles.container}>
                 {/* ─── Header ───────────────────────────────── */}
                 <LinearGradient
-                    colors={["#6366f1", "#4f46e5"]}
+                    colors={["#10b981", "#059669"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={styles.header}
@@ -310,11 +360,16 @@ export default function SoilTestRequestScreen() {
                         <ArrowLeft size={24} color="#ffffff" />
                     </TouchableOpacity>
                     <View style={styles.headerCenter}>
-                        <View style={styles.headerIcon}>
-                            <TestTube size={28} color="#a5b4fc" />
-                        </View>
                         <Text style={styles.headerTitle}>{t.headerTitle}</Text>
                         <Text style={styles.headerSubtitle}>{t.headerSubtitle}</Text>
+                    </View>
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity onPress={loadFormData} style={styles.headerIconButton}>
+                            <Archive color="#FFFFFF" size={20} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleManualSave} style={styles.headerIconButton}>
+                            <Archive color="#FFFFFF" size={20} fill="#FFFFFF" />
+                        </TouchableOpacity>
                     </View>
                 </LinearGradient>
 
@@ -327,108 +382,149 @@ export default function SoilTestRequestScreen() {
                 >
                     {/* Intro */}
                     <View style={styles.infoBanner}>
-                        <TestTube size={18} color="#6366f1" />
+                        <TestTube size={18} color="#10b981" />
                         <Text style={styles.infoBannerText}>{t.intro}</Text>
                     </View>
 
-                    {/* ── Personal Info ─────────────────────── */}
-                    <Text style={styles.sectionHeader}>{t.sectionPersonal}</Text>
+                    {/* ── Personal Info Section ─────────────────────── */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>{t.sectionPersonal}</Text>
 
-                    <InputField
-                        label={`${t.fullName} *`}
-                        value={fullName}
-                        onChange={setFullName}
-                        placeholder={t.fullNamePH}
-                        icon={<User size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={t.nic}
-                        value={nic}
-                        onChange={setNic}
-                        placeholder={t.nicPH}
-                        icon={<User size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={`${t.phone} *`}
-                        value={phone}
-                        onChange={setPhone}
-                        placeholder={t.phonePH}
-                        icon={<User size={18} color="#6366f1" />}
-                        keyboardType="phone-pad"
-                    />
-                    <InputField
-                        label={`${t.district} *`}
-                        value={district}
-                        onChange={setDistrict}
-                        placeholder={t.districtPH}
-                        icon={<MapPin size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={t.village}
-                        value={village}
-                        onChange={setVillage}
-                        placeholder={t.villagePH}
-                        icon={<MapPin size={18} color="#6366f1" />}
-                    />
+                        {/* Full Name */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>
+                                {t.fullName}<Text style={styles.required}> *</Text>
+                            </Text>
+                            <View style={styles.inputWrapper}>
+                                <View style={styles.iconContainer}>
+                                    <User size={18} color="#10b981" />
+                                </View>
+                                <TextInput
+                                    value={fullName}
+                                    onChangeText={setFullName}
+                                    placeholder={t.fullNamePH}
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.input}
+                                />
+                            </View>
+                        </View>
 
-                    {/* ── Land & Cultivation ────────────────── */}
-                    <Text style={styles.sectionHeader}>{t.sectionLand}</Text>
+                        {/* NIC Number */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t.nic}</Text>
+                            <View style={styles.inputWrapper}>
+                                <View style={styles.iconContainer}>
+                                    <User size={18} color="#10b981" />
+                                </View>
+                                <TextInput
+                                    ref={nicInputRef}
+                                    value={nic}
+                                    onChangeText={setNic}
+                                    placeholder={t.nicPH}
+                                    placeholderTextColor="#9CA3AF"
+                                    keyboardType="default"
+                                    style={styles.input}
+                                />
+                            </View>
+                        </View>
 
-                    <InputField
-                        label={`${t.landSize} *`}
-                        value={landSize}
-                        onChange={setLandSize}
-                        placeholder={t.landSizePH}
-                        icon={<Ruler size={18} color="#6366f1" />}
-                        keyboardType="decimal-pad"
-                    />
-                    <InputField
-                        label={t.cropVariety}
-                        value={cropVariety}
-                        onChange={setCropVariety}
-                        placeholder={t.cropVarietyPH}
-                        icon={<Leaf size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={t.plantingDate}
-                        value={plantingDate}
-                        onChange={setPlantingDate}
-                        placeholder={t.plantingDatePH}
-                        icon={<Calendar size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={t.season}
-                        value={season}
-                        onChange={setSeason}
-                        placeholder={t.seasonPH}
-                        icon={<Leaf size={18} color="#6366f1" />}
-                    />
+                        {/* Phone Number */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>
+                                {t.phone}<Text style={styles.required}> *</Text>
+                            </Text>
+                            <View style={styles.inputWrapper}>
+                                <View style={styles.iconContainer}>
+                                    <User size={18} color="#10b981" />
+                                </View>
+                                <TextInput
+                                    ref={phoneInputRef}
+                                    value={phone}
+                                    onChangeText={setPhone}
+                                    placeholder={t.phonePH}
+                                    placeholderTextColor="#9CA3AF"
+                                    keyboardType="default"
+                                    style={styles.input}
+                                />
+                            </View>
+                        </View>
+                        <View style={styles.inputContainer}>
+                            <CustomDropdown
+                                label={t.district}
+                                value={district}
+                                options={districtOptions}
+                                onSelect={setDistrict}
+                                placeholder={t.districtPH}
+                                required
+                            />
+                        </View>
+                        <View style={styles.inputContainer}>
+                            <CustomDropdown
+                                label={t.location}
+                                value={location}
+                                options={locationOptions}
+                                onSelect={setLocation}
+                                placeholder={t.locationPH}
+                                disabled={!district || locationOptions.length === 0}
+                            />
+                        </View>
+                    </View>
 
-                    {/* ── Soil / Water ─────────────────────── */}
-                    <Text style={styles.sectionHeader}>{t.sectionSoil}</Text>
+                    {/* ── Land Data Section ────────────────── */}
+                    <View style={styles.section}>
+                        <Text style={styles.sectionTitle}>{t.sectionLand}</Text>
 
-                    <InputField
-                        label={t.irrigationType}
-                        value={irrigationType}
-                        onChange={setIrrigationType}
-                        placeholder={t.irrigationTypePH}
-                        icon={<Droplets size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={t.previousCrop}
-                        value={previousCrop}
-                        onChange={setPreviousCrop}
-                        placeholder={t.previousCropPH}
-                        icon={<FlaskConical size={18} color="#6366f1" />}
-                    />
-                    <InputField
-                        label={t.additionalNotes}
-                        value={additionalNotes}
-                        onChange={setAdditionalNotes}
-                        placeholder={t.additionalNotesPH}
-                        icon={<FlaskConical size={18} color="#6366f1" />}
-                        multiline
-                    />
+                        {/* Land Size */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>
+                                {t.landSize}<Text style={styles.required}> *</Text>
+                            </Text>
+                            <View style={styles.inputWrapper}>
+                                <View style={styles.iconContainer}>
+                                    <Ruler size={18} color="#10b981" />
+                                </View>
+                                <TextInput
+                                    ref={landSizeInputRef}
+                                    value={landSize}
+                                    onChangeText={setLandSize}
+                                    placeholder={t.landSizePH}
+                                    placeholderTextColor="#9CA3AF"
+                                    keyboardType="default"
+                                    style={styles.input}
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.inputContainer}>
+                            <CustomDropdown
+                                label={t.irrigationType}
+                                value={irrigationType}
+                                options={irrigationOptions}
+                                onSelect={setIrrigationType}
+                                placeholder={t.irrigationTypePH}
+                                required
+                            />
+                        </View>
+
+                        {/* Additional Notes */}
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.label}>{t.additionalNotes}</Text>
+                            <View style={styles.inputWrapper}>
+                                <View style={styles.iconContainer}>
+                                    <FileText size={18} color="#10b981" />
+                                </View>
+                                <TextInput
+                                    value={additionalNotes}
+                                    onChangeText={setAdditionalNotes}
+                                    placeholder={t.additionalNotesPH}
+                                    placeholderTextColor="#9CA3AF"
+                                    multiline
+                                    numberOfLines={4}
+                                    style={[styles.input, styles.multilineInput]}
+                                />
+                            </View>
+                        </View>
+                    </View>
 
                     <View style={{ height: 120 }} />
                 </ScrollView>
@@ -441,7 +537,7 @@ export default function SoilTestRequestScreen() {
                         activeOpacity={0.85}
                     >
                         <LinearGradient
-                            colors={["#6366f1", "#4f46e5"]}
+                            colors={["#10b981", "#059669"]}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
                             style={styles.submitButton}
@@ -470,96 +566,119 @@ export default function SoilTestRequestScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f3ff",
+        backgroundColor: "#E8F5E9",
     },
     header: {
-        paddingTop: 56,
-        paddingBottom: 28,
+        paddingTop: 50,
+        paddingBottom: 20,
         paddingHorizontal: 20,
+        borderBottomLeftRadius: 24,
+        borderBottomRightRadius: 24,
+        flexDirection: "row",
         alignItems: "center",
     },
     backButton: {
-        position: "absolute",
-        top: 56,
-        left: 16,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: "rgba(255,255,255,0.2)",
-        alignItems: "center",
-        justifyContent: "center",
+        marginRight: 12,
     },
     headerCenter: {
-        alignItems: "center",
+        flex: 1,
     },
-    headerIcon: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: "rgba(255,255,255,0.15)",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 12,
+    headerActions: {
+        flexDirection: "row",
+        gap: 8,
+    },
+    headerIconButton: {
+        padding: 8,
+        backgroundColor: "rgba(255, 255, 255, 0.2)",
+        borderRadius: 8,
     },
     headerTitle: {
-        fontSize: 22,
-        fontWeight: "800",
+        fontSize: 20,
+        fontWeight: "700",
         color: "#ffffff",
-        textAlign: "center",
-        marginBottom: 4,
+        marginBottom: 2,
     },
     headerSubtitle: {
         fontSize: 13,
-        color: "rgba(255,255,255,0.8)",
-        textAlign: "center",
-        fontWeight: "500",
+        color: "#D1FAE5",
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 18,
+        paddingHorizontal: 16,
         paddingTop: 20,
-        paddingBottom: 20,
+        paddingBottom: 40,
     },
     infoBanner: {
         flexDirection: "row",
         alignItems: "flex-start",
-        backgroundColor: "#ede9fe",
+        backgroundColor: "#D1FAE5",
         borderRadius: 12,
         padding: 14,
         gap: 10,
         marginBottom: 20,
         borderWidth: 1,
-        borderColor: "#c4b5fd",
+        borderColor: "#A7F3D0",
     },
     infoBannerText: {
         flex: 1,
         fontSize: 13,
-        color: "#4c1d95",
+        color: "#047857",
         lineHeight: 20,
         fontWeight: "500",
     },
-    sectionHeader: {
-        fontSize: 15,
-        fontWeight: "800",
-        color: "#4f46e5",
-        marginBottom: 12,
-        marginTop: 8,
-        letterSpacing: 0.3,
+    section: {
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 3,
     },
-    inputGroup: {
-        marginBottom: 14,
-    },
-    inputLabel: {
-        fontSize: 13,
+    sectionTitle: {
+        fontSize: 18,
         fontWeight: "700",
-        color: "#374151",
-        marginBottom: 6,
+        color: "#000000",
+        marginBottom: 20,
+    },
+    inputContainer: {
+        marginBottom: 20,
+    },
+    label: {
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#000000",
+        marginBottom: 8,
+    },
+    required: {
+        color: "#EF4444",
+    },
+    inputWrapper: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#FFFFFF",
+        borderWidth: 1,
+        borderColor: "#D1D5DB",
+        borderRadius: 12,
+        paddingHorizontal: 16,
+    },
+    iconContainer: {
+        marginRight: 12,
     },
     input: {
-        backgroundColor: "#ffffff",
-        fontSize: 14,
+        flex: 1,
+        paddingVertical: 14,
+        fontSize: 15,
+        color: "#000000",
+    },
+    multilineInput: {
+        minHeight: 100,
+        textAlignVertical: "top",
+        paddingTop: 14,
     },
     footer: {
         position: "absolute",
@@ -568,9 +687,9 @@ const styles = StyleSheet.create({
         right: 0,
         padding: 18,
         paddingBottom: Platform.OS === "ios" ? 32 : 18,
-        backgroundColor: "rgba(245,243,255,0.97)",
+        backgroundColor: "rgba(232,245,233,0.97)",
         borderTopWidth: 1,
-        borderTopColor: "#e0e7ff",
+        borderTopColor: "#D1FAE5",
     },
     submitButton: {
         height: 56,
@@ -579,7 +698,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         gap: 10,
-        shadowColor: "#6366f1",
+        shadowColor: "#10b981",
         shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.4,
         shadowRadius: 16,

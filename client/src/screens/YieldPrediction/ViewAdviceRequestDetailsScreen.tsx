@@ -14,6 +14,7 @@ import type { YieldPredictionStackParamList } from "../../navigation/YieldPredic
 import { ArrowLeft, User, MapPin, Calendar, Droplets, TrendingUp, MessageSquare, Sprout, CheckCircle2, Lightbulb } from "lucide-react-native";
 import { getAdviceRequest } from "../../services/adviceRequestApi";
 import type { AdviceRequest } from "../../services/adviceRequestApi";
+import { useLanguage } from "../../context/LanguageContext";
 
 type NavProp = StackNavigationProp<YieldPredictionStackParamList, "ViewAdviceRequestDetailsScreen">;
 
@@ -21,6 +22,46 @@ const ViewAdviceRequestDetailsScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const { requestId } = route.params as { requestId: string };
+  const { language: globalLang } = useLanguage();
+  const si = globalLang === 'sinhala';
+
+  const t = {
+    headerTitle: si ? 'ඉල්ලීම් විස්තර' : 'Request Details',
+    loading: si ? 'ඉල්ලීම් විස්තර පූරණය වෙමින්...' : 'Loading request details...',
+    notFound: si ? 'ඉල්ලීම හමු නොවීය' : 'Request not found',
+    goBack: si ? 'ආපසු යන්න' : 'Go Back',
+    error: si ? 'දෝෂයකි' : 'Error',
+    loadError: si ? 'ඉල්ලීම් විස්තර පූරණය කිරීමට අසමත් විය.' : 'Failed to load request details. Please try again.',
+    yieldEnhancement: si ? 'අස්වැන්න වැඩි කිරීම' : 'Yield Enhancement',
+    seedVariety: si ? 'බීජ ප්‍රභේදය තෝරාගැනීම' : 'Seed Variety Selection',
+    both: si ? 'අස්වැන්න + බීජ ප්‍රභේදය' : 'Both (Yield & Seed)',
+    created: si ? 'සාදන ලද දිනය' : 'Created',
+    farmerMessage: si ? 'ගොවියාගේ පණිවිඩය' : "Farmer's Message",
+    predictionDetails: si ? 'අනාවැකි විස්තර' : 'Prediction Details',
+    predictedYield: si ? 'අනාවැකි අස්වැන්න' : 'Predicted Yield',
+    variety: si ? 'ප්‍රභේදය' : 'Variety',
+    landSize: si ? 'ඉඩම් ප්‍රමාණය' : 'Land Size',
+    locationDetails: si ? 'ස්ථාන විස්තර' : 'Location Details',
+    district: si ? 'දිස්ත්‍රික්කය' : 'District',
+    location: si ? 'ස්ථානය' : 'Location',
+    fieldConditions: si ? 'කෙත් තත්ත්වයන්' : 'Field Conditions',
+    irrigationType: si ? 'වාරිමාර්ග වර්ගය' : 'Irrigation Type',
+    rainfallCondition: si ? 'වර්ෂාපතන තත්ත්වය' : 'Rainfall Condition',
+    plantingDate: si ? 'බීජ සිටුවීමේ දිනය' : 'Planting Date',
+    officerResponse: si ? 'නිලධාරියාගේ ප්‍රතිචාරය' : "Officer's Response",
+    responded: si ? 'ප්‍රතිචාර දිනය' : 'Responded',
+    fertilizerPlan: si ? 'පොහොර සැලැස්ම' : 'Fertilizer Plan',
+    basalApplication: si ? 'මූලික යෙදීම' : 'Basal Application',
+    firstTopDressing: si ? 'පළමු ඉහළ පොහොර යෙදීම' : 'First Top Dressing',
+    secondTopDressing: si ? 'දෙවන ඉහළ පොහොර යෙදීම' : 'Second Top Dressing',
+    cultivationAdvice: si ? 'වගා උපදෙස්' : 'Cultivation Advice',
+    officerNotes: si ? 'නිලධාරියාගේ සටහන්' : "Officer's Notes",
+    irrigated: si ? 'වාරිමාර්ග' : 'Irrigated',
+    rainfed: si ? 'වැසි ජලය මත' : 'Rainfed',
+    high: si ? 'ඉහළ' : 'High',
+    medium: si ? 'මධ්‍යම' : 'Medium',
+    low: si ? 'අඩු' : 'Low',
+  };
 
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<AdviceRequest | null>(null);
@@ -36,7 +77,7 @@ const ViewAdviceRequestDetailsScreen = () => {
       setRequest(data);
     } catch (error: any) {
       console.error("Failed to load request details:", error);
-      Alert.alert("Error", "Failed to load request details. Please try again.");
+      Alert.alert(t.error, t.loadError);
     } finally {
       setLoading(false);
     }
@@ -87,7 +128,7 @@ const ViewAdviceRequestDetailsScreen = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#16A34A" />
-        <Text style={styles.loadingText}>Loading request details...</Text>
+        <Text style={styles.loadingText}>{t.loading}</Text>
       </View>
     );
   }
@@ -95,9 +136,9 @@ const ViewAdviceRequestDetailsScreen = () => {
   if (!request) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Request not found</Text>
+        <Text style={styles.errorText}>{t.notFound}</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>{t.goBack}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -110,7 +151,7 @@ const ViewAdviceRequestDetailsScreen = () => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <ArrowLeft size={24} color="#FFFFFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Request Details</Text>
+        <Text style={styles.headerTitle}>{t.headerTitle}</Text>
         <View style={{ width: 24 }} />
       </View>
 
@@ -125,12 +166,12 @@ const ViewAdviceRequestDetailsScreen = () => {
           </View>
           <Text style={styles.requestType}>
             {request.request_type === "yield_enhancement"
-              ? "Yield Enhancement"
+              ? t.yieldEnhancement
               : request.request_type === "seed_variety"
-              ? "Seed Variety Selection"
-              : "Both (Yield & Seed)"}
+              ? t.seedVariety
+              : t.both}
           </Text>
-          <Text style={styles.createdAt}>Created: {formatDate(request.created_at)}</Text>
+          <Text style={styles.createdAt}>{t.created}: {formatDate(request.created_at)}</Text>
         </View>
 
         {/* Farmer Message */}
@@ -138,7 +179,7 @@ const ViewAdviceRequestDetailsScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <MessageSquare size={20} color="#16A34A" />
-              <Text style={styles.cardTitle}>Farmer's Message</Text>
+              <Text style={styles.cardTitle}>{t.farmerMessage}</Text>
             </View>
             <Text style={styles.messageText}>{request.farmer_message}</Text>
           </View>
@@ -148,26 +189,26 @@ const ViewAdviceRequestDetailsScreen = () => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <TrendingUp size={20} color="#16A34A" />
-            <Text style={styles.cardTitle}>Prediction Details</Text>
+            <Text style={styles.cardTitle}>{t.predictionDetails}</Text>
           </View>
           
           {request.predicted_yield_kg_ha && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Predicted Yield:</Text>
+              <Text style={styles.detailLabel}>{t.predictedYield}:</Text>
               <Text style={styles.detailValue}>{request.predicted_yield_kg_ha.toFixed(2)} kg/ha</Text>
             </View>
           )}
 
           {request.variety && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Variety:</Text>
+              <Text style={styles.detailLabel}>{t.variety}:</Text>
               <Text style={styles.detailValue}>{request.variety}</Text>
             </View>
           )}
 
           {request.land_size_ha && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Land Size:</Text>
+              <Text style={styles.detailLabel}>{t.landSize}:</Text>
               <Text style={styles.detailValue}>{request.land_size_ha.toFixed(2)} ha</Text>
             </View>
           )}
@@ -177,19 +218,19 @@ const ViewAdviceRequestDetailsScreen = () => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <MapPin size={20} color="#16A34A" />
-            <Text style={styles.cardTitle}>Location Details</Text>
+            <Text style={styles.cardTitle}>{t.locationDetails}</Text>
           </View>
 
           {request.district && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>District:</Text>
+              <Text style={styles.detailLabel}>{t.district}:</Text>
               <Text style={styles.detailValue}>{request.district}</Text>
             </View>
           )}
 
           {request.location && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Location:</Text>
+              <Text style={styles.detailLabel}>{t.location}:</Text>
               <Text style={styles.detailValue}>{request.location}</Text>
             </View>
           )}
@@ -199,26 +240,26 @@ const ViewAdviceRequestDetailsScreen = () => {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <Droplets size={20} color="#16A34A" />
-            <Text style={styles.cardTitle}>Field Conditions</Text>
+            <Text style={styles.cardTitle}>{t.fieldConditions}</Text>
           </View>
 
           {request.irrigation_type && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Irrigation Type:</Text>
+              <Text style={styles.detailLabel}>{t.irrigationType}:</Text>
               <Text style={styles.detailValue}>{request.irrigation_type}</Text>
             </View>
           )}
 
           {request.rainfall_condition && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Rainfall Condition:</Text>
+              <Text style={styles.detailLabel}>{t.rainfallCondition}:</Text>
               <Text style={styles.detailValue}>{request.rainfall_condition}</Text>
             </View>
           )}
 
           {request.planting_date && (
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Planting Date:</Text>
+              <Text style={styles.detailLabel}>{t.plantingDate}:</Text>
               <Text style={styles.detailValue}>{request.planting_date}</Text>
             </View>
           )}
@@ -229,7 +270,7 @@ const ViewAdviceRequestDetailsScreen = () => {
           <>
             <View style={styles.sectionDivider}>
               <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Officer's Response</Text>
+              <Text style={styles.dividerText}>{t.officerResponse}</Text>
               <View style={styles.dividerLine} />
             </View>
 
@@ -237,11 +278,11 @@ const ViewAdviceRequestDetailsScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <User size={20} color="#16A34A" />
-              <Text style={styles.cardTitle}>Officer's Response</Text>
+              <Text style={styles.cardTitle}>{t.officerResponse}</Text>
             </View>
             <Text style={styles.messageText}>{request.officer_response}</Text>
             {request.responded_at && (
-              <Text style={styles.timestamp}>Responded: {formatDate(request.responded_at)}</Text>
+              <Text style={styles.timestamp}>{t.responded}: {formatDate(request.responded_at)}</Text>
             )}
           </View>
           </>
@@ -252,13 +293,13 @@ const ViewAdviceRequestDetailsScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <CheckCircle2 size={20} color="#16A34A" />
-              <Text style={styles.cardTitle}>Fertilizer Plan</Text>
+              <Text style={styles.cardTitle}>{t.fertilizerPlan}</Text>
             </View>
 
             {/* Basal Application */}
             {request.fertilizer_plan.basal && (
               <View style={styles.fertilizerSection}>
-                <Text style={styles.fertilizerStage}>Basal Application</Text>
+                <Text style={styles.fertilizerStage}>{t.basalApplication}</Text>
                 <Text style={styles.fertilizerDate}>{request.fertilizer_plan.basal.date}</Text>
                 <View style={styles.fertilizerAmounts}>
                   <Text style={styles.fertilizerAmount}>TSP: {request.fertilizer_plan.basal.tsp_kg} kg</Text>
@@ -272,7 +313,7 @@ const ViewAdviceRequestDetailsScreen = () => {
             {/* First Top Dressing */}
             {request.fertilizer_plan.top_dress_1 && (
               <View style={styles.fertilizerSection}>
-                <Text style={styles.fertilizerStage}>First Top Dressing</Text>
+                <Text style={styles.fertilizerStage}>{t.firstTopDressing}</Text>
                 <Text style={styles.fertilizerDate}>{request.fertilizer_plan.top_dress_1.date}</Text>
                 <View style={styles.fertilizerAmounts}>
                   <Text style={styles.fertilizerAmount}>Urea: {request.fertilizer_plan.top_dress_1.urea_kg} kg</Text>
@@ -284,7 +325,7 @@ const ViewAdviceRequestDetailsScreen = () => {
             {/* Second Top Dressing */}
             {request.fertilizer_plan.top_dress_2 && (
               <View style={styles.fertilizerSection}>
-                <Text style={styles.fertilizerStage}>Second Top Dressing</Text>
+                <Text style={styles.fertilizerStage}>{t.secondTopDressing}</Text>
                 <Text style={styles.fertilizerDate}>{request.fertilizer_plan.top_dress_2.date}</Text>
                 <View style={styles.fertilizerAmounts}>
                   <Text style={styles.fertilizerAmount}>Urea: {request.fertilizer_plan.top_dress_2.urea_kg} kg</Text>
@@ -293,30 +334,6 @@ const ViewAdviceRequestDetailsScreen = () => {
               </View>
             )}
 
-            {/* Organic Recommendations */}
-            {request.fertilizer_plan.organic && (
-              <View style={styles.organicSection}>
-                <Text style={styles.organicTitle}>Organic Fertilizer (Optional)</Text>
-                {request.fertilizer_plan.organic.compost_tons && (
-                  <Text style={styles.organicAmount}>
-                    Compost: {request.fertilizer_plan.organic.compost_tons} tons
-                  </Text>
-                )}
-                <Text style={styles.organicNote}>{request.fertilizer_plan.organic.timing}</Text>
-              </View>
-            )}
-
-            {/* Total Nutrients */}
-            {request.fertilizer_plan.total_nutrients && (
-              <View style={styles.nutrientSummary}>
-                <Text style={styles.nutrientTitle}>Total Nutrients:</Text>
-                <Text style={styles.nutrientText}>
-                  N: {request.fertilizer_plan.total_nutrients.nitrogen_kg} kg | 
-                  P: {request.fertilizer_plan.total_nutrients.phosphorus_kg} kg | 
-                  K: {request.fertilizer_plan.total_nutrients.potassium_kg} kg
-                </Text>
-              </View>
-            )}
           </View>
         )}
 
@@ -325,28 +342,18 @@ const ViewAdviceRequestDetailsScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Lightbulb size={20} color="#F59E0B" />
-              <Text style={styles.cardTitle}>Cultivation Advice</Text>
+              <Text style={styles.cardTitle}>{t.cultivationAdvice}</Text>
             </View>
             <Text style={styles.messageText}>{request.cultivation_advice}</Text>
           </View>
         )}
 
-        {/* Expected Yield Improvement */}
-        {request.expected_yield_improvement && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <TrendingUp size={20} color="#16A34A" />
-              <Text style={styles.cardTitle}>Expected Yield Improvement</Text>
-            </View>
-            <Text style={styles.messageText}>{request.expected_yield_improvement}</Text>
-          </View>
-        )}
 
         {/* Officer Notes */}
         {request.officer_notes && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Officer's Notes</Text>
+              <Text style={styles.cardTitle}>{t.officerNotes}</Text>
             </View>
             <Text style={styles.messageText}>{request.officer_notes}</Text>
           </View>
