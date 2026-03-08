@@ -25,8 +25,8 @@ const riskData = {
       June: "Low",
       July: "Low",
       August: "Low",
-      September: "Low",
-      October: "Medium",
+      September: "Medium",
+      October: "High",
       November: "High",
       December: "High"
     },
@@ -39,12 +39,82 @@ const riskData = {
       June: "Low",
       July: "Low",
       August: "Low",
-      September: "Low",
-      October: "Medium",
+      September: "Medium",
+      October: "High",
       November: "High",
       December: "High"
     },
     Ampara: {
+      January: "High",
+      February: "Medium",
+      March: "Low",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Monaragala: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Badulla: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Polonnaruwa: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Matale: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Hambantota: {
       January: "Medium",
       February: "Medium",
       March: "Low",
@@ -53,113 +123,26 @@ const riskData = {
       June: "Low",
       July: "Low",
       August: "Low",
-      September: "Low",
+      September: "Medium",
       October: "High",
       November: "High",
       December: "High"
-    }
-  },
-
-  bollworm: {
-    Kurunegala: {
-      January: "Medium",
-      February: "High",
-      March: "High",
-      April: "Medium",
-      May: "Low",
-      June: "Low",
-      July: "Low",
-      August: "Medium",
-      September: "High",
-      October: "High",
-      November: "Medium",
-      December: "Medium"
-    },
-    Anuradhapura: {
-      January: "Medium",
-      February: "Medium",
-      March: "High",
-      April: "High",
-      May: "Medium",
-      June: "Low",
-      July: "Low",
-      August: "Medium",
-      September: "High",
-      October: "High",
-      November: "Medium",
-      December: "Medium"
-    },
-    Ampara: {
-      January: "Low",
-      February: "Low",
-      March: "Medium",
-      April: "High",
-      May: "High",
-      June: "Medium",
-      July: "Low",
-      August: "Medium",
-      September: "High",
-      October: "Medium",
-      November: "Low",
-      December: "Low"
-    }
-  },
-
-  asiancornborer: {
-    Kurunegala: {
-      January: "Medium",
-      February: "High",
-      March: "High",
-      April: "Medium",
-      May: "Medium",
-      June: "Low",
-      July: "Low",
-      August: "Low",
-      September: "Medium",
-      October: "High",
-      November: "High",
-      December: "Medium"
-    },
-    Anuradhapura: {
-      January: "Medium",
-      February: "Medium",
-      March: "High",
-      April: "High",
-      May: "Medium",
-      June: "Low",
-      July: "Low",
-      August: "Low",
-      September: "Medium",
-      October: "High",
-      November: "High",
-      December: "Medium"
-    },
-    Ampara: {
-      January: "Low",
-      February: "Medium",
-      March: "Medium",
-      April: "High",
-      May: "High",
-      June: "Medium",
-      July: "Low",
-      August: "Low",
-      September: "Medium",
-      October: "High",
-      November: "High",
-      December: "Medium"
     }
   }
 };
 
 const pestNames = {
-  fallarmyworm: { en: "Fall Armyworm", si: "හමුදා පණුවා", ta: "பால் ஆர்மிவோர்ம்" },
-  bollworm: { en: "Bollworm", si: "බෝල් පණුවා", ta: "போல்வோர்ம்" },
-  asiancornborer: { en: "Asian Corn Borer", si: "ආසියානු ඉරිඟු සිදුරු පණුවා", ta: "ஆசியன் கார்ன் போரர்" }
+  fallarmyworm: { en: "Fall Armyworm", si: "සේනා දළඹුවා", ta: "பால் ஆர்மிவோர்ம்" }
 };
 const districts = {
   Kurunegala: { en: "Kurunegala", si: "කුරුණෑගල", ta: "குருநாகல்" },
   Anuradhapura: { en: "Anuradhapura", si: "අනුරාධපුරය", ta: "அனுராதபுரம்" },
-  Ampara: { en: "Ampara", si: "අම්පාර", ta: "அம்பாறை" }
+  Ampara: { en: "Ampara", si: "අම්පාර", ta: "அம்பாறை" },
+  Monaragala: { en: "Monaragala", si: "මොණරාගල", ta: "மொணராகலை" },
+  Badulla: { en: "Badulla", si: "බදුල්ල", ta: "பதுளை" },
+  Polonnaruwa: { en: "Polonnaruwa", si: "පොළොන්නරුව", ta: "பொலன்னறுவை" },
+  Matale: { en: "Matale", si: "මාතලේ", ta: "மாத்தளை" },
+  Hambantota: { en: "Hambantota", si: "හම්බන්තොට", ta: "ஹம்பாந்தோட்டை" }
 };
 const months = [
   "January", "February", "March", "April", "May", "June",

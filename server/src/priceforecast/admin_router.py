@@ -4,7 +4,7 @@ from src.priceforecast.weather_service import weather_predictor
 import pandas as pd
 import numpy as np
 
-# 🔥 NEW: Supabase client import
+# Supabase client import
 from src.database.supabase_client import supabase
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -28,22 +28,23 @@ import { Platform } from "react-native";
 import { useLanguage } from "../../../context/LanguageContext";
 import { supabase } from "../../../lib/supabase";
 
-const DISTRICTS = [
-  "Anuradhapura",
-  "Polonnaruwa",
-  "Kurunegala",
-  "Puttalam",
-  "Kandy",
-  "Matale",
-  "Badulla",
-  "Monaragala",
-  "Hambantota",
-  "Matara",
-  "Colombo",
-  "Gampaha",
-  "Jaffna",
-  "Nuwara Eliya",
-];
+const DISTRICTS = ["Anuradhapura", "Monaragala", "Tissamaharama"];
+
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
 
 type Language = "sinhala" | "english" | "tamil";
 
@@ -53,7 +54,16 @@ const AdminPanelScreen = () => {
 
   const [saving, setSaving] = useState(false);
 
-  // 🔄 Auto-calculate current and previous week
+  // Refs for auto-scrolling to error fields
+  const scrollViewRef = useRef<ScrollView | null>(null);
+  const priceFieldRef = useRef<View | null>(null);
+  const fuelPriceFieldRef = useRef<View | null>(null);
+  const taxFieldRef = useRef<View | null>(null);
+  const editPriceFieldRef = useRef<View | null>(null);
+  const editFuelPriceFieldRef = useRef<View | null>(null);
+  const editTaxFieldRef = useRef<View | null>(null);
+
+  // Auto-calculate current and previous week
   const [currentYear, setCurrentYear] = useState("");
   const [currentWeek, setCurrentWeek] = useState("");
   const [previousYear, setPreviousYear] = useState("");
@@ -69,7 +79,7 @@ const AdminPanelScreen = () => {
   const [histSaving, setHistSaving] = useState(false);
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
 
-  // 📋 Price History & Edit Feature
+  // Price History & Edit Feature
   const [priceHistory, setPriceHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -83,7 +93,37 @@ const AdminPanelScreen = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // 📅 Calculate ISO week number
+  // Validation state for input fields
+  const [validationErrors, setValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
+  const [editValidationErrors, setEditValidationErrors] = useState<{
+    [key: string]: string;
+  }>({});
+
+  // Handle auto-scroll to error fields in add form
+  const scrollToErrorField = (errors: { [key: string]: string }) => {
+    if (!scrollViewRef.current) return;
+
+    // Simple scroll to top to show form fields
+    scrollViewRef.current.scrollTo({
+      y: 0,
+      animated: true,
+    });
+  };
+
+  // Handle auto-scroll to error fields in edit modal
+  const scrollToEditErrorField = (errors: { [key: string]: string }) => {
+    if (!scrollViewRef.current) return;
+
+    // Simple scroll to top to show form fields
+    scrollViewRef.current.scrollTo({
+      y: 0,
+      animated: true,
+    });
+  };
+
+  // Calculate ISO week number
   const getISOWeek = (date: Date): number => {
     const target = new Date(date.valueOf());
     const dayNr = (date.getDay() + 6) % 7;
@@ -93,7 +133,150 @@ const AdminPanelScreen = () => {
     return 1 + Math.ceil(dayDiff / 7);
   };
 
-  // 🔄 Initialize current week and previous week on component mount
+  // Validation functions
+  const validatePrice = (value: string, lang: Language = "english"): string => {
+    if (!value || value.trim() === "") {
+      return language === "sinhala"
+        ? "මිල ඇතුළත් කිරීම අවශ්‍යයි"
+        : language === "tamil"
+          ? "விலை தேவை"
+          : "Price is required";
+    }
+    const price = parseFloat(value);
+    if (isNaN(price)) {
+      return language === "sinhala"
+        ? "අංක පමණක් භාවිතා කළ හැක."
+        : language === "tamil"
+          ? "எண்கள் மட்டுமே அनुमতियை"
+          : "Only numbers allowed";
+    }
+    if (price <= 0) {
+      return language === "sinhala"
+        ? "මිල 0 ට වැඩි විය යුතුය"
+        : language === "tamil"
+          ? "விலை 0 ஐ விட அधिक হોना చाहिए"
+          : "Price must be greater than 0";
+    }
+    if (price > 50000) {
+      return language === "sinhala"
+        ? "මිල ඉතා ඉහළ ය (උපරිම: 1000)"
+        : language === "tamil"
+          ? "விலை மிக அधिक है (अधिकतम: 1000)"
+          : "Price is too high (Max: 1000)";
+    }
+    return "";
+  };
+
+  const validateFuelPrice = (value: string): string => {
+    if (!value || value.trim() === "") {
+      return language === "sinhala"
+        ? "ඉන්ධන මිල අවශ්‍ය ය"
+        : language === "tamil"
+          ? "எரிபொருள் விலை தேவை"
+          : "Fuel price is required";
+    }
+    const fuel = parseFloat(value);
+    if (isNaN(fuel)) {
+      return language === "sinhala"
+        ? "සංඛ්‍යා පමණක් භාවිතා කළ හැක"
+        : language === "tamil"
+          ? "எண்கள் மட்டுமே அμνუ"
+          : "Only numbers allowed";
+    }
+    if (fuel <= 0) {
+      return language === "sinhala"
+        ? "ඉන්ධන මිල 0 ට වැඩි විය යුතුය"
+        : language === "tamil"
+          ? "எரிபொருள் விலை 0 ஐ விட அधिक होना चाहिए"
+          : "Fuel price must be greater than 0";
+    }
+    if (fuel > 50000) {
+      return language === "sinhala"
+        ? "ඉන්ධන මිල ඉතා ඉහළ ය"
+        : language === "tamil"
+          ? "எரிபொருள் விலை மிக அधिक है"
+          : "Fuel price is too high";
+    }
+    return "";
+  };
+
+  const validateTax = (value: string): string => {
+    if (!value || value.trim() === "") {
+      return language === "sinhala"
+        ? "බදු අවශ්‍ය ය"
+        : language === "tamil"
+          ? "வரி தேவை"
+          : "Tax is required";
+    }
+    const tax = parseFloat(value);
+    if (isNaN(tax)) {
+      return language === "sinhala"
+        ? "සංඛ්‍යා පමණක් භාවිතා කළ හැක"
+        : language === "tamil"
+          ? "எண்கள் மட்டுமே அนตು"
+          : "Only numbers allowed";
+    }
+    if (tax < 0) {
+      return language === "sinhala"
+        ? "බදු සෘණ විය නොහැක"
+        : language === "tamil"
+          ? "வரி negativeमो नहीं हो सकता"
+          : "Tax cannot be negative";
+    }
+    if (tax > 100) {
+      return language === "sinhala"
+        ? "බදු 100% ට වැඩි නොවිය යුතුය"
+        : language === "tamil"
+          ? "வரி 100% ஐ விட அधिक नहीं हो सकता"
+          : "Tax cannot exceed 100%";
+    }
+    return "";
+  };
+
+  const validateWeek = (value: string): string => {
+    if (!value || value.trim() === "") return "";
+    const week = parseInt(value, 10);
+    if (isNaN(week)) {
+      return language === "sinhala"
+        ? "සංඛ්‍යා පමණක් භාවිතා කළ හැක."
+        : language === "tamil"
+          ? "எண்கள் மட்டுமே அσν"
+          : "Only numbers allowed";
+    }
+    if (week < 1 || week > 52) {
+      return language === "sinhala"
+        ? "සතිය 1-52 අතර විය යුතුය"
+        : language === "tamil"
+          ? "வாரம் 1-52 இடையே இருக்க வேண்டும்"
+          : "Week must be between 1-52";
+    }
+    return "";
+  };
+
+  // Update validation errors for add form
+  useEffect(() => {
+    const errors: { [key: string]: string } = {};
+    errors["price"] = validatePrice(histPrice);
+    errors["fuel_price"] = validateFuelPrice(histFuelPrice);
+    errors["tax"] = validateTax(histImportTax);
+    setValidationErrors(
+      Object.fromEntries(Object.entries(errors).filter(([_, v]) => v !== "")),
+    );
+  }, [histPrice, histFuelPrice, histImportTax]);
+
+  // Update validation errors for edit form
+  useEffect(() => {
+    const errors: { [key: string]: string } = {};
+    errors["price"] = validatePrice(editFormData.price);
+    errors["fuel_price"] = validateFuelPrice(editFormData.fuel_price);
+    errors["tax"] = validateTax(editFormData.import_tax);
+    errors["week"] = validateWeek(editFormData.week);
+    setEditValidationErrors(
+      Object.fromEntries(Object.entries(errors).filter(([_, v]) => v !== "")),
+    );
+  }, [editFormData]);
+
+  // Initialize current week and previous week on component mount
   useEffect(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -122,6 +305,49 @@ const AdminPanelScreen = () => {
   // No need to fetch global prices anymore - all prices are district-specific
 
   const handleAddHistoricalPrice = async () => {
+    // Validate all fields
+    const priceError = validatePrice(histPrice);
+    const fuelError = validateFuelPrice(histFuelPrice);
+    const taxError = validateTax(histImportTax);
+
+    if (priceError || fuelError || taxError) {
+      const errors: { [key: string]: string } = {};
+      if (priceError) errors["price"] = priceError;
+      if (fuelError) errors["fuel_price"] = fuelError;
+      if (taxError) errors["tax"] = taxError;
+      setValidationErrors(errors);
+
+      // Scroll to the first error field
+      scrollToErrorField(errors);
+
+      const errorMessage = Object.values(errors).join("\n");
+      Alert.alert(
+        language === "sinhala"
+          ? "අවලංගු ඇතුල්කිරිමකි."
+          : language === "tamil"
+            ? "தவறான உள்ளீடு"
+            : "Invalid Input",
+        errorMessage,
+      );
+      return;
+    }
+
+    if (!histDistrict) {
+      Alert.alert(
+        language === "sinhala"
+          ? "අවශ්‍යයි"
+          : language === "tamil"
+            ? "தேவை"
+            : "Required",
+        language === "sinhala"
+          ? "කරුණාකර දිස්ත්‍රික්කය තෝරන්න"
+          : language === "tamil"
+            ? "மாவட்டத்தைத் தேர்ந்தெடுக்கவும்"
+            : "Please select a district",
+      );
+      return;
+    }
+
     const yearNum = parseInt(histYear, 10);
     const weekNum = parseInt(histWeek, 10);
     const priceNum = parseFloat(histPrice);
@@ -155,7 +381,7 @@ const AdminPanelScreen = () => {
 
     setHistSaving(true);
     try {
-      // 🔍 Check if record already exists
+      // Check if record already exists
       const { data: existingRecord, error: checkError } = await supabase
         .from("maize_prices")
         .select("id")
@@ -167,33 +393,26 @@ const AdminPanelScreen = () => {
       // If record exists, show a message and don't allow duplicate
       if (existingRecord && !checkError) {
         setHistSaving(false);
+        const errorMsg =
+          language === "sinhala"
+            ? "මෙම වසර, දිස්ත්‍රික්කය සහ සතිය සඳහා දත්ත දැනටමත් පද්ධතියට ඇතුළත් කර ඇත."
+            : language === "tamil"
+              ? "நீங்கள் ஆண்டு, மாவட்டம் மற்றும் வாரம் ஆகியவற்றை ஏற்கனவே சமர්ப்பித்துவிட்டீர்கள்."
+              : "You already submitted this year, district, and week.";
+        console.warn("[Duplicate Record]", errorMsg);
+        // Show error message as validation error for web compatibility
         Alert.alert(
           language === "sinhala"
-            ? "පෙර පිටින්න"
+            ? "දැනටමත් ඉදිරිපත් කර ඇත."
             : language === "tamil"
-              ? "ஏற்கனவே உள்ளது"
-              : "Record Already Exists",
-          language === "sinhala"
-            ? `මෙම දිස්ත්‍රික්කයට දී ඉතින් සතිය ${weekNum} සඳහා මිල වාර්තාව තිබේ. කරුණාකර අමතර කිරීමට වඩා සංස්කරණය කරන්න.`
-            : language === "tamil"
-              ? `இந்த மாவட்டத்தில் வாரம் ${weekNum} க்கான விலை பதிவு ஏற்கனவே உள்ளது. புதிய பதிவு சேர்ப்பதற்குப் பதிலாக திருத்தவும்.`
-              : `A price record for this district and week ${weekNum} already exists. Edit the existing record instead.`,
-          [
-            {
-              text:
-                language === "sinhala"
-                  ? "ඉතින්"
-                  : language === "tamil"
-                    ? "சரி"
-                    : "OK",
-              onPress: () => {},
-            },
-          ],
+              ? "ஏற்கனவே சமர்ப்பித்தீர்கள்"
+              : "Already Submitted",
+          errorMsg,
         );
         return;
       }
 
-      // 💾 Save the new record
+      // Save the new record
       const { error } = await supabase.from("maize_prices").insert({
         year: yearNum,
         week: weekNum,
@@ -217,9 +436,9 @@ const AdminPanelScreen = () => {
 
       const successMessage =
         language === "sinhala"
-          ? "නව මිල වාර්තාව සුරකින ලදී! (Year: " +
+          ? "නව මිල වාර්තාව සුරකින ලදී! (වර්ෂය: " +
             yearNum +
-            ", Week: " +
+            ", සතිය: " +
             weekNum +
             ")"
           : language === "tamil"
@@ -236,12 +455,18 @@ const AdminPanelScreen = () => {
 
       Alert.alert(successTitle, successMessage);
 
+      // Clear form
+      setHistPrice("");
+      setHistFuelPrice("");
+      setHistImportTax("");
+      setValidationErrors({});
+
       // Form fields are kept filled for convenient re-entry with small changes
     } catch (err: any) {
       console.error("[maize_prices] insert error:", err);
       Alert.alert(
         language === "sinhala"
-          ? "දොෂයකිස්"
+          ? "දෝෂයක් සිදුවී ඇත"
           : language === "tamil"
             ? "பிழை"
             : "Error",
@@ -253,7 +478,7 @@ const AdminPanelScreen = () => {
     }
   };
 
-  // 📋 Fetch price history for display (latest 3 records per district)
+  // Fetch price history for display (latest 3 records per district)
   const fetchPriceHistory = async (district: string) => {
     if (!district) return;
     setLoadingHistory(true);
@@ -276,7 +501,7 @@ const AdminPanelScreen = () => {
     }
   };
 
-  // ✏️ Open edit modal with record data
+  // Open edit modal with record data
   const handleEditPrice = (record: any) => {
     setEditingRecord(record);
     setEditFormData({
@@ -289,8 +514,37 @@ const AdminPanelScreen = () => {
     setShowEditModal(true);
   };
 
-  // 💾 Update existing price record
+  // Update existing price record
   const handleUpdatePrice = async () => {
+    // Validate all fields
+    const priceError = validatePrice(editFormData.price);
+    const fuelError = validateFuelPrice(editFormData.fuel_price);
+    const taxError = validateTax(editFormData.import_tax);
+    const weekError = validateWeek(editFormData.week);
+
+    if (priceError || fuelError || taxError || weekError) {
+      const errors: { [key: string]: string } = {};
+      if (priceError) errors["price"] = priceError;
+      if (fuelError) errors["fuel_price"] = fuelError;
+      if (taxError) errors["tax"] = taxError;
+      if (weekError) errors["week"] = weekError;
+      setEditValidationErrors(errors);
+
+      // Scroll to the first error field in edit modal
+      scrollToEditErrorField(errors);
+
+      const errorMessage = Object.values(errors).join("\n");
+      Alert.alert(
+        language === "sinhala"
+          ? "අවලංගු ඇතුල්කිරීමකි."
+          : language === "tamil"
+            ? "தவறான உள்ளீடு"
+            : "Invalid Input",
+        errorMessage,
+      );
+      return;
+    }
+
     if (
       !editingRecord ||
       !editFormData.year ||
@@ -342,12 +596,13 @@ const AdminPanelScreen = () => {
 
       Alert.alert(successTitle, successMessage);
       setShowEditModal(false);
+      setEditValidationErrors({});
       fetchPriceHistory(histDistrict); // Refresh history
     } catch (err: any) {
       console.error("[maize_prices] update error:", err);
       Alert.alert(
         language === "sinhala"
-          ? "දොෂයකිස්"
+          ? "දෝෂයකි"
           : language === "tamil"
             ? "பிழை"
             : "Error",
@@ -358,7 +613,7 @@ const AdminPanelScreen = () => {
     }
   };
 
-  // 🗑️ Delete price record
+  // Delete price record
   const handleDeletePrice = (record: any) => {
     Alert.alert(
       language === "sinhala"
@@ -436,7 +691,7 @@ const AdminPanelScreen = () => {
 
   const API_URL = getApiUrl();
 
-  // ✨ FIXED: Changed language type keys from "si"/"en" to "sinhala"/"english"
+  // Changed language type keys from "si"/"en" to "sinhala"/"english"
   const content = {
     sinhala: {
       title: "මිල යාවත්කාලීන කිරීම",
@@ -570,6 +825,7 @@ const AdminPanelScreen = () => {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -635,16 +891,28 @@ const AdminPanelScreen = () => {
             <Text style={styles.histFieldLabel}>
               {content[language].histPrice}
             </Text>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.currencySymbol}>රු</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="115.00"
-                value={histPrice}
-                onChangeText={setHistPrice}
-                keyboardType="decimal-pad"
-                placeholderTextColor="#9CA3AF"
-              />
+            <View ref={priceFieldRef}>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  validationErrors["price"] && styles.inputWrapperError,
+                ]}
+              >
+                <Text style={styles.currencySymbol}>රු</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="115.00"
+                  value={histPrice}
+                  onChangeText={setHistPrice}
+                  keyboardType="decimal-pad"
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
+              {validationErrors["price"] && (
+                <Text style={styles.errorText}>
+                  {validationErrors["price"]}
+                </Text>
+              )}
             </View>
 
             {/* Fuel Price + Import Tax row */}
@@ -653,31 +921,56 @@ const AdminPanelScreen = () => {
                 <Text style={styles.histFieldLabel}>
                   {content[language].histFuelPrice}
                 </Text>
-                <View style={styles.histInputWrapper}>
-                  <TextInput
-                    style={styles.histInput}
-                    value={histFuelPrice}
-                    onChangeText={setHistFuelPrice}
-                    keyboardType="decimal-pad"
-                    placeholder="380.00"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                <View ref={fuelPriceFieldRef}>
+                  <View
+                    style={[
+                      styles.histInputWrapper,
+                      validationErrors["fuel_price"] &&
+                        styles.inputWrapperError,
+                    ]}
+                  >
+                    <TextInput
+                      style={styles.histInput}
+                      value={histFuelPrice}
+                      onChangeText={setHistFuelPrice}
+                      keyboardType="decimal-pad"
+                      placeholder="380.00"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                  {validationErrors["fuel_price"] && (
+                    <Text style={styles.errorText}>
+                      {validationErrors["fuel_price"]}
+                    </Text>
+                  )}
                 </View>
               </View>
               <View style={styles.histHalf}>
                 <Text style={styles.histFieldLabel}>
                   {content[language].histImportTax}
                 </Text>
-                <View style={styles.histInputWrapper}>
-                  <TextInput
-                    style={styles.histInput}
-                    value={histImportTax}
-                    onChangeText={setHistImportTax}
-                    keyboardType="decimal-pad"
-                    maxLength={5}
-                    placeholder="25.00"
-                    placeholderTextColor="#9CA3AF"
-                  />
+                <View ref={taxFieldRef}>
+                  <View
+                    style={[
+                      styles.histInputWrapper,
+                      validationErrors["tax"] && styles.inputWrapperError,
+                    ]}
+                  >
+                    <TextInput
+                      style={styles.histInput}
+                      value={histImportTax}
+                      onChangeText={setHistImportTax}
+                      keyboardType="decimal-pad"
+                      maxLength={5}
+                      placeholder="25.00"
+                      placeholderTextColor="#9CA3AF"
+                    />
+                  </View>
+                  {validationErrors["tax"] && (
+                    <Text style={styles.errorText}>
+                      {validationErrors["tax"]}
+                    </Text>
+                  )}
                 </View>
               </View>
             </View>
@@ -704,7 +997,7 @@ const AdminPanelScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* 📋 Price History Section */}
+          {/* Price History Section */}
           <View style={[styles.inputCard, styles.historyCard]}>
             <View style={styles.cardHeader}>
               <View style={styles.cardLabelRow}>
@@ -822,7 +1115,7 @@ const AdminPanelScreen = () => {
             </TouchableOpacity>
           </Modal>
 
-          {/* ✏️ Edit Price Modal */}
+          {/* Edit Price Modal */}
           <Modal
             visible={showEditModal}
             transparent
@@ -883,12 +1176,16 @@ const AdminPanelScreen = () => {
                   </View>
 
                   {/* Price */}
-                  <View style={styles.editFormGroup}>
+                  <View ref={editPriceFieldRef} style={styles.editFormGroup}>
                     <Text style={styles.editFormLabel}>
                       {content[language].histPrice}
                     </Text>
                     <TextInput
-                      style={styles.editFormInput}
+                      style={[
+                        styles.editFormInput,
+                        editValidationErrors["price"] &&
+                          styles.editFormInputError,
+                      ]}
                       value={editFormData.price}
                       onChangeText={(text) =>
                         setEditFormData({ ...editFormData, price: text })
@@ -897,15 +1194,27 @@ const AdminPanelScreen = () => {
                       placeholder="115.00"
                       placeholderTextColor="#9CA3AF"
                     />
+                    {editValidationErrors["price"] && (
+                      <Text style={styles.errorText}>
+                        {editValidationErrors["price"]}
+                      </Text>
+                    )}
                   </View>
 
                   {/* Fuel Price */}
-                  <View style={styles.editFormGroup}>
+                  <View
+                    ref={editFuelPriceFieldRef}
+                    style={styles.editFormGroup}
+                  >
                     <Text style={styles.editFormLabel}>
                       {content[language].histFuelPrice}
                     </Text>
                     <TextInput
-                      style={styles.editFormInput}
+                      style={[
+                        styles.editFormInput,
+                        editValidationErrors["fuel_price"] &&
+                          styles.editFormInputError,
+                      ]}
                       value={editFormData.fuel_price}
                       onChangeText={(text) =>
                         setEditFormData({ ...editFormData, fuel_price: text })
@@ -914,15 +1223,24 @@ const AdminPanelScreen = () => {
                       placeholder="380.00"
                       placeholderTextColor="#9CA3AF"
                     />
+                    {editValidationErrors["fuel_price"] && (
+                      <Text style={styles.errorText}>
+                        {editValidationErrors["fuel_price"]}
+                      </Text>
+                    )}
                   </View>
 
                   {/* Import Tax */}
-                  <View style={styles.editFormGroup}>
+                  <View ref={editTaxFieldRef} style={styles.editFormGroup}>
                     <Text style={styles.editFormLabel}>
                       {content[language].histImportTax}
                     </Text>
                     <TextInput
-                      style={styles.editFormInput}
+                      style={[
+                        styles.editFormInput,
+                        editValidationErrors["tax"] &&
+                          styles.editFormInputError,
+                      ]}
                       value={editFormData.import_tax}
                       onChangeText={(text) =>
                         setEditFormData({ ...editFormData, import_tax: text })
@@ -931,6 +1249,11 @@ const AdminPanelScreen = () => {
                       placeholder="25.00"
                       placeholderTextColor="#9CA3AF"
                     />
+                    {editValidationErrors["tax"] && (
+                      <Text style={styles.errorText}>
+                        {editValidationErrors["tax"]}
+                      </Text>
+                    )}
                   </View>
                 </ScrollView>
 
@@ -1187,6 +1510,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 16,
     overflow: "hidden",
+  },
+  inputWrapperError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
   },
   currencySymbol: {
     fontSize: 18,
@@ -1501,6 +1828,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#0F172A",
     fontWeight: "500",
+  },
+  editFormInputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEF2F2",
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#EF4444",
+    fontWeight: "500",
+    marginTop: 6,
+    marginLeft: 4,
   },
   editModalActions: {
     flexDirection: "row",

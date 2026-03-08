@@ -19,7 +19,7 @@ import type { RootStackParamList } from "../../navigation";
 import { Linking, Alert, Platform } from "react-native";
 import { useLanguage } from "../../context/LanguageContext";
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     return process.env.EXPO_PUBLIC_API_BASE;

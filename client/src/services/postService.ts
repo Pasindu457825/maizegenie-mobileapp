@@ -261,9 +261,10 @@ export const createOffer = async (
 
   if (!user) throw new Error("User not authenticated");
 
-  // Check if user already has an offer
+  // Check if user already has an active offer (pending or accepted)
+  // Allow re-offering only if the previous offer was rejected
   const existing = await checkUserOffer(postId);
-  if (existing) {
+  if (existing && existing.status !== "rejected") {
     throw new Error("You have already submitted an offer for this post");
   }
 
@@ -314,6 +315,23 @@ export const createOffer = async (
 
   if (error) {
     if (error.code === "23505") {
+      // Unique constraint violation - likely a rejected offer exists
+      // Update the rejected offer to pending with the new price
+      if (existing && existing.status === "rejected") {
+        const { data: updatedOffer, error: updateError } = await supabase
+          .from("offers")
+          .update({
+            status: "pending",
+            offer_price_per_kg: offerPrice,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        return updatedOffer as Offer;
+      }
       throw new Error("You have already submitted an offer for this post");
     }
     throw error;

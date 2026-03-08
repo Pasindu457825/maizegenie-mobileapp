@@ -38,7 +38,7 @@ import { Platform } from "react-native";
 import { useNotifications } from "../../context/NotificationContext";
 import { useApp } from "../../context/AppContext";
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     return process.env.EXPO_PUBLIC_API_BASE;
@@ -106,7 +106,7 @@ const PriceForecastLoadingScreen = () => {
   type RootNavProp = StackNavigationProp<RootStackParamList>;
   const rootNavigation = useNavigation<RootNavProp>();
 
-  // 🔥 ADD: Local navigation for PriceForecastStack
+  // Local navigation for PriceForecastStack
   const localNavigation = useNavigation<NavProp>();
   const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const { language: globalLang } = useLanguage();
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flexWrap: "nowrap", // 🔥 IMPORTANT
+    flexWrap: "nowrap", 
   },
   tempText: {
     fontSize: 15,

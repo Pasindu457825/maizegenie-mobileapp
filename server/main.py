@@ -28,6 +28,7 @@ from core.config import settings
 # Import routers
 # -----------------------
 from auth.router import router as auth_router
+from notifications.router import router as notifications_router
 try:
     from diseaseidentify.router import router as disease_router
 except Exception as _e:
@@ -95,6 +96,7 @@ async def health():
 # Register Routers
 # -----------------------
 app.include_router(auth_router)
+app.include_router(notifications_router)  # Authenticated notifications
 if disease_router:
     app.include_router(disease_router)
 if pest_router:
