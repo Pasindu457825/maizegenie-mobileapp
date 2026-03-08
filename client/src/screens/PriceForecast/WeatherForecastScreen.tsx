@@ -48,7 +48,7 @@ const getHourlyIcon = (mm: number) => {
   return <Sun size={18} color="#f59e0b" />; // good
 };
 
-// ✨ FIXED: Get language type from context
+// Get language type from context
 type Language = "sinhala" | "english" | "tamil";
 
 const getApiUrl = () => {
@@ -175,12 +175,12 @@ const WeatherForecastScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasUserRetried, setHasUserRetried] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  // 🕒 HOURLY RAIN DATA (NEW)
+  // HOURLY RAIN DATA
   const [hourlyData, setHourlyData] = useState<
     { time: string; precipitation: number }[]
   >([]);
 
-  // ✨ UPDATED: Generate 7-day weather summary text -
+  // Generate 7-day weather summary text -
 
   const generateWeeklyFarmerVoice = (
     predictions: WeatherDay[],
@@ -205,7 +205,7 @@ const WeatherForecastScreen = () => {
       }
     });
 
-    // 🌾 Farmer-friendly Sinhala advisory
+    // Farmer-friendly Sinhala advisory
     if (language === "sinhala") {
       if (rainRiskDays >= 3) {
         return (
@@ -238,7 +238,7 @@ const WeatherForecastScreen = () => {
       );
     }
 
-    // � Tamil advisory
+    // Tamil advisory
     if (language === "tamil") {
       if (rainRiskDays >= 3) {
         return (
@@ -271,7 +271,7 @@ const WeatherForecastScreen = () => {
       );
     }
 
-    // �🌍 English fallback
+    // English fallback
     if (rainRiskDays >= 3)
       return "Heavy rainfall is expected during the coming week. Avoid farming activities and protect existing crops.";
     if (dryDays >= 3)
@@ -281,7 +281,7 @@ const WeatherForecastScreen = () => {
     return "Mixed weather conditions are expected. Monitor the forecast daily and proceed with caution.";
   };
 
-  // ✨ FIXED: Speak weather forecast - ENGLISH ONLY
+  // Speak weather forecast - ENGLISH ONLY
   const speakWeatherForecast = async (predictions: WeatherDay[]) => {
     try {
       // Stop any ongoing speech first
@@ -328,7 +328,7 @@ const WeatherForecastScreen = () => {
     }
   };
 
-  // ✨ FIXED: Stop speech properly
+  // Stop speech properly
   const stopSpeech = async () => {
     try {
       await Speech.stop();
@@ -339,7 +339,7 @@ const WeatherForecastScreen = () => {
     }
   };
 
-  // ✨ NEW: Stop speech when leaving the page
+  // Stop speech when leaving the page
   useFocusEffect(
     useCallback(() => {
       console.log("Weather screen focused...");
@@ -616,7 +616,7 @@ const WeatherForecastScreen = () => {
     };
   };
 
-  // 🚜 HOURLY ACTION BANNER (ADD THIS)
+  // HOURLY ACTION BANNER
   const HourlyActionBanner = () => {
     if (!hourlyData || hourlyData.length === 0) return null;
 
@@ -655,7 +655,7 @@ const WeatherForecastScreen = () => {
       timeZone: "Asia/Colombo",
     });
 
-    // ⏱️ Decision levels
+    // Decision levels
     let bg = "#FFFBEB";
     let border = "#f59e0b";
     let text =
@@ -703,7 +703,7 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // 🌾 FARMING ADVICE LOGIC FOR CORN
+  // FARMING ADVICE LOGIC FOR CORN
   const getFarmingAdvice = (predictions: WeatherDay[]): FarmingAdvice[] => {
     const advice: FarmingAdvice[] = [];
     predictions.forEach((day, idx) => {
@@ -776,7 +776,7 @@ const WeatherForecastScreen = () => {
     return advice;
   };
 
-  // 🕒 HOURLY RISK HELPER
+  // HOURLY RISK HELPER
   const getHourlyRisk = (mm: number): "red" | "yellow" | "green" => {
     if (mm >= 3) return "red";
     if (mm >= 1) return "yellow";
@@ -803,7 +803,7 @@ const WeatherForecastScreen = () => {
         : "Good";
   };
 
-  // 🕒 HOURLY RAIN STRIP (DOT GRAPH)
+  // HOURLY RAIN STRIP (DOT GRAPH)
   const HourlyRainStrip = () => {
     if (!hourlyData || hourlyData.length === 0) return null;
 
@@ -833,7 +833,7 @@ const WeatherForecastScreen = () => {
               : "⏱️ Next few hours – farming suitability"}
         </Text>
 
-        {/* ✅ HORIZONTAL SCROLL FIX */}
+        {/* HORIZONTAL SCROLL FIX */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -853,7 +853,7 @@ const WeatherForecastScreen = () => {
                   ? "#FEF9C3"
                   : "#DCFCE7";
 
-            // ⏰ ACTUAL TIME (Asia/Colombo)
+            // ACTUAL TIME (Asia/Colombo)
             const hourLabel = new Date(h.time).toLocaleString("en-US", {
               hour: "numeric",
               hour12: true,
@@ -865,8 +865,8 @@ const WeatherForecastScreen = () => {
                 key={idx}
                 style={{
                   alignItems: "center",
-                  width: 56, // ✅ mobile friendly width
-                  marginRight: 6, // ✅ spacing between hours
+                  width: 56,
+                  marginRight: 6,
                 }}
               >
                 {/* ICON CIRCLE */}
@@ -1266,7 +1266,7 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ FIXED: Speech control button - uses language from context
+  // Speech control button - uses language from context
   const SpeechControlButton = () => {
     const currentContent = getContent();
 
@@ -1294,7 +1294,7 @@ const WeatherForecastScreen = () => {
     );
   };
 
-  // ✨ FIXED: Enhanced header uses language from context
+  // Enhanced header uses language from context
   const EnhancedHeader = () => {
     const currentContent = getContent();
     const { unreadCount } = useNotifications();
@@ -1318,7 +1318,7 @@ const WeatherForecastScreen = () => {
           <Text style={styles.headerSubtitle}>{currentContent.subtitle}</Text>
         </View>
 
-        {/* 🔔 Notification Icon */}
+        {/* Notification Icon */}
         <TouchableOpacity
           style={styles.headerIconButton}
           onPress={() => navigation.navigate("Notifications" as never)}
@@ -1455,7 +1455,7 @@ const WeatherForecastScreen = () => {
   const latToUse = latitude ?? DEFAULT_LAT;
   const lonToUse = longitude ?? DEFAULT_LON;
 
-  // 🔥 REFRESH WEATHER WHEN GPS LOADED
+  // REFRESH WEATHER WHEN GPS LOADED
   useEffect(() => {
     if (latitude != null && longitude != null) {
       console.log("Fetching with GPS:", latitude, longitude);
@@ -1463,7 +1463,7 @@ const WeatherForecastScreen = () => {
     }
   }, [latitude, longitude]);
 
-  // 🕒 FETCH HOURLY RAIN (NEXT 12 HOURS)
+  // FETCH HOURLY RAIN (NEXT 12 HOURS)
   useEffect(() => {
     if (latitude == null || longitude == null) return;
 
@@ -1540,7 +1540,7 @@ const WeatherForecastScreen = () => {
       </View>
     );
 
-  // ✅ ADD THIS SAFETY GUARD
+  // SAFETY GUARD
   if (!weatherData) {
     return (
       <View style={styles.centered}>
@@ -1585,10 +1585,10 @@ const WeatherForecastScreen = () => {
       strokeWidth: 1,
     },
     propsForLabels: {
-      fontSize: 10, // 👈 Y-axis 1.0 mm size
+      fontSize: 10, // Y-axis 1.0 mm size
     },
     propsForVerticalLabels: {
-      fontSize: 10, // 👈 X-axis day labels
+      fontSize: 10, // X-axis day labels
     },
   };
 
@@ -1614,10 +1614,10 @@ const WeatherForecastScreen = () => {
       >
         <EnhancedCurrentWeatherCard />
 
-        {/* 🕒 HOURLY RAIN STRIP */}
+        {/* HOURLY RAIN STRIP */}
         <HourlyRainStrip />
 
-        {/* 🚜 HOURLY ACTION BANNER */}
+        {/* HOURLY ACTION BANNER */}
         <HourlyActionBanner />
 
         {/* DAILY WEATHER SUMMARY BANNER */}
@@ -2075,6 +2075,6 @@ const styles = StyleSheet.create({
   chartClip: {
     width: "100%",
     overflow: "hidden",
-    borderRadius: 12, // styles.chart borderRadius එකට match කරලා
+    borderRadius: 12,
   },
 });

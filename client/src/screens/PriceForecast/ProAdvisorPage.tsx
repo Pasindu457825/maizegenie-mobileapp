@@ -586,118 +586,118 @@ const ProAdvisorPage: React.FC = () => {
     if (!form.readiness.seeds) {
       actions.push(
         lang === "si"
-          ? "✅ හොඳ බීජ ලබාගෙන තෝරාගන්න"
+          ? "හොඳ බීජ ලබාගෙන තෝරාගන්න"
           : lang === "ta"
-            ? "✅ தரமான விதைகளை கொள்முதல் செய்து தேர்வு செய்யவும்"
-            : "✅ Procure and select quality seeds",
+            ? "தரமான விதைகளை கொள்முதல் செய்து தேர்வு செய்யவும்"
+            : "Procure and select quality seeds",
       );
     }
 
     if (!form.readiness.water) {
       actions.push(
         lang === "si"
-          ? "✅ ජල සැලසුම සකස් කරන්න"
+          ? "ජල සැලසුම සකස් කරන්න"
           : lang === "ta"
-            ? "✅ நீர் மேலாண்மை திட்டத்தை தயாரிக்கவும்"
-            : "✅ Prepare water management plan",
+            ? "நீர் மேலாண்மை திட்டத்தை தயாரிக்கவும்"
+            : "Prepare water management plan",
       );
     }
 
     if (!form.readiness.land) {
       actions.push(
         lang === "si"
-          ? "✅ භූමිය සකස් කර අසල තිබි දූෂිතයන් ඉවත් කරන්න"
+          ? "භූමිය සකස් කර අසල තිබි දූෂිතයන් ඉවත් කරන්න"
           : lang === "ta"
-            ? "✅ நிலத்தை தயாரித்து களைகளை அகற்றவும்"
-            : "✅ Prepare land and remove weeds",
+            ? "நிலத்தை தயாரித்து களைகளை அகற்றவும்"
+            : "Prepare land and remove weeds",
       );
     }
 
     if (!form.readiness.fertilizer) {
       actions.push(
         lang === "si"
-          ? "✅ පොහොර සැලසුම සකස් කරන්න"
+          ? "පොහොර සැලසුම සකස් කරන්න"
           : lang === "ta"
-            ? "✅ உரங்களை திட்டமிட்டு கொள்முதல் செய்யவும்"
-            : "✅ Plan and procure fertilizers",
+            ? "உரங்களை திட்டமிட்டு கொள்முதல் செய்யவும்"
+            : "Plan and procure fertilizers",
       );
     }
 
     if (!form.readiness.capital) {
       actions.push(
         lang === "si"
-          ? "✅ අවශ්‍ය මුදල් සම්පූර්ණයෙන් සැලසුම් කරගන්න"
+          ? "අවශ්‍ය මුදල් සම්පූර්ණයෙන් සැලසුම් කරගන්න"
           : lang === "ta"
-            ? "✅ மூலதன தேவைகளை இறுதி செய்யவும்"
-            : "✅ Finalize capital requirements",
+            ? "மூலதன தேவைகளை இறுதி செய்யவும்"
+            : "Finalize capital requirements",
       );
     }
 
     if (form.experienceLevel === "new") {
       actions.push(
         lang === "si"
-          ? "✅ පස පරීක්ෂා කර pH 6.0–6.8 අතර පවත්වා ගැනීමට සැලසුම් කරන්න"
+          ? "පස පරීක්ෂා කර pH 6.0–6.8 අතර පවත්වා ගැනීමට සැලසුම් කරන්න"
           : lang === "ta"
-            ? "✅ மண் பரிசோதனை நடத்தி pH 6.0–6.8 அளவில் பராமரிக்கவும்"
-            : "✅ Conduct a soil test and maintain pH around 6.0–6.8",
+            ? "மண் பரிசோதனை நடத்தி pH 6.0–6.8 அளவில் பராமரிக்கவும்"
+            : "Conduct a soil test and maintain pH around 6.0–6.8",
       );
       actions.push(
         lang === "si"
-          ? "✅ ඉඩම 20–25 සෙ.මී. පහලින් යම්කර පස ටිල් කර හොඳ බීජ නිදහසක් සාදාගන්න"
+          ? "ඉඩම 20–25 සෙ.මී. පහලින් යම්කර පස ටිල් කර හොඳ බීජ නිදහසක් සාදාගන්න"
           : lang === "ta"
-            ? "✅ 20–25 செ.மீ ஆழத்தில் உழுது நுண்ணிய விதை படுக்கை தயாரிக்கவும்"
-            : "✅ Prepare the land by ploughing 20–25 cm deep and tilling to create a fine seedbed",
+            ? "20–25 செ.மீ ஆழத்தில் உழுது நுண்ணிய விதை படுக்கை தயாரிக்கவும்"
+            : "Prepare the land by ploughing 20–25 cm deep and tilling to create a fine seedbed",
       );
       actions.push(
         lang === "si"
-          ? "✅ බීජ ආරක්ෂා කිරීම සඳහා දිලේව් හා කෘමි නාශක වලින් සකස් කරන්න"
+          ? "බීජ ආරක්ෂා කිරීම සඳහා දිලේව් හා කෘමි නාශක වලින් සකස් කරන්න"
           : lang === "ta"
-            ? "✅ விதைப்பதற்கு முன் பூஞ்சாணக்கொல்லி மற்றும் பூச்சிக்கொல்லியால் விதைகளை நேர்த்தி செய்யவும்"
-            : "✅ Treat seeds with fungicide and insecticide before sowing",
+            ? "விதைப்பதற்கு முன் பூஞ்சாணக்கொல்லி மற்றும் பூச்சிக்கொல்லியால் விதைகளை நேர்த்தி செய்யவும்"
+            : "Treat seeds with fungicide and insecticide before sowing",
       );
       actions.push(
         lang === "si"
-          ? "✅ බීජ 3–5 සෙ.මී. ගැඹුරෙන් 20–25 සෙ.මී. දුරින් හා පේළි අතර 60–75 සෙ.මී. තබා වගා කරන්න"
+          ? "බීජ 3–5 සෙ.මී. ගැඹුරෙන් 20–25 සෙ.මී. දුරින් හා පේළි අතර 60–75 සෙ.මී. තබා වගා කරන්න"
           : lang === "ta"
-            ? "✅ விதைகளை 3–5 செ.மீ ஆழத்தில் 20–25 செ.மீ இடைவெளியில் 60–75 செ.மீ வரிசை இடைவெளியில் நடவும்"
-            : "✅ Plant seeds 3–5 cm deep, spaced 20–25 cm apart, with 60–75 cm between rows",
+            ? "விதைகளை 3–5 செ.மீ ஆழத்தில் 20–25 செ.மீ இடைவெளியில் 60–75 செ.மீ வரிசை இடைவெளியில் நடவும்"
+            : "Plant seeds 3–5 cm deep, spaced 20–25 cm apart, with 60–75 cm between rows",
       );
       actions.push(
         lang === "si"
-          ? "✅ පළමු සති 4–6 තුළ වැල් හා උරුම ද්‍රව්‍ය ඉවත් කර වගාව පිරිසිදුව තබන්න"
+          ? "පළමු සති 4–6 තුළ වැල් හා උරුම ද්‍රව්‍ය ඉවත් කර වගාව පිරිසිදුව තබන්න"
           : lang === "ta"
-            ? "✅ முதல் 4–6 வாரங்களில் களைகளை தொடர்ந்து அகற்றவும்"
-            : "✅ Weed regularly during the first 4–6 weeks to reduce competition",
+            ? "முதல் 4–6 வாரங்களில் களைகளை தொடர்ந்து அகற்றவும்"
+            : "Weed regularly during the first 4–6 weeks to reduce competition",
       );
       actions.push(
         lang === "si"
-          ? "✅ පැල 12 අඟල් උසට ළඟාවන විට හා tasselling අවස්ථාවේ නයිට්‍රජන් පොහොර යොදන්න"
+          ? "පැල 12 අඟල් උසට ළඟාවන විට හා tasselling අවස්ථාවේ නයිට්‍රජන් පොහොර යොදන්න"
           : lang === "ta"
-            ? "✅ செடிகள் 30 செ.மீ உயரம் வரும்போதும் கொத்துக்கட்டை நிலையிலும் நைட்ரஜன் உரம் இடவும்"
-            : "✅ Apply nitrogen fertiliser when plants reach 12 inches and again at the tasselling stage",
+            ? "செடிகள் 30 செ.மீ உயரம் வரும்போதும் கொத்துக்கட்டை நிலையிலும் நைட்ரஜன் உரம் இடவும்"
+            : "Apply nitrogen fertiliser when plants reach 12 inches and again at the tasselling stage",
       );
       actions.push(
         lang === "si"
-          ? "✅ වාරිමාර්ගය නිවැරදිව කර සතියකට අඟල් 1–1.5 ජලය ලබා දී වියළි කාලවලදී අඟල් 2 දක්වා ඉහළ දැමීමට සැලසුම් කරන්න"
+          ? "වාරිමාර්ගය නිවැරදිව කර සතියකට අඟල් 1–1.5 ජලය ලබා දී වියළි කාලවලදී අඟල් 2 දක්වා ඉහළ දැමීමට සැලසුම් කරන්න"
           : lang === "ta"
-            ? "✅ வாரத்திற்கு 1–1.5 அங்குல தண்ணீர் வழங்கவும்; வறண்ட காலத்தில் 2 அங்குலம் வரை அதிகரிக்கவும்"
-            : "✅ Irrigate consistently (1–1.5 inches of water per week, increasing to 2 inches in dry periods) and monitor rainfall",
+            ? "வாரத்திற்கு 1–1.5 அங்குல தண்ணீர் வழங்கவும்; வறண்ட காலத்தில் 2 அங்குலம் வரை அதிகரிக்கவும்"
+            : "Irrigate consistently (1–1.5 inches of water per week, increasing to 2 inches in dry periods) and monitor rainfall",
       );
       actions.push(
         lang === "si"
-          ? "✅ කෘමී හා රෝග සීරුමාරු සඳහා ක්ෂේත්‍රය නිතර පරීක්ෂා කර අවශ්‍ය විට ප්‍රතිකාර කරන්න"
+          ? "කෘමී හා රෝග සීරුමාරු සඳහා ක්ෂේත්‍රය නිතර පරීක්ෂා කර අවශ්‍ය විට ප්‍රතිකාර කරන්න"
           : lang === "ta"
-            ? "✅ பூச்சிகள் மற்றும் நோய்களுக்கு தொடர்ந்து கண்காணித்து தேவைப்படும்போது கட்டுப்பாட்டு நடவடிக்கை எடுக்கவும்"
-            : "✅ Scout for pests and diseases frequently and apply control measures when needed",
+            ? "பூச்சிகள் மற்றும் நோய்களுக்கு தொடர்ந்து கண்காணித்து தேவைப்படும்போது கட்டுப்பாட்டு நடவடிக்கை எடுக்கவும்"
+            : "Scout for pests and diseases frequently and apply control measures when needed",
       );
     }
 
     actions.push(
       lang === "si"
-        ? "✅ අපේක්ෂිත අස්වැන්න සඳහා දිනපතා පර්යේෂණ සටහන තබන්න"
+        ? "අපේක්ෂිත අස්වැන්න සඳහා දිනපතා පර්යේෂණ සටහන තබන්න"
         : lang === "ta"
-          ? "✅ தினசரி வயல் குறிப்புகள் மற்றும் கவனிப்புகளை பதிவு செய்யவும்"
-          : "✅ Keep daily field notes and observations",
+          ? "தினசரி வயல் குறிப்புகள் மற்றும் கவனிப்புகளை பதிவு செய்யவும்"
+          : "Keep daily field notes and observations",
     );
 
     return actions;
@@ -1450,14 +1450,18 @@ const ProAdvisorPage: React.FC = () => {
                   formData,
                 })
               }
+              activeOpacity={0.8}
             >
-              <Text style={styles.ctaButtonText}>
-                {language === "si"
-                  ? "මෙම උපදෙස් අනුගමනය කරන්න"
-                  : language === "ta"
-                    ? "இந்த பரிந்துரைகளை பின்பற்றவும்"
-                    : "Follow These Recommendations"}
-              </Text>
+              <View style={styles.ctaButtonContent}>
+                <Zap size={22} color="#FFF" style={{ marginRight: 10 }} />
+                <Text style={styles.ctaButtonText}>
+                  {language === "si"
+                    ? "විශේෂඥ උපදෙස් සදහා අනුගමනය කරන්න"
+                    : language === "ta"
+                      ? "இந்த பரிந்துரைகளை பின்பற்றவும்"
+                      : "Follow These Recommendations"}
+                </Text>
+              </View>
             </TouchableOpacity>
 
             {/* Back Button */}
@@ -1689,21 +1693,27 @@ const styles = StyleSheet.create({
   ctaButton: {
     marginTop: 24,
     marginBottom: 16,
-    backgroundColor: "#10B981",
-    paddingVertical: 18,
-    borderRadius: 14,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    elevation: 8,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+  },
+  ctaButtonContent: {
+    flexDirection: "row" as const,
+    alignItems: "center",
+    justifyContent: "center",
   },
   ctaButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "800",
-    letterSpacing: 0.5,
+    fontSize: 17,
+    fontWeight: "900",
+    letterSpacing: 0.6,
   },
 });

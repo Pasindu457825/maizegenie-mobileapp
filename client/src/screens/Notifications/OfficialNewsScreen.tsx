@@ -21,7 +21,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import { supabase } from "../../lib/supabase";
 import { SafeAreaView, Platform, StatusBar } from "react-native";
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     return process.env.EXPO_PUBLIC_API_BASE;
@@ -71,10 +71,10 @@ type NavigationProp = NativeStackNavigationProp<
 
 type CategoryKey = OfficialNews["category"] | "all";
 
-// ✅ Add language type
+// Add language type
 type LanguageType = "si" | "en" | "ta";
 
-// ✅ Add translations
+// Add translations
 const translations: Record<LanguageType, any> = {
   si: {
     title: "නිල පුවත්",
@@ -158,7 +158,7 @@ export default function OfficialNewsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔎 Search + Filter
+  // Search + Filter
   const [searchText, setSearchText] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>("all");
 
@@ -171,16 +171,14 @@ export default function OfficialNewsScreen() {
   // Role-based authentication using Supabase user data
   const isFarmer = user?.role === "farmer";
   const isOfficer = user?.role === "officer";
-
-  // ✅ FIXED navigation typing
   const navigation = useNavigation<NavigationProp>();
 
-  // 🔹 Normal fetch
+  // Normal fetch
   useEffect(() => {
     fetchNews();
   }, []);
 
-  // 🔹 Realtime subscription
+  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel("official-news-realtime")
@@ -280,7 +278,7 @@ export default function OfficialNewsScreen() {
   };
 
   // =======================
-  // 🔎 Filtered list (UI only)
+  // Filtered list (UI only)
   // =======================
   const filteredNews = useMemo(() => {
     const q = searchText.trim().toLowerCase();
@@ -639,7 +637,6 @@ const styles = StyleSheet.create({
     color: "#1f2937",
   },
 
-  // 🔎 tools
   toolsWrap: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 16,

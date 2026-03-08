@@ -23,7 +23,7 @@ def now_iso():
 class AdvisorBlock(BaseModel):
     subtitle: str
     content: str
-    image_url: Optional[str] = None   # ✅ SAME AS NEWS
+    image_url: Optional[str] = None 
 
     @field_validator("image_url", mode="before")
     @classmethod
@@ -62,7 +62,7 @@ def add_pro_advisor(payload: ProAdvisorCreate):
 
     data = {
         "title": payload.title,
-        "blocks": [b.model_dump() for b in payload.blocks],  # ✅ SAFE NOW
+        "blocks": [b.model_dump() for b in payload.blocks], 
         "tag": payload.tag,
         "language": payload.language,
         "is_active": True,
@@ -149,7 +149,7 @@ def delete_pro_advisor(advisor_id: str):
         .execute()
     )
 
-    # 🔴 IMPORTANT CHECK
+    # IMPORTANT CHECK
     if res.data is None:
         raise HTTPException(
             status_code=403,

@@ -29,6 +29,22 @@ interface RouteParams {
   formData: ForecastData;
 }
 
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 const CreatePostScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
@@ -53,9 +69,9 @@ const CreatePostScreen = () => {
       quantity: "ප්‍රමාණය (කි.ග්‍රෑ)",
       seedVariety: "බීජ ප්‍රභේදය",
       pricePerKg: "මිල (කි.ග්‍රෑම් එකකට)",
-      district: "දිස්ත්‍රිකිය",
+      district: "දිස්ත්‍රික්කය",
       week: "සතිය",
-      next: "ඊයත් ගිය",
+      next: "ඉදිරියට යන්න",
       cancel: "අවලංගු කරන්න",
       enterQuantity: "ප්‍රමාණය ඇතුලු කරන්න",
       enterPrice: "මිල ඇතුලු කරන්න",

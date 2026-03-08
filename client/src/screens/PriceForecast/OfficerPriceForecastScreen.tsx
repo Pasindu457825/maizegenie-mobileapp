@@ -30,7 +30,7 @@ import {
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     return process.env.EXPO_PUBLIC_API_BASE;
@@ -408,7 +408,7 @@ export default function OfficerPriceForecastScreen() {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
 
-  // 🌍 DISTRICT WEEKLY WEATHER – replaces GPS-based weather for forecast inputs
+  // DISTRICT WEEKLY WEATHER – replaces GPS-based weather for forecast inputs
   const [districtWeather, setDistrictWeather] = useState<{
     avg_temperature: number;
     avg_rainfall: number;
@@ -485,7 +485,7 @@ export default function OfficerPriceForecastScreen() {
       try {
         if (!formData) throw new Error(t.missingData);
 
-        // ✅ STRICT VALIDATION - Form Data Only
+        // STRICT VALIDATION - Form Data Only
         const year = validateRequiredNumber(formData.year, "Year", 2020, 2100);
         const week = validateRequiredNumber(formData.week, "Week", 1, 52);
         const district = validateRequiredString(formData.district, "District");
@@ -498,7 +498,7 @@ export default function OfficerPriceForecastScreen() {
           10000,
         );
 
-        // 🌤 Use district weekly-average weather (NOT GPS current weather)
+        // Use district weekly-average weather (NOT GPS current weather)
         const isMaha = normalizeSeason(season) === "Maha";
         const rainfall =
           districtWeather && districtWeather.avg_rainfall > 0
@@ -550,8 +550,8 @@ export default function OfficerPriceForecastScreen() {
           district,
           season: normalizedSeason,
           fuel_price: fuelPrice,
-          rainfall: rainfall, // 🌤 district weekly avg
-          temperature: temperatureValue, // 🌤 district weekly avg
+          rainfall: rainfall, // district weekly avg
+          temperature: temperatureValue, // district weekly avg
           demand_index: demandIndex,
           import_tax: importTaxValue,
           last_price: lastPrice,
@@ -582,7 +582,7 @@ export default function OfficerPriceForecastScreen() {
       }
     };
 
-    // 🌤 Wait for district weather to be resolved before calling forecast
+    // Wait for district weather to be resolved before calling forecast
     if (districtWeather !== null) {
       fetchForecast();
     }
@@ -638,7 +638,7 @@ export default function OfficerPriceForecastScreen() {
     return Math.sqrt(variance);
   }, [weeks]);
 
-  // 📊 ADVANCED OFFICER ANALYTICS
+  // ADVANCED OFFICER ANALYTICS
   const summaryStats = useMemo(() => {
     if (!weeks.length) return { mean: 0, median: 0, min: 0, max: 0, range: 0 };
     const prices = weeks.map((w) => w.rf_price).sort((a, b) => a - b);

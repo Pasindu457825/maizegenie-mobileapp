@@ -20,7 +20,7 @@ import { supabase } from "../../lib/supabase";
 import { Picker } from "@react-native-picker/picker";
 import { ROUTES } from "../../constants";
 
-// 🌐 Language
+// Language
 import { useLanguage } from "../../context/LanguageContext";
 
 // Icons
@@ -38,11 +38,27 @@ export default function AdminAddOfficialNewsScreen() {
   const navigation = useNavigation();
   const { language } = useLanguage();
 
+  // Dynamic API URL using .env + Platform detection
+  const getApiUrl = () => {
+    if (Platform.OS === "android") {
+      // Real Android Device → Uses .env
+      return process.env.EXPO_PUBLIC_API_BASE;
+    } else if (Platform.OS === "ios") {
+      // iOS simulator
+      return "http://localhost:8000";
+    } else {
+      // Expo Web fallback
+      return "http://localhost:8000";
+    }
+  };
+
+  const API_URL = getApiUrl();
+
   // UI language
   const uiLang: "si" | "en" | "ta" =
     language === "sinhala" ? "si" : language === "tamil" ? "ta" : "en";
 
-  // 🌐 Bilingual text
+  // Bilingual text
   const content = {
     si: {
       title: "නිල ප්‍රවෘත්ති එක් කරන්න",
@@ -122,7 +138,7 @@ export default function AdminAddOfficialNewsScreen() {
 
   const t = content[uiLang];
 
-  // 📝 Form state
+  // Form state
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState("");
@@ -157,7 +173,7 @@ export default function AdminAddOfficialNewsScreen() {
     if (!result.canceled) {
       const asset = result.assets[0];
 
-      // ✅ size validation (5MB)
+      // size validation (5MB)
       if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
         Alert.alert("Image too large", "Max size is 5MB");
         return;
@@ -193,11 +209,11 @@ export default function AdminAddOfficialNewsScreen() {
     return data.publicUrl;
   };
 
-  // 🚀 Submit
+  // ubmit
   const submitNews = async () => {
     let hasError = false;
 
-    // 🔴 Title validation
+    // Title validation
     if (!title.trim()) {
       setTitleError(
         uiLang === "si"
@@ -208,14 +224,14 @@ export default function AdminAddOfficialNewsScreen() {
       );
       hasError = true;
 
-      // 👇 scroll to title
+      // scroll to title
       titleRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
         scrollRef.current?.scrollTo({ y: y - 20, animated: true });
       });
       return;
     }
 
-    // 🔴 Category validation
+    // Category validation
     if (!category) {
       setCategoryError(
         uiLang === "si"
@@ -231,7 +247,7 @@ export default function AdminAddOfficialNewsScreen() {
       return;
     }
 
-    // 🔴 Source validation
+    // Source validation
     if (!source.trim()) {
       setSourceError(
         uiLang === "si"
@@ -629,7 +645,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F8E9",
   },
   header: {
-    paddingTop: Platform.OS === "ios" ? 52 : 18,
+    paddingTop: Platform.OS === "ios" ? 72 : 28,
     paddingBottom: 16,
     paddingHorizontal: 16,
     backgroundColor: "#2E7D32",
