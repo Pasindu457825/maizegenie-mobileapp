@@ -53,6 +53,30 @@ interface PestFeedback {
   };
 }
 
+const toSignedImageUrl = async (rawUrl: string | null): Promise<string | null> => {
+  if (!rawUrl) return null;
+  if (!rawUrl.includes("/storage/v1/object/")) return rawUrl;
+
+  try {
+    const marker = "/storage/v1/object/public/";
+    const idx = rawUrl.indexOf(marker);
+    if (idx === -1) return rawUrl;
+
+    const rest = rawUrl.slice(idx + marker.length);
+    const slash = rest.indexOf("/");
+    if (slash === -1) return rawUrl;
+
+    const bucket = rest.slice(0, slash);
+    const path = decodeURIComponent(rest.slice(slash + 1));
+
+    const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 60);
+    if (error || !data?.signedUrl) return rawUrl;
+    return data.signedUrl;
+  } catch {
+    return rawUrl;
+  }
+};
+
 // ── Status Config ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<
   FeedbackStatus,
@@ -127,7 +151,14 @@ const AdminPestForum = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setFeedbacks((data as PestFeedback[]) || []);
+      const base = (data as PestFeedback[]) || [];
+      const withSignedUrls = await Promise.all(
+        base.map(async (item) => ({
+          ...item,
+          image_url: await toSignedImageUrl(item.image_url),
+        }))
+      );
+      setFeedbacks(withSignedUrls);
     } catch (error: any) {
       console.error("Failed to fetch pest feedbacks:", error);
       Alert.alert("Error", error.message || "Failed to load feedbacks");
@@ -225,16 +256,49 @@ const AdminPestForum = () => {
     }
     setSubmittingReply(true);
 
-    // Pest officer's fixed UUID
-    const PEST_OFFICER_ID = "af414a07-d506-4e6a-a146-1f9bf7141618";
-
     try {
+      const authClient = supabase.auth as any;
+      let officerId: string | undefined;
+
+      if (typeof authClient.getUser === "function") {
+        const { data, error } = await authClient.getUser();
+        if (error) throw error;
+        officerId = data?.user?.id;
+      } else if (typeof authClient.getSession === "function") {
+        const { data, error } = await authClient.getSession();
+        if (error) throw error;
+        officerId = data?.session?.user?.id;
+      } else if (typeof authClient.user === "function") {
+        officerId = authClient.user()?.id;
+      } else if (typeof authClient.session === "function") {
+        officerId = authClient.session()?.user?.id;
+      }
+
+      if (!officerId) {
+        Alert.alert("Error", "Officer login not found. Please log in again.");
+        return;
+      }
+
+      const { data: officerProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", officerId)
+        .maybeSingle();
+      if (profileError) throw profileError;
+      if (!officerProfile?.id) {
+        Alert.alert(
+          "Error",
+          "Officer profile record not found in profiles table. Please contact admin."
+        );
+        return;
+      }
+
       // 1. Insert reply into pest_officer_replies
       const { error: replyError } = await supabase
         .from("pest_officer_replies")
         .insert({
           feedback_id: replyTargetFeedback.id,
-          officer_id: PEST_OFFICER_ID,
+          officer_id: officerId,
           reply: replyText.trim(),
         });
       if (replyError) throw replyError;
@@ -303,9 +367,6 @@ const AdminPestForum = () => {
               <Bug size={20} color="#7c3aed" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pestType} numberOfLines={1}>
-                {feedback.pest_type}
-              </Text>
               <View style={styles.farmerRow}>
                 <User size={11} color="#9ca3af" />
                 <Text style={styles.farmerName} numberOfLines={1}>
@@ -456,12 +517,6 @@ const AdminPestForum = () => {
                 <InfoRow icon={<MapPin size={15} color="#7c3aed" />} label="District" value={selectedFeedback.district || "N/A"} />
                 <View style={styles.infoDivider} />
                 <InfoRow icon={<Calendar size={15} color="#7c3aed" />} label="Date" value={formatDate(selectedFeedback.created_at)} />
-              </View>
-
-              {/* Pest Type */}
-              <Text style={styles.modalSectionLabel}>Pest Report</Text>
-              <View style={styles.infoCard}>
-                <InfoRow icon={<Bug size={15} color="#7c3aed" />} label="Pest Type" value={selectedFeedback.pest_type} />
               </View>
 
               {/* Message */}
@@ -875,7 +930,6 @@ const styles = StyleSheet.create({
     width: 40, height: 40, borderRadius: 12,
     backgroundColor: "#ede9fe", justifyContent: "center", alignItems: "center",
   },
-  pestType: { fontSize: 15, fontWeight: "700", color: "#1f2937" },
   farmerRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   farmerName: { fontSize: 12, color: "#9ca3af", fontWeight: "500" },
   statusBadge: {
