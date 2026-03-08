@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
 import { Leaf, Users, Package, ArrowLeft, Sparkles, TestTube, BookOpen, MessageCircle, Edit3 } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -78,6 +79,8 @@ const YieldPredictionLoadingScreen = () => {
       subtitle: "",
       servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
+      wetWeightPrediction: "තෙත් බර අස්වැන්න පුරෝකථනය",
+      wetWeightPredictionDesc: "AI මාදිලිය භාවිතයෙන් පාලිත තෙත් බර අස්වැන්න පුරෝකථනය කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
       farmerForecastTitle: "දළ පුරෝකථනය",
       farmerForecastDesc: "ඉක්මන් සහ සරල අස්වැන්න පුරෝකථනය",
@@ -109,6 +112,8 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
+      wetWeightPrediction: "Wet Weight Yield Prediction",
+      wetWeightPredictionDesc: "Predict controlled wet weight yield using AI model",
       farmerForecastTitle: "Gross Forecast",
       farmerForecastDesc: "Quick and simple yield prediction",
       officerForecastTitle: "Professional/Advanced Analysis",
@@ -139,6 +144,8 @@ const YieldPredictionLoadingScreen = () => {
       servicesTitle: "எங்கள் சேவைகள்",
       startTitle: "கணிப்பை தொடங்குங்கள்",
       startDesc: "உங்கள் விளைச்சலை விரைவாக கணிக்கவும்",
+      wetWeightPrediction: "ஈரமான எடை விளைச்சல் கணிப்பு",
+      wetWeightPredictionDesc: "AI மாதிரியைப் பயன்படுத்தி கட்டுப்படுத்தப்பட்ட ஈரமான எடை விளைச்சலை கணிக்கவும்",
       farmerForecastTitle: "பொது கணிப்பு",
       farmerForecastDesc: "விரைவான மற்றும் எளிய விளைச்சல் கணிப்பு",
       officerForecastTitle: "தொழில்முனை/மேம்பட்ட பகுப்பாய்வு",
@@ -432,7 +439,7 @@ const YieldPredictionLoadingScreen = () => {
               </>
             ) : (
               <>
-                {/* Card 1: Start Prediction */}
+                {/* Card 1: Officer Forecast */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => handleRoleSelect("officer")}
@@ -461,7 +468,36 @@ const YieldPredictionLoadingScreen = () => {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* Card 2: Farmer Requests */}
+                {/* Card 2: Wet Weight Prediction (Officer Only) */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("WetWeightPredictionForm")}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={["#EFF6FF", "#DBEAFE"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.roleCardGradient}
+                  >
+                    <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                      <Ionicons name="stats-chart-outline" size={30} color="#3b82f6" />
+                    </View>
+                    <View style={styles.roleContent}>
+                      <Text style={styles.roleTitle}>
+                        {content[language].wetWeightPrediction}
+                      </Text>
+                      <Text style={styles.roleDesc}>
+                        {content[language].wetWeightPredictionDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.roleArrow}>
+                      <Text style={styles.roleArrowText}>→</Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Card 3: Farmer Requests */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("FarmerAdviceRequestsScreen")}
@@ -490,36 +526,7 @@ const YieldPredictionLoadingScreen = () => {
                   </LinearGradient>
                 </TouchableOpacity>
 
-                {/* Card 4: Chat With Farmers */}
-                <TouchableOpacity
-                  style={styles.roleCard}
-                  onPress={() => navigation.navigate("OfficerRooms" as any)}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={["#EFF6FF", "#DBEAFE"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
-                      <MessageCircle color="#3b82f6" size={32} />
-                    </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
-                        {content[language].chatWithFarmers}
-                      </Text>
-                      <Text style={styles.roleDesc}>
-                        {content[language].chatWithFarmersDesc}
-                      </Text>
-                    </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Card 5: Edit Fertilizer Plans */}
+                {/* Card 4: Edit Fertilizer Plans */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("EditFertilizerPlans")}
@@ -540,6 +547,35 @@ const YieldPredictionLoadingScreen = () => {
                       </Text>
                       <Text style={styles.roleDesc}>
                         {content[language].editFertilizerPlansDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.roleArrow}>
+                      <Text style={styles.roleArrowText}>→</Text>
+                    </View>
+                  </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Card 5: Chat With Farmers (last) */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("OfficerRooms" as any)}
+                  activeOpacity={0.7}
+                >
+                  <LinearGradient
+                    colors={["#FFF7ED", "#FFEDD5"]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.roleCardGradient}
+                  >
+                    <View style={[styles.roleIconCircle, { backgroundColor: "#FFEDD5" }]}>
+                      <MessageCircle color="#ea580c" size={32} />
+                    </View>
+                    <View style={styles.roleContent}>
+                      <Text style={styles.roleTitle}>
+                        {content[language].chatWithFarmers}
+                      </Text>
+                      <Text style={styles.roleDesc}>
+                        {content[language].chatWithFarmersDesc}
                       </Text>
                     </View>
                     <View style={styles.roleArrow}>
