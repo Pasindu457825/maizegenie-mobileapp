@@ -139,8 +139,6 @@ type RootStackParamList = {
   WeatherForecastScreen: undefined;
   PriceAdvisorScreen: { formData: any } | undefined;
   Notifications: undefined;
-
-  // ✅ ADD THIS
   ProAdvisorPage: {
     formData: any;
   };
@@ -160,7 +158,7 @@ interface AdvisorFormData {
   seedVariety: string;
   area: string;
 
-  // ✅ Decision-Support extra fields
+  // Decision-Support extra fields
   budgetLevel: "low" | "medium" | "high";
   experienceLevel: "new" | "some" | "experienced";
   hasIrrigation: boolean;
@@ -348,7 +346,7 @@ const PriceAdvisorScreen: React.FC = () => {
       headerSubtitle: "අලුතින් වගාව පටන් ගන්න ඔබට මගපෙන්වීම",
       location: "ස්ථානය",
       weather: "කාලගුණය",
-      quickQuestionsTitle: "ඉක්මන් ප්‍රශ්න 5",
+      quickQuestionsTitle: "පොදු ප්‍රශ්න",
       fullFormTitle: "සම්පූර්ණ වගා උපදෙස් (උසස් මාදිලිය)",
       resultTitle: "ඔබ සඳහා වගා උපදෙස්",
       q1: "බඩ ඉරිඟු වගා කිරීමට හොඳම කාලය කුමක්ද?",
@@ -441,7 +439,7 @@ const PriceAdvisorScreen: React.FC = () => {
     "good" | "warn" | "info" | null
   >(null);
 
-  // ✅ Extract best option from backend response (supports multiple shapes)
+  // Extract best option from backend response (supports multiple shapes)
   const getHarvestBest = (res: any) => {
     if (!res) return null;
 
@@ -567,7 +565,7 @@ const PriceAdvisorScreen: React.FC = () => {
     return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
   };
 
-  // ✅ Get week-of-month from a Date (1..5)
+  // Get week-of-month from a Date (1..5)
   const getWeekOfMonth = (date: Date) => {
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     const dayOfMonth = date.getDate();
@@ -575,7 +573,7 @@ const PriceAdvisorScreen: React.FC = () => {
     return Math.ceil((dayOfMonth + firstDayWeekday) / 7);
   };
 
-  // ✅ Convert ISO date (YYYY-MM-DD) -> {year, monthLabel, weekOfMonth}
+  // Convert ISO date (YYYY-MM-DD) -> {year, monthLabel, weekOfMonth}
   const parseISOToMonthWeek = (iso: string, lang: "si" | "en" | "ta") => {
     if (!iso) return null;
     const d = new Date(iso);
@@ -617,7 +615,7 @@ const PriceAdvisorScreen: React.FC = () => {
     };
   };
 
-  // ✅ Label -> farmer-friendly word
+  // Label -> farmer-friendly word
   const signalToFarmerWord = (label: string, lang: "si" | "en" | "ta") => {
     const L = (label || "").toUpperCase();
     if (lang === "si") {
@@ -642,8 +640,8 @@ const PriceAdvisorScreen: React.FC = () => {
     bestHarvestWeek?: number; // priceWindowResult.best_option.harvest_week OR harvestAdvisoryResult.best_harvest_week
     harvestSignalLabel?: string; // STRONG / MODERATE / WEAK / HOLD
     confidence?: string; // "High"
-    delayWeeks?: number; // ✅ NEW
-    baseHarvestWeek?: number; // ✅ optional, if backend provides
+    delayWeeks?: number; 
+    baseHarvestWeek?: number; // optional, if backend provides
     plantingWeekOfYear?: number;
   }) => {
     const {
@@ -751,7 +749,7 @@ const PriceAdvisorScreen: React.FC = () => {
           ? `சந்தை போக்குகள் ${marketLineWord} என்பதை காட்டுகின்றன.`
           : `Market trends indicate that ${marketLineWord}.`;
 
-    // 4️⃣ Confidence (optional)
+    // 4️⃣ Confidence
 
     const confLine = confidence
       ? lang === "si"
@@ -1495,7 +1493,6 @@ const PriceAdvisorScreen: React.FC = () => {
   };
 
   const runFullAdvisor = async () => {
-    // ✅ existing logic (keep)
     const { text, tag } = buildExplainableDecision();
     setFullAdvisorTag(tag);
     setFullAdvisorText(text);
@@ -1549,7 +1546,7 @@ const PriceAdvisorScreen: React.FC = () => {
       setHarvestAdvisoryLoading(false);
     }
 
-    // 3️⃣ NEW — Advisor Guide (ADD)
+    // 3️⃣ Advisor Guide
     try {
       setAdvisorGuideLoading(true);
 
@@ -1586,9 +1583,6 @@ const PriceAdvisorScreen: React.FC = () => {
       setAdvisorGuideLoading(false);
     }
 
-    // --------------------------------------------------
-    // 3️⃣ existing animation logic (KEEP)
-    // --------------------------------------------------
     Animated.parallel([
       Animated.timing(formSlideAnim, {
         toValue: -20,
@@ -1626,7 +1620,6 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const handleGoBack = () => navigation.goBack();
 
-  // ✅ ADD THIS BUTTON
   const handleOpenProAdvisor = () => {
     rootNavigation.navigate("ProAdvisor" as never);
   };
@@ -1845,7 +1838,7 @@ const PriceAdvisorScreen: React.FC = () => {
     message_si: string;
   };
 
-  // ✅ STORAGE ADVICE CARD COMPONENT — WITH LANGUAGE SUPPORT
+  // STORAGE ADVICE CARD COMPONENT — WITH LANGUAGE SUPPORT
   const StorageAdviceCard = ({
     storageAdvice,
     language,
@@ -1855,7 +1848,7 @@ const PriceAdvisorScreen: React.FC = () => {
   }) => {
     if (!storageAdvice || !storageAdvice.required) return null;
 
-    // ✅ LANGUAGE-AWARE TITLES & LABELS
+    // LANGUAGE-AWARE TITLES & LABELS
     const title =
       language === "si"
         ? "ගබඩා කිරීම සුදුසුයි"
@@ -1877,7 +1870,7 @@ const PriceAdvisorScreen: React.FC = () => {
           ? "உலர்ந்த இடம் தேர்வு செய்க • காற்றோட்டம் சரியாக இருக்க வேண்டும்"
           : "Choose a dry place • Ensure good ventilation";
 
-    // ✅ LANGUAGE-AWARE MESSAGE (BUILD FROM storageAdvice)
+    //  LANGUAGE-AWARE MESSAGE (BUILD FROM storageAdvice)
     const storageMessage =
       language === "si"
         ? storageAdvice.message_si ||
@@ -1927,7 +1920,7 @@ const PriceAdvisorScreen: React.FC = () => {
 
     const dly = delayWeeks ?? Math.max(bestWeek - baseWeek, 0);
 
-    // ✅ Convert ISO week -> { year, monthLabel, weekOfMonth }
+    // Convert ISO week -> { year, monthLabel, weekOfMonth }
     // using your existing helper: isoWeekToMonthWeekLabel()
     const base = isoWeekToMonthWeekLabel(
       baseWeek,
@@ -1940,7 +1933,7 @@ const PriceAdvisorScreen: React.FC = () => {
       language,
     );
 
-    // ✅ Option 3 copy (Sinhala/English)
+    // Option 3 copy (Sinhala/English)
     const leftLine1 =
       language === "si"
         ? `${base.year} ${base.monthLabel} ${weekOrdinal(
@@ -2176,7 +2169,7 @@ const PriceAdvisorScreen: React.FC = () => {
                 <Text style={styles.quickTitle}>{t.q5}</Text>
               </TouchableOpacity>
             </View>
-            {/* 🔽 QUICK ANSWER DISPLAY (ADD THIS) */}
+            {/* QUICK ANSWER DISPLAY */}
             {selectedQuestion && quickAnswer && (
               <View style={styles.quickAnswerBox}>
                 <Text style={styles.quickAnswerText}>{quickAnswer}</Text>
@@ -2237,7 +2230,7 @@ const PriceAdvisorScreen: React.FC = () => {
                             : `Delay harvest by ${computedDelayWeeks} weeks`}
                   </Text>
 
-                  {/* ✅ Graphical timeline (NEW) */}
+                  {/* Graphical timeline */}
                   <HarvestTimelineBar
                     language={language}
                     delayWeeks={computedDelayWeeks}
@@ -2252,7 +2245,7 @@ const PriceAdvisorScreen: React.FC = () => {
                     </Text>
                   )}
 
-                  {/* ✅ Storage advice card (NEW) */}
+                  {/* Storage advice card  */}
                   <StorageAdviceCard
                     storageAdvice={harvestAdvisoryResult?.storage_advice}
                     language={language}
@@ -2312,7 +2305,7 @@ const PriceAdvisorScreen: React.FC = () => {
                       <Text style={styles.advisoryText}>{fullAdvisorText}</Text>
                     </View>
 
-                    {/* ✅ Advisor Guide (NEW) */}
+                    {/* Advisor Guide */}
                     {(advisorGuideLoading ||
                       advisorGuideResult?.advisor_guide) && (
                       <View style={{ marginTop: 14 }}>
@@ -2481,7 +2474,7 @@ const PriceAdvisorScreen: React.FC = () => {
                   </View>
                 )}
 
-                {/* ✅ NEW — Pro Advisor Button */}
+                {/* Pro Advisor Button */}
                 {fullAdvisorText && (
                   <TouchableOpacity
                     style={styles.proAdvisorButton}
@@ -2500,7 +2493,7 @@ const PriceAdvisorScreen: React.FC = () => {
                   </TouchableOpacity>
                 )}
 
-                {/* ✅ ADD THIS HERE — Pricing Popup */}
+                {/* Pricing Popup */}
                 <PricingModal1
                   visible={showPricingModal}
                   onClose={() => setShowPricingModal(false)}
@@ -2518,7 +2511,7 @@ const PriceAdvisorScreen: React.FC = () => {
             </View>
           )}
 
-          {/* 👨‍🌾 Agri Officer Support — Always Visible */}
+          {/* Agri Officer Support — Always Visible */}
           <View style={styles.section}>
             <View style={styles.assistCard}>
               <View
@@ -2711,7 +2704,7 @@ const PriceAdvisorScreen: React.FC = () => {
                             {item.name}
                           </Text>
 
-                          {/* ✅ WEEK INFO UNDER VARIETY */}
+                          {/* WEEK INFO UNDER VARIETY */}
                           <Text style={styles.varietyWeek}>
                             {language === "si"
                               ? `අස්වැන්නට සති ${

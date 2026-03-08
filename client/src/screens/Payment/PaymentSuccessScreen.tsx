@@ -205,15 +205,15 @@ export default function PaymentSuccessScreen({ navigation, route }: any) {
               <Text style={styles.featuresTitle}>{t.features}</Text>
             </View>
 
-          <View style={styles.featuresList}>
-            <FeatureItem text={t.feature6} />
-            <FeatureItem text={t.feature1} />
-            <FeatureItem text={t.feature2} />
-            <FeatureItem text={t.feature3} />
-            <FeatureItem text={t.feature4} />
-            <FeatureItem text={t.feature5} />
+            <View style={styles.featuresList}>
+              <FeatureItem text={t.feature6} />
+              <FeatureItem text={t.feature1} />
+              <FeatureItem text={t.feature2} />
+              <FeatureItem text={t.feature3} />
+              <FeatureItem text={t.feature4} />
+              <FeatureItem text={t.feature5} />
+            </View>
           </View>
-        </View>
 
           {/* Get Started Button */}
           <TouchableOpacity

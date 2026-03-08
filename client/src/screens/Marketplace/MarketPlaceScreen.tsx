@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -49,6 +50,22 @@ type NavProp = StackNavigationProp<
 
 type RootNavProp = StackNavigationProp<Record<string, object | undefined>>;
 
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 const MarketPlaceScreen = () => {
   const navigation = useNavigation<NavProp>();
   const rootNavigation = useNavigation<RootNavProp>();
@@ -68,7 +85,7 @@ const MarketPlaceScreen = () => {
     "not_sold",
   );
 
-  // 🔥 NEW: Quick offer modal state
+  // Quick offer modal state
   const [showQuickOfferModal, setShowQuickOfferModal] = useState(false);
   const [selectedPostForOffer, setSelectedPostForOffer] = useState<Post | null>(
     null,
@@ -76,6 +93,8 @@ const MarketPlaceScreen = () => {
   const [quickOfferPrice, setQuickOfferPrice] = useState<string>("");
   const [isSubmittingQuickOffer, setIsSubmittingQuickOffer] = useState(false);
   const [isPublishingNow, setIsPublishingNow] = useState<string | null>(null); // postId being published
+  const [showOwnPostsOnly, setShowOwnPostsOnly] = useState(false);
+  const [showMyOffersOnly, setShowMyOffersOnly] = useState(false);
 
   const content = {
     si: {
@@ -86,12 +105,11 @@ const MarketPlaceScreen = () => {
       perKg: "කි.ග්‍රෑම් එකකට",
       loading: "පූරණය වෙමින්...",
       active: "ක්‍රියාකාරී",
-      sold: "විකිණුණු",
+      sold: "විකිණු",
       scheduled: "සකස් කළ",
       postNow: "දැන් ප්‍රකාශනය",
       yourOffer: "ඔබේ ඉදිරිපත්කරණ",
       noOffers: "ඉදිරිපත්කරණ නැත",
-      // 🔥 NEW: Quick offer modal text
       quickOffer: "ඉක්මන් ඉදිරිපත්කරණ",
       enterOfferPrice: "ඉදිරිපත් මිල ඇතුලු කරන්න",
       currentPrice: "වත්මන් මිල",
@@ -104,6 +122,9 @@ const MarketPlaceScreen = () => {
       alreadyOffered: "ඔබ පෙර ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත",
       posted: "පළ කළ",
       updated: "යාවත්කාලීන",
+      myPosts: "මගේ ඉදිරිපත්කිරීම්",
+      allPosts: "සියලු ගනුදෙනු",
+      myOffers: "මගේ ඉදිරිපත්කරණ",
     },
     en: {
       title: "Harvest Marketplace",
@@ -118,7 +139,6 @@ const MarketPlaceScreen = () => {
       postNow: "Post Now",
       yourOffer: "Your offer",
       noOffers: "No offers",
-      // 🔥 NEW: Quick offer modal text
       quickOffer: "Quick Offer",
       enterOfferPrice: "Enter offer price",
       currentPrice: "Current price",
@@ -131,6 +151,9 @@ const MarketPlaceScreen = () => {
       alreadyOffered: "You already offered on this post",
       posted: "Posted",
       updated: "Updated",
+      myPosts: "My Posts",
+      allPosts: "All Posts",
+      myOffers: "My Offers",
       offerCount: (n: number) =>
         n === 0
           ? "No offers yet · Be the first!"
@@ -165,6 +188,9 @@ const MarketPlaceScreen = () => {
       alreadyOffered: "ஏற்கனவே சலிவு விலை சமர்ப்பித்துள்ளீர்கள்",
       posted: "பதிவிடப்பட்டது",
       updated: "புதுப்பிக்கப்பட்டது",
+      myPosts: "என் பதிவுகள்",
+      allPosts: "அனைத்து பதிவுகள்",
+      myOffers: "என் சலிவுகள்",
       offerCount: (n: number) =>
         n === 0
           ? "இன்னும் சலிவு இல்லை · முதலில் இடுக!"
@@ -324,11 +350,23 @@ const MarketPlaceScreen = () => {
           // Status filter: "sold" shows only sold; "not_sold" hides sold
           (statusFilter === "sold"
             ? post.status === "sold"
-            : post.status !== "sold"),
+            : post.status !== "sold") &&
+          // Own posts filter: if enabled, show only current user's posts
+          (showOwnPostsOnly ? post.farmer_id === currentUserId : true) &&
+          // My offers filter: if enabled, show only posts where user has placed an offer
+          (showMyOffersOnly ? userOffers.get(post.id) === true : true),
       )
       .sort((a, b) => statusOrder(a.status) - statusOrder(b.status));
     setFilteredPosts(filtered);
-  }, [searchQuery, posts, currentUserId, statusFilter]);
+  }, [
+    searchQuery,
+    posts,
+    currentUserId,
+    statusFilter,
+    showOwnPostsOnly,
+    showMyOffersOnly,
+    userOffers,
+  ]);
 
   // Handle "Post Now" for scheduled posts
   const handlePublishNow = async (postId: string) => {
@@ -343,7 +381,7 @@ const MarketPlaceScreen = () => {
     }
   };
 
-  // 🔥 NEW: Handle quick offer submission
+  //  NEW: Handle quick offer submission
   const handleQuickOfferSubmit = async () => {
     if (!selectedPostForOffer) return;
 
@@ -484,7 +522,7 @@ const MarketPlaceScreen = () => {
           </View>
         </View>
 
-        {/* ✨ Offer Count Strip — visible for non-scheduled active/sold posts */}
+        {/*  Offer Count Strip — visible for non-scheduled active/sold posts */}
         {!isScheduled &&
           (() => {
             const offerMeta = getOfferMeta(item.offer_count ?? 0, language);
@@ -555,7 +593,7 @@ const MarketPlaceScreen = () => {
           )}
         </View>
 
-        {/* ✅ Accepted Offer Banner — only for the buyer whose offer was accepted */}
+        {/* Accepted Offer Banner — only for the buyer whose offer was accepted */}
         {item.status === "sold" && hasUserOffer && (
           <View style={styles.acceptedOfferBanner}>
             <CheckCircle size={16} color="#065F46" />
@@ -595,7 +633,7 @@ const MarketPlaceScreen = () => {
             </TouchableOpacity>
           )}
 
-          {/* 🔥 Offer CTA Button — hidden for scheduled posts and post's own farmer */}
+          {/* Offer CTA Button — hidden for scheduled posts and post's own farmer */}
           {!isScheduled &&
             currentUserId &&
             item.status === "active" &&
@@ -639,7 +677,7 @@ const MarketPlaceScreen = () => {
             <View style={styles.soldBadge}>
               <Text style={styles.soldBadgeText}>
                 {language === "si"
-                  ? "විකිණැද"
+                  ? "විකිණු"
                   : language === "ta"
                     ? "விற்பனை"
                     : "Sold"}
@@ -690,8 +728,13 @@ const MarketPlaceScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Status Filter Pills */}
-      <View style={styles.filterRow}>
+      {/* Status Filter Pills - Horizontal Scrollable */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+        scrollEnabled={true}
+      >
         <TouchableOpacity
           style={[
             styles.filterPill,
@@ -700,13 +743,15 @@ const MarketPlaceScreen = () => {
           onPress={() => setStatusFilter("not_sold")}
         >
           <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
             style={[
               styles.filterPillText,
               statusFilter === "not_sold" && styles.filterPillTextActive,
             ]}
           >
             {language === "si"
-              ? "නොවිකිණුණු"
+              ? "නොවිකිණු"
               : language === "ta"
                 ? "விற்பனை ஆகாதது"
                 : "Not Sold"}
@@ -720,19 +765,59 @@ const MarketPlaceScreen = () => {
           onPress={() => setStatusFilter("sold")}
         >
           <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
             style={[
               styles.filterPillText,
               statusFilter === "sold" && styles.filterPillTextActive,
             ]}
           >
             {language === "si"
-              ? "විකිණුණු"
+              ? "විකිණු"
               : language === "ta"
                 ? "விற்பனையானது"
                 : "Sold"}
           </Text>
         </TouchableOpacity>
-      </View>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            showOwnPostsOnly && styles.filterPillActive,
+          ]}
+          onPress={() => setShowOwnPostsOnly(!showOwnPostsOnly)}
+        >
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[
+              styles.filterPillText,
+              showOwnPostsOnly && styles.filterPillTextActive,
+            ]}
+          >
+            {showOwnPostsOnly
+              ? content[language].myPosts
+              : content[language].allPosts}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            showMyOffersOnly && styles.filterPillActive,
+          ]}
+          onPress={() => setShowMyOffersOnly(!showMyOffersOnly)}
+        >
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[
+              styles.filterPillText,
+              showMyOffersOnly && styles.filterPillTextActive,
+            ]}
+          >
+            {content[language].myOffers}
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -766,7 +851,7 @@ const MarketPlaceScreen = () => {
         />
       )}
 
-      {/* 🔥 NEW: Quick Offer Modal */}
+      {/* NEW: Quick Offer Modal */}
       <Modal
         visible={showQuickOfferModal}
         transparent
@@ -1391,31 +1476,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 4,
+    paddingBottom: 10,
     gap: 8,
+    alignItems: "center",
   },
   filterPill: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    height: 40,
+    minWidth: 90,
+    paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: "#D1D5DB",
     backgroundColor: "#F9FAFB",
+    justifyContent: "center",
+    alignItems: "center",
   },
   filterPillActive: {
     backgroundColor: "#10B981",
     borderColor: "#10B981",
   },
   filterPillText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600" as const,
     color: "#6B7280",
   },
   filterPillTextActive: {
     color: "#FFFFFF",
   },
-
-  // ─── Offer count strip ───────────────────────────────────────────────────
   offerCountStrip: {
     flexDirection: "row" as const,
     alignItems: "center" as const,

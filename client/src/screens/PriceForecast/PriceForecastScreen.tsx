@@ -63,7 +63,7 @@ type LocalNavProp = StackNavigationProp<
   "PriceForecastScreen"
 >;
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     // Real Android device → read from .env
@@ -177,7 +177,6 @@ const PriceForecastScreen = () => {
   const [savedLocation, setSavedLocation] = useState<any>(null);
   const [savedWeather, setSavedWeather] = useState<any>(null);
 
-  // 🔥 ADD THESE NEW STATE VARIABLES
   const [voiceSummaryText, setVoiceSummaryText] = useState<string>("");
   const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -186,7 +185,7 @@ const PriceForecastScreen = () => {
   const popupAnim = useRef(new Animated.Value(0)).current;
   const popupShownRef = useRef(false);
 
-  // 🌍 DISTRICT WEEKLY WEATHER (replaces GPS-based weather for forecast)
+  // DISTRICT WEEKLY WEATHER (replaces GPS-based weather for forecast)
   const [districtWeather, setDistrictWeather] = useState<{
     avg_temperature: number;
     avg_rainfall: number;
@@ -207,7 +206,7 @@ const PriceForecastScreen = () => {
       const url =
         `${API_URL}/api/price-forecast/district-weather` +
         `?district=${encodeURIComponent(district)}&year=${year}&week=${week}`;
-      const res  = await fetch(url);
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.success) {
@@ -217,13 +216,16 @@ const PriceForecastScreen = () => {
         );
         return {
           avg_temperature: data.avg_temperature as number,
-          avg_rainfall:    data.avg_rainfall    as number,
-          source:          data.source          as string,
+          avg_rainfall: data.avg_rainfall as number,
+          source: data.source as string,
         };
       }
       throw new Error("success=false");
     } catch (err) {
-      console.warn("fetchDistrictWeather failed, using seasonal defaults:", err);
+      console.warn(
+        "fetchDistrictWeather failed, using seasonal defaults:",
+        err,
+      );
       return null;
     }
   };
@@ -231,12 +233,15 @@ const PriceForecastScreen = () => {
   // Fetch district weather whenever we have a district + valid week
   useEffect(() => {
     const district = formData?.district;
-    const yearNum  = Number(formData?.year);
-    const weekNum  = Number(formData?.week);
+    const yearNum = Number(formData?.year);
+    const weekNum = Number(formData?.week);
     if (
       district &&
-      Number.isFinite(yearNum) && yearNum >= 2020 &&
-      Number.isFinite(weekNum) && weekNum >= 1 && weekNum <= 53
+      Number.isFinite(yearNum) &&
+      yearNum >= 2020 &&
+      Number.isFinite(weekNum) &&
+      weekNum >= 1 &&
+      weekNum <= 53
     ) {
       fetchDistrictWeather(district, yearNum, weekNum).then((w) => {
         // Always set (even if null) so the trigger useEffect can react
@@ -244,13 +249,13 @@ const PriceForecastScreen = () => {
           w ?? {
             // Season-based fallback so forecast still runs
             avg_temperature: weekNum >= 40 || weekNum <= 13 ? 26.5 : 28.5,
-            avg_rainfall:    weekNum >= 40 || weekNum <= 13 ? 28.0 : 12.0,
+            avg_rainfall: weekNum >= 40 || weekNum <= 13 ? 28.0 : 12.0,
             source: "fallback_client",
           },
         );
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData?.district, formData?.year, formData?.week]);
 
   const content = {
@@ -689,12 +694,12 @@ const PriceForecastScreen = () => {
 
   const generateForecast = async () => {
     try {
-      // 🔥 RESET NOTIFICATION FLAG for new forecast
+      // RESET NOTIFICATION FLAG for new forecast
       notificationSentRef.current = false;
 
       setIsLoadingForecast(true);
 
-      // 🔥 START LOADING ANIMATION
+      // START LOADING ANIMATION
       Animated.parallel([
         Animated.timing(loadingOpacity, {
           toValue: 1,
@@ -715,14 +720,14 @@ const PriceForecastScreen = () => {
 
       const weekNum = Number(formData.week);
 
-      // 🛡️ hard guard (prevents 422)
+      // hard guard (prevents 422)
       if (!Number.isFinite(weekNum)) {
         throw new Error("Invalid week number");
       }
 
       const seasonCode = getSeasonFromWeek(weekNum);
 
-      // 🛡️ numeric sanitizers
+      // numeric sanitizers
       const safeNumber = (v: any, fallback: number) => {
         const n = Number(v);
         return Number.isFinite(n) ? n : fallback;
@@ -743,18 +748,20 @@ const PriceForecastScreen = () => {
         0,
       );
 
-      // 🌤 Use district weekly-average weather (NOT GPS current weather)
+      // Use district weekly-average weather (NOT GPS current weather)
       const rainfallValue =
         districtWeather && districtWeather.avg_rainfall > 0
           ? districtWeather.avg_rainfall
           : seasonCode === "Maha"
-            ? 30  // realistic Maha fallback
+            ? 30 // realistic Maha fallback
             : 10;
 
       let temperatureValue =
         districtWeather && districtWeather.avg_temperature > 0
           ? districtWeather.avg_temperature
-          : seasonCode === "Maha" ? 26 : 28;
+          : seasonCode === "Maha"
+            ? 26
+            : 28;
 
       // Sri Lanka validity guard
       if (temperatureValue < 10 || temperatureValue > 45) {
@@ -763,7 +770,7 @@ const PriceForecastScreen = () => {
 
       console.log(
         `🌡️ Forecast inputs: temp=${temperatureValue}°C  ` +
-        `rain=${rainfallValue}mm  source=${districtWeather?.source ?? "fallback"}`,
+          `rain=${rainfallValue}mm  source=${districtWeather?.source ?? "fallback"}`,
       );
 
       const demandIndexValue = seasonCode === "Maha" ? 0.85 : 0.7;
@@ -794,7 +801,7 @@ const PriceForecastScreen = () => {
 
       setWeeklyForecast(res.weeks);
 
-      // 💾 Persist to Supabase (fire-and-forget — errors are swallowed inside)
+      // Persist to Supabase (fire-and-forget — errors are swallowed inside)
       saveForecastToSupabase(
         res.weeks,
         payload.year,
@@ -807,20 +814,20 @@ const PriceForecastScreen = () => {
       const first = res.weeks[0];
       const firstWeek = res.weeks[0];
 
-      // ✅ USE ACTUAL CONFIDENCE FROM API (not hardcoded)
+      // USE ACTUAL CONFIDENCE FROM API (not hardcoded)
       const actualConfidence = firstWeek?.confidence_pct ?? 70;
       setConfidenceScore(actualConfidence);
 
       setPredictedPrice(first.ensemble);
 
       // AFTER setWeeklyForecast(res.weeks)
-      // ⭐ BEST WEEK INDEX (highest ensemble price)
+      // BEST WEEK INDEX (highest ensemble price)
       const bestIdx = res.weeks.reduce(
         (best, w, i, arr) => (w.ensemble > arr[best].ensemble ? i : best),
         0,
       );
 
-      // 🔔 SEND NOTIFICATION ONLY ONCE (prevent duplicates)
+      // SEND NOTIFICATION ONLY ONCE (prevent duplicates)
       if (!notificationSentRef.current) {
         if (bestIdx === 0) {
           await sendNotification(
@@ -869,9 +876,7 @@ const PriceForecastScreen = () => {
         setPriceChange(0);
       }
 
-      // ✅ REMOVED hardcoded setConfidenceScore(85)
       // Confidence is now set from API above
-
       // Recommendation logic — driven by bestIdx and hasStorage
       if (bestIdx === 0) {
         // Best price is this week → sell now
@@ -898,7 +903,7 @@ const PriceForecastScreen = () => {
     } finally {
       setIsLoadingForecast(false);
 
-      // 🔥 FADE OUT LOADING ANIMATION
+      // FADE OUT LOADING ANIMATION
       Animated.timing(loadingOpacity, {
         toValue: 0,
         duration: 300,
@@ -914,7 +919,7 @@ const PriceForecastScreen = () => {
       hasRunForecastRef.current = true;
       generateForecast();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [districtWeather]);
 
   const calculateProfit = () => {
@@ -1020,7 +1025,7 @@ const PriceForecastScreen = () => {
   };
 
   const handleStartOver = () => {
-    notificationSentRef.current = false; // ✅ RESET HERE
+    notificationSentRef.current = false; // RESET HERE
     localNavigation.navigate("PriceForecastLoadingScreen");
   };
 
@@ -1028,7 +1033,7 @@ const PriceForecastScreen = () => {
   const trendAnalysis = getTrendAnalysis();
   const bestWeekProfit = getBestWeekProfitDifference();
 
-  // 🔥 SHOW SELL POPUP after 7 seconds when forecast is ready
+  // SHOW SELL POPUP after 7 seconds when forecast is ready
   useEffect(() => {
     if (
       weeklyForecast.length > 0 &&
@@ -1057,11 +1062,11 @@ const PriceForecastScreen = () => {
     }).start(() => setShowSellPopup(false));
   };
 
-  // 🔥 GENERATE VOICE SUMMARY when forecast is ready
+  // GENERATE VOICE SUMMARY when forecast is ready
   useEffect(() => {
     if (weeklyForecast.length > 0 && predictedPrice !== null) {
       const summaryParams: VoiceSummaryParams = {
-        district: formData?.district || "Anuradhapura", // ✅ USE FORM DISTRICT
+        district: formData?.district || "Anuradhapura", // USE FORM DISTRICT
         language,
         currentPrice: predictedPrice,
         weeklyForecast,
@@ -1080,7 +1085,7 @@ const PriceForecastScreen = () => {
     formData?.district,
   ]);
 
-  // 🔥 IMPROVED: HANDLE VOICE PLAYBACK with proper stop
+  // HANDLE VOICE PLAYBACK with proper stop
   const handlePlayVoice = async () => {
     if (isSpeaking) {
       // STOP SPEECH
@@ -1183,7 +1188,7 @@ const PriceForecastScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* 🔥 VOICE SUMMARY CARD - Only show when voice text is ready */}
+          {/* VOICE SUMMARY CARD - Only show when voice text is ready */}
           {voiceSummaryText && (
             <View style={styles.voiceSummaryCard}>
               <View style={styles.voiceSummaryHeader}>
@@ -1206,7 +1211,7 @@ const PriceForecastScreen = () => {
                   </Text>
                 </TouchableOpacity>
               </View>
-              {/* 🔥 REMOVED: Voice text display */}
+              {/* Voice text display */}
               <Text style={styles.voiceSummaryHint}>
                 {isSpeaking
                   ? language === "si"
@@ -1414,7 +1419,7 @@ const PriceForecastScreen = () => {
             </View>
           )}
 
-          {/* 🔥 SELL AT BEST PRICE BUTTON — after Best Profit card */}
+          {/* SELL AT BEST PRICE BUTTON — after Best Profit card */}
           {weeklyForecast.length > 0 && (
             <TouchableOpacity
               style={[
@@ -1502,7 +1507,7 @@ const PriceForecastScreen = () => {
                     : "Next 4 Weeks Price Forecast"}
               </Text>
 
-              {/* ✅ Dynamic Best Week Message */}
+              {/* Dynamic Best Week Message */}
               {getBestWeekMessage() && (
                 <Text style={styles.bestWeekInfoText}>
                   {getBestWeekMessage()}
@@ -1517,7 +1522,7 @@ const PriceForecastScreen = () => {
               >
                 {weeklyForecast.map((w, index) => {
                   const isBest = index === bestWeekIndex;
-                  // ✅ DEFINE VARIABLES HERE (JS scope)
+                  // DEFINE VARIABLES HERE (JS scope)
                   const confPct = w.confidence_pct ?? 70;
                   const confTag = w.confidence_tag ?? "Medium";
 
@@ -1526,7 +1531,7 @@ const PriceForecastScreen = () => {
                       key={w.week}
                       style={[styles.weekCard, isBest && styles.bestWeekCard]}
                     >
-                      {/* ⭐ BEST WEEK BADGE */}
+                      {/* BEST WEEK BADGE */}
                       {isBest && (
                         <View style={styles.bestBadge}>
                           <Text style={styles.bestBadgeText}>
@@ -1696,12 +1701,24 @@ const PriceForecastScreen = () => {
                     {content[language].fuelEffect}
                   </Text>
                   <Text style={styles.factorValue}>
-                    {formData?.fuelPrice} - {content[language].high}
+                    {formData?.fuelPrice} -{" "}
+                    {Number(formData?.fuelPrice) > 0
+                      ? content[language].high
+                      : content[language].low}
                   </Text>
                 </View>
-                <View style={[styles.factorBadge, styles.factorBadgeNegative]}>
+                <View
+                  style={[
+                    styles.factorBadge,
+                    Number(formData?.fuelPrice) > 0
+                      ? styles.factorBadgeNegative
+                      : styles.factorBadgePositive,
+                  ]}
+                >
                   <Text style={styles.factorBadgeText}>
-                    {content[language].negative}
+                    {Number(formData?.fuelPrice) > 0
+                      ? content[language].negative
+                      : content[language].positive}
                   </Text>
                 </View>
               </View>
@@ -1751,7 +1768,7 @@ const PriceForecastScreen = () => {
         </Animated.View>
       </ScrollView>
 
-      {/* 🔥 SELL POPUP MODAL */}
+      {/* SELL POPUP MODAL */}
       <Modal
         transparent
         visible={showSellPopup}
@@ -1827,7 +1844,7 @@ const PriceForecastScreen = () => {
         </View>
       </Modal>
 
-      {/* 🔥 NEW: LOADING OVERLAY */}
+      {/* LOADING OVERLAY */}
       {isLoadingForecast && (
         <Animated.View
           style={[
@@ -2405,7 +2422,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
   },
-  // 🔥 NEW VOICE SUMMARY STYLES
+  // VOICE SUMMARY STYLES
   voiceSummaryCard: {
     backgroundColor: "#E0F2FE",
     borderRadius: 16,
@@ -2459,7 +2476,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     textAlign: "right",
   },
-  // 🔥 NEW LOADING STYLES
   loadingOverlay: {
     position: "absolute",
     top: 0,
@@ -2488,7 +2504,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#10B981",
   },
-  // 🔥 POPUP STYLES
+  // POPUP STYLES
   popupOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",

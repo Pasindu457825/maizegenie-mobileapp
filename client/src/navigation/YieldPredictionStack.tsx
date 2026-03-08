@@ -30,6 +30,19 @@ import ViewAdviceRequestDetailsScreen from "../screens/YieldPrediction/ViewAdvic
 import ProvideAdviceScreen from "../screens/YieldPrediction/ProvideAdviceScreen";
 import MyAdviceRequestsScreen from "../screens/YieldPrediction/MyAdviceRequestsScreen";
 
+// Soil Test Request Screen
+import SoilTestRequestScreen from "../screens/YieldPrediction/SoilTestRequestScreen";
+
+// Edit Fertilizer Plans Screens
+import EditFertilizerPlansScreen from "../screens/YieldPrediction/EditFertilizerPlansScreen";
+import EditFertilizerPlanDetailScreen from "../screens/YieldPrediction/EditFertilizerPlanDetailScreen";
+
+// Wet Weight Prediction Screens (Officer Only)
+import WetWeightPredictionFormScreen from "../screens/YieldPrediction/WetWeightPredictionFormScreen";
+import WetWeightPredictionResultsScreen from "../screens/YieldPrediction/WetWeightPredictionResultsScreen";
+import WetWeightVarietyComparisonScreen from "../screens/YieldPrediction/WetWeightVarietyComparisonScreen";
+import WetWeightTrialHistoryScreen from "../screens/YieldPrediction/WetWeightTrialHistoryScreen";
+
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
@@ -60,6 +73,34 @@ export type YieldPredictionStackParamList = {
   ViewAdviceRequestDetailsScreen: { requestId: string };
   ProvideAdviceScreen: { requestId: string };
   MyAdviceRequestsScreen: undefined;
+  SoilTestRequest: undefined;
+  EditFertilizerPlans: undefined;
+  EditFertilizerPlanDetail: { plan: any; isFromSupabase?: boolean };
+  WetWeightPredictionForm: undefined;
+  WetWeightPredictionResults: {
+    data: any;
+    meta?: {
+      trial_name?: string;
+      field_block_id?: string;
+      replicate_number?: string;
+      plot_number?: number;
+      plot_area_m2?: number;
+      seed_variety?: string;
+    };
+  };
+  WetWeightVarietyComparison: {
+    baseInputs: {
+      cob_height_cm: number;
+      plant_height_cm: number;
+      cob_wet_weight_g: number;
+      cob_length_cm: number;
+      num_seed_rows: number;
+      plot_area_m2?: number;
+    };
+    currentVariety: string;
+    currentResult: number;
+  };
+  WetWeightTrialHistory: undefined;
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -137,6 +178,34 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="MyAdviceRequestsScreen"
         component={MyAdviceRequestsScreen}
+      />
+      <Stack.Screen
+        name="SoilTestRequest"
+        component={SoilTestRequestScreen}
+      />
+      <Stack.Screen
+        name="EditFertilizerPlans"
+        component={EditFertilizerPlansScreen}
+      />
+      <Stack.Screen
+        name="EditFertilizerPlanDetail"
+        component={EditFertilizerPlanDetailScreen}
+      />
+      <Stack.Screen
+        name="WetWeightPredictionForm"
+        component={WetWeightPredictionFormScreen}
+      />
+      <Stack.Screen
+        name="WetWeightPredictionResults"
+        component={WetWeightPredictionResultsScreen}
+      />
+      <Stack.Screen
+        name="WetWeightVarietyComparison"
+        component={WetWeightVarietyComparisonScreen}
+      />
+      <Stack.Screen
+        name="WetWeightTrialHistory"
+        component={WetWeightTrialHistoryScreen}
       />
     </Stack.Navigator>
   );

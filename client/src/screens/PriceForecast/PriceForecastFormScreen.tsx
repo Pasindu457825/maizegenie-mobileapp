@@ -36,7 +36,7 @@ import {
   Droplets,
   Wind,
 } from "lucide-react-native";
-// 🔥 NEW IMPORTS
+
 import {
   saveFormData,
   getFormData,
@@ -56,7 +56,6 @@ import { useNotifications } from "../../context/NotificationContext";
 import { Modal } from "react-native";
 import { supabase } from "../../lib/supabase";
 
-// 🔥 ADD THIS HERE (top of file, after imports)
 
 const VARIETIES = [
   {
@@ -105,7 +104,7 @@ type RootStackParamList = {
   Notifications: undefined;
 };
 
-// 🔥 Dynamic API URL using .env + Platform detection
+// Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
   if (Platform.OS === "android") {
     // Real Android Device → Uses .env
@@ -126,7 +125,7 @@ const PriceForecastFormScreen = () => {
   type RootNavProp = StackNavigationProp<RootStackParamList>;
   const rootNavigation = useNavigation<RootNavProp>();
   const navigation = useNavigation<NavProp>();
-  // 🌐 Get global language & convert to "si" | "en"
+  // Get global language & convert to "si" | "en"
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
   const language: Language =
     globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
@@ -164,7 +163,7 @@ const PriceForecastFormScreen = () => {
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
   const { user } = useApp();
 
-  // 🌍 District weekly weather (replaces GPS weather for ML model inputs)
+  // District weekly weather (replaces GPS weather for ML model inputs)
   const [districtWeather, setDistrictWeather] = useState<{
     avg_temperature: number;
     avg_rainfall: number;
@@ -225,7 +224,7 @@ const PriceForecastFormScreen = () => {
     }
   };
 
-  // 🔥 NEW: Fetch PREVIOUS WEEK prices for the selected district based on form week number
+  // Fetch PREVIOUS WEEK prices for the selected district based on form week number
   const fetchPricesByDistrict = async (
     selectedDistrict: string,
     selectedYear: string,
@@ -313,7 +312,7 @@ const PriceForecastFormScreen = () => {
     }
   };
 
-  // 🔥 NEW: Auto-load PREVIOUS WEEK prices when district, year, or week changes
+  // Auto-load PREVIOUS WEEK prices when district, year, or week changes
   useEffect(() => {
     if (district && year && week) {
       fetchPricesByDistrict(district, year, week);
@@ -736,7 +735,6 @@ const PriceForecastFormScreen = () => {
     }
   };
 
-  // � REMOVED: Global price fetching is no longer needed
   // All prices are now district-specific and managed through the maize_prices table
   // This is called by the admin panel during price entry
 
@@ -760,7 +758,7 @@ const PriceForecastFormScreen = () => {
         season: currentSeason,
       });
 
-      // � Global price fetching removed - prices are now district-specific
+      // prices are now district-specific
     } catch (error) {
       console.error("Error capturing system data:", error);
       Alert.alert(
@@ -845,7 +843,6 @@ const PriceForecastFormScreen = () => {
           : "Yala Season";
     }
   };
-  // 🔄 Removed: useFocusEffect that called fetchPriceDataFromAPI()
   // Global price data is no longer fetched on screen focus
   useEffect(() => {
     const now = new Date();
@@ -928,7 +925,7 @@ const PriceForecastFormScreen = () => {
       const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
       const productionCostPerKg = totalCost / totalYield;
 
-      // Save Form Data Locally 🔥
+      // Save Form Data Locally 
       await saveFormData({
         seedVariety,
         expectedYield,

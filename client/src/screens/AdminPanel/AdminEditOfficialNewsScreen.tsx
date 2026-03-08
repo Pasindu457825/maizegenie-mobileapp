@@ -20,7 +20,7 @@ import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
 import { useNavigation } from "@react-navigation/native";
 
-// 🌐 Language
+// Language
 import { useLanguage } from "../../context/LanguageContext";
 
 // Icons
@@ -37,6 +37,22 @@ import {
   EyeOff,
 } from "lucide-react-native";
 
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 export default function AdminEditOfficialNewsScreen({ route }: any) {
   const { newsId } = route.params;
   const navigation = useNavigation();
@@ -46,7 +62,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   const uiLang: "si" | "en" | "ta" =
     language === "sinhala" ? "si" : language === "tamil" ? "ta" : "en";
 
-  // 🌐 Bilingual text
+  // Bilingual text
   const content = {
     si: {
       title: "නිල ප්‍රවෘත්ති සංස්කරණය",
@@ -162,7 +178,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
 
   const t = content[uiLang];
 
-  // 📝 Form state
+  // Form state
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState("");
@@ -285,7 +301,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   const updateNews = async () => {
     let hasError = false;
 
-    // 🔴 Title validation
+    // Title validation
     if (!title.trim()) {
       setTitleError(
         uiLang === "si"
@@ -302,7 +318,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       return;
     }
 
-    // 🔴 Category validation
+    // Category validation
     if (!category) {
       setCategoryError(
         uiLang === "si"
@@ -318,7 +334,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       return;
     }
 
-    // 🔴 Source validation
+    // Source validation
     if (!source.trim()) {
       setSourceError(
         uiLang === "si"

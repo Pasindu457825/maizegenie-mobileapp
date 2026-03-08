@@ -28,6 +28,7 @@ from core.config import settings
 # Import routers
 # -----------------------
 from auth.router import router as auth_router
+from notifications.router import router as notifications_router
 try:
     from diseaseidentify.router import router as disease_router
 except Exception as _e:
@@ -57,6 +58,7 @@ from advicerequests.router import router as advice_requests_router
 from soilextraction.router import router as soil_extraction_router
 from subscription.router import router as subscription_router
 from notifications.router import router as notifications_router
+from wetyield.router import router as wet_yield_router
 
 
 
@@ -94,6 +96,7 @@ async def health():
 # Register Routers
 # -----------------------
 app.include_router(auth_router)
+app.include_router(notifications_router)  # Authenticated notifications
 if disease_router:
     app.include_router(disease_router)
 if pest_router:
@@ -118,3 +121,4 @@ app.include_router(advice_requests_router)  # Farmer Advice Requests
 app.include_router(soil_extraction_router)  # Soil Data Extraction from PDF/Image
 app.include_router(subscription_router)  # Subscription and sandbox payment
 app.include_router(notifications_router)  # Notifications API (bypasses RLS)
+app.include_router(wet_yield_router)  # Wet Weight Yield Prediction (XGBoost)

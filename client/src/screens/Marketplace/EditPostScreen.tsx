@@ -35,6 +35,22 @@ interface RouteParams {
   };
 }
 
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 const SEASONS = ["Maha", "Yala"] as const;
 
 const EditPostScreen = () => {
@@ -70,7 +86,7 @@ const EditPostScreen = () => {
       seedVariety: "බීජ ප්‍රභේදය",
       pricePerKg: "මිල (කි.ග්‍රෑ. 1 ට)",
       quantityKg: "ප්‍රමාණය (කි.ග්‍රෑ.)",
-      season: "කන්න",
+      season: "කන්නය",
       district: "දිස්ත්‍රිකිය",
       week: "සතිය",
       readOnlyNote: "දිස්ත්‍රිකිය හා සතිය වෙනස් කළ නොහැක",
@@ -82,7 +98,7 @@ const EditPostScreen = () => {
       validationError: "සියලු ක්ෂේත්‍ර නිවැරදිව පුරවන්න",
       success: "තනතුර යාවත්කාලීන කරන ලදී",
       soldNotice:
-        "ⓘ  Sold posts cannot be edited. Only active posts may be changed.",
+        "ⓘ  විකිණු පෝස්ට්‍ සංස්කරණය කළ නොහැක. සක්‍රිය පෝස්ට්‍ පමණක් වෙනස් කළ හැකිය.",
       errorTitle: "දෝෂයක්",
       validationErrorTitle: "දෝෂයක්",
       successTitle: "සාර්ථකයි",

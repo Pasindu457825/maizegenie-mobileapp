@@ -38,6 +38,7 @@ import {
   Edit2,
   Trash2,
   Save,
+  Bell,
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 import {
@@ -66,17 +67,20 @@ type NavProp = StackNavigationProp<
   "PostDetailScreen"
 >;
 
+type RootNavProp = StackNavigationProp<Record<string, object | undefined>>;
+
 interface RouteParams {
   postId: string;
 }
 
 const PostDetailScreen = () => {
   const navigation = useNavigation<NavProp>();
+  const rootNavigation = useNavigation<RootNavProp>();
   const route = useRoute();
   const { language: globalLang } = useLanguage();
   const language =
     globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
-  const { sendNotification } = useNotifications();
+  const { sendNotification, unreadCount } = useNotifications();
 
   const { postId } = route.params as RouteParams;
 
@@ -127,7 +131,7 @@ const PostDetailScreen = () => {
       postedOn: "ප්‍රකාශනය කරන ලදි",
       status: "තත්ත්වය",
       active: "ක්‍රියාකාරී",
-      sold: "විකිණුණු",
+      sold: "විකිණු",
       scheduled: "සකස් කළ",
       offers: "ඉදිරිපත්කරණ",
       noOffers: "ඉදිරිපත්කරණ නොමැත",
@@ -405,7 +409,7 @@ const PostDetailScreen = () => {
         return;
       }
 
-      if (userOffer) {
+      if (userOffer && userOffer.status !== "rejected") {
         Alert.alert(
           content[language].errorTitle,
           content[language].alreadyOffered,
@@ -663,6 +667,19 @@ const PostDetailScreen = () => {
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{content[language].title}</Text>
         </View>
+        <TouchableOpacity
+          style={styles.notifButton}
+          onPress={() => rootNavigation.navigate("Notifications")}
+        >
+          <Bell color="#047857" size={22} />
+          {unreadCount > 0 && (
+            <View style={styles.notifBadge}>
+              <Text style={styles.notifBadgeText}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -982,18 +999,51 @@ const PostDetailScreen = () => {
             </View>
           )}
 
-          {/* All offers (farmer view) */}
-          {isFarmer && post?.offers && post.offers.length > 0 ? (
+          {/* All offers (visible to both farmers and buyers) */}
+          {post?.offers && post.offers.length > 0 ? (
             <View style={styles.offersList}>
               {post.offers.map((offer) => (
                 <View key={offer.id} style={styles.offerCard}>
-                  <Text style={styles.buyerName}>{offer.buyer_name}</Text>
+                  <View style={styles.offerCardTopRow}>
+                    <Text style={styles.buyerName}>{offer.buyer_name}</Text>
+                    <View
+                      style={[
+                        styles.offerStatusBadge,
+                        {
+                          backgroundColor:
+                            offer.status === "accepted"
+                              ? "#D1FAE5"
+                              : offer.status === "rejected"
+                                ? "#FEE2E2"
+                                : "#FEF3C7",
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.offerStatusText,
+                          {
+                            color:
+                              offer.status === "accepted"
+                                ? "#047857"
+                                : offer.status === "rejected"
+                                  ? "#991B1B"
+                                  : "#92400E",
+                          },
+                        ]}
+                      >
+                        {offer.status.charAt(0).toUpperCase() +
+                          offer.status.slice(1)}
+                      </Text>
+                    </View>
+                  </View>
+
                   <Text style={styles.offerPrice}>
                     Rs {offer.offer_price_per_kg.toFixed(2)}
                   </Text>
 
                   <View style={styles.offerActions}>
-                    {offer.status === "pending" && (
+                    {isFarmer && offer.status === "pending" && (
                       <>
                         <TouchableOpacity
                           style={[
@@ -1028,7 +1078,7 @@ const PostDetailScreen = () => {
                 </View>
               ))}
             </View>
-          ) : !isFarmer ? null : (
+          ) : (
             <Text style={styles.noOffersText}>
               {content[language].noOffers}
             </Text>
@@ -1037,19 +1087,21 @@ const PostDetailScreen = () => {
       </ScrollView>
 
       {/* Make offer button */}
-      {!isFarmer && post?.status === "active" && !userOffer && (
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={styles.makeOfferButton}
-            onPress={() => setShowOfferModal(true)}
-          >
-            <Send size={20} color="#FFF" />
-            <Text style={styles.makeOfferButtonText}>
-              {content[language].makeOffer}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      {!isFarmer &&
+        post?.status === "active" &&
+        (!userOffer || userOffer.status === "rejected") && (
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={styles.makeOfferButton}
+              onPress={() => setShowOfferModal(true)}
+            >
+              <Send size={20} color="#FFF" />
+              <Text style={styles.makeOfferButtonText}>
+                {content[language].makeOffer}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
       {/* Make Offer Modal */}
       <Modal
@@ -1470,6 +1522,35 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#1F2937",
+  },
+  notifButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    marginLeft: 8,
+  },
+  notifBadge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "#EF4444",
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: "#ECFDF5",
+  },
+  notifBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
   },
   scrollContainer: {
     flex: 1,
