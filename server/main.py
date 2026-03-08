@@ -58,6 +58,7 @@ from advicerequests.router import router as advice_requests_router
 from soilextraction.router import router as soil_extraction_router
 from subscription.router import router as subscription_router
 from notifications.router import router as notifications_router
+from wetyield.router import router as wet_yield_router
 
 
 
@@ -120,3 +121,4 @@ app.include_router(advice_requests_router)  # Farmer Advice Requests
 app.include_router(soil_extraction_router)  # Soil Data Extraction from PDF/Image
 app.include_router(subscription_router)  # Subscription and sandbox payment
 app.include_router(notifications_router)  # Notifications API (bypasses RLS)
+app.include_router(wet_yield_router)  # Wet Weight Yield Prediction (XGBoost)
