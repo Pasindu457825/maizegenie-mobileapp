@@ -314,8 +314,17 @@ const MarketPlaceScreen = () => {
       if (currentUserId) {
         const offerMap = new Map<string, boolean>();
         for (const post of data) {
-          const userOffer = await checkUserOffer(post.id);
-          offerMap.set(post.id, !!userOffer);
+          try {
+            const userOffer = await checkUserOffer(post.id);
+            offerMap.set(post.id, !!userOffer);
+          } catch (offerError) {
+            console.warn(
+              `[loadPosts] Error checking offer for post ${post.id}:`,
+              offerError,
+            );
+            // Continue loading other posts even if one fails
+            offerMap.set(post.id, false);
+          }
         }
         setUserOffers(offerMap);
       }
@@ -729,95 +738,98 @@ const MarketPlaceScreen = () => {
       </View>
 
       {/* Status Filter Pills - Horizontal Scrollable */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-        scrollEnabled={true}
-      >
-        <TouchableOpacity
-          style={[
-            styles.filterPill,
-            statusFilter === "not_sold" && styles.filterPillActive,
-          ]}
-          onPress={() => setStatusFilter("not_sold")}
+      <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterRow}
+          scrollEnabled={true}
+          nestedScrollEnabled={false}
         >
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
+          <TouchableOpacity
             style={[
-              styles.filterPillText,
-              statusFilter === "not_sold" && styles.filterPillTextActive,
+              styles.filterPill,
+              statusFilter === "not_sold" && styles.filterPillActive,
             ]}
+            onPress={() => setStatusFilter("not_sold")}
           >
-            {language === "si"
-              ? "නොවිකිණු"
-              : language === "ta"
-                ? "விற்பனை ஆகாதது"
-                : "Not Sold"}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterPill,
-            statusFilter === "sold" && styles.filterPillActive,
-          ]}
-          onPress={() => setStatusFilter("sold")}
-        >
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[
+                styles.filterPillText,
+                statusFilter === "not_sold" && styles.filterPillTextActive,
+              ]}
+            >
+              {language === "si"
+                ? "නොවිකිණු"
+                : language === "ta"
+                  ? "விற்பனை ஆகாதது"
+                  : "Not Sold"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.filterPillText,
-              statusFilter === "sold" && styles.filterPillTextActive,
+              styles.filterPill,
+              statusFilter === "sold" && styles.filterPillActive,
             ]}
+            onPress={() => setStatusFilter("sold")}
           >
-            {language === "si"
-              ? "විකිණු"
-              : language === "ta"
-                ? "விற்பனையானது"
-                : "Sold"}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterPill,
-            showOwnPostsOnly && styles.filterPillActive,
-          ]}
-          onPress={() => setShowOwnPostsOnly(!showOwnPostsOnly)}
-        >
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[
+                styles.filterPillText,
+                statusFilter === "sold" && styles.filterPillTextActive,
+              ]}
+            >
+              {language === "si"
+                ? "විකිණු"
+                : language === "ta"
+                  ? "விற்பனையானது"
+                  : "Sold"}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.filterPillText,
-              showOwnPostsOnly && styles.filterPillTextActive,
+              styles.filterPill,
+              showOwnPostsOnly && styles.filterPillActive,
             ]}
+            onPress={() => setShowOwnPostsOnly(!showOwnPostsOnly)}
           >
-            {showOwnPostsOnly
-              ? content[language].myPosts
-              : content[language].allPosts}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.filterPill,
-            showMyOffersOnly && styles.filterPillActive,
-          ]}
-          onPress={() => setShowMyOffersOnly(!showMyOffersOnly)}
-        >
-          <Text
-            numberOfLines={1}
-            ellipsizeMode="tail"
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[
+                styles.filterPillText,
+                showOwnPostsOnly && styles.filterPillTextActive,
+              ]}
+            >
+              {showOwnPostsOnly
+                ? content[language].myPosts
+                : content[language].allPosts}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             style={[
-              styles.filterPillText,
-              showMyOffersOnly && styles.filterPillTextActive,
+              styles.filterPill,
+              showMyOffersOnly && styles.filterPillActive,
             ]}
+            onPress={() => setShowMyOffersOnly(!showMyOffersOnly)}
           >
-            {content[language].myOffers}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[
+                styles.filterPillText,
+                showMyOffersOnly && styles.filterPillTextActive,
+              ]}
+            >
+              {content[language].myOffers}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -1479,6 +1491,11 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 8,
     alignItems: "center",
+  },
+  filterContainer: {
+    height: 60,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
   },
   filterPill: {
     height: 40,

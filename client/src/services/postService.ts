@@ -124,8 +124,7 @@ export const listPosts = async (filters?: {
     .select(
       `
       *,
-      farmer:profiles!posts_farmer_id_fkey(full_name),
-      offers(count)
+      farmer:profiles!posts_farmer_id_fkey(full_name)
     `,
     )
     .order("status", { ascending: true }) // active < scheduled < sold alphabetically
@@ -150,10 +149,7 @@ export const listPosts = async (filters?: {
   return (data || []).map((post: any) => ({
     ...post,
     farmer_name: post.farmer?.full_name || "Unknown Farmer",
-    offer_count:
-      Array.isArray(post.offers) && post.offers.length > 0
-        ? (post.offers[0].count ?? 0)
-        : 0,
+    offer_count: 0, // Will be loaded on-demand when needed
   })) as Post[];
 };
 
@@ -237,15 +233,32 @@ export const checkUserOffer = async (postId: string): Promise<Offer | null> => {
 
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("offers")
-    .select("*")
-    .eq("post_id", postId)
-    .eq("buyer_id", user.id)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("offers")
+      .select("*")
+      .eq("post_id", postId)
+      .eq("buyer_id", user.id)
+      .maybeSingle();
 
-  if (error) throw error;
-  return (data as Offer) || null;
+    if (error) {
+      console.error(`[checkUserOffer] Error for post ${postId}:`, error);
+      throw error;
+    }
+
+    return (data as Offer) || null;
+  } catch (error: any) {
+    // Check if this is the PGRST116 error (multiple rows returned)
+    if (error?.code === "PGRST116") {
+      console.error(
+        `[checkUserOffer] DUPLICATE OFFERS detected for post ${postId}!`,
+        error,
+      );
+      // Return first offer or null as fallback
+      return null;
+    }
+    throw error;
+  }
 };
 
 /* =====================================================
