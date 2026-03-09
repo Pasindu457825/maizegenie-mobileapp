@@ -102,6 +102,61 @@ def fetch_price_history(district: str, year: int, week: int, min_weeks: int = 3,
 
 
 # =====================================================
+# FETCH PREVIOUS WEEK FUEL PRICE (DYNAMIC)
+# =====================================================
+def fetch_previous_week_fuel_price(district: str, year: int, week: int) -> float:
+    """
+    Fetch the fuel price from the PREVIOUS week for the given district.
+    
+    If predicting for week N, this retrieves fuel_price from week N-1.
+    If week = 1, it retrieves from week 52 of the previous year.
+    
+    Parameters:
+      district: District name
+      year, week: Current week for which we're predicting
+      
+    Returns:
+      fuel_price from previous week, or fallback average if not found
+    """
+    try:
+        # Calculate previous week
+        prev_week = week - 1
+        prev_year = year
+        
+        # Handle edge case: if week = 1, previous week = 52 of previous year
+        if week == 1:
+            prev_week = 52
+            prev_year = year - 1
+        
+        print(f"  🔍 Fetching fuel price for {district}: Year={prev_year}, Week={prev_week}")
+        
+        # Query Supabase for previous week's fuel price
+        result = (
+            supabase
+            .from_("maize_prices")
+            .select("fuel_price")
+            .eq("district", district)
+            .eq("year", prev_year)
+            .eq("week", prev_week)
+            .single()
+            .execute()
+        )
+        
+        if result.data and "fuel_price" in result.data:
+            fuel_price = float(result.data["fuel_price"])
+            print(f"  ✅ Found fuel price for {district} (Y{prev_year}W{prev_week}): {fuel_price}")
+            return fuel_price
+        
+        # Fallback: return average fuel price if not found
+        print(f"  ⚠️  No fuel price found for {district} (Y{prev_year}W{prev_week}), using average")
+        return 303.0  # Average based on recent market data
+        
+    except Exception as e:
+        print(f"  ❌ Fuel price fetch error: {e}, using average")
+        return 303.0  # Fallback average
+
+
+# =====================================================
 # TECHNICAL INDICATOR COMPUTATION (48 FEATURES)
 # =====================================================
 def compute_technical_indicators(
@@ -497,6 +552,19 @@ def predict_price_forecast(req: PriceForecastRequest):
     try:
         req = normalize_if_needed(req)
         
+        # ===== DYNAMIC FUEL PRICE FETCH =====
+        # Instead of using the hardcoded or frontend-passed fuel_price, 
+        # fetch the actual previous week's fuel price from the database
+        previous_week_fuel_price = fetch_previous_week_fuel_price(
+            req.district, 
+            req.year, 
+            req.week
+        )
+        
+        # Override the request's fuel_price with the previous week's actual value
+        original_fuel_price = req.fuel_price
+        req.fuel_price = previous_week_fuel_price
+        
         # ===== LOG 1: RECEIVED PAYLOAD =====
         payload_dict = {
             "year": req.year,
@@ -512,6 +580,8 @@ def predict_price_forecast(req: PriceForecastRequest):
             "weeks_ahead": req.weeks_ahead
         }
         print(f"\n🔥 GB (TUNED) BACKEND RECEIVED PAYLOAD: {payload_dict}")
+        if original_fuel_price != previous_week_fuel_price:
+            print(f"  📝 FUEL PRICE OVERRIDE: {original_fuel_price} → {previous_week_fuel_price}")
         
         # Fetch 12-week price history
         price_history = fetch_price_history(req.district, req.year, req.week, pad_to=12)

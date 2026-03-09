@@ -492,7 +492,7 @@ export default function OfficerPriceForecastScreen() {
         const season = validateRequiredString(formData.season, "Season");
 
         const fuelPrice = validateRequiredNumber(
-          formData.fuel_price ?? 277,
+          formData.fuelPrice ?? 300,
           "Fuel Price",
           0,
           10000,
