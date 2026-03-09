@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from inference_sdk import InferenceHTTPClient
 
 _client: InferenceHTTPClient | None = None
-PREMIUM_MIN_CONFIDENCE = 0.6
+PREMIUM_MIN_CONFIDENCE = 0.65
 
 
 def _get_client() -> InferenceHTTPClient:

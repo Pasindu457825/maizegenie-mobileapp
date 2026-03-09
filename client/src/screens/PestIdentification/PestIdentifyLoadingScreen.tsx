@@ -135,6 +135,7 @@ const PestIdentificationScreen = () => {
       analyzing: "විශ්ලේෂණය කරමින්...",
       resultTitle: "හඳුනාගත් කෘමි",
       noPests: "කෘමි හමු නොවීය",
+      noPestsHelpTitle: "හොඳ ප්‍රතිඵල සඳහා මෙන්න උපදෙස්",
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
@@ -158,6 +159,7 @@ const PestIdentificationScreen = () => {
       analyzing: "Analyzing...",
       resultTitle: "Detected Pests",
       noPests: "No pests detected",
+      noPestsHelpTitle: "Tips for better results",
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
       orText: "OR",
@@ -181,6 +183,7 @@ const PestIdentificationScreen = () => {
       analyzing: "பரிசோதித்து வருகிறது...",
       resultTitle: "கண்டறியப்பட்ட பூச்சிகள்",
       noPests: "பூச்சிகள் கண்டறியப்படவில்லை",
+      noPestsHelpTitle: "சிறந்த முடிவுகளுக்கான குறிப்புகள்",
       tryAgain: "மீண்டும் முயற்சி",
       pickImage: "ஒரு படத்தை தேர்வு செய்",
       orText: "அல்லது",
@@ -878,6 +881,14 @@ const PestIdentificationScreen = () => {
               <Text style={styles.noPestsText}>
                 {content[language].noPests}
               </Text>
+              <View style={styles.noPestsTipsBox}>
+                <Text style={styles.noPestsTipsTitle}>
+                  {content[language].noPestsHelpTitle}
+                </Text>
+                <Text style={styles.noPestsTipItem}>{content[language].instruction1}</Text>
+                <Text style={styles.noPestsTipItem}>{content[language].instruction2}</Text>
+                <Text style={styles.noPestsTipItem}>{content[language].instruction3}</Text>
+              </View>
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={resetScreen}
@@ -1426,6 +1437,27 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#047857",
     textAlign: "center",
+  },
+  noPestsTipsBox: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    padding: 12,
+    gap: 6,
+  },
+  noPestsTipsTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#065F46",
+    marginBottom: 2,
+  },
+  noPestsTipItem: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#166534",
+    fontWeight: "500",
   },
 });
 
