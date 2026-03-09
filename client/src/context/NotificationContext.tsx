@@ -165,9 +165,19 @@ export const NotificationProvider = ({
         setNotifications(response.data.notifications as AppNotification[]);
       }
     } catch (error: any) {
+      const errorDetail =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown error";
+      
       console.error(
         "❌ Failed to fetch notifications from server:",
-        error.response?.data || error.message,
+        {
+          status: error.response?.status,
+          detail: errorDetail,
+          fullError: error.response?.data,
+        }
       );
       // Don't clear notifications on fetch error - keep stale data
     }
@@ -281,8 +291,18 @@ export const NotificationProvider = ({
           Authorization: `Bearer ${token}`,
         },
       });
-    } catch (error) {
-      console.error("❌ Delete failed:", error);
+    } catch (error: any) {
+      const errorDetail =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown error";
+      
+      console.error("❌ Delete failed:", {
+        status: error.response?.status,
+        detail: errorDetail,
+        id,
+      });
 
       // Reload notifications on error
       if (token) {
@@ -311,8 +331,18 @@ export const NotificationProvider = ({
           },
         },
       );
-    } catch (error) {
-      console.error("❌ Mark as read failed:", error);
+    } catch (error: any) {
+      const errorDetail =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown error";
+      
+      console.error("❌ Mark as read failed:", {
+        status: error.response?.status,
+        detail: errorDetail,
+        id,
+      });
     }
   };
 
@@ -331,8 +361,17 @@ export const NotificationProvider = ({
           },
         },
       );
-    } catch (error) {
-      console.error("❌ Mark all as read failed:", error);
+    } catch (error: any) {
+      const errorDetail =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Unknown error";
+      
+      console.error("❌ Mark all as read failed:", {
+        status: error.response?.status,
+        detail: errorDetail,
+      });
     }
   };
 
