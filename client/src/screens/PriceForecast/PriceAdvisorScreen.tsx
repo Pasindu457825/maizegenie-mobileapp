@@ -289,6 +289,7 @@ const PriceAdvisorScreen: React.FC = () => {
   const [priceWindowLoading, setPriceWindowLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(new Date());
+  const [dateError, setDateError] = useState<string | null>(null);
   const [harvestAdvisoryResult, setHarvestAdvisoryResult] = useState<
     any | null
   >(null);
@@ -340,6 +341,8 @@ const PriceAdvisorScreen: React.FC = () => {
       selectVariety: "விதை வகையை தேர்ந்தெடுக்கவும்",
       cancel: "ரத்து",
       select: "தேர்ந்தெடு",
+      dateValidationError:
+        "கடந்த தேதிகள் அனுமதிக்கப்படாது. இன்றைய தேதி அல்லது எதிர்கால தேதியைத் தேர்ந்தெடுக்கவும்.",
     },
     si: {
       headerTitle: "වගාව ආරම්භ කිරීමට උපදෙස්",
@@ -373,6 +376,7 @@ const PriceAdvisorScreen: React.FC = () => {
       selectVariety: "බීජ වර්ගය තෝරන්න",
       cancel: "අවලංගු",
       select: "තෝරන්න",
+      dateValidationError: "ගිය දිනයන් ගත නොහැක. අද හෝ ඉදිරි දිනයක් තෝරා ගන්න.",
     },
     en: {
       headerTitle: "Start Farming Advisor",
@@ -405,6 +409,8 @@ const PriceAdvisorScreen: React.FC = () => {
       selectVariety: "Select Seed Variety",
       cancel: "Cancel",
       select: "Select",
+      dateValidationError:
+        "Past dates are not allowed. Please select today or a future date.",
     },
   } as const;
 
@@ -640,7 +646,7 @@ const PriceAdvisorScreen: React.FC = () => {
     bestHarvestWeek?: number; // priceWindowResult.best_option.harvest_week OR harvestAdvisoryResult.best_harvest_week
     harvestSignalLabel?: string; // STRONG / MODERATE / WEAK / HOLD
     confidence?: string; // "High"
-    delayWeeks?: number; 
+    delayWeeks?: number;
     baseHarvestWeek?: number; // optional, if backend provides
     plantingWeekOfYear?: number;
   }) => {
@@ -863,6 +869,24 @@ const PriceAdvisorScreen: React.FC = () => {
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
+  };
+
+  // Get today's date in ISO format (YYYY-MM-DD)
+  const getTodayISO = () => {
+    return toISODate(new Date());
+  };
+
+  // Check if a date string (YYYY-MM-DD) is in the past
+  const isPastDate = (dateString: string): boolean => {
+    if (!dateString) return false;
+    const selectedDate = new Date(dateString);
+    const today = new Date();
+
+    // Reset time to compare only dates
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    return selectedDate < today;
   };
 
   const buildExplainableDecision = () => {
@@ -2602,29 +2626,62 @@ const PriceAdvisorScreen: React.FC = () => {
 
                   {Platform.OS === "web" ? (
                     // 🌐 WEB DATE PICKER
-                    <input
-                      type="date"
-                      value={form.plantingDateExact}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          plantingDateExact: e.target.value,
-                        }))
-                      }
-                      style={{
-                        width: "100%",
-                        padding: "12px",
-                        borderRadius: 12,
-                        border: "1px solid #D1FAE5",
-                        fontSize: 14,
-                        outline: "none",
-                      }}
-                    />
+                    <>
+                      <input
+                        type="date"
+                        min={getTodayISO()}
+                        value={form.plantingDateExact}
+                        onChange={(e) => {
+                          const selectedDate = e.target.value;
+                          if (isPastDate(selectedDate)) {
+                            setDateError(t.dateValidationError);
+                            setForm((f) => ({
+                              ...f,
+                              plantingDateExact: "",
+                            }));
+                          } else {
+                            setDateError(null);
+                            setForm((f) => ({
+                              ...f,
+                              plantingDateExact: selectedDate,
+                            }));
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "12px",
+                          borderRadius: 12,
+                          border: dateError
+                            ? "2px solid #EF4444"
+                            : "1px solid #D1FAE5",
+                          fontSize: 14,
+                          outline: "none",
+                        }}
+                      />
+                      {dateError && (
+                        <Text
+                          style={{
+                            color: "#EF4444",
+                            fontSize: 12,
+                            marginTop: 6,
+                            fontWeight: "600",
+                          }}
+                        >
+                          ⚠️ {dateError}
+                        </Text>
+                      )}
+                    </>
                   ) : (
                     // 📱 MOBILE DATE PICKER
                     <>
                       <TouchableOpacity
-                        style={styles.pickerInput}
+                        style={[
+                          styles.pickerInput,
+                          dateError && {
+                            borderColor: "#EF4444",
+                            borderWidth: 2,
+                          },
+                        ]}
                         onPress={() => {
                           setTempDate(
                             form.plantingDateExact
@@ -2650,19 +2707,43 @@ const PriceAdvisorScreen: React.FC = () => {
                         </Text>
                       </TouchableOpacity>
 
+                      {dateError && (
+                        <Text
+                          style={{
+                            color: "#EF4444",
+                            fontSize: 12,
+                            marginTop: 6,
+                            fontWeight: "600",
+                          }}
+                        >
+                          ⚠️ {dateError}
+                        </Text>
+                      )}
+
                       {showDatePicker && (
                         <DateTimePicker
                           value={tempDate}
                           mode="date"
                           display="default"
+                          minimumDate={new Date()}
                           onChange={(event, selectedDate) => {
                             setShowDatePicker(false);
                             if (selectedDate) {
                               const iso = toISODate(selectedDate);
-                              setForm((f) => ({
-                                ...f,
-                                plantingDateExact: iso,
-                              }));
+                              // Double-check on mobile as well
+                              if (isPastDate(iso)) {
+                                setDateError(t.dateValidationError);
+                                setForm((f) => ({
+                                  ...f,
+                                  plantingDateExact: "",
+                                }));
+                              } else {
+                                setDateError(null);
+                                setForm((f) => ({
+                                  ...f,
+                                  plantingDateExact: iso,
+                                }));
+                              }
                             }
                           }}
                         />

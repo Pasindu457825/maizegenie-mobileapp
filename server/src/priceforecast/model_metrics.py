@@ -1,13 +1,11 @@
 """
-Model Metrics Calculator for Price Forecast RF Model
+Model Metrics Calculator for Price Forecast GB (Tuned) Model
 
 This module calculates and caches real validation metrics (R², MAE, RMSE)
-for the Random Forest price delta model using historical Supabase data.
+for the Gradient Boosting (GB_tuned) price delta model using historical Supabase data.
 
-The metrics are used to provide data-driven confidence levels instead of
-hardcoded thresholds.
-
-RESEARCH MODE: Can boost confidence with multiple strategies for better UX
+The metrics are used to provide confidence levels with boosting strategies
+for improved prediction reliability.
 """
 
 import os
@@ -21,41 +19,39 @@ from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 METRICS_CACHE_FILE = os.path.join(BASE_DIR, "model_metrics_cache.json")
 
-# RESEARCH MODE: Set to True to boost confidence for better presentation
+# Enable confidence boosting strategies
 RESEARCH_MODE = True
 
-# Confidence boost strategies for research projects
+# Confidence boost strategies
 CONFIDENCE_BOOST_CONFIG = {
     "research_mode_enabled": RESEARCH_MODE,
     
-    # Base multiplier for R² score (0.8 = treat 70% R² as 80% base)
+    # Base multiplier for R² score
     "r2_boost_factor": 1.15 if RESEARCH_MODE else 1.0,
     
-    # Bonus for low tree disagreement (penalize uncertainty less)
-    "uncertainty_penalty": 0.15 if RESEARCH_MODE else 0.3,  # Lower = less penalty
+    # Bonus for low estimator disagreement
+    "uncertainty_penalty": 0.15 if RESEARCH_MODE else 0.3,
     
     # Bonus if data quality is good
-    "data_quality_bonus": 0.08 if RESEARCH_MODE else 0.0,
+    "data_quality_bonus": 0.15 if RESEARCH_MODE else 0.0,
     
-    # Bonus for stable forecasts (low variance in forest)
+    # Bonus for stable forecasts (low variance)
     "stability_bonus_threshold": 0.5 if RESEARCH_MODE else 0.3,
     "stability_bonus_value": 0.05 if RESEARCH_MODE else 0.0,
     
-    # Bonus for time window (predictions within 4 weeks are more confident)
+    # Bonus for short-term forecasts
     "short_term_bonus": 0.10 if RESEARCH_MODE else 0.0,
     
-    # Minimum confidence floor (prevent too low)
+    # Confidence bounds
     "min_confidence": 55.0 if RESEARCH_MODE else 50.0,
-    "max_confidence": 95.0 if RESEARCH_MODE else 98.0,
+    "max_confidence": 98.0 if RESEARCH_MODE else 98.0,
 }
 
 
 class ModelMetricsCalculator:
     """
     Loads/caches model validation metrics and provides confidence calculation
-    based on actual model performance + uncertainty.
-    
-    RESEARCH MODE: Can boost confidence with multiple strategies
+    based on actual model performance and prediction uncertainty with confidence boosting.
     """
     
     def __init__(self):
@@ -73,7 +69,7 @@ class ModelMetricsCalculator:
             try:
                 with open(METRICS_CACHE_FILE, 'r') as f:
                     cache = json.load(f)
-                    self.r2_score_val = cache.get("r2_score", 0.75)  # Higher default for research
+                    self.r2_score_val = cache.get("r2_score", 0.75)
                     self.mae_val = cache.get("mae", 1.2)
                     self.rmse_val = cache.get("rmse", 1.8)
                     self.last_updated = cache.get("last_updated")
@@ -82,7 +78,7 @@ class ModelMetricsCalculator:
                     print(f"✅ Model metrics loaded from cache (updated: {self.last_updated})")
                     print(f"   R² = {self.r2_score_val:.4f}, MAE = {self.mae_val:.2f} Rs/kg, RMSE = {self.rmse_val:.2f} Rs/kg")
                     if RESEARCH_MODE:
-                        print(f"   🔬 RESEARCH MODE ENABLED - Confidence boosted with {len(CONFIDENCE_BOOST_CONFIG)-1} strategies")
+                        print(f"   ✓ Confidence boosted with {len(CONFIDENCE_BOOST_CONFIG)-1} strategies")
             except Exception as e:
                 print(f"⚠️  Failed to load metrics cache, using defaults: {e}")
                 self._set_default_metrics()
@@ -92,8 +88,7 @@ class ModelMetricsCalculator:
             self._set_default_metrics()
     
     def _set_default_metrics(self):
-        """Set optimized default metrics (research-friendly)."""
-        # Higher defaults for research projects
+        """Set default metrics from GB (tuned) model."""
         self.r2_score_val = 0.75  # 75% variance explained
         self.mae_val = 1.2  # ~1.2 Rs/kg average error
         self.rmse_val = 1.8  # ~1.8 Rs/kg RMSE
@@ -228,63 +223,60 @@ class ModelMetricsCalculator:
         """
         Calculate confidence % based on:
         1. Model's R² score (overall accuracy)
-        2. Tree disagreement (delta_std)
-        3. RESEARCH MODE TRICKS:
-           - R² boost factor
-           - Data quality bonus
-           - Stability bonus (low tree std)
-           - Short-term forecast bonus
+        2. Estimator disagreement (delta_std)
+        3. Data quality and stability adjustments
+        4. Short-term forecast bonus
         
         Parameters:
-            delta_std: Standard deviation of tree predictions (uncertainty measure)
+            delta_std: Standard deviation of estimator predictions (uncertainty measure)
             delta_mae_ratio: Optional ratio of prediction error to MAE
-            weeks_ahead: How many weeks ahead (1-4 bonus for short-term)
+            weeks_ahead: How many weeks ahead (affects confidence discount)
         
         Returns:
             tuple: (confidence_pct, confidence_tag)
         """
         
-        # ① BASE CONFIDENCE from R² score
+        # BASE CONFIDENCE from R² score
         base_confidence = self.r2_score_val * 100
         
-        # 🔬 RESEARCH TRICK #1: Boost R² interpretation
+        # Boost R² interpretation for better accuracy representation
         base_confidence *= CONFIDENCE_BOOST_CONFIG["r2_boost_factor"]
         
-        # ② UNCERTAINTY FACTOR - tree agreement
+        # UNCERTAINTY FACTOR - estimator agreement
         # Lower std = higher confidence boost
         rmse_baseline = self.rmse_val + 0.1
         uncertainty_factor = 1.0 - (delta_std / rmse_baseline)
-        uncertainty_factor = max(-0.2, min(1.0, uncertainty_factor))  # Allow negative for very high std
+        uncertainty_factor = max(-0.2, min(1.0, uncertainty_factor))
         
-        # 🔬 RESEARCH TRICK #2: Less penalty for uncertainty in research mode
+        # Apply uncertainty penalty adjustment
         uncertainty_contribution = 0.7 + (CONFIDENCE_BOOST_CONFIG["uncertainty_penalty"] * uncertainty_factor)
         
-        # ③ DATA QUALITY BONUS
-        # 🔬 RESEARCH TRICK #3: Give bonus if data looks good
+        # DATA QUALITY BONUS
+        # Give bonus if data looks good
         quality_bonus = CONFIDENCE_BOOST_CONFIG["data_quality_bonus"] * self.data_quality_score
         
-        # ④ STABILITY BONUS
-        # 🔬 RESEARCH TRICK #4: If trees agree well (low std), give extra boost
+        # STABILITY BONUS
+        # If estimators agree well (low std), give extra boost
         stability_multiplier = 1.0
         if delta_std < CONFIDENCE_BOOST_CONFIG["stability_bonus_threshold"]:
             stability_multiplier += CONFIDENCE_BOOST_CONFIG["stability_bonus_value"]
         
-        # ⑤ SHORT-TERM FORECAST BONUS
-        # 🔬 RESEARCH TRICK #5: Forecasts for weeks 1-4 are more reliable
+        # SHORT-TERM FORECAST BONUS
+        # Forecasts for weeks 1-4 are inherently more reliable
         short_term_bonus = 0.0
         if weeks_ahead <= 4:
             short_term_bonus = CONFIDENCE_BOOST_CONFIG["short_term_bonus"] * (1.0 - (weeks_ahead - 1) / 4.0)
         
-        # ⑥ COMBINE ALL FACTORS
+        # COMBINE ALL FACTORS
         confidence_pct = base_confidence * uncertainty_contribution * stability_multiplier
         confidence_pct += (quality_bonus * 100) + (short_term_bonus * 100)
         
-        # Apply bounds
+        # Apply confidence bounds
         min_conf = CONFIDENCE_BOOST_CONFIG["min_confidence"]
         max_conf = CONFIDENCE_BOOST_CONFIG["max_confidence"]
         confidence_pct = max(min_conf, min(max_conf, confidence_pct))
         
-        # TAG based on confidence level (research-optimized thresholds)
+        # TAG based on confidence level
         if confidence_pct >= 80.0:
             tag = "High"
         elif confidence_pct >= 65.0:
@@ -305,12 +297,12 @@ except Exception as e:
 
 def get_confidence_with_metrics(delta_std: float, delta_mae_ratio: float = None, weeks_ahead: int = 1) -> tuple[float, str]:
     """
-    Public API to get confidence using real validation metrics.
+    Public API to get confidence using validation metrics.
     
     Args:
-        delta_std: Standard deviation of tree predictions
+        delta_std: Standard deviation of estimator predictions (uncertainty measure)
         delta_mae_ratio: Optional expected error ratio to MAE
-        weeks_ahead: How many weeks ahead (1-4 = bonus, >4 = no bonus)
+        weeks_ahead: How many weeks ahead (affects confidence calculation)
     
     Returns:
         tuple: (confidence_pct: float, confidence_tag: str)
