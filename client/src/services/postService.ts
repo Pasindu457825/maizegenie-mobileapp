@@ -146,11 +146,37 @@ export const listPosts = async (filters?: {
 
   if (error) throw error;
 
-  return (data || []).map((post: any) => ({
+  // Fetch offer counts for all posts
+  const posts = (data || []).map((post: any) => ({
     ...post,
     farmer_name: post.farmer?.full_name || "Unknown Farmer",
-    offer_count: 0, // Will be loaded on-demand when needed
-  })) as Post[];
+    offer_count: 0, // Will be updated below
+  }));
+
+  if (posts.length > 0) {
+    const postIds = posts.map((p) => p.id);
+    
+    // Fetch all offers for these posts and count them
+    const { data: offers, error: offerError } = await supabase
+      .from("offers")
+      .select("post_id")
+      .in("post_id", postIds);
+
+    if (!offerError && offers) {
+      // Build a map of post_id -> offer count
+      const offerCounts: Record<string, number> = {};
+      offers.forEach((offer: any) => {
+        offerCounts[offer.post_id] = (offerCounts[offer.post_id] ?? 0) + 1;
+      });
+
+      // Update offer counts on posts
+      posts.forEach((post) => {
+        post.offer_count = offerCounts[post.id] ?? 0;
+      });
+    }
+  }
+
+  return posts as Post[];
 };
 
 /* =====================================================
