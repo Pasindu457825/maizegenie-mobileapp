@@ -491,8 +491,18 @@ export default function OfficerPriceForecastScreen() {
         const district = validateRequiredString(formData.district, "District");
         const season = validateRequiredString(formData.season, "Season");
 
+        // Extract fuel_price from formData.fuelPrice (may be formatted string like "රු. 303.00") → number
+        let fuelPriceValue = 300;
+        if (formData.fuelPrice) {
+          const sanitized = String(formData.fuelPrice)
+            .replace(/[^0-9.]/g, "")
+            .trim();
+          const parsed = parseFloat(sanitized);
+          if (Number.isFinite(parsed)) fuelPriceValue = parsed;
+        }
+
         const fuelPrice = validateRequiredNumber(
-          formData.fuelPrice ?? 300,
+          fuelPriceValue,
           "Fuel Price",
           0,
           10000,
@@ -1507,7 +1517,7 @@ export default function OfficerPriceForecastScreen() {
                   <View style={styles.confidenceMeter}>
                     <Text style={styles.confidenceLabel}>
                       {language === "si"
-                        ? "සমතාවය"
+                        ? "සත්‍යතාව"
                         : language === "ta"
                           ? "சமதாவம்"
                           : "Consistency"}
@@ -1545,7 +1555,7 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.metadataRow}>
                   <Text style={styles.metadataLabel}>Fuel Price (Input)</Text>
                   <Text style={styles.metadataValue}>
-                    {formatRs(formData?.fuel_price)}
+                    {formatRs(formData?.fuelPrice)}
                   </Text>
                 </View>
               </View>
