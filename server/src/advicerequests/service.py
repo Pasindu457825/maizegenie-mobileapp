@@ -140,20 +140,60 @@ def notify_farmer_advice_completed(
 ):
     """Send notification to farmer that advice has been provided"""
     try:
-        type_label = {
-            "yield_enhancement": "Yield Enhancement",
-            "seed_variety": "Seed Variety Selection",
-            "both": "Yield Enhancement & Seed Variety",
-        }.get(request_type, request_type)
+        # Fetch farmer's language preference
+        farmer_lang = "en"  # Default to English
+        try:
+            farmer_result = supabase.table("profiles").select("language").eq("id", farmer_id).execute()
+            if farmer_result.data and len(farmer_result.data) > 0:
+                farmer_lang = farmer_result.data[0].get("language", "en")
+                # Map language codes: sinhala -> si, tamil -> ta, english -> en
+                if farmer_lang == "sinhala":
+                    farmer_lang = "si"
+                elif farmer_lang == "tamil":
+                    farmer_lang = "ta"
+                else:
+                    farmer_lang = "en"
+        except Exception as lang_err:
+            print(f"⚠️ Could not fetch farmer language, using English: {lang_err}")
+        
+        # Notification content in different languages
+        notifications = {
+            "si": {
+                "title": "✅ උපදේශ ලැබුණි",
+                "yield_enhancement": "අස්වැන්න වැඩිදියුණු කිරීම",
+                "seed_variety": "බීජ ප්‍රභේද තෝරා ගැනීම",
+                "both": "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ ප්‍රභේද",
+                "message_template": "කෘෂිකර්ම නිලධාරියෙක් ඔබේ {} උපදේශ ඉල්ලීමට ප්‍රතිචාර දක්වා ඇත. දැන් විස්තර පරීක්ෂා කරන්න!"
+            },
+            "ta": {
+                "title": "✅ ஆலோசனை பெறப்பட்டது",
+                "yield_enhancement": "விளைச்சல் மேம்பாடு",
+                "seed_variety": "விதை வகை தேர்வு",
+                "both": "விளைச்சல் மேம்பாடு மற்றும் விதை வகை",
+                "message_template": "ஒரு விவசாய அதிகாரி உங்கள் {} ஆலோசனை கோரிக்கைக்கு பதிலளித்துள்ளார். இப்போது விவரங்களைச் சரிபார்க்கவும்!"
+            },
+            "en": {
+                "title": "✅ Advice Received",
+                "yield_enhancement": "Yield Enhancement",
+                "seed_variety": "Seed Variety Selection",
+                "both": "Yield Enhancement & Seed Variety",
+                "message_template": "An agriculture officer has responded to your {} advice request. Check the details now!"
+            }
+        }
+        
+        # Get notification content for farmer's language
+        notif_content = notifications.get(farmer_lang, notifications["en"])
+        type_label = notif_content.get(request_type, request_type)
+        message = notif_content["message_template"].format(type_label)
 
         send_notification_to_user(
             farmer_id,
-            "✅ Advice Received",
-            f"An agriculture officer has responded to your {type_label} advice request. Check the details now!",
+            notif_content["title"],
+            message,
             "message",
             {"request_id": request_id, "request_type": request_type, "notification_category": "advice_request"}
         )
-        print(f"🔔 Notified farmer {farmer_id} about completed request {request_id}")
+        print(f"🔔 Notified farmer {farmer_id} about completed request {request_id} in language: {farmer_lang}")
     except Exception as e:
         print(f"⚠️ Failed to notify farmer: {e}")
 

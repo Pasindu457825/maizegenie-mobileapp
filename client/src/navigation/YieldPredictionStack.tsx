@@ -43,6 +43,9 @@ import WetWeightPredictionResultsScreen from "../screens/YieldPrediction/WetWeig
 import WetWeightVarietyComparisonScreen from "../screens/YieldPrediction/WetWeightVarietyComparisonScreen";
 import WetWeightTrialHistoryScreen from "../screens/YieldPrediction/WetWeightTrialHistoryScreen";
 
+// Fertilizer Guide Screen
+import FertilizerGuideMainScreen from "../screens/YieldPrediction/FertilizerGuideMain";
+
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
   YieldPredictionFormScreen: { role: 'farmer' | 'officer'; language: 'si' | 'en' };
@@ -101,6 +104,7 @@ export type YieldPredictionStackParamList = {
     currentResult: number;
   };
   WetWeightTrialHistory: undefined;
+  FertilizerGuideMain: undefined;
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -206,6 +210,10 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="WetWeightTrialHistory"
         component={WetWeightTrialHistoryScreen}
+      />
+      <Stack.Screen
+        name="FertilizerGuideMain"
+        component={FertilizerGuideMainScreen}
       />
     </Stack.Navigator>
   );
