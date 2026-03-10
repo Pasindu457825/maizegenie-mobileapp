@@ -81,6 +81,11 @@ const normalizePestName = (name: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const isValidPrediction = (p: Partial<Prediction> | null | undefined): p is Prediction =>
+  typeof p?.class_id === "number" &&
+  typeof p?.class_name === "string" &&
+  typeof p?.confidence === "number";
+
 const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -229,16 +234,25 @@ const PestIdentificationScreen = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      mediaTypes: "images",
+      allowsEditing: false,
+      quality: 0.7,
+      exif: false,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    const selectedUri = !result.canceled ? result.assets?.[0]?.uri : null;
+    if (selectedUri) {
+      setImageUri(selectedUri);
       setError(null);
       setResult(null);
+    } else if (!result.canceled) {
+      setError(
+        language === "si"
+          ? "තෝරාගත් ඡායාරූපය කියවිය නොහැක"
+          : language === "ta"
+            ? "தேர்ந்தெடுத்த படத்தை படிக்க முடியவில்லை"
+            : "Unable to read selected image"
+      );
     }
   };
 
@@ -257,15 +271,25 @@ const PestIdentificationScreen = () => {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      mediaTypes: "images",
+      allowsEditing: false,
+      quality: 0.7,
+      exif: false,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    const selectedUri = !result.canceled ? result.assets?.[0]?.uri : null;
+    if (selectedUri) {
+      setImageUri(selectedUri);
       setError(null);
       setResult(null);
+    } else if (!result.canceled) {
+      setError(
+        language === "si"
+          ? "කැමරාවෙන් ගත් ඡායාරූපය කියවිය නොහැක"
+          : language === "ta"
+            ? "கேமரா படத்தை படிக்க முடியவில்லை"
+            : "Unable to read captured image"
+      );
     }
   };
 
@@ -318,9 +342,21 @@ const PestIdentificationScreen = () => {
       console.log("Response:", res.data);
 
       if (res.data.success) {
-        const normalizedPredictions: Prediction[] = (res.data.predictions || []).filter(
-          (p: Prediction) => p.class_id >= 0 && p.class_name !== "No pest detected"
-        );
+        const apiPredictions: Partial<Prediction>[] = Array.isArray(res.data.predictions)
+          ? res.data.predictions
+          : [];
+        const normalizedPredictions: Prediction[] = apiPredictions
+          .filter(isValidPrediction)
+          .map((p) => ({
+            class_id: p.class_id,
+            class_name: p.class_name.trim(),
+            confidence: p.confidence,
+            box_xyxy:
+              Array.isArray(p.box_xyxy) && p.box_xyxy.length === 4
+                ? p.box_xyxy.map((n) => Number(n))
+                : undefined,
+          }))
+          .filter((p) => p.class_id >= 0 && p.class_name !== "No pest detected");
         setResult(normalizedPredictions);
         fetchPestFrequency();
         if (normalizedPredictions.length === 0) {
