@@ -94,6 +94,7 @@ interface ForecastData {
   season: string;
   weather: string;
   fuelPrice: string;
+  prevWeekFuelPrice?: string; // Previous week's actual fuel price for trend comparison
   cornImportTax: string;
   farmGatePrice: string;
   seedVariety: string;
@@ -735,7 +736,7 @@ const PriceForecastScreen = () => {
 
       const fuelPriceValue = safeNumber(
         String(formData.fuelPrice).replace(/[^0-9.]/g, ""),
-        277,
+        303,
       );
 
       const lastPriceValue = safeNumber(
@@ -1702,23 +1703,70 @@ const PriceForecastScreen = () => {
                   </Text>
                   <Text style={styles.factorValue}>
                     {formData?.fuelPrice} -{" "}
-                    {Number(formData?.fuelPrice) > 0
-                      ? content[language].high
-                      : content[language].low}
+                    {(() => {
+                      const currentFuelStr =
+                        String(formData?.fuelPrice).replace(/[^0-9.]/g, "") ||
+                        "0";
+                      const prevFuelStr =
+                        String(formData?.prevWeekFuelPrice).replace(
+                          /[^0-9.]/g,
+                          "",
+                        ) || currentFuelStr;
+                      const currentFuel = parseFloat(currentFuelStr) || 0;
+                      const prevFuel = parseFloat(prevFuelStr) || currentFuel;
+
+                      if (currentFuel > prevFuel) {
+                        return content[language].high;
+                      } else if (currentFuel < prevFuel) {
+                        return content[language].low;
+                      }
+                      return content[language].positive;
+                    })()}
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.factorBadge,
-                    Number(formData?.fuelPrice) > 0
-                      ? styles.factorBadgeNegative
-                      : styles.factorBadgePositive,
+                    (() => {
+                      const currentFuelStr =
+                        String(formData?.fuelPrice).replace(/[^0-9.]/g, "") ||
+                        "0";
+                      const prevFuelStr =
+                        String(formData?.prevWeekFuelPrice).replace(
+                          /[^0-9.]/g,
+                          "",
+                        ) || currentFuelStr;
+                      const currentFuel = parseFloat(currentFuelStr) || 0;
+                      const prevFuel = parseFloat(prevFuelStr) || currentFuel;
+
+                      return currentFuel > prevFuel
+                        ? styles.factorBadgeNegative
+                        : currentFuel < prevFuel
+                          ? styles.factorBadgePositive
+                          : styles.factorBadgeNeutral;
+                    })(),
                   ]}
                 >
                   <Text style={styles.factorBadgeText}>
-                    {Number(formData?.fuelPrice) > 0
-                      ? content[language].negative
-                      : content[language].positive}
+                    {(() => {
+                      const currentFuelStr =
+                        String(formData?.fuelPrice).replace(/[^0-9.]/g, "") ||
+                        "0";
+                      const prevFuelStr =
+                        String(formData?.prevWeekFuelPrice).replace(
+                          /[^0-9.]/g,
+                          "",
+                        ) || currentFuelStr;
+                      const currentFuel = parseFloat(currentFuelStr) || 0;
+                      const prevFuel = parseFloat(prevFuelStr) || currentFuel;
+
+                      if (currentFuel > prevFuel) {
+                        return content[language].negative;
+                      } else if (currentFuel < prevFuel) {
+                        return content[language].positive;
+                      }
+                      return content[language].positive;
+                    })()}
                   </Text>
                 </View>
               </View>

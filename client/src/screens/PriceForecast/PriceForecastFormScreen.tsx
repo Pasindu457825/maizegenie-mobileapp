@@ -56,7 +56,6 @@ import { useNotifications } from "../../context/NotificationContext";
 import { Modal } from "react-native";
 import { supabase } from "../../lib/supabase";
 
-
 const VARIETIES = [
   {
     name: "Commando",
@@ -146,6 +145,7 @@ const PriceForecastFormScreen = () => {
   const [season, setSeason] = useState("");
   const [weather, setWeather] = useState("");
   const [fuelPrice, setFuelPrice] = useState("");
+  const [prevWeekFuelPriceNum, setPrevWeekFuelPriceNum] = useState(0);
   const [cornImportTax, setCornImportTax] = useState("");
   const [farmGatePrice, setFarmGatePrice] = useState("");
   const [isFestivalWeek, setIsFestivalWeek] = useState(false);
@@ -298,6 +298,7 @@ const PriceForecastFormScreen = () => {
         const taxFormatted = data.import_tax?.toFixed(2) || "0.00";
 
         setFuelPrice(fuelPriceFormatted);
+        setPrevWeekFuelPriceNum(data.fuel_price || 0);
         setCornImportTax(`${taxFormatted}%`);
         setFarmGatePrice(farmGatePriceFormatted);
 
@@ -925,7 +926,7 @@ const PriceForecastFormScreen = () => {
       const totalYield = parseFloat(expectedYield) * parseFloat(farmArea);
       const productionCostPerKg = totalCost / totalYield;
 
-      // Save Form Data Locally 
+      // Save Form Data Locally
       await saveFormData({
         seedVariety,
         expectedYield,
@@ -945,6 +946,10 @@ const PriceForecastFormScreen = () => {
         season,
         weather,
         fuelPrice,
+        prevWeekFuelPrice:
+          prevWeekFuelPriceNum > 0
+            ? `Rs. ${prevWeekFuelPriceNum.toFixed(2)}`
+            : "0.00",
         cornImportTax,
         farmGatePrice,
         isFestivalWeek,

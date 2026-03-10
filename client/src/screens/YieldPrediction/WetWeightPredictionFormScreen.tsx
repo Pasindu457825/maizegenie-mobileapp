@@ -14,7 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { ArrowLeft, Wheat, Ruler, Weight, RefreshCw, History, Archive } from "lucide-react-native";
+import { ArrowLeft, Wheat, Ruler, Weight, RefreshCw, History, Archive, CheckCircle, ChevronDown, ChevronUp } from "lucide-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import CustomDropdown from "../../components/CustomDropdown";
@@ -98,6 +98,34 @@ const T = {
         placeholder155: "උදා: 15.5",
         placeholder14: "උදා: 14",
         placeholder10: "උදා: 10",
+        confirmTitle: "අවශ්‍ය පරාමිති තහවුරු කිරීම",
+        confirmMessage: "මා සතුව පහත නියත පරිසර/පාංශු දත්ත ඇත:\n\n",
+        confirmCheckbox: "තහවුරු කරමි",
+        sectionAgriPractices: "කෘෂිකාර්මික ක්‍රියාවලි",
+        sectionSoilParams: "පාංශු පරාමිති",
+        sectionWeatherClimate: "කාලගුණ/දේශගුණ දත්ත",
+        paramPlantingDate: "රෝපණ දිනය",
+        paramFirstFert: "පළමු පොහොර යෙදීමේ දිනය",
+        paramSecondFert: "දෙවන පොහොර යෙදීමේ දිනය",
+        paramIrrigation: "ජල සම්පාදන ක්‍රමය",
+        paramSoilType: "පස් වර්ගය",
+        paramSoilCondition: "පස් තත්ත්වය",
+        paramSoilPH: "පස් pH අගය",
+        paramNitrogen: "පස් නයිට්‍රජන් (N)",
+        paramPhosphorus: "පස් පොස්පරස් (P)",
+        paramPotassium: "පස් පොටෑසියම් (K)",
+        paramFertilityIndex: "පස් සාරවත් දර්ශකය",
+        paramNStatus: "N තත්ත්ව පන්තිය",
+        paramPStatus: "P තත්ත්ව පන්තිය",
+        paramKStatus: "K තත්ත්ව පන්තිය",
+        paramRainfallCondition: "වර්ෂාපතන තත්ත්වය",
+        paramRainfall30d: "30 දින වර්ෂාපතනය (mm)",
+        paramSeasonalRainfall: "සෘතුමය වර්ෂාපතනය (mm)",
+        paramAvgTemp: "සාමාන්‍ය උෂ්ණත්වය (°C)",
+        paramMaxTemp: "උපරිම උෂ්ණත්වය (°C)",
+        paramHumidity: "සාමාන්‍ය ආර්ද්‍රතාවය (%)",
+        paramSunshine: "හිරු එළිය පැය ගණන",
+        errConfirmParams: "කරුණාකර ඔබ සතුව අවශ්‍ය පරාමිති ඇති බව තහවුරු කරන්න",
     },
     en: {
         title: "Wet Weight Prediction",
@@ -146,6 +174,34 @@ const T = {
         placeholder155: "e.g., 15.5",
         placeholder14: "e.g., 14",
         placeholder10: "e.g., 10",
+        confirmTitle: "Required Parameters Confirmation",
+        confirmMessage: "I have the following constant environmental/soil data:\n\n",
+        confirmCheckbox: "I confirm",
+        sectionAgriPractices: "Agricultural Practices",
+        sectionSoilParams: "Soil Parameters",
+        sectionWeatherClimate: "Weather/Climate Data",
+        paramPlantingDate: "Planting Date",
+        paramFirstFert: "First Fertilizer Application Date",
+        paramSecondFert: "Second Fertilizer Application Date",
+        paramIrrigation: "Irrigation Type",
+        paramSoilType: "Soil Type",
+        paramSoilCondition: "Soil Condition",
+        paramSoilPH: "Soil pH Value",
+        paramNitrogen: "Soil Nitrogen (N)",
+        paramPhosphorus: "Soil Phosphorus (P)",
+        paramPotassium: "Soil Potassium (K)",
+        paramFertilityIndex: "Soil Fertility Index",
+        paramNStatus: "N Status Class",
+        paramPStatus: "P Status Class",
+        paramKStatus: "K Status Class",
+        paramRainfallCondition: "Rainfall Condition",
+        paramRainfall30d: "30-day Rainfall (mm)",
+        paramSeasonalRainfall: "Seasonal Rainfall (mm)",
+        paramAvgTemp: "Average Temperature (°C)",
+        paramMaxTemp: "Maximum Temperature (°C)",
+        paramHumidity: "Average Humidity (%)",
+        paramSunshine: "Sunshine Hours",
+        errConfirmParams: "Please confirm that you have the required parameters",
     },
 };
 
@@ -178,6 +234,8 @@ const WetWeightPredictionFormScreen = () => {
     const [plotAreaM2, setPlotAreaM2] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [draftLoaded, setDraftLoaded] = useState(false);
+    const [hasConfirmedParams, setHasConfirmedParams] = useState(false);
+    const [showParamDetails, setShowParamDetails] = useState(false);
 
     const varietyOptions = SEED_VARIETIES.map(v => ({
         label: v.name,
@@ -225,19 +283,32 @@ const WetWeightPredictionFormScreen = () => {
     };
 
     const validateForm = (): boolean => {
-        if (!seedVariety) {
+        if (!hasConfirmedParams) {
+            Alert.alert(t.errTitle, t.errConfirmParams);
+            return false;
+        }
+
+        if (!seedVariety || seedVariety.trim() === "") {
             Alert.alert(t.errTitle, t.errVariety);
             return false;
         }
 
-        const plantHeight = parseFloat(plantHeightCm);
-        if (!plantHeightCm || isNaN(plantHeight) || plantHeight < 50 || plantHeight > 400) {
+        if (!plantHeightCm || plantHeightCm.trim() === "") {
+            Alert.alert(t.errTitle, t.errPlantHeight);
+            return false;
+        }
+        const plantHeight = parseFloat(plantHeightCm.trim());
+        if (isNaN(plantHeight) || !isFinite(plantHeight) || plantHeight < 50 || plantHeight > 400) {
             Alert.alert(t.errTitle, t.errPlantHeight);
             return false;
         }
 
-        const cobHeight = parseFloat(cobHeightCm);
-        if (!cobHeightCm || isNaN(cobHeight) || cobHeight < 20 || cobHeight > 300) {
+        if (!cobHeightCm || cobHeightCm.trim() === "") {
+            Alert.alert(t.errTitle, t.errCobHeight);
+            return false;
+        }
+        const cobHeight = parseFloat(cobHeightCm.trim());
+        if (isNaN(cobHeight) || !isFinite(cobHeight) || cobHeight < 20 || cobHeight > 300) {
             Alert.alert(t.errTitle, t.errCobHeight);
             return false;
         }
@@ -247,27 +318,39 @@ const WetWeightPredictionFormScreen = () => {
             return false;
         }
 
-        const cobWeight = parseFloat(cobWetWeightG);
-        if (!cobWetWeightG || isNaN(cobWeight) || cobWeight < 50 || cobWeight > 500) {
+        if (!cobWetWeightG || cobWetWeightG.trim() === "") {
+            Alert.alert(t.errTitle, t.errCobWeight);
+            return false;
+        }
+        const cobWeight = parseFloat(cobWetWeightG.trim());
+        if (isNaN(cobWeight) || !isFinite(cobWeight) || cobWeight < 50 || cobWeight > 500) {
             Alert.alert(t.errTitle, t.errCobWeight);
             return false;
         }
 
-        const cobLength = parseFloat(cobLengthCm);
-        if (!cobLengthCm || isNaN(cobLength) || cobLength < 5 || cobLength > 35) {
+        if (!cobLengthCm || cobLengthCm.trim() === "") {
+            Alert.alert(t.errTitle, t.errCobLength);
+            return false;
+        }
+        const cobLength = parseFloat(cobLengthCm.trim());
+        if (isNaN(cobLength) || !isFinite(cobLength) || cobLength < 5 || cobLength > 35) {
             Alert.alert(t.errTitle, t.errCobLength);
             return false;
         }
 
-        const seedRows = parseInt(numSeedRows);
-        if (!numSeedRows || isNaN(seedRows) || seedRows < 8 || seedRows > 24) {
+        if (!numSeedRows || numSeedRows.trim() === "") {
+            Alert.alert(t.errTitle, t.errSeedRows);
+            return false;
+        }
+        const seedRows = parseInt(numSeedRows.trim(), 10);
+        if (isNaN(seedRows) || !isFinite(seedRows) || seedRows < 8 || seedRows > 24) {
             Alert.alert(t.errTitle, t.errSeedRows);
             return false;
         }
 
-        if (plotAreaM2) {
-            const plotArea = parseFloat(plotAreaM2);
-            if (isNaN(plotArea) || plotArea < 1 || plotArea > 10000) {
+        if (plotAreaM2 && plotAreaM2.trim() !== "") {
+            const plotArea = parseFloat(plotAreaM2.trim());
+            if (isNaN(plotArea) || !isFinite(plotArea) || plotArea < 1 || plotArea > 10000) {
                 Alert.alert(t.errTitle, t.errPlotArea);
                 return false;
             }
@@ -282,14 +365,23 @@ const WetWeightPredictionFormScreen = () => {
         setIsSubmitting(true);
         try {
             await clearDraft();
+            
+            const plotAreaValue = plotAreaM2 && plotAreaM2.trim() !== "" ? parseFloat(plotAreaM2.trim()) : undefined;
+            const plotNumberValue = plotNumber && plotNumber.trim() !== "" ? parseInt(plotNumber.trim(), 10) : undefined;
+            
+            if (plotNumberValue !== undefined && (isNaN(plotNumberValue) || !isFinite(plotNumberValue))) {
+                Alert.alert(t.errTitle, "Invalid plot number");
+                return;
+            }
+            
             const requestData = {
-                seed_variety: seedVariety,
-                cob_height_cm: parseFloat(cobHeightCm),
-                plant_height_cm: parseFloat(plantHeightCm),
-                cob_wet_weight_g: parseFloat(cobWetWeightG),
-                cob_length_cm: parseFloat(cobLengthCm),
-                num_seed_rows: parseInt(numSeedRows),
-                plot_area_m2: plotAreaM2 ? parseFloat(plotAreaM2) : undefined,
+                seed_variety: seedVariety.trim(),
+                cob_height_cm: parseFloat(cobHeightCm.trim()),
+                plant_height_cm: parseFloat(plantHeightCm.trim()),
+                cob_wet_weight_g: parseFloat(cobWetWeightG.trim()),
+                cob_length_cm: parseFloat(cobLengthCm.trim()),
+                num_seed_rows: parseInt(numSeedRows.trim(), 10),
+                plot_area_m2: plotAreaValue,
             };
 
             const result = await wetYieldPredictionService.predictWetYield(requestData);
@@ -297,16 +389,17 @@ const WetWeightPredictionFormScreen = () => {
             navigation.navigate("WetWeightPredictionResults", {
                 data: result,
                 meta: {
-                    trial_name: trialName || undefined,
-                    field_block_id: fieldBlockId || undefined,
-                    replicate_number: replicateNumber || undefined,
-                    plot_number: plotNumber ? parseInt(plotNumber) : undefined,
-                    plot_area_m2: plotAreaM2 ? parseFloat(plotAreaM2) : undefined,
-                    seed_variety: seedVariety,
+                    trial_name: trialName && trialName.trim() !== "" ? trialName.trim() : undefined,
+                    field_block_id: fieldBlockId && fieldBlockId.trim() !== "" ? fieldBlockId.trim() : undefined,
+                    replicate_number: replicateNumber && replicateNumber.trim() !== "" ? replicateNumber.trim() : undefined,
+                    plot_number: plotNumberValue,
+                    plot_area_m2: plotAreaValue,
+                    seed_variety: seedVariety.trim(),
                 },
             });
         } catch (error: any) {
-            Alert.alert(t.errPredictTitle, error.message || t.errPredictTitle);
+            const errorMessage = error?.message || error?.toString() || t.errPredictTitle;
+            Alert.alert(t.errPredictTitle, errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -365,6 +458,96 @@ const WetWeightPredictionFormScreen = () => {
                 <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                     <View style={styles.formContainer}>
 
+                        {/* Required Parameters Confirmation */}
+                        <View style={[styles.sectionCard, styles.confirmCard]}>
+                            <View style={styles.sectionHeader}>
+                                <View style={[styles.sectionIconBg, { backgroundColor: hasConfirmedParams ? "#D1FAE5" : "#FEF3C7" }]}>
+                                    <CheckCircle size={20} color={hasConfirmedParams ? "#10B981" : "#F59E0B"} />
+                                </View>
+                                <Text style={styles.sectionTitle}>{t.confirmTitle}</Text>
+                            </View>
+
+                            <Text style={styles.confirmMessage}>{t.confirmMessage}</Text>
+
+                            {/* Checkbox */}
+                            <TouchableOpacity
+                                style={styles.checkboxRow}
+                                onPress={() => setHasConfirmedParams(!hasConfirmedParams)}
+                                activeOpacity={0.7}
+                            >
+                                <View style={[styles.checkbox, hasConfirmedParams && styles.checkboxChecked]}>
+                                    {hasConfirmedParams && <CheckCircle size={18} color="#10B981" />}
+                                </View>
+                                <Text style={[styles.checkboxLabel, hasConfirmedParams && styles.checkboxLabelChecked]}>
+                                    {t.confirmCheckbox}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {/* Toggle parameter details */}
+                            <TouchableOpacity
+                                style={styles.toggleDetailsBtn}
+                                onPress={() => setShowParamDetails(!showParamDetails)}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.toggleDetailsText}>
+                                    {showParamDetails ? "Hide" : "Show"} Parameter List
+                                </Text>
+                                {showParamDetails ? <ChevronUp size={16} color="#6B7280" /> : <ChevronDown size={16} color="#6B7280" />}
+                            </TouchableOpacity>
+
+                            {/* Collapsible parameter sections */}
+                            {showParamDetails && (
+                                <View style={styles.paramSections}>
+                                    {/* Agricultural Practices */}
+                                    <View style={styles.paramSection}>
+                                        <Text style={styles.paramSectionTitle}>{t.sectionAgriPractices}</Text>
+                                        <View style={styles.paramList}>
+                                            <Text style={styles.paramItem}>• {t.paramPlantingDate}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramFirstFert}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramSecondFert}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramIrrigation}</Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Soil Parameters */}
+                                    <View style={styles.paramSection}>
+                                        <Text style={styles.paramSectionTitle}>{t.sectionSoilParams}</Text>
+                                        <View style={styles.paramList}>
+                                            <Text style={styles.paramItem}>• {t.paramSoilType}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramSoilCondition}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramSoilPH}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramNitrogen}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramPhosphorus}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramPotassium}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramFertilityIndex}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramNStatus}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramPStatus}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramKStatus}</Text>
+                                        </View>
+                                    </View>
+
+                                    {/* Weather/Climate Data */}
+                                    <View style={styles.paramSection}>
+                                        <Text style={styles.paramSectionTitle}>{t.sectionWeatherClimate}</Text>
+                                        <View style={styles.paramList}>
+                                            <Text style={styles.paramItem}>• {t.paramRainfallCondition}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramRainfall30d}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramSeasonalRainfall}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramAvgTemp}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramMaxTemp}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramHumidity}</Text>
+                                            <Text style={styles.paramItem}>• {t.paramSunshine}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+
+                        {/* Form sections - disabled until checkbox is checked */}
+                        <View 
+                            style={!hasConfirmedParams && styles.disabledOverlay}
+                            pointerEvents={hasConfirmedParams ? "auto" : "none"}
+                        >
                         {/* Section: Trial Information */}
                         <View style={styles.sectionCard}>
                             <View style={styles.sectionHeader}>
@@ -416,10 +599,14 @@ const WetWeightPredictionFormScreen = () => {
                                     <TextInput
                                         style={styles.input}
                                         value={plotNumber}
-                                        onChangeText={setPlotNumber}
+                                        onChangeText={(text) => {
+                                            const sanitized = text.replace(/[^0-9]/g, '');
+                                            setPlotNumber(sanitized);
+                                        }}
                                         placeholder={t.placeholderPlotNumber}
                                         keyboardType="number-pad"
                                         placeholderTextColor="#9CA3AF"
+                                        maxLength={4}
                                     />
                                 </View>
                             </View>
@@ -467,10 +654,16 @@ const WetWeightPredictionFormScreen = () => {
                                 <TextInput
                                     style={styles.input}
                                     value={plantHeightCm}
-                                    onChangeText={setPlantHeightCm}
+                                    onChangeText={(text) => {
+                                        const sanitized = text.replace(/[^0-9.]/g, '');
+                                        if (sanitized.split('.').length <= 2) {
+                                            setPlantHeightCm(sanitized);
+                                        }
+                                    }}
                                     placeholder={t.placeholder220}
                                     keyboardType="decimal-pad"
                                     placeholderTextColor="#9CA3AF"
+                                    maxLength={6}
                                 />
                                 <Text style={styles.helperText}>{t.helperPlantHeight}</Text>
                             </View>
@@ -482,10 +675,16 @@ const WetWeightPredictionFormScreen = () => {
                                 <TextInput
                                     style={styles.input}
                                     value={cobHeightCm}
-                                    onChangeText={setCobHeightCm}
+                                    onChangeText={(text) => {
+                                        const sanitized = text.replace(/[^0-9.]/g, '');
+                                        if (sanitized.split('.').length <= 2) {
+                                            setCobHeightCm(sanitized);
+                                        }
+                                    }}
                                     placeholder={t.placeholder110}
                                     keyboardType="decimal-pad"
                                     placeholderTextColor="#9CA3AF"
+                                    maxLength={6}
                                 />
                                 <Text style={styles.helperText}>{t.helperCobHeight}</Text>
                             </View>
@@ -507,10 +706,16 @@ const WetWeightPredictionFormScreen = () => {
                                 <TextInput
                                     style={styles.input}
                                     value={cobWetWeightG}
-                                    onChangeText={setCobWetWeightG}
+                                    onChangeText={(text) => {
+                                        const sanitized = text.replace(/[^0-9.]/g, '');
+                                        if (sanitized.split('.').length <= 2) {
+                                            setCobWetWeightG(sanitized);
+                                        }
+                                    }}
                                     placeholder={t.placeholder190}
                                     keyboardType="decimal-pad"
                                     placeholderTextColor="#9CA3AF"
+                                    maxLength={6}
                                 />
                                 <Text style={styles.helperText}>{t.helperCobWeight}</Text>
                             </View>
@@ -523,10 +728,16 @@ const WetWeightPredictionFormScreen = () => {
                                     <TextInput
                                         style={styles.input}
                                         value={cobLengthCm}
-                                        onChangeText={setCobLengthCm}
+                                        onChangeText={(text) => {
+                                            const sanitized = text.replace(/[^0-9.]/g, '');
+                                            if (sanitized.split('.').length <= 2) {
+                                                setCobLengthCm(sanitized);
+                                            }
+                                        }}
                                         placeholder={t.placeholder155}
                                         keyboardType="decimal-pad"
                                         placeholderTextColor="#9CA3AF"
+                                        maxLength={5}
                                     />
                                     <Text style={styles.helperText}>{t.helperCobLength}</Text>
                                 </View>
@@ -538,10 +749,14 @@ const WetWeightPredictionFormScreen = () => {
                                     <TextInput
                                         style={styles.input}
                                         value={numSeedRows}
-                                        onChangeText={setNumSeedRows}
+                                        onChangeText={(text) => {
+                                            const sanitized = text.replace(/[^0-9]/g, '');
+                                            setNumSeedRows(sanitized);
+                                        }}
                                         placeholder={t.placeholder14}
                                         keyboardType="number-pad"
                                         placeholderTextColor="#9CA3AF"
+                                        maxLength={2}
                                     />
                                     <Text style={styles.helperText}>{t.helperSeedRows}</Text>
                                 </View>
@@ -561,13 +776,20 @@ const WetWeightPredictionFormScreen = () => {
                                 <TextInput
                                     style={styles.input}
                                     value={plotAreaM2}
-                                    onChangeText={setPlotAreaM2}
+                                    onChangeText={(text) => {
+                                        const sanitized = text.replace(/[^0-9.]/g, '');
+                                        if (sanitized.split('.').length <= 2 && parseFloat(sanitized) >= 0 && parseFloat(sanitized) <= 10000) {
+                                            setPlotAreaM2(sanitized);
+                                        }
+                                    }}
                                     placeholder={t.placeholder10}
                                     keyboardType="decimal-pad"
                                     placeholderTextColor="#9CA3AF"
+                                    maxLength={8}
                                 />
                                 <Text style={styles.helperText}>{t.helperPlotArea}</Text>
                             </View>
+                        </View>
                         </View>
 
                         <View style={styles.bottomPadding} />
@@ -645,7 +867,7 @@ const styles = StyleSheet.create({
     },
     formContainer: {
         padding: 16,
-        gap: 12,
+        gap: 16,
     },
     sectionCard: {
         backgroundColor: "#FFFFFF",
@@ -656,6 +878,92 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.06,
         shadowRadius: 6,
         elevation: 2,
+    },
+    confirmCard: {
+        borderWidth: 2,
+        borderColor: "#FEF3C7",
+    },
+    confirmMessage: {
+        fontSize: 13,
+        color: "#6B7280",
+        marginBottom: 12,
+        lineHeight: 18,
+    },
+    checkboxRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        backgroundColor: "#F9FAFB",
+        borderRadius: 10,
+        borderWidth: 1.5,
+        borderColor: "#E5E7EB",
+        marginBottom: 12,
+    },
+    checkbox: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: "#D1D5DB",
+        backgroundColor: "#FFFFFF",
+        justifyContent: "center",
+        alignItems: "center",
+        marginRight: 10,
+    },
+    checkboxChecked: {
+        borderColor: "#10B981",
+        backgroundColor: "#D1FAE5",
+    },
+    checkboxLabel: {
+        flex: 1,
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#6B7280",
+    },
+    checkboxLabelChecked: {
+        color: "#065F46",
+    },
+    toggleDetailsBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: 8,
+        gap: 6,
+    },
+    toggleDetailsText: {
+        fontSize: 13,
+        fontWeight: "600",
+        color: "#6B7280",
+    },
+    paramSections: {
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: "#E5E7EB",
+    },
+    paramSection: {
+        marginBottom: 16,
+    },
+    paramSectionTitle: {
+        fontSize: 13,
+        fontWeight: "700",
+        color: "#10B981",
+        marginBottom: 8,
+        textTransform: "uppercase",
+        letterSpacing: 0.5,
+    },
+    paramList: {
+        paddingLeft: 8,
+    },
+    paramItem: {
+        fontSize: 12,
+        color: "#4B5563",
+        marginBottom: 4,
+        lineHeight: 18,
+    },
+    disabledOverlay: {
+        opacity: 0.5,
     },
     sectionHeader: {
         flexDirection: "row",

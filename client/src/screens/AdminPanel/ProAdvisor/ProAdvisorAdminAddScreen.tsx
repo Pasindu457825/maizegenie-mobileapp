@@ -118,18 +118,13 @@ export default function ProAdvisorAdminAddScreen() {
   };
 
   /* ---------------- BLOCK HANDLERS ---------------- */
-  const updateBlock = (
-    index: number,
-    field: keyof Block,
-    value: string
-  ) => {
+  const updateBlock = (index: number, field: keyof Block, value: string) => {
     const arr = [...blocks];
     arr[index][field] = value;
     setBlocks(arr);
   };
 
-  const addBlock = () =>
-    setBlocks([...blocks, { subtitle: "", content: "" }]);
+  const addBlock = () => setBlocks([...blocks, { subtitle: "", content: "" }]);
 
   const removeBlock = (index: number) => {
     const arr = [...blocks];
@@ -144,7 +139,7 @@ export default function ProAdvisorAdminAddScreen() {
       return;
     }
 
-    if (blocks.some(b => !b.subtitle.trim() || !b.content.trim())) {
+    if (blocks.some((b) => !b.subtitle.trim() || !b.content.trim())) {
       Alert.alert("Error", "All sections must be filled");
       return;
     }
@@ -154,7 +149,7 @@ export default function ProAdvisorAdminAddScreen() {
 
       await axios.post(`${API_BASE}/pro-advisor`, {
         title,
-        blocks,       // 👈 image_url already inside
+        blocks, // 👈 image_url already inside
         language: uiLang,
       });
 
@@ -244,7 +239,11 @@ export default function ProAdvisorAdminAddScreen() {
           onPress={submit}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="#fff" /> : <Send size={18} color="#fff" />}
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Send size={18} color="#fff" />
+          )}
           <Text style={styles.submitText}>
             {loading ? t.publishing : t.publish}
           </Text>
@@ -279,6 +278,7 @@ const styles = StyleSheet.create({
 
   /* ================= HEADER ================= */
   header: {
+    marginTop: 12,
     paddingTop: Platform.OS === "ios" ? 52 : 18,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -459,4 +459,3 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 });
-

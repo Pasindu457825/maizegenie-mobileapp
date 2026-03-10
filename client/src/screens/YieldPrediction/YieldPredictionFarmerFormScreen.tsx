@@ -66,7 +66,6 @@ const SEED_VARIETIES = [
     { name: "Local Variety", image: require("../../../assets/varieties/Unknown.png") }
 ];
 
-
 // Use location data from constants (convert format for compatibility)
 const LOCATION_COORDINATES: {
     [key: string]: {

@@ -124,8 +124,7 @@ export const listPosts = async (filters?: {
     .select(
       `
       *,
-      farmer:profiles!posts_farmer_id_fkey(full_name),
-      offers(count)
+      farmer:profiles!posts_farmer_id_fkey(full_name)
     `,
     )
     .order("status", { ascending: true }) // active < scheduled < sold alphabetically
@@ -147,14 +146,37 @@ export const listPosts = async (filters?: {
 
   if (error) throw error;
 
-  return (data || []).map((post: any) => ({
+  // Fetch offer counts for all posts
+  const posts = (data || []).map((post: any) => ({
     ...post,
     farmer_name: post.farmer?.full_name || "Unknown Farmer",
-    offer_count:
-      Array.isArray(post.offers) && post.offers.length > 0
-        ? (post.offers[0].count ?? 0)
-        : 0,
-  })) as Post[];
+    offer_count: 0, // Will be updated below
+  }));
+
+  if (posts.length > 0) {
+    const postIds = posts.map((p) => p.id);
+    
+    // Fetch all offers for these posts and count them
+    const { data: offers, error: offerError } = await supabase
+      .from("offers")
+      .select("post_id")
+      .in("post_id", postIds);
+
+    if (!offerError && offers) {
+      // Build a map of post_id -> offer count
+      const offerCounts: Record<string, number> = {};
+      offers.forEach((offer: any) => {
+        offerCounts[offer.post_id] = (offerCounts[offer.post_id] ?? 0) + 1;
+      });
+
+      // Update offer counts on posts
+      posts.forEach((post) => {
+        post.offer_count = offerCounts[post.id] ?? 0;
+      });
+    }
+  }
+
+  return posts as Post[];
 };
 
 /* =====================================================
@@ -237,15 +259,32 @@ export const checkUserOffer = async (postId: string): Promise<Offer | null> => {
 
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("offers")
-    .select("*")
-    .eq("post_id", postId)
-    .eq("buyer_id", user.id)
-    .maybeSingle();
+  try {
+    const { data, error } = await supabase
+      .from("offers")
+      .select("*")
+      .eq("post_id", postId)
+      .eq("buyer_id", user.id)
+      .maybeSingle();
 
-  if (error) throw error;
-  return (data as Offer) || null;
+    if (error) {
+      console.error(`[checkUserOffer] Error for post ${postId}:`, error);
+      throw error;
+    }
+
+    return (data as Offer) || null;
+  } catch (error: any) {
+    // Check if this is the PGRST116 error (multiple rows returned)
+    if (error?.code === "PGRST116") {
+      console.error(
+        `[checkUserOffer] DUPLICATE OFFERS detected for post ${postId}!`,
+        error,
+      );
+      // Return first offer or null as fallback
+      return null;
+    }
+    throw error;
+  }
 };
 
 /* =====================================================
