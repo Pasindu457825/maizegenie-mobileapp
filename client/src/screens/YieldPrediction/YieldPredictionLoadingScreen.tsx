@@ -39,6 +39,7 @@ const YieldPredictionLoadingScreen = () => {
   const [showProPopup, setShowProPopup] = useState(false);
   const [showSoilTestModal, setShowSoilTestModal] = useState(false);
   const [showImportanceModal, setShowImportanceModal] = useState(false);
+  const [pulseAnim] = useState(new Animated.Value(1));
   const { user } = useApp();
 
   // Role-based authentication using Supabase user data
@@ -71,18 +72,36 @@ const YieldPredictionLoadingScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Pulse animation for intro icon
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const content = {
     si: {
       title: "අස්වැන්න පුරෝකථනය සහ පොහොර උපදේශන",
       subtitle: "",
+      introFarmer: "ඔබේ වගාවේ සාර්ථකත්වය සඳහා ස්මාර්ට් විසඳුම්",
+      introOfficer: "ඔබේ දැනුම භාවිතයෙන් ගොවීන්ට විශේෂඥ මාර්ගෝපදේශ සහ වගා තීරණ වැඩිදියුණු කරන්න.",
       servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
       wetWeightPrediction: "තෙත් බර අස්වැන්න පුරෝකථනය",
       wetWeightPredictionDesc: "AI මාදිලිය භාවිතයෙන් පාලිත තෙත් බර අස්වැන්න පුරෝකථනය කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
-      farmerForecastTitle: "දළ පුරෝකථනය",
+      farmerForecastTitle: "අස්වැන්න පුරෝකථනය",
       farmerForecastDesc: "ඉක්මන් සහ සරල අස්වැන්න පුරෝකථනය",
       officerForecastTitle: "වෘත්තීය/උසස් විශ්ලේෂණය",
       officerForecastDesc: "සවිස්තරාත්මක සහ ගැඹුරු අස්වැන්න විශ්ලේෂණය",
@@ -103,18 +122,22 @@ const YieldPredictionLoadingScreen = () => {
       soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න",
       fertilizerAssistant: "ඔබේ පොහොර උපදේශ සහායක",
       fertilizerAssistantDesc: "දෘශ්‍යමාන ලක්ෂණ මත පදනම්ව පොහොර උපදේශ ලබා ගන්න",
+      fertilizerGuide: "පොහොර මාර්ගෝපදේශ",
+      fertilizerGuideDesc: "පොහොර උපදේශ සහ මාර්ගෝපදේශ ලබා ගන්න",
       knowledgeBank: "පෝෂක මාර්ගෝපදේශ",
       knowledgeBankDesc: "වගාව සඳහා වැදගත් වන පෝෂක තොරතුරු ලබාගන්න",
     },
     en: {
       title: "Yield Prediction and Fertilizer Advisory",
       subtitle: "",
+      introFarmer: "Know your harvest and apply the best fertilizer plan",
+      introOfficer: "Support farmers with expert guidance and improve cultivation decisions using data.",
       servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
       wetWeightPrediction: "Wet Weight Yield Prediction",
       wetWeightPredictionDesc: "Predict controlled wet weight yield using AI model",
-      farmerForecastTitle: "Gross Forecast",
+      farmerForecastTitle: "Harvest Forecast",
       farmerForecastDesc: "Quick and simple yield prediction",
       officerForecastTitle: "Professional/Advanced Analysis",
       officerForecastDesc: "Detailed and deep yield analysis",
@@ -135,12 +158,16 @@ const YieldPredictionLoadingScreen = () => {
       soilTestDesc: "Request a soil test for your land",
       fertilizerAssistant: "Your Fertilizer Advisory Assistant",
       fertilizerAssistantDesc: "Get fertilizer advices on visible signs based",
+      fertilizerGuide: "Fertilizer Guide",
+      fertilizerGuideDesc: "Access fertilizer advice and guidelines",
       knowledgeBank: "Fertilizer Guidelines",
       knowledgeBankDesc: "Get important nutrient information for cultivation",
     },
     ta: {
       title: "விளைச்சல் கணிப்பு மற்றும் உர ஆலோசனை",
       subtitle: "",
+      introFarmer: "உங்கள் பயிர் வெற்றிக்கான ஸ்மார்ட் தீர்வுகள்",
+      introOfficer: "தரவைப் பயன்படுத்தி விவசாயிகளுக்கு நிபுணர் வழிகாட்டுதல் மற்றும் சாகுபடி முடிவுகளை மேம்படுத்துங்கள்.",
       servicesTitle: "எங்கள் சேவைகள்",
       startTitle: "கணிப்பை தொடங்குங்கள்",
       startDesc: "உங்கள் விளைச்சலை விரைவாக கணிக்கவும்",
@@ -167,6 +194,8 @@ const YieldPredictionLoadingScreen = () => {
       soilTestDesc: "உங்கள் நிலத்திற்கு மண் பரிசோதனையை கோருங்கள்",
       fertilizerAssistant: "உங்கள் உர ஆலோசனை உதவியாளர்",
       fertilizerAssistantDesc: "கண்ணுக்குத் தெரியும் அறிகுறிகளின் அடிப்படையில் உர ஆலோசனை பெறுங்கள்",
+      fertilizerGuide: "உர வழிகாட்டி",
+      fertilizerGuideDesc: "உர ஆலோசனை மற்றும் வழிகாட்டுதல்களை அணுகவும்",
       knowledgeBank: "உர வழிகாட்டுதல்கள்",
       knowledgeBankDesc: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்களைப் பெறுங்கள்",
     },
@@ -278,6 +307,16 @@ const YieldPredictionLoadingScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
+          {/* Introduction Section */}
+          <View style={styles.introSection}>
+            <Animated.View style={[styles.introIconWrapper, { transform: [{ scale: pulseAnim }] }]}>
+              <Text style={styles.introIcon}>🌽</Text>
+            </Animated.View>
+            <Text style={styles.introText}>
+              {isFarmer ? content[language].introFarmer : content[language].introOfficer}
+            </Text>
+          </View>
+
           {/* Action Cards */}
           <View style={styles.roleContainer}>
             {isFarmer ? (
@@ -286,90 +325,51 @@ const YieldPredictionLoadingScreen = () => {
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => handleRoleSelect("farmer")}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#ECFDF5", "#D1FAE5"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={styles.roleIconCircle}>
-                      <Leaf color="#10b981" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#D1FAE5" }]}>
+                      <Leaf color="#10b981" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].farmerForecastTitle}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].farmerForecastDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
-                {/* Card 2: Your Fertilizer Advisory Assistant */}
-                <TouchableOpacity
-                  style={styles.roleCard}
-                  onPress={() => navigation.navigate("RuleBasedAdvisoryInputScreen")}
-                  activeOpacity={0.7}
-                >
-                  <LinearGradient
-                    colors={["#ECFDF5", "#D1FAE5"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={styles.roleIconCircle}>
-                      <Sparkles color="#10b981" size={32} />
-                    </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
-                        {content[language].fertilizerAssistant}
-                      </Text>
-                      <Text style={styles.roleDesc}>
-                        {content[language].fertilizerAssistantDesc}
-                      </Text>
-                    </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
-                    </View>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Card 3: My Advice Requests */}
+                {/* Card 2: My Advice Requests */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("MyAdviceRequestsScreen")}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#FEF3C7", "#FDE68A"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
-                      <Users color="#f59e0b" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FDE68A" }]}>
+                      <Users color="#f59e0b" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].myAdviceRequests}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].myAdviceRequestsDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
-                {/* Card 4: Soil Test Request (Pro Feature) */}
+                {/* Card 3: Soil Test Request (Pro Feature) */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => {
@@ -379,62 +379,52 @@ const YieldPredictionLoadingScreen = () => {
                       setShowProPopup(true);
                     }
                   }}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#F3E8FF", "#E9D5FF"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#E9D5FF" }]}>
-                      <TestTube color="#9333ea" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#E9D5FF" }]}>
+                      <TestTube color="#9333ea" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
+                    <View style={styles.modernTextContent}>
                       <View style={styles.proFeatureBadge}>
-                        <Sparkles size={12} color="#9333ea" />
+                        <Sparkles size={10} color="#9333ea" />
                         <Text style={styles.proFeatureText}>Pro</Text>
                       </View>
-                      <Text style={styles.roleTitle}>
+                      <Text style={styles.modernTitle}>
                         {content[language].soilTestTitle}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].soilTestDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
-                {/* Card 5: Knowledge Bank */}
+                {/* Card 4: Fertilizer Guide */}
                 <TouchableOpacity
                   style={styles.roleCard}
-                  onPress={() => navigation.navigate("KnowledgeBankMain")}
-                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate("FertilizerGuideMain" as any)}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#FFF7ED", "#FFEDD5"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#FFEDD5" }]}>
-                      <BookOpen color="#ea580c" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FEF3C7" }]}>
+                      <Package color="#f59e0b" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
-                        {content[language].knowledgeBank}
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].fertilizerGuide}
                       </Text>
-                      <Text style={styles.roleDesc}>
-                        {content[language].knowledgeBankDesc}
+                      <Text style={styles.modernDesc}>
+                        {content[language].fertilizerGuideDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </>
             ) : (
@@ -443,145 +433,120 @@ const YieldPredictionLoadingScreen = () => {
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => handleRoleSelect("officer")}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#ECFDF5", "#D1FAE5"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={styles.roleIconCircle}>
-                      <Leaf color="#10b981" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#D1FAE5" }]}>
+                      <Leaf color="#10b981" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].officerForecastTitle}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].officerForecastDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
                 {/* Card 2: Wet Weight Prediction (Officer Only) */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("WetWeightPredictionForm")}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#EFF6FF", "#DBEAFE"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
-                      <Ionicons name="stats-chart-outline" size={30} color="#3b82f6" />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                      <Ionicons name="stats-chart-outline" size={28} color="#3b82f6" />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].wetWeightPrediction}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].wetWeightPredictionDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
                 {/* Card 3: Farmer Requests */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("FarmerAdviceRequestsScreen")}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#FEF3C7", "#FDE68A"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
-                      <Users color="#D97706" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FDE68A" }]}>
+                      <Users color="#D97706" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].farmerRequests}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].farmerRequestsDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
                 {/* Card 4: Edit Fertilizer Plans */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("EditFertilizerPlans")}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#F3E8FF", "#E9D5FF"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#E9D5FF" }]}>
-                      <Edit3 color="#9333ea" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#E9D5FF" }]}>
+                      <Edit3 color="#9333ea" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].editFertilizerPlans}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].editFertilizerPlansDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
 
                 {/* Card 5: Chat With Farmers (last) */}
                 <TouchableOpacity
                   style={styles.roleCard}
                   onPress={() => navigation.navigate("OfficerRooms" as any)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.8}
                 >
-                  <LinearGradient
-                    colors={["#FFF7ED", "#FFEDD5"]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.roleCardGradient}
-                  >
-                    <View style={[styles.roleIconCircle, { backgroundColor: "#FFEDD5" }]}>
-                      <MessageCircle color="#ea580c" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FFEDD5" }]}>
+                      <MessageCircle color="#ea580c" size={28} />
                     </View>
-                    <View style={styles.roleContent}>
-                      <Text style={styles.roleTitle}>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
                         {content[language].chatWithFarmers}
                       </Text>
-                      <Text style={styles.roleDesc}>
+                      <Text style={styles.modernDesc}>
                         {content[language].chatWithFarmersDesc}
                       </Text>
                     </View>
-                    <View style={styles.roleArrow}>
-                      <Text style={styles.roleArrowText}>→</Text>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
                     </View>
-                  </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               </>
             )}
@@ -637,7 +602,7 @@ const YieldPredictionLoadingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#F5F5F5",
   },
   header: {
     paddingTop: 50,
@@ -678,6 +643,24 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     flex: 1,
     justifyContent: "center",
+  },
+  introSection: {
+    alignItems: "center",
+    marginBottom: 24,
+    paddingVertical: 16,
+  },
+  introIconWrapper: {
+    marginBottom: 8,
+  },
+  introIcon: {
+    fontSize: 36,
+  },
+  introText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+    textAlign: "center",
+    letterSpacing: 0.2,
   },
   iconSection: {
     alignItems: "center",
@@ -737,26 +720,64 @@ const styles = StyleSheet.create({
     borderColor: "#a7f3d0",
   },
   roleContainer: {
-    gap: 20,
+    gap: 16,
     maxWidth: 500,
     width: "100%",
     alignSelf: "center",
   },
   roleCard: {
-    borderRadius: 20,
-    overflow: "hidden",
+    borderRadius: 24,
+    backgroundColor: "#ffffff",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
     marginBottom: 4,
   },
-  roleCardGradient: {
+  modernCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 26,
-    minHeight: 130,
+    padding: 20,
+    minHeight: 110,
+  },
+  modernIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  modernTextContent: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  modernTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
+    letterSpacing: 0.1,
+  },
+  modernDesc: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  modernArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modernArrowText: {
+    fontSize: 18,
+    color: "#374151",
+    fontWeight: "600",
   },
   roleIconCircle: {
     width: 68,
@@ -810,19 +831,23 @@ const styles = StyleSheet.create({
   proFeatureBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    gap: 3,
+    backgroundColor: "rgba(147, 51, 234, 0.12)",
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
     alignSelf: "flex-start",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   proFeatureText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#f59e0b",
-    letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#9333ea",
+    letterSpacing: 0.3,
+  },
+  blueSparkles: {
+    fontSize: 28,
+    color: "#3b82f6",
   },
 });
 

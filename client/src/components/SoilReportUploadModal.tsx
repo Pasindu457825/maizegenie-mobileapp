@@ -9,7 +9,7 @@ import {
     Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { X, FileText, Camera, Upload } from "lucide-react-native";
+import { X, FileText, Upload } from "lucide-react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -29,12 +29,11 @@ const SoilReportUploadModal: React.FC<SoilReportUploadModalProps> = ({
     language,
 }) => {
     const [pdfPressed, setPdfPressed] = useState(false);
-    const [photoPressed, setPhotoPressed] = useState(false);
 
     const content = {
         si: {
             title: "පස් වාර්තාව උඩුගත කරන්න",
-            subtitle: "ඔබට අවශ්‍ය උඩුගත කිරීමේ ක්‍රමය තෝරන්න",
+            subtitle: "PDF ලේඛනයක් ලෙස ඔබේ පස් පරීක්ෂණ වාර්තාව උඩුගත කරන්න",
             pdfTitle: "PDF ලේඛනය",
             pdfDescription: "ගබඩා කර ඇති පස් පරීක්ෂණ PDF වාර්තාවක් තෝරන්න",
             photoTitle: "ඡායාරූපයක් ගන්න",
@@ -43,7 +42,7 @@ const SoilReportUploadModal: React.FC<SoilReportUploadModalProps> = ({
         },
         en: {
             title: "Upload Soil Report",
-            subtitle: "Choose how you'd like to upload your soil test report",
+            subtitle: "Upload your soil test report as a PDF document",
             pdfTitle: "PDF Document",
             pdfDescription: "Select a saved soil test report PDF from your device",
             photoTitle: "Take a Photo",
@@ -138,32 +137,6 @@ const SoilReportUploadModal: React.FC<SoilReportUploadModalProps> = ({
                             </View>
                         </TouchableOpacity>
 
-                        {/* Photo Option */}
-                        <TouchableOpacity
-                            style={[
-                                styles.optionCard,
-                                photoPressed && styles.optionCardPressed,
-                            ]}
-                            onPressIn={() => setPhotoPressed(true)}
-                            onPressOut={() => setPhotoPressed(false)}
-                            onPress={handlePickImage}
-                            activeOpacity={0.8}
-                        >
-                            <View style={styles.optionIconContainer}>
-                                <LinearGradient
-                                    colors={["#F59E0B", "#D97706"]}
-                                    style={styles.optionIconGradient}
-                                >
-                                    <Camera color="#FFFFFF" size={24} />
-                                </LinearGradient>
-                            </View>
-                            <View style={styles.optionTextContainer}>
-                                <Text style={styles.optionTitle}>{text.photoTitle}</Text>
-                                <Text style={styles.optionDescription}>
-                                    {text.photoDescription}
-                                </Text>
-                            </View>
-                        </TouchableOpacity>
                     </View>
 
                     {/* Cancel Button */}
