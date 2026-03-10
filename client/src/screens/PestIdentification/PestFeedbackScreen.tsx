@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { supabaseNew as supabase } from "@lib/supabase_new";
+import { useLanguage } from "../../context/LanguageContext";
 
 type Feedback = {
   id: string;
@@ -104,6 +105,105 @@ async function toSignedImageUrl(rawUrl: string | null): Promise<string | null> {
 }
 
 export default function PestFeedbackScreen() {
+  const { language: appLang } = useLanguage();
+  const language = appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
+
+  const t = {
+    en: {
+      headerTitle: "Pest Forum",
+      headerSub: "Community discussions and expert advice",
+      newPost: "+ Share Your Experience",
+      formTitle: "New Post",
+      placeholderProblem: "Describe the pest problem...",
+      uploadPhoto: "Upload Photo",
+      changePhoto: "Change Photo",
+      remove: "Remove",
+      cancel: "Cancel",
+      post: "Post",
+      note: "Add one clear photo. Your post will be reviewed before appearing.",
+      permissionTitle: "Permission required",
+      permissionMsg: "Allow photo access to upload an image.",
+      missingTitle: "Missing fields",
+      missingMsg: "Please add your problem and one photo.",
+      error: "Error",
+      loginAgain: "Please login again.",
+      submittedTitle: "Submitted",
+      submittedMsg: "Your post is under review by our officer.",
+      close: "Close",
+      noPosts: "No posts yet",
+      firstPost: "Be the first to share",
+      justNow: "Just now",
+      minsAgo: "m ago",
+      hoursAgo: "h ago",
+      daysAgo: "d ago",
+      tapToView: "Tap to view",
+      location: "Location",
+      officerReply: "Officer Reply",
+    },
+    si: {
+      headerTitle: "කෘමි සංවාද මණ්ඩපය",
+      headerSub: "ප්‍රජා සංවාද සහ විශේෂඥ උපදෙස්",
+      newPost: "+ ඔබගේ අත්දැකීම බෙදාගන්න",
+      formTitle: "නව පෝස්ට්",
+      placeholderProblem: "කෘමි ගැටලුව විස්තර කරන්න...",
+      uploadPhoto: "ඡායාරූපය එක් කරන්න",
+      changePhoto: "ඡායාරූපය වෙනස් කරන්න",
+      remove: "ඉවත් කරන්න",
+      cancel: "අවලංගු",
+      post: "පළ කරන්න",
+      note: "පැහැදිලි ඡායාරූපයක් එක් කරන්න. ඔබගේ පෝස්ට් එක පළ කිරීමට පෙර පරීක්ෂා කෙරේ.",
+      permissionTitle: "අවසර අවශ්‍යයි",
+      permissionMsg: "ඡායාරූපයක් උඩුගත කිරීමට ගැලරි අවසර ලබාදෙන්න.",
+      missingTitle: "අවශ්‍ය තොරතුරු අඩුයි",
+      missingMsg: "කරුණාකර ගැටලුව සහ එක් ඡායාරූපයක් ඇතුළත් කරන්න.",
+      error: "දෝෂයක්",
+      loginAgain: "කරුණාකර නැවත ලොගින් වන්න.",
+      submittedTitle: "යවා ඇත",
+      submittedMsg: "ඔබගේ පෝස්ට් එක නිලධාරියා විසින් පරීක්ෂා කෙරේ.",
+      close: "වසන්න",
+      noPosts: "පෝස්ට් නොමැත",
+      firstPost: "පළමුවෙන්ම ඔබගේ අදහස බෙදාගන්න",
+      justNow: "දැන්ම",
+      minsAgo: "මිනිත්තු පෙර",
+      hoursAgo: "පැය පෙර",
+      daysAgo: "දින පෙර",
+      tapToView: "බැලීමට තට්ටු කරන්න",
+      location: "ස්ථානය",
+      officerReply: "නිලධාරීගේ පිළිතුර",
+    },
+    ta: {
+      headerTitle: "பூச்சி கலந்துரையாடல் மேடை",
+      headerSub: "சமூக உரையாடல்கள் மற்றும் நிபுணர் ஆலோசனைகள்",
+      newPost: "+ உங்கள் அனுபவத்தை பகிருங்கள்",
+      formTitle: "புதிய பதிவு",
+      placeholderProblem: "பூச்சி பிரச்சினையை விவரிக்கவும்...",
+      uploadPhoto: "புகைப்படம் பதிவேற்று",
+      changePhoto: "புகைப்படம் மாற்று",
+      remove: "அகற்று",
+      cancel: "ரத்து செய்",
+      post: "பதிவு செய்",
+      note: "ஒரு தெளிவான புகைப்படத்தை சேர்க்கவும். உங்கள் பதிவு மதிப்பாய்வுக்குப் பிறகு மட்டும் தோன்றும்.",
+      permissionTitle: "அனுமதி தேவை",
+      permissionMsg: "படத்தை பதிவேற்ற புகைப்பட அணுகலை அனுமதிக்கவும்.",
+      missingTitle: "தகவல் குறைவு",
+      missingMsg: "உங்கள் பிரச்சினையும் ஒரு புகைப்படமும் சேர்க்கவும்.",
+      error: "பிழை",
+      loginAgain: "தயவுசெய்து மீண்டும் உள்நுழைக.",
+      submittedTitle: "சமர்ப்பிக்கப்பட்டது",
+      submittedMsg: "உங்கள் பதிவு அதிகாரி மதிப்பாய்வில் உள்ளது.",
+      close: "மூடு",
+      noPosts: "பதிவுகள் இல்லை",
+      firstPost: "முதலில் நீங்கள் பகிருங்கள்",
+      justNow: "இப்பொழுது",
+      minsAgo: "நிமிடங்கள் முன்",
+      hoursAgo: "மணி நேரம் முன்",
+      daysAgo: "நாட்கள் முன்",
+      tapToView: "பார்க்க தட்டவும்",
+      location: "இடம்",
+      officerReply: "அதிகாரியின் பதில்",
+    },
+  }[language];
+
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [message, setMessage] = useState("");
   const [imageAsset, setImageAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -149,7 +249,7 @@ export default function PestFeedbackScreen() {
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert("Permission required", "Allow photo access to upload an image.");
+      Alert.alert(t.permissionTitle, t.permissionMsg);
       return;
     }
 
@@ -165,7 +265,7 @@ export default function PestFeedbackScreen() {
 
   const submitFeedback = async () => {
     if (!message.trim() || !imageAsset) {
-      Alert.alert("Missing fields", "Please add your problem and one photo.");
+      Alert.alert(t.missingTitle, t.missingMsg);
       return;
     }
 
@@ -173,7 +273,7 @@ export default function PestFeedbackScreen() {
     try {
       const user = await getUserSafely();
       if (!user) {
-        Alert.alert("Error", "Please login again.");
+        Alert.alert(t.error, t.loginAgain);
         return;
       }
 
@@ -188,15 +288,15 @@ export default function PestFeedbackScreen() {
       });
 
       if (error) {
-        Alert.alert("Error", error.message);
+        Alert.alert(t.error, error.message);
       } else {
-        Alert.alert("Submitted", "Your post is under review by our officer.");
+        Alert.alert(t.submittedTitle, t.submittedMsg);
         setMessage("");
         setImageAsset(null);
         setShowForm(false);
       }
     } catch (err: any) {
-      Alert.alert("Error", err?.message || "Something went wrong.");
+      Alert.alert(t.error, err?.message || t.error);
     } finally {
       setSubmitting(false);
     }
@@ -210,10 +310,10 @@ export default function PestFeedbackScreen() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffMins < 1) return t.justNow;
+    if (diffMins < 60) return `${diffMins}${t.minsAgo}`;
+    if (diffHours < 24) return `${diffHours}${t.hoursAgo}`;
+    if (diffDays < 7) return `${diffDays}${t.daysAgo}`;
 
     return date.toLocaleDateString("en-GB", {
       day: "2-digit",
@@ -237,15 +337,15 @@ export default function PestFeedbackScreen() {
           onPress={() => setPreviewImageUrl(item.image_url || null)}
         >
           <Image source={{ uri: item.image_url }} style={styles.feedbackThumb} resizeMode="cover" />
-          <Text style={styles.thumbHint}>Tap to view</Text>
+          <Text style={styles.thumbHint}>{t.tapToView}</Text>
         </TouchableOpacity>
       ) : null}
 
-      {item.district ? <Text style={styles.districtText}>Location: {item.district}</Text> : null}
+      {item.district ? <Text style={styles.districtText}>{t.location}: {item.district}</Text> : null}
 
       {item.pest_officer_replies && item.pest_officer_replies.length > 0 && (
         <View style={styles.replyBox}>
-          <Text style={styles.replyLabel}>Officer Reply</Text>
+          <Text style={styles.replyLabel}>{t.officerReply}</Text>
           <Text style={styles.replyText}>{item.pest_officer_replies[0].reply}</Text>
           <Text style={styles.replyTime}>{formatDate(item.pest_officer_replies[0].created_at)}</Text>
         </View>
@@ -258,11 +358,11 @@ export default function PestFeedbackScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="light-content" backgroundColor="#10AD79" />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Pest Forum</Text>
-        <Text style={styles.headerSub}>Community discussions and expert advice</Text>
+        <Text style={styles.headerTitle}>{t.headerTitle}</Text>
+        <Text style={styles.headerSub}>{t.headerSub}</Text>
       </View>
 
       <FlatList
@@ -279,7 +379,7 @@ export default function PestFeedbackScreen() {
             {showForm ? (
               <View style={styles.form}>
                 <View style={styles.formTopRow}>
-                  <Text style={styles.formTitle}>New Post</Text>
+                  <Text style={styles.formTitle}>{t.formTitle}</Text>
                   <TouchableOpacity
                     onPress={() => {
                       setShowForm(false);
@@ -293,7 +393,7 @@ export default function PestFeedbackScreen() {
 
                 <TextInput
                   style={[styles.input, styles.textArea]}
-                  placeholder="Describe the pest problem..."
+                  placeholder={t.placeholderProblem}
                   placeholderTextColor="#bbb"
                   value={message}
                   onChangeText={setMessage}
@@ -302,14 +402,14 @@ export default function PestFeedbackScreen() {
                 />
 
                 <TouchableOpacity style={styles.imageBtn} onPress={pickImage} activeOpacity={0.8}>
-                  <Text style={styles.imageBtnText}>{imageAsset ? "Change Photo" : "Upload Photo"}</Text>
+                  <Text style={styles.imageBtnText}>{imageAsset ? t.changePhoto : t.uploadPhoto}</Text>
                 </TouchableOpacity>
 
                 {imageAsset ? (
                   <View style={styles.previewWrap}>
                     <Image source={{ uri: imageAsset.uri }} style={styles.previewImage} />
                     <TouchableOpacity style={styles.removeImageBtn} onPress={() => setImageAsset(null)}>
-                      <Text style={styles.removeImageText}>Remove</Text>
+                      <Text style={styles.removeImageText}>{t.remove}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -323,7 +423,7 @@ export default function PestFeedbackScreen() {
                       setImageAsset(null);
                     }}
                   >
-                    <Text style={styles.cancelText}>Cancel</Text>
+                    <Text style={styles.cancelText}>{t.cancel}</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -331,15 +431,15 @@ export default function PestFeedbackScreen() {
                     onPress={submitFeedback}
                     disabled={submitting}
                   >
-                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postText}>Post</Text>}
+                    {submitting ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.postText}>{t.post}</Text>}
                   </TouchableOpacity>
                 </View>
 
-                <Text style={styles.noteText}>Add one clear photo. Your post will be reviewed before appearing.</Text>
+                <Text style={styles.noteText}>{t.note}</Text>
               </View>
             ) : (
               <TouchableOpacity style={styles.newPostBtn} onPress={() => setShowForm(true)} activeOpacity={0.8}>
-                <Text style={styles.newPostText}>+ Share Your Experience</Text>
+                <Text style={styles.newPostText}>{t.newPost}</Text>
               </TouchableOpacity>
             )}
 
@@ -353,8 +453,8 @@ export default function PestFeedbackScreen() {
             </View>
           ) : (
             <View style={styles.centered}>
-              <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptyText}>Be the first to share</Text>
+              <Text style={styles.emptyTitle}>{t.noPosts}</Text>
+              <Text style={styles.emptyText}>{t.firstPost}</Text>
             </View>
           )
         }
@@ -373,7 +473,7 @@ export default function PestFeedbackScreen() {
               <Image source={{ uri: previewImageUrl }} style={styles.previewFullImage} resizeMode="contain" />
             ) : null}
             <TouchableOpacity style={styles.previewCloseBtn} onPress={() => setPreviewImageUrl(null)}>
-              <Text style={styles.previewCloseText}>Close</Text>
+              <Text style={styles.previewCloseText}>{t.close}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -385,15 +485,14 @@ export default function PestFeedbackScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f6f6f6" },
   header: {
-    backgroundColor: "#fff",
+    backgroundColor: "#10AD79",
     paddingTop: 54,
-    paddingBottom: 14,
+    paddingBottom: 16,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#efefef",
+    borderBottomWidth: 0,
   },
-  headerTitle: { fontSize: 24, fontWeight: "800", color: "#111", letterSpacing: -0.3 },
-  headerSub: { fontSize: 13, color: "#999", marginTop: 2 },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#ffffff", letterSpacing: -0.3 },
+  headerSub: { fontSize: 13, color: "#d1fae5", marginTop: 2 },
   listContent: { paddingHorizontal: 16, paddingBottom: 40 },
 
   newPostBtn: {

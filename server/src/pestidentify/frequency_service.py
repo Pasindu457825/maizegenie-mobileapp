@@ -58,7 +58,8 @@ def _get_supabase_client():
 
 
 def _extract_detected_pests(predictions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    detected: List[Dict[str, Any]] = []
+    # Count one pest class once per request (multiple boxes of same class -> 1 detection).
+    by_class: Dict[str, Dict[str, Any]] = {}
     for p in predictions or []:
         class_id = p.get("class_id", -1)
         class_name = _canonical_pest_name((p.get("class_name") or "").strip())
@@ -66,14 +67,16 @@ def _extract_detected_pests(predictions: List[Dict[str, Any]]) -> List[Dict[str,
             continue
         if not class_name or class_name.lower() == "no pest detected":
             continue
-        detected.append(
-            {
+        conf = round(_safe_float(p.get("confidence")), 3)
+
+        existing = by_class.get(class_name)
+        if existing is None or conf > float(existing.get("confidence", 0.0)):
+            by_class[class_name] = {
                 "class_id": int(class_id),
                 "class_name": class_name,
-                "confidence": round(_safe_float(p.get("confidence")), 3),
+                "confidence": conf,
             }
-        )
-    return detected
+    return list(by_class.values())
 
 
 def log_pest_detection(
@@ -195,16 +198,24 @@ def get_pest_frequency_stats(days: int = 30, top_n: int = 5, user_id: str | None
             no_pest_requests += 1
             continue
 
+        unique_names: set[str] = set()
         for pest in pests:
             name = _canonical_pest_name((pest.get("class_name") or "").strip())
             if not name:
                 continue
+            if name in unique_names:
+                continue
+            unique_names.add(name)
             pest_counts[name] += 1
             total_detections += 1
 
+        if not unique_names:
+            no_pest_requests += 1
+            continue
+
         created_at_raw = event.get("created_at", "")
         date_key = created_at_raw[:10] if len(created_at_raw) >= 10 else "unknown"
-        daily_detection_counts[date_key] += len(pests)
+        daily_detection_counts[date_key] += len(unique_names)
 
     top_pests = [
         {"class_name": name, "count": count}

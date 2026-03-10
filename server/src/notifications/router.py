@@ -12,6 +12,10 @@ from .schema import (
     DeleteNotificationRequest,
 )
 from typing import List
+import logging
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
@@ -37,6 +41,8 @@ async def get_user_notifications(
     user_id = current_user["id"]
     
     try:
+        logger.info(f"📧 Fetching notifications for user: {user_id}")
+        
         # Query notifications ONLY for this user
         response = (
             supabase
@@ -48,6 +54,7 @@ async def get_user_notifications(
         )
         
         notifications = response.data or []
+        logger.info(f"✅ Successfully fetched {len(notifications)} notifications for user {user_id}")
         
         return NotificationsListResponse(
             success=True,
@@ -56,10 +63,12 @@ async def get_user_notifications(
         )
         
     except Exception as e:
-        print(f"❌ Error fetching notifications for user {user_id}: {str(e)}")
+        error_msg = str(e)
+        logger.error(f"❌ Error fetching notifications for user {user_id}: {error_msg}")
+        logger.exception(f"Full traceback: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch notifications"
+            detail=f"Failed to fetch notifications: {error_msg}"
         )
 
 
@@ -254,4 +263,27 @@ async def get_unread_count(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch unread count"
+        )
+
+
+@router.get("/health")
+async def health_check():
+    """
+    Simple health check for notifications service
+    No authentication required
+    """
+    try:
+        # Test Supabase connection by doing a simple query
+        response = supabase.table("notifications").select("count(id)").limit(1).execute()
+        logger.info("✅ Notifications service is healthy")
+        return {
+            "status": "ok",
+            "service": "notifications",
+            "message": "Notifications service is running and can connect to database"
+        }
+    except Exception as e:
+        logger.error(f"❌ Notifications service health check failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Notifications service unhealthy: {str(e)}"
         )

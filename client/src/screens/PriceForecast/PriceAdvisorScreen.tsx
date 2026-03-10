@@ -41,6 +41,7 @@ import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
+import { useApp } from "../../context/AppContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import type { StackNavigationProp } from "@react-navigation/stack";
@@ -273,6 +274,7 @@ const PriceAdvisorScreen: React.FC = () => {
   const route = useRoute();
   const params = (route.params as RouteParams) || {};
   const { unreadCount } = useNotifications();
+  const { user } = useApp();
   type RootNavProp = StackNavigationProp<RootStackParamList>;
   const rootNavigation = useNavigation<RootNavProp>();
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
@@ -2255,12 +2257,14 @@ const PriceAdvisorScreen: React.FC = () => {
                   </Text>
 
                   {/* Graphical timeline */}
-                  <HarvestTimelineBar
-                    language={language}
-                    delayWeeks={computedDelayWeeks}
-                    baseWeek={computedBaseWeek}
-                    bestWeek={computedBestWeek}
-                  />
+                  {computedDelayWeeks !== null && computedDelayWeeks !== 0 && (
+                    <HarvestTimelineBar
+                      language={language}
+                      delayWeeks={computedDelayWeeks}
+                      baseWeek={computedBaseWeek}
+                      bestWeek={computedBestWeek}
+                    />
+                  )}
 
                   {/* Reason / explanation */}
                   {(farmerHarvestText || farmerPriceText) && (
@@ -2502,7 +2506,18 @@ const PriceAdvisorScreen: React.FC = () => {
                 {fullAdvisorText && (
                   <TouchableOpacity
                     style={styles.proAdvisorButton}
-                    onPress={() => setShowPricingModal(true)}
+                    onPress={() => {
+                      // Check if user has active subscription
+                      if (user?.subscription_plan && user?.is_paid_user) {
+                        // User has active plan - navigate directly to ProAdvisorPage
+                        rootNavigation.navigate("ProAdvisorPage", {
+                          formData: form,
+                        });
+                      } else {
+                        // No active plan - show pricing modal
+                        setShowPricingModal(true);
+                      }
+                    }}
                   >
                     <View style={styles.proAdvisorContent}>
                       <Zap size={20} color="#FFFFFF" />
