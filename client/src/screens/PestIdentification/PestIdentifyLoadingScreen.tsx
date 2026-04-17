@@ -81,6 +81,11 @@ const normalizePestName = (name: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const isValidPrediction = (p: Partial<Prediction> | null | undefined): p is Prediction =>
+  typeof p?.class_id === "number" &&
+  typeof p?.class_name === "string" &&
+  typeof p?.confidence === "number";
+
 const PestIdentificationScreen = () => {
   const navigation = useNavigation<NavProp>();
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -135,6 +140,7 @@ const PestIdentificationScreen = () => {
       analyzing: "විශ්ලේෂණය කරමින්...",
       resultTitle: "හඳුනාගත් කෘමි",
       noPests: "කෘමි හමු නොවීය",
+      noPestsHelpTitle: "හොඳ ප්‍රතිඵල සඳහා මෙන්න උපදෙස්",
       tryAgain: "නැවත උත්සාහ කරන්න",
       pickImage: "ඡායාරූපයක් තෝරන්න",
       orText: "හෝ",
@@ -158,6 +164,7 @@ const PestIdentificationScreen = () => {
       analyzing: "Analyzing...",
       resultTitle: "Detected Pests",
       noPests: "No pests detected",
+      noPestsHelpTitle: "Tips for better results",
       tryAgain: "Try Again",
       pickImage: "Pick an Image",
       orText: "OR",
@@ -181,6 +188,7 @@ const PestIdentificationScreen = () => {
       analyzing: "பரிசோதித்து வருகிறது...",
       resultTitle: "கண்டறியப்பட்ட பூச்சிகள்",
       noPests: "பூச்சிகள் கண்டறியப்படவில்லை",
+      noPestsHelpTitle: "சிறந்த முடிவுகளுக்கான குறிப்புகள்",
       tryAgain: "மீண்டும் முயற்சி",
       pickImage: "ஒரு படத்தை தேர்வு செய்",
       orText: "அல்லது",
@@ -226,16 +234,25 @@ const PestIdentificationScreen = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      mediaTypes: "images",
+      allowsEditing: false,
+      quality: 0.7,
+      exif: false,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    const selectedUri = !result.canceled ? result.assets?.[0]?.uri : null;
+    if (selectedUri) {
+      setImageUri(selectedUri);
       setError(null);
       setResult(null);
+    } else if (!result.canceled) {
+      setError(
+        language === "si"
+          ? "තෝරාගත් ඡායාරූපය කියවිය නොහැක"
+          : language === "ta"
+            ? "தேர்ந்தெடுத்த படத்தை படிக்க முடியவில்லை"
+            : "Unable to read selected image"
+      );
     }
   };
 
@@ -254,15 +271,25 @@ const PestIdentificationScreen = () => {
     }
 
     const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      mediaTypes: "images",
+      allowsEditing: false,
+      quality: 0.7,
+      exif: false,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    const selectedUri = !result.canceled ? result.assets?.[0]?.uri : null;
+    if (selectedUri) {
+      setImageUri(selectedUri);
       setError(null);
       setResult(null);
+    } else if (!result.canceled) {
+      setError(
+        language === "si"
+          ? "කැමරාවෙන් ගත් ඡායාරූපය කියවිය නොහැක"
+          : language === "ta"
+            ? "கேமரா படத்தை படிக்க முடியவில்லை"
+            : "Unable to read captured image"
+      );
     }
   };
 
@@ -315,9 +342,21 @@ const PestIdentificationScreen = () => {
       console.log("Response:", res.data);
 
       if (res.data.success) {
-        const normalizedPredictions: Prediction[] = (res.data.predictions || []).filter(
-          (p: Prediction) => p.class_id >= 0 && p.class_name !== "No pest detected"
-        );
+        const apiPredictions: Partial<Prediction>[] = Array.isArray(res.data.predictions)
+          ? res.data.predictions
+          : [];
+        const normalizedPredictions: Prediction[] = apiPredictions
+          .filter(isValidPrediction)
+          .map((p) => ({
+            class_id: p.class_id,
+            class_name: p.class_name.trim(),
+            confidence: p.confidence,
+            box_xyxy:
+              Array.isArray(p.box_xyxy) && p.box_xyxy.length === 4
+                ? p.box_xyxy.map((n) => Number(n))
+                : undefined,
+          }))
+          .filter((p) => p.class_id >= 0 && p.class_name !== "No pest detected");
         setResult(normalizedPredictions);
         fetchPestFrequency();
         if (normalizedPredictions.length === 0) {
@@ -878,6 +917,14 @@ const PestIdentificationScreen = () => {
               <Text style={styles.noPestsText}>
                 {content[language].noPests}
               </Text>
+              <View style={styles.noPestsTipsBox}>
+                <Text style={styles.noPestsTipsTitle}>
+                  {content[language].noPestsHelpTitle}
+                </Text>
+                <Text style={styles.noPestsTipItem}>{content[language].instruction1}</Text>
+                <Text style={styles.noPestsTipItem}>{content[language].instruction2}</Text>
+                <Text style={styles.noPestsTipItem}>{content[language].instruction3}</Text>
+              </View>
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={resetScreen}
@@ -1426,6 +1473,27 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#047857",
     textAlign: "center",
+  },
+  noPestsTipsBox: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#A7F3D0",
+    padding: 12,
+    gap: 6,
+  },
+  noPestsTipsTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#065F46",
+    marginBottom: 2,
+  },
+  noPestsTipItem: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: "#166534",
+    fontWeight: "500",
   },
 });
 

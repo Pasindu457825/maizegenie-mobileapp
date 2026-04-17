@@ -51,16 +51,19 @@ const PestDetectScreen: React.FC = () => {
 
     // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      mediaTypes: "images",
+      allowsEditing: false,
+      quality: 0.7,
+      exif: false,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
+    const selectedUri = !result.canceled ? result.assets?.[0]?.uri : null;
+    if (selectedUri) {
+      setImageUri(selectedUri);
       setError(null);
       setResult(null);
+    } else if (!result.canceled) {
+      setError("Unable to read selected image");
     }
   };
 

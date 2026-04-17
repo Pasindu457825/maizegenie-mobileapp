@@ -133,18 +133,13 @@ export default function ProAdvisorAdminEditScreen() {
   };
 
   /* ---------------- BLOCK HANDLERS ---------------- */
-  const updateBlock = (
-    index: number,
-    field: keyof Block,
-    value: string
-  ) => {
+  const updateBlock = (index: number, field: keyof Block, value: string) => {
     const arr = [...blocks];
     arr[index][field] = value;
     setBlocks(arr);
   };
 
-  const addBlock = () =>
-    setBlocks([...blocks, { subtitle: "", content: "" }]);
+  const addBlock = () => setBlocks([...blocks, { subtitle: "", content: "" }]);
 
   const removeBlock = (index: number) => {
     const arr = [...blocks];
@@ -159,7 +154,7 @@ export default function ProAdvisorAdminEditScreen() {
       return;
     }
 
-    if (blocks.some(b => !b.subtitle.trim() || !b.content.trim())) {
+    if (blocks.some((b) => !b.subtitle.trim() || !b.content.trim())) {
       Alert.alert("Error", "All sections must be filled");
       return;
     }
@@ -270,9 +265,7 @@ export default function ProAdvisorAdminEditScreen() {
           ) : (
             <Save size={18} color="#fff" />
           )}
-          <Text style={styles.submitText}>
-            {saving ? t.saving : t.save}
-          </Text>
+          <Text style={styles.submitText}>{saving ? t.saving : t.save}</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -302,6 +295,7 @@ const styles = StyleSheet.create({
   loader: { flex: 1, justifyContent: "center", alignItems: "center" },
 
   header: {
+    marginTop: 12,
     paddingTop: Platform.OS === "ios" ? 52 : 18,
     paddingBottom: 16,
     paddingHorizontal: 16,
@@ -325,7 +319,12 @@ const styles = StyleSheet.create({
   },
 
   label: { fontSize: 14, fontWeight: "800", color: "#065F46", marginBottom: 6 },
-  section: { fontSize: 15, fontWeight: "900", color: "#047857", marginBottom: 10 },
+  section: {
+    fontSize: 15,
+    fontWeight: "900",
+    color: "#047857",
+    marginBottom: 10,
+  },
 
   input: {
     backgroundColor: "#ECFDF5",
@@ -348,7 +347,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
 
   imageBtn: {
     flexDirection: "row",

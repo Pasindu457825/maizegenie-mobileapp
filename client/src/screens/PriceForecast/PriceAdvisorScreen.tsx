@@ -2257,12 +2257,14 @@ const PriceAdvisorScreen: React.FC = () => {
                   </Text>
 
                   {/* Graphical timeline */}
-                  <HarvestTimelineBar
-                    language={language}
-                    delayWeeks={computedDelayWeeks}
-                    baseWeek={computedBaseWeek}
-                    bestWeek={computedBestWeek}
-                  />
+                  {computedDelayWeeks !== null && computedDelayWeeks !== 0 && (
+                    <HarvestTimelineBar
+                      language={language}
+                      delayWeeks={computedDelayWeeks}
+                      baseWeek={computedBaseWeek}
+                      bestWeek={computedBestWeek}
+                    />
+                  )}
 
                   {/* Reason / explanation */}
                   {(farmerHarvestText || farmerPriceText) && (

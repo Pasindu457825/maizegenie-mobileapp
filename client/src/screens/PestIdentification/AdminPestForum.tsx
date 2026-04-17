@@ -364,7 +364,7 @@ const AdminPestForum = () => {
         <View style={styles.cardHeader}>
           <View style={styles.cardHeaderLeft}>
             <View style={styles.pestIconBox}>
-              <Bug size={20} color="#7c3aed" />
+              <Bug size={20} color="#10AD79" />
             </View>
             <View style={{ flex: 1 }}>
               <View style={styles.farmerRow}>
@@ -413,7 +413,7 @@ const AdminPestForum = () => {
             onPress={() => openDetail(feedback)}
             activeOpacity={0.8}
           >
-            <Eye size={13} color="#7c3aed" />
+            <Eye size={13} color="#10AD79" />
             <Text style={styles.viewBtnText}>Details</Text>
           </TouchableOpacity>
 
@@ -475,13 +475,13 @@ const AdminPestForum = () => {
           <View style={styles.modalSheet}>
             {/* Modal Header */}
             <LinearGradient
-              colors={["#7c3aed", "#5b21b6"]}
+              colors={["#10AD79", "#0F9D6B"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.modalHeader}
             >
               <View style={styles.modalHeaderRow}>
-                <Bug size={18} color="#e9d5ff" />
+                <Bug size={18} color="#D1FAE5" />
                 <Text style={styles.modalTitle}>Feedback Detail</Text>
                 <TouchableOpacity
                   style={styles.modalCloseBtn}
@@ -512,17 +512,17 @@ const AdminPestForum = () => {
               {/* Farmer Info */}
               <Text style={styles.modalSectionLabel}>Farmer Info</Text>
               <View style={styles.infoCard}>
-                <InfoRow icon={<User size={15} color="#7c3aed" />} label="Name" value={selectedFeedback.profiles?.full_name || "Unknown"} />
+                <InfoRow icon={<User size={15} color="#10AD79" />} label="Name" value={selectedFeedback.profiles?.full_name || "Unknown"} />
                 <View style={styles.infoDivider} />
-                <InfoRow icon={<MapPin size={15} color="#7c3aed" />} label="District" value={selectedFeedback.district || "N/A"} />
+                <InfoRow icon={<MapPin size={15} color="#10AD79" />} label="District" value={selectedFeedback.district || "N/A"} />
                 <View style={styles.infoDivider} />
-                <InfoRow icon={<Calendar size={15} color="#7c3aed" />} label="Date" value={formatDate(selectedFeedback.created_at)} />
+                <InfoRow icon={<Calendar size={15} color="#10AD79" />} label="Date" value={formatDate(selectedFeedback.created_at)} />
               </View>
 
               {/* Message */}
               <Text style={styles.modalSectionLabel}>Message</Text>
               <View style={styles.messageBox}>
-                <MessageSquare size={16} color="#7c3aed" />
+                <MessageSquare size={16} color="#10AD79" />
                 <Text style={styles.messageBoxText}>{selectedFeedback.message}</Text>
               </View>
 
@@ -709,11 +709,11 @@ const AdminPestForum = () => {
   // ── Main Render ────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#7c3aed" />
+      <StatusBar barStyle="light-content" backgroundColor="#10AD79" />
 
       {/* Header */}
       <LinearGradient
-        colors={["#7c3aed", "#5b21b6"]}
+        colors={["#10AD79", "#0F9D6B"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -723,7 +723,7 @@ const AdminPestForum = () => {
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Bug size={18} color="#e9d5ff" />
+            <Bug size={18} color="#D1FAE5" />
             <Text style={styles.headerTitle}>Admin Pest Forum</Text>
           </View>
           <TouchableOpacity style={styles.headerBtn} onPress={onRefresh}>
@@ -738,7 +738,7 @@ const AdminPestForum = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7c3aed" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10AD79" />
         }
       >
         <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
@@ -746,7 +746,7 @@ const AdminPestForum = () => {
           {/* Summary */}
           <View style={styles.summaryRow}>
             {[
-              { num: summary.total, label: "Total", color: "#7c3aed", bg: "#ede9fe" },
+              { num: summary.total, label: "Total", color: "#10AD79", bg: "#ECFDF5" },
               { num: summary.pending, label: "Pending", color: "#f59e0b", bg: "#fffbeb" },
               { num: summary.approved, label: "Approved", color: "#10b981", bg: "#f0fdf4" },
               { num: summary.rejected, label: "Rejected", color: "#ef4444", bg: "#fef2f2" },
@@ -801,7 +801,7 @@ const AdminPestForum = () => {
           {/* Card List */}
           {loading ? (
             <View style={styles.centeredBox}>
-              <ActivityIndicator size="large" color="#7c3aed" />
+              <ActivityIndicator size="large" color="#10AD79" />
               <Text style={styles.centeredText}>Loading feedbacks...</Text>
             </View>
           ) : filtered.length === 0 ? (
@@ -858,7 +858,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     elevation: 12,
-    shadowColor: "#7c3aed",
+    shadowColor: "#10AD79",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -874,7 +874,7 @@ const styles = StyleSheet.create({
     justifyContent: "center", gap: 8,
   },
   headerTitle: { fontSize: 20, fontWeight: "800", color: "#fff" },
-  headerSub: { textAlign: "center", fontSize: 12, color: "#e9d5ff", fontWeight: "500" },
+  headerSub: { textAlign: "center", fontSize: 12, color: "#D1FAE5", fontWeight: "500" },
 
   scroll: { flex: 1 },
   scrollContent: { paddingTop: 20, paddingHorizontal: 16 },
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
     backgroundColor: "#fff", borderWidth: 1, borderColor: "#e5e7eb",
   },
-  filterChipActive: { backgroundColor: "#7c3aed", borderColor: "#7c3aed" },
+  filterChipActive: { backgroundColor: "#10AD79", borderColor: "#10AD79" },
   filterText: { fontSize: 12, fontWeight: "600", color: "#6b7280" },
   filterTextActive: { color: "#fff" },
 
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
   },
   pestIconBox: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: "#ede9fe", justifyContent: "center", alignItems: "center",
+    backgroundColor: "#ECFDF5", justifyContent: "center", alignItems: "center",
   },
   farmerRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
   farmerName: { fontSize: 12, color: "#9ca3af", fontWeight: "500" },
@@ -948,9 +948,9 @@ const styles = StyleSheet.create({
   viewBtn: {
     flex: 1, flexDirection: "row", alignItems: "center",
     justifyContent: "center", gap: 5, paddingVertical: 9,
-    borderRadius: 10, backgroundColor: "#ede9fe",
+    borderRadius: 10, backgroundColor: "#ECFDF5",
   },
-  viewBtnText: { fontSize: 12, fontWeight: "700", color: "#7c3aed" },
+  viewBtnText: { fontSize: 12, fontWeight: "700", color: "#10AD79" },
   actionBtn: {
     flex: 1, flexDirection: "row", alignItems: "center",
     justifyContent: "center", gap: 5, paddingVertical: 9, borderRadius: 10,
@@ -987,7 +987,7 @@ const styles = StyleSheet.create({
   },
   modalStatusText: { fontSize: 14, fontWeight: "700" },
   modalSectionLabel: {
-    fontSize: 11, fontWeight: "700", color: "#7c3aed",
+    fontSize: 11, fontWeight: "700", color: "#10AD79",
     marginBottom: 8, marginTop: 4,
     textTransform: "uppercase", letterSpacing: 0.8,
   },

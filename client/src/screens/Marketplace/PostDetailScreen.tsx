@@ -160,7 +160,7 @@ const PostDetailScreen = () => {
       invalidPrice: "කරුණාකර වලංගු මිල ඇතුලු කරන්න",
       alreadyOffered: "ඔබ ඉදිරිපත්කරණ ඉදිරිපත් කර ඇත",
       contactFarmer: "ගොවිසරුවා සම්ගන්න",
-      callNow: "එකා කරන්න",
+      callNow: "call කරන්න",
       dealConfirmed:
         "ඔබේ ඉදිරිපත්කරණ පිළිගන්නු ලේබී! ගෙනුදූම ව්‍යවහාරය සමග ගොවිසරුවා කතා කරන්න.",
       editOffer: "ඉදිරිපත්කරණ සංස්කරණය",
