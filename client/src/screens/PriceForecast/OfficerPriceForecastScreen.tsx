@@ -73,26 +73,26 @@ const getTrendDirection = (weeks: WeekForecast[]) => {
 const formatRs = (v?: any) => {
   // Handle null/undefined
   if (v == null) return "Rs. 0.00";
-  
+
   // Convert to number
   const num = Number(v);
-  
+
   // Validate the result
   if (!Number.isFinite(num)) return "Rs. 0.00";
-  
+
   return `Rs. ${num.toFixed(2)}`;
 };
 
 const formatPct = (v?: any) => {
   // Handle null/undefined
   if (v == null) return "0%";
-  
+
   // Convert to number
   const num = Number(v);
-  
+
   // Validate the result
   if (!Number.isFinite(num)) return "0%";
-  
+
   return `${Math.round(num)}%`;
 };
 
@@ -1008,7 +1008,7 @@ export default function OfficerPriceForecastScreen() {
                     return (
                       <View key={idx} style={styles.chartBarContainer}>
                         <Text style={styles.chartValue}>
-                          {w.rf_price.toFixed(1)}
+                          {w.rf_price.toFixed(2)}
                         </Text>
                         <View style={styles.chartBar}>
                           <View
@@ -1254,7 +1254,7 @@ export default function OfficerPriceForecastScreen() {
                     return (
                       <View key={idx} style={styles.chartBarContainer}>
                         <Text style={styles.chartValue}>
-                          {w.rf_price.toFixed(1)}
+                          {w.rf_price.toFixed(2)}
                         </Text>
                         <View style={styles.chartBar}>
                           <View
