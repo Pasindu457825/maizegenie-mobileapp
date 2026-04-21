@@ -1337,7 +1337,7 @@ const PriceForecastScreen = () => {
                   backgroundColor: "#FFFFFF",
                   backgroundGradientFrom: "#F0FDF4",
                   backgroundGradientTo: "#FFFFFF",
-                  decimalPlaces: 1,
+                  decimalPlaces: 2,
                   color: (opacity = 1) => trendAnalysis.color,
                   labelColor: (opacity = 1) => `rgba(6, 95, 70, ${opacity})`,
                   style: {
