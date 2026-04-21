@@ -70,14 +70,30 @@ const getTrendDirection = (weeks: WeekForecast[]) => {
   return "Stable";
 };
 
-const formatRs = (v?: number) => {
-  if (v == null || Number.isNaN(v)) return "-";
-  return `Rs. ${v.toFixed(2)}`;
+const formatRs = (v?: any) => {
+  // Handle null/undefined
+  if (v == null) return "Rs. 0.00";
+  
+  // Convert to number
+  const num = Number(v);
+  
+  // Validate the result
+  if (!Number.isFinite(num)) return "Rs. 0.00";
+  
+  return `Rs. ${num.toFixed(2)}`;
 };
 
-const formatPct = (v?: number) => {
-  if (v == null || Number.isNaN(v)) return "-";
-  return `${Math.round(v)}%`;
+const formatPct = (v?: any) => {
+  // Handle null/undefined
+  if (v == null) return "0%";
+  
+  // Convert to number
+  const num = Number(v);
+  
+  // Validate the result
+  if (!Number.isFinite(num)) return "0%";
+  
+  return `${Math.round(num)}%`;
 };
 
 const getISOWeekRange = (
