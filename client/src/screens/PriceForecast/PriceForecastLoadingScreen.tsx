@@ -139,10 +139,10 @@ const PriceForecastLoadingScreen = () => {
 
   const content: Content = {
     si: {
-      title: "🌱 බිම ගොවිතැන",
-      subtitle: "ස්මාර්ට් කෘෂි තාක්ෂණය",
-      mainText: "ඔබේ ගොවිතැනට",
-      description: "නවීන තාක්ෂණික සහාය",
+      title: "සහ වගා තීරණ සහාය",
+      subtitle: "අනාගත මිල ප්‍රවණතා, වගා කාලය",
+      mainText: "ඉරිඟු මිල අනාවැකිය",
+      description: "සහ ලාභදායී තීරණ සඳහා",
       loading: "පද්ධතිය සූදානම් වෙමින්",
       priceButton: "මිල පුරෝකථනය",
       weatherButton: "කාලගුණය",
@@ -152,10 +152,10 @@ const PriceForecastLoadingScreen = () => {
       weatherDesc: "අද සහ ඉදිරි දින 7 සඳහා පුරෝකථනය",
     },
     en: {
-      title: "🌱 Smart Farming",
-      subtitle: "Agricultural Technology",
-      mainText: "For Your Farm",
-      description: "Modern Tech Support",
+      title: "& Cultivation Decision Support",
+      subtitle: "For future price trends, cultivation timing",
+      mainText: "Corn Price Forecast",
+      description: "and profitable farming decisions",
       loading: "System Preparing",
       priceButton: "Price Forecast",
       weatherButton: "Weather",
@@ -165,10 +165,10 @@ const PriceForecastLoadingScreen = () => {
       weatherDesc: "Today and the Next 7-Day Forecast",
     },
     ta: {
-      title: "🌱 நவீன விவசாயம்",
-      subtitle: "விவசாய தொழில்நுட்பம்",
-      mainText: "உங்கள் பண்ணைக்காக",
-      description: "நவீன தொழில்நுட்ப ஆதரவு",
+      title: "மற்றும் பயிர் முடிவு ஆதரவு",
+      subtitle: "எதிர்கால விலை போக்குகள், பயிரிடும் காலம்",
+      mainText: "சோள விலை முன்னறிவிப்பு",
+      description: "மற்றும் லாபகரமான முடிவுகளுக்காக",
       loading: "அமைப்பு தயாராகிறது",
       priceButton: "விலை மதிப்பீடு",
       weatherButton: "வானிலை",
@@ -433,13 +433,13 @@ const PriceForecastLoadingScreen = () => {
 
     if (c.includes("shower rain") || c.includes("light intensity shower"))
       return lang === "si"
-        ? "සෙමෙන් වැසි"
+        ? "මද වැසි"
         : lang === "ta"
           ? "இலேசான மழை"
           : "Light Shower Rain";
     if (c.includes("light rain"))
       return lang === "si"
-        ? "සැහැල්ලු වැසි"
+        ? "සිහින් වැසි"
         : lang === "ta"
           ? "சிறு மழை"
           : "Light Rain";
@@ -450,10 +450,10 @@ const PriceForecastLoadingScreen = () => {
           ? "மிதமான மழை"
           : "Moderate Rain";
     if (c.includes("heavy") && c.includes("rain"))
-      return lang === "si" ? "බර වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
+      return lang === "si" ? "තද වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
     if (c.includes("clear"))
       return lang === "si"
-        ? "පිරිසිදු අහස"
+        ? "පැහැදිලි අහස"
         : lang === "ta"
           ? "தெளிவான வானம்"
           : "Clear Sky";
@@ -477,13 +477,13 @@ const PriceForecastLoadingScreen = () => {
           : "Broken Clouds";
     if (c.includes("overcast"))
       return lang === "si"
-        ? "තද වලාකුළු"
+        ? "වලාකුළු පිරි"
         : lang === "ta"
           ? "மேகமூட்டம்"
           : "Overcast Clouds";
     if (c.includes("thunder"))
       return lang === "si"
-        ? "අකුණු සහිත වැසි"
+        ? "ගිගුරුම් සහිත වැසි"
         : lang === "ta"
           ? "இடியுடன் மழை"
           : "Thunderstorm";
@@ -613,9 +613,9 @@ const PriceForecastLoadingScreen = () => {
           </Animated.View>
 
           {/* Title Section */}
-          <Text style={styles.subtitle}>{content[language].subtitle}</Text>
           <Text style={styles.mainText}>{content[language].mainText}</Text>
           <Text style={styles.title}>{content[language].title}</Text>
+          <Text style={styles.subtitle}>{content[language].subtitle}</Text>
           <Text style={styles.description}>
             {content[language].description}
           </Text>
@@ -979,7 +979,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flexWrap: "nowrap", 
+    flexWrap: "nowrap",
   },
   tempText: {
     fontSize: 15,
@@ -1071,6 +1071,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 1,
     textTransform: "uppercase",
+    textAlign: "center",
   },
   mainText: {
     fontSize: 28,

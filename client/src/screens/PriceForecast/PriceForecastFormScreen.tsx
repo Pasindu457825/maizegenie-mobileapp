@@ -1187,10 +1187,10 @@ const PriceForecastFormScreen = () => {
               <View style={[styles.autoDataCard, { opacity: 0.6 }]}>
                 <Text style={styles.autoDataLabel}>
                   {language === "si"
-                    ? "දැනට පිරිවිතුරු දත්ත අදහස් නොකරයි"
+                    ? "කරුණාකර මිල දත්ත බැලීමට දිස්ත්‍රික්කයක් තෝරන්න"
                     : language === "ta"
-                      ? "பொறுத்தமான விலை தரவு இல்லை"
-                      : "No price data yet"}
+                      ? "விலைத் தரவை பார்க்க மாவட்டத்தை தேர்ந்தெடுக்கவும்"
+                      : "Please select a district to view price data"}
                 </Text>
               </View>
             )}
