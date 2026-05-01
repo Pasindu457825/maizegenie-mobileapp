@@ -1,5 +1,6 @@
 ﻿import React, { useState } from "react";
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Speech from "expo-speech";
 import { useLanguage } from "../../context/LanguageContext";
@@ -94,44 +95,64 @@ export default function BollwormLifecycleScreen() {
   const [speakingStageKey, setSpeakingStageKey] = useState<string | null>(null);
   const [speakingLang, setSpeakingLang] = useState<"si" | "en" | null>(null);
 
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
   const playNarration = async (stageKey: string, lang: "si" | "en", text: string) => {
-    Speech.stop();
-    setSpeakingStageKey(stageKey);
-    setSpeakingLang(lang);
+    try {
+      await Speech.stop();
+      setSpeakingStageKey(stageKey);
+      setSpeakingLang(lang);
 
-    if (lang === "si") {
-      const voices = await Speech.getAvailableVoicesAsync();
-      const hasSinhala = voices.some(
-        (v) => (v.language?.toLowerCase().includes("si") || v.language?.toLowerCase().includes("sin"))
-      );
-      if (!hasSinhala) {
-        Alert.alert(
-          "Sinhala Voice Not Available",
-          "Sinhala voice is not available on this device. Please enable Sinhala Text-to-Speech in your phone's system settings."
+      if (lang === "si") {
+        const voices = await Speech.getAvailableVoicesAsync();
+        const hasSinhala = voices.some(
+          (v) => (v.language?.toLowerCase().includes("si") || v.language?.toLowerCase().includes("sin"))
         );
-        setSpeakingStageKey(null);
-        setSpeakingLang(null);
-        return;
+        if (!hasSinhala) {
+          Alert.alert(
+            "Sinhala Voice Not Available",
+            "Sinhala voice is not available on this device. Please enable Sinhala Text-to-Speech in your phone's system settings."
+          );
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+          return;
+        }
       }
-    }
 
-    Speech.speak(text, {
-      language: lang === "si" ? "si-LK" : "en-US",
-      rate: 1.0,
-      pitch: 1.0,
-      onDone: () => {
-        setSpeakingStageKey(null);
-        setSpeakingLang(null);
-      },
-      onStopped: () => {
-        setSpeakingStageKey(null);
-        setSpeakingLang(null);
-      }
-    });
+      Speech.speak(text, {
+        language: lang === "si" ? "si-LK" : "en-US",
+        rate: 1.0,
+        pitch: 1.0,
+        onDone: () => {
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+        },
+        onStopped: () => {
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+        },
+        onError: () => {
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+          Alert.alert("Speech Error", "Unable to start voice playback on this device.");
+        }
+      });
+    } catch (error) {
+      console.warn("Failed to play Bollworm lifecycle narration:", error);
+      setSpeakingStageKey(null);
+      setSpeakingLang(null);
+      Alert.alert("Speech Error", "Unable to start voice playback on this device.");
+    }
   };
 
   const stopNarration = () => {
-    Speech.stop();
+    Speech.stop().catch((error) => {
+      console.warn("Failed to stop Bollworm lifecycle narration:", error);
+    });
     setSpeakingStageKey(null);
     setSpeakingLang(null);
   };
