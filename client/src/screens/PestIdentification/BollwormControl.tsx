@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -51,16 +52,19 @@ type PreventionStep = {
 };
 
 const TODO_STORAGE_KEY = "BOLLWORM_TODO_STATE_V1";
+const IS_EXPO_GO = Constants.appOwnership === "expo";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => {
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    } as Notifications.NotificationBehavior;
-  },
-});
+if (!IS_EXPO_GO) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => {
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      } as Notifications.NotificationBehavior;
+    },
+  });
+}
 
 function formatDate(d: Date) {
   const yyyy = d.getFullYear();
@@ -81,6 +85,7 @@ function buildGoogleCalendarURL(title: string, details: string, date: Date) {
 }
 
 async function ensureNotificationPermission(): Promise<boolean> {
+  if (IS_EXPO_GO) return false;
   const settings = await Notifications.getPermissionsAsync();
   if (settings.status === "granted") return true;
 
