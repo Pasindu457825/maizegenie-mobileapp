@@ -17,8 +17,6 @@ import { API_BASE } from "../../services/api";
 import { useNavigation } from "@react-navigation/native";
 import * as ImagePicker from "expo-image-picker";
 import { supabase } from "../../lib/supabase";
-import { Picker } from "@react-native-picker/picker";
-import { ROUTES } from "../../constants";
 
 // Language
 import { useLanguage } from "../../context/LanguageContext";
@@ -150,6 +148,7 @@ export default function AdminAddOfficialNewsScreen() {
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
   const [sourceError, setSourceError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -209,7 +208,7 @@ export default function AdminAddOfficialNewsScreen() {
     return data.publicUrl;
   };
 
-  // ubmit
+  // Submit
   const submitNews = async () => {
     let hasError = false;
 
@@ -263,6 +262,18 @@ export default function AdminAddOfficialNewsScreen() {
       return;
     }
 
+    // URL validation (if provided)
+    if (url.trim() && !isValidUrl(url.trim())) {
+      setUrlError(
+        uiLang === "si"
+          ? "වලංගු URL එක නොවිය"
+          : uiLang === "ta"
+            ? "செல்லுபடியான URL அல்ல"
+            : "Invalid URL format",
+      );
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -284,8 +295,8 @@ export default function AdminAddOfficialNewsScreen() {
 
       setShowSuccessModal(true);
     } catch (err: any) {
-      console.log("❌ SUBMIT ERROR:", err);
-      console.log("❌ RESPONSE:", err?.response?.data);
+      console.log(" SUBMIT ERROR:", err);
+      console.log(" RESPONSE:", err?.response?.data);
       Alert.alert(
         "Error",
         err?.response?.data?.detail || "Failed to publish news",
@@ -508,13 +519,17 @@ export default function AdminAddOfficialNewsScreen() {
             </Text>
           </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, urlError && styles.inputError]}
             value={url}
-            onChangeText={setUrl}
+            onChangeText={(text) => {
+              setUrl(text);
+              if (urlError) setUrlError(null);
+            }}
             placeholder="https://..."
             placeholderTextColor="#A5D6A7"
             autoCapitalize="none"
           />
+          {urlError && <Text style={styles.errorText}>{urlError}</Text>}
         </View>
 
         {/* SUBMIT BUTTON */}
