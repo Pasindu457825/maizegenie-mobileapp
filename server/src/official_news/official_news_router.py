@@ -9,7 +9,7 @@ router = APIRouter(
 )
 
 # ===============================
-# CREATE MODEL (UNCHANGED)
+# CREATE MODEL
 # ===============================
 class OfficialNewsCreate(BaseModel):
     title: str
@@ -31,7 +31,7 @@ class OfficialNewsCreate(BaseModel):
 
 
 # ===============================
-# UPDATE MODEL (NEW)
+# UPDATE MODEL
 # ===============================
 class OfficialNewsUpdate(BaseModel):
     title: str | None = None
@@ -54,12 +54,13 @@ class OfficialNewsUpdate(BaseModel):
 
 
 # ===============================
-# ADMIN – ADD NEWS
+# Agri Officer – ADD NEWS
 # ===============================
 @router.post("/admin")
 def add_official_news(payload: OfficialNewsCreate):
 
-    if payload.category not in [        "price",
+    if payload.category not in [        
+        "price",
         "weather",
         "policy",
         "alert",
@@ -81,7 +82,9 @@ def add_official_news(payload: OfficialNewsCreate):
         "language": payload.language,
         "created_by": str(uuid.uuid4()),
         "is_active": True,
-        "is_visible_to_farmers": True
+        "is_visible_to_farmers": True,
+        "created_at": "now()",
+        "updated_at": "now()"
     }
 
     res = supabase.table("official_news").insert(data).execute()
@@ -90,7 +93,7 @@ def add_official_news(payload: OfficialNewsCreate):
 
 
 # ===============================
-# ADMIN – UPDATE NEWS
+# Agri Officer – UPDATE NEWS
 # ===============================
 @router.patch("/admin/{news_id}")
 def update_official_news(news_id: str, payload: OfficialNewsUpdate):
@@ -114,7 +117,8 @@ def update_official_news(news_id: str, payload: OfficialNewsUpdate):
             update_data[k] = str(v) if isinstance(v, HttpUrl) else v
 
     if "category" in update_data:
-        if update_data["category"] not in [        "price",
+        if update_data["category"] not in [        
+        "price",
         "weather",
         "policy",
         "alert",
@@ -143,7 +147,7 @@ def update_official_news(news_id: str, payload: OfficialNewsUpdate):
     return {"success": True, "data": res.data}
 
 # ===============================
-# ADMIN – DELETE NEWS (SOFT)
+# Agri Officer – DELETE NEWS (SOFT)
 # ===============================
 @router.delete("/admin/{news_id}")
 def delete_official_news(news_id: str):
@@ -167,7 +171,7 @@ def delete_official_news(news_id: str):
     return {"success": True, "message": "News deleted"}
 
 # ===============================
-# ADMIN – GET ALL NEWS (VISIBLE + HIDDEN)
+# Agri Officer – GET ALL NEWS (VISIBLE + HIDDEN)
 # ===============================
 @router.get("/admin/all")
 def get_all_news_admin():
@@ -181,7 +185,7 @@ def get_all_news_admin():
     return res.data
 
 # ===============================
-# FARMER – GET ALL NEWS
+# FARMER – GET ALL NEWS ( ONLY VISIBLE ONES )
 # ===============================
 @router.get("")
 def get_official_news():

@@ -27,6 +27,8 @@ type Block = {
   image_url?: string;
 };
 
+const MIN_TEXT_LENGTH = 2;
+
 export default function ProAdvisorAdminAddScreen() {
   const navigation = useNavigation<any>();
   const { language } = useLanguage();
@@ -54,6 +56,11 @@ export default function ProAdvisorAdminAddScreen() {
       publish: "Publish",
       publishing: "Publishing...",
       success: "Pro Advisor saved successfully",
+      titleRequired: "Title required",
+      titleTooShort: "Title must be at least 2 characters",
+      emptySections: "All sections must be filled",
+      subtitleTooShort: "Each section title must be at least 2 characters",
+      contentTooShort: "Each section content must be at least 2 characters",
     },
   }[uiLang];
 
@@ -132,15 +139,33 @@ export default function ProAdvisorAdminAddScreen() {
     setBlocks(arr);
   };
 
+  const hasMinLength = (value: string) =>
+    value.trim().length >= MIN_TEXT_LENGTH;
+
   /* ---------------- SUBMIT ---------------- */
   const submit = async () => {
     if (!title.trim()) {
-      Alert.alert("Error", "Title required");
+      Alert.alert("Error", t.titleRequired);
+      return;
+    }
+
+    if (!hasMinLength(title)) {
+      Alert.alert("Error", t.titleTooShort);
       return;
     }
 
     if (blocks.some((b) => !b.subtitle.trim() || !b.content.trim())) {
-      Alert.alert("Error", "All sections must be filled");
+      Alert.alert("Error", t.emptySections);
+      return;
+    }
+
+    if (blocks.some((b) => !hasMinLength(b.subtitle))) {
+      Alert.alert("Error", t.subtitleTooShort);
+      return;
+    }
+
+    if (blocks.some((b) => !hasMinLength(b.content))) {
+      Alert.alert("Error", t.contentTooShort);
       return;
     }
 
@@ -149,7 +174,7 @@ export default function ProAdvisorAdminAddScreen() {
 
       await axios.post(`${API_BASE}/pro-advisor`, {
         title,
-        blocks, // 👈 image_url already inside
+        blocks, 
         language: uiLang,
       });
 

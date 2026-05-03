@@ -71,6 +71,8 @@ const translations: Record<
     loading: string;
     noResults: string;
     noResultsSub: string;
+    noMatchType: string;
+    noMatchTypeSub: string;
     retry: string;
     foundCenters: string;
     sortedByDistance: string;
@@ -104,6 +106,8 @@ const translations: Record<
     loading: "මධ්‍යස්ථාන ලබා ගනිමින්...",
     noResults: "මධ්‍යස්ථාන හමු නොවීය",
     noResultsSub: "කරුණාකර සෙවුම් අරය වැඩි කරන්න",
+    noMatchType: "මෙම වර්ගයට ගැලපෙන මධ්‍යස්ථාන නොමැත",
+    noMatchTypeSub: "කරුණාකර වෙනත් මධ්‍යස්ථාන වර්ගයක් තෝරන්න",
     retry: "නැවත උත්සාහ කරන්න",
     foundCenters: "සොයාගත් මධ්‍යස්ථාන:",
     sortedByDistance: "ඔබගේ ස්ථානයෙන් දුර අනුව ලැයිස්තුගත කර ඇත",
@@ -137,6 +141,8 @@ const translations: Record<
     loading: "Loading centers...",
     noResults: "No centers found",
     noResultsSub: "Please increase search radius",
+    noMatchType: "No centers found for this type",
+    noMatchTypeSub: "Please select another center type or adjust your search",
     retry: "Retry",
     foundCenters: "Centers found:",
     sortedByDistance: "Sorted by distance from your location",
@@ -170,6 +176,8 @@ const translations: Record<
     loading: "மையங்களை ஏற்றுகிறது...",
     noResults: "மையங்கள் எதுவும் கிடைக்கவில்லை",
     noResultsSub: "தயவுசெய்து தேடல் ஆரத்தை அதிகரிக்கவும்",
+    noMatchType: "இந்த வகையின் மையங்கள் எதுவும் கிடைக்கவில்லை",
+    noMatchTypeSub: "தயவுசெய்து மற்றொரு மைய வகையை தேர்ந்தெடுக்கவும்",
     retry: "மீண்டும் முயற்சிக்கவும்",
     foundCenters: "கண்டறியப்பட்ட மையங்கள்:",
     sortedByDistance:
@@ -263,6 +271,7 @@ const AgricultureDepartmentScreen = () => {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [searchRadius, setSearchRadius] = useState(5); // Larger radius for departments
   const [selectedType, setSelectedType] = useState("all");
+  const [hasSourceCenters, setHasSourceCenters] = useState(false);
 
   // ─── Request-management refs ──────────────────────────────────────────────
   /** Debounce timer — cleared on every dep change, fired after 2 s of quiet. */
@@ -509,6 +518,14 @@ out center tags;
     return distance.toFixed(1);
   };
 
+  const filterDepartmentsByType = (
+    items: AgricultureDepartment[],
+    type: string,
+  ): AgricultureDepartment[] => {
+    if (type === "all") return items;
+    return items.filter((department) => department.type === type);
+  };
+
   const loadDepartments = async (forceRefresh = false): Promise<void> => {
     if (!latitude || !longitude) return;
 
@@ -521,10 +538,8 @@ out center tags;
     // ── 3. Serve from in-memory cache when available (skip on force-refresh)
     if (!forceRefresh && requestCacheRef.current.has(cacheKey)) {
       const cachedRaw = requestCacheRef.current.get(cacheKey)!;
-      const filtered =
-        selectedType === "all"
-          ? cachedRaw
-          : cachedRaw.filter((d) => d.type === selectedType);
+      const filtered = filterDepartmentsByType(cachedRaw, selectedType);
+      setHasSourceCenters(cachedRaw.length > 0);
       setDepartments(filtered);
       setRefreshing(false);
       return;
@@ -546,17 +561,15 @@ out center tags;
       // Cache the raw (unfiltered) results so type changes never re-fetch
       requestCacheRef.current.set(cacheKey, liveData);
 
-      const filtered =
-        selectedType === "all"
-          ? liveData
-          : liveData.filter((d) => d.type === selectedType);
+      const filtered = filterDepartmentsByType(liveData, selectedType);
 
+      setHasSourceCenters(liveData.length > 0);
       setDepartments(filtered);
 
-      // Persist to disk as offline fallback
+      // Persist raw data so offline filtering still respects the selected type
       await AsyncStorage.setItem(
         "deptCache",
-        JSON.stringify({ data: filtered, ts: Date.now() }),
+        JSON.stringify({ data: liveData, ts: Date.now() }),
       );
     } catch (err: unknown) {
       // Silently ignore deliberate cancellations — a new request is already queued
@@ -564,8 +577,12 @@ out center tags;
 
       const diskCache = await AsyncStorage.getItem("deptCache");
       if (diskCache) {
-        setDepartments(JSON.parse(diskCache).data);
+        const parsedCache = JSON.parse(diskCache);
+        const cachedRaw = Array.isArray(parsedCache?.data) ? parsedCache.data : [];
+        setHasSourceCenters(cachedRaw.length > 0);
+        setDepartments(filterDepartmentsByType(cachedRaw, selectedType));
       } else {
+        setHasSourceCenters(false);
         setDepartments([]);
       }
     } finally {
@@ -728,8 +745,17 @@ out center tags;
       ) : departments.length === 0 ? (
         <View style={styles.center}>
           <Entypo name="location" size={60} color="#9ca3af" />
-          <Text style={styles.noResults}>{t.noResults}</Text>
-          <Text style={styles.noResultsSub}>{t.noResultsSub}</Text>
+          {selectedType !== "all" && hasSourceCenters ? (
+            <>
+              <Text style={styles.noResults}>{t.noMatchType}</Text>
+              <Text style={styles.noResultsSub}>{t.noMatchTypeSub}</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.noResults}>{t.noResults}</Text>
+              <Text style={styles.noResultsSub}>{t.noResultsSub}</Text>
+            </>
+          )}
 
           <TouchableOpacity
             style={styles.retryBtn}

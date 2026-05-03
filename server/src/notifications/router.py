@@ -42,6 +42,7 @@ async def get_user_notifications(
     
     try:
         logger.info(f"📧 Fetching notifications for user: {user_id}")
+        logger.info(f" Fetching notifications for user: {user_id}")
         
         # Query notifications ONLY for this user
         response = (
@@ -54,7 +55,7 @@ async def get_user_notifications(
         )
         
         notifications = response.data or []
-        logger.info(f"✅ Successfully fetched {len(notifications)} notifications for user {user_id}")
+        logger.info(f" Successfully fetched {len(notifications)} notifications for user {user_id}")
         
         return NotificationsListResponse(
             success=True,

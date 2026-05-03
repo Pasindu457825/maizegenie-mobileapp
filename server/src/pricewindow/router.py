@@ -6,7 +6,8 @@ from .service import (
     build_recommendation,
     best_planting_window,
     calculate_harvest_week,
-    get_message
+    get_message,
+    harvest_time_advisory,
 )
 
 router = APIRouter(
@@ -115,7 +116,8 @@ def best_planting(
 def price_window_by_date(
     location: str = Query(..., description="District / location name"),
     planting_date: str = Query(..., description="YYYY-MM-DD"),
-    seed_variety: str = Query("Local Variety", description="Maize seed variety")
+    seed_variety: str = Query("Local Variety", description="Maize seed variety"),
+    language: str = Query("si", description="Response language: si, ta, en"),
 ):
     """
     Date-based advisory:
@@ -126,90 +128,17 @@ def price_window_by_date(
     - NO price forecasting
     """
 
-    # 1) Date → planting week
-    planting_week = date_to_week(planting_date)
-
-    # 2) Seed-based harvest duration
-    duration_weeks = SEED_MATURITY_WEEKS.get(seed_variety, 14)
-
-    # 3) Base harvest week
-    base_harvest_week = calculate_harvest_week(
-        planting_week, duration_weeks
+    result = harvest_time_advisory(
+        model=model,
+        location=location,
+        planting_date=planting_date,
+        seed_variety=seed_variety,
+        language=language,
     )
-
-    options = []
-
-    # 4) Compare current, +2 weeks, +4 weeks
-    for delay in [0, 2, 4]:
-        harvest_week = ((base_harvest_week + delay - 1) % 52) + 1
-        row = model.get_week_row(location, harvest_week)
-
-        if row is None:
-            continue
-
-        options.append({
-            "delay_weeks": delay,
-            "harvest_week": harvest_week,
-            "label": row["Label"],
-            "score": float(row["HighPriceScore"])
-        })
-
-    if not options:
+    if result is None:
         return {"error": "No historical data available"}
 
-    # 5) Best historical option
-    best = max(options, key=lambda x: x["score"])
-
-    # -------------------------------
-    # Recommendation logic
-    # -------------------------------
-    if best["delay_weeks"] == 0 and best["label"] == "STRONG":
-        action = get_message("si", "HARVEST_NOW")
-        message_si = get_message("si", "HARVEST_NOW")
-
-    elif best["delay_weeks"] > 0:
-        action = get_message("si", "DELAY_HARVEST", weeks=best["delay_weeks"])
-        message_si = get_message("si", "DELAY_HARVEST", weeks=best["delay_weeks"])
-
-    else:
-        action = get_message("si", "HARVEST_AND_STORE")
-        message_si = get_message("si", "HARVEST_AND_STORE")
-
-    # -------------------------------
-    # Storage advice
-    # -------------------------------
-    if best["delay_weeks"] > 0:
-        storage_advice = {
-            "required": True,
-            "duration_weeks": best["delay_weeks"],
-            "reason": "DELAYED_HARVEST",
-            "message_si": get_message("si", "STORAGE_REQUIRED", weeks=best["delay_weeks"])
-        }
-    else:
-        storage_advice = {
-            "required": False,
-            "duration_weeks": 0,
-            "reason": "IMMEDIATE_SALE",
-            "message_si": get_message("si", "NO_STORAGE")
-        }
-
-    # -------------------------------
-    # RETURN
-    # -------------------------------
-    return {
-        "location": location,
-        "seed_variety": seed_variety,
-        "duration_weeks": duration_weeks,
-        "planting_date": planting_date,
-        "planting_week": planting_week,
-        "base_harvest_week": base_harvest_week,
-        "recommended_action": action,
-        "best_harvest_week": best["harvest_week"],
-        "signal": best["label"],
-        "message_si": message_si,
-        "storage_advice": storage_advice,
-        "options_checked": options
-    }
+    return result
 
 # --------------------------------------------------
 # 4) ➕ NEW — Advisor Guide (EXPLANATION LAYER ONLY)
@@ -227,7 +156,8 @@ def advisor_guide(payload: dict):
     price_result = price_window_by_date(
         location=payload["location"],
         planting_date=payload["plantingDate"],
-        seed_variety=payload.get("seedVariety", "Local Variety")
+        seed_variety=payload.get("seedVariety", "Local Variety"),
+        language=payload.get("language", "en"),
     )
 
     if "error" in price_result:

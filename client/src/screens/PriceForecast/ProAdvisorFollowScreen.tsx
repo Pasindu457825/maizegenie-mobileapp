@@ -160,7 +160,7 @@ export default function ProAdvisorListScreen() {
         `${EFFECTIVE_API_BASE}/pro-advisor?language=${apiLang}`,
         { timeout: 10000 },
       );
-      console.log("✅ Fetched items:", res.data?.length ?? 0);
+      console.log(" Fetched items:", res.data?.length ?? 0);
       setData(Array.isArray(res.data) ? res.data : []);
     } catch (e: any) {
       const msg =
