@@ -30,8 +30,8 @@ interface PestFrequencyItem {
 }
 
 interface DailySeriesItem {
-  date: string;
-  detections: number;
+  date?: string | null;
+  detections?: number | null;
 }
 
 interface PestFrequencyResponse {
@@ -160,13 +160,17 @@ const PestFrequencyAnalysisScreen = () => {
   }, [days, fetchStats]);
 
   const lineData = useMemo(() => {
-    const series = stats?.daily_detection_series || [];
+    const series = Array.isArray(stats?.daily_detection_series)
+      ? stats.daily_detection_series
+      : [];
     const last = series.slice(-7);
     return {
-      labels: last.map((x) => x.date.slice(5)),
+      labels: last.map((x) =>
+        typeof x?.date === "string" && x.date.length >= 5 ? x.date.slice(5) : "--/--"
+      ),
       datasets: [
         {
-          data: last.length ? last.map((x) => x.detections) : [0],
+          data: last.length ? last.map((x) => Number(x?.detections ?? 0)) : [0],
           strokeWidth: 2,
         },
       ],
@@ -174,10 +178,16 @@ const PestFrequencyAnalysisScreen = () => {
   }, [stats]);
 
   const barData = useMemo(() => {
-    const top = (stats?.top_pests || []).slice(0, 5);
+    const top = Array.isArray(stats?.top_pests) ? stats.top_pests.slice(0, 5) : [];
     return {
-      labels: top.length ? top.map((x) => x.class_name.slice(0, 8)) : [content.noChartData],
-      datasets: [{ data: top.length ? top.map((x) => x.count) : [0] }],
+      labels: top.length
+        ? top.map((x) =>
+            typeof x?.class_name === "string" && x.class_name.trim()
+              ? x.class_name.slice(0, 8)
+              : "Unknown"
+          )
+        : [content.noChartData],
+      datasets: [{ data: top.length ? top.map((x) => Number(x?.count ?? 0)) : [0] }],
     };
   }, [language, stats]);
 
@@ -254,6 +264,8 @@ const PestFrequencyAnalysisScreen = () => {
               data={barData}
               width={width - 48}
               height={240}
+              yAxisLabel=""
+              yAxisSuffix=""
               chartConfig={chartConfig}
               fromZero
               showValuesOnTopOfBars
@@ -263,12 +275,17 @@ const PestFrequencyAnalysisScreen = () => {
 
           <View style={styles.listCard}>
             <Text style={styles.chartTitle}>{content.detailedList}</Text>
-            {(stats?.top_pests || []).length ? (
-              stats?.top_pests.map((p, idx) => (
+            {Array.isArray(stats?.top_pests) && stats.top_pests.length ? (
+              stats.top_pests.map((p, idx) => (
                 <View key={`${p.class_name}-${idx}`} style={styles.listRow}>
-                  <Text style={styles.listName}>{idx + 1}. {p.class_name}</Text>
+                  <Text style={styles.listName}>
+                    {idx + 1}.{" "}
+                    {typeof p?.class_name === "string" && p.class_name.trim()
+                      ? p.class_name
+                      : "Unknown pest"}
+                  </Text>
                   <View style={styles.countBadge}>
-                    <Text style={styles.countText}>{p.count}</Text>
+                    <Text style={styles.countText}>{Number(p?.count ?? 0)}</Text>
                   </View>
                 </View>
               ))

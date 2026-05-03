@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from core.auth_dependencies import get_current_user
 from core.supabase_client import supabase
 from .service import predict_pest
-from .premium_service import predict_pest_premium
+from .premium_service import predict_pest_premium, PremiumPestServiceError
 from .frequency_service import log_pest_detection, get_pest_frequency_stats
 
 router = APIRouter(prefix="/api/pest", tags=["Pest Detection"])
@@ -83,6 +83,8 @@ async def identify_pest(
         # Return JSON response
         return JSONResponse(content={"success": True, **result})
 
+    except PremiumPestServiceError as e:
+        raise HTTPException(status_code=e.status_code, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except HTTPException:
