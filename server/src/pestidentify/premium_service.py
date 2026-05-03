@@ -8,6 +8,13 @@ _client: InferenceHTTPClient | None = None
 PREMIUM_MIN_CONFIDENCE = 0.65
 
 
+class PremiumPestServiceError(RuntimeError):
+    def __init__(self, message: str, status_code: int = 503, code: str | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.code = code
+
+
 def _get_client() -> InferenceHTTPClient:
     global _client
     if _client is not None:
