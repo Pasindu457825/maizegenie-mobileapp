@@ -470,7 +470,7 @@ const PriceForecastScreen = () => {
     // ---- RAIN ----
     if (c.includes("shower rain") || c.includes("light intensity shower")) {
       return lang === "si"
-        ? "සෙමෙන් වැසි"
+        ? "මද වැසි"
         : lang === "ta"
           ? "இலேசான தூறல் மழை"
           : "Light Shower Rain";
@@ -484,7 +484,7 @@ const PriceForecastScreen = () => {
     }
     if (c.includes("moderate rain")) {
       return lang === "si"
-        ? "මධ්‍යම වැසි"
+        ? "සිහින් වැසි"
         : lang === "ta"
           ? "மிதமான மழை"
           : "Moderate Rain";
@@ -533,7 +533,7 @@ const PriceForecastScreen = () => {
     // ---- THUNDER ----
     if (c.includes("thunder")) {
       return lang === "si"
-        ? "අකුණු සහිත වැසි"
+        ? "ගිගුරුම් සහිත වැසි"
         : lang === "ta"
           ? "இடியுடன் கூடிய மழை"
           : "Thunderstorm";
@@ -1221,7 +1221,7 @@ const PriceForecastScreen = () => {
                       ? "(⏹ நிறுத்த தட்டவும்)"
                       : "(⏹ Tap to stop)"
                   : language === "si"
-                    ? "(▶ ටින්න අසන්න)"
+                    ? "(ඇසීමට ▶ තට්ටු කරන්න)"
                     : language === "ta"
                       ? "(▶ கேட்க தட்டவும்)"
                       : "(Tap ▶ to listen)"}
