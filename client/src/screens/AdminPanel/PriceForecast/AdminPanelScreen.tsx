@@ -73,9 +73,9 @@ const AdminPanelScreen = () => {
   const [histDistrict, setHistDistrict] = useState("Anuradhapura");
   const [histYear, setHistYear] = useState("");
   const [histWeek, setHistWeek] = useState("");
-  const [histPrice, setHistPrice] = useState(""); // maize_price
-  const [histFuelPrice, setHistFuelPrice] = useState(""); // fuel_price
-  const [histImportTax, setHistImportTax] = useState(""); // import_tax
+  const [histPrice, setHistPrice] = useState("");
+  const [histFuelPrice, setHistFuelPrice] = useState("");
+  const [histImportTax, setHistImportTax] = useState("");
   const [histSaving, setHistSaving] = useState(false);
   const [showDistrictPicker, setShowDistrictPicker] = useState(false);
 
@@ -147,21 +147,21 @@ const AdminPanelScreen = () => {
       return language === "sinhala"
         ? "අංක පමණක් භාවිතා කළ හැක."
         : language === "tamil"
-          ? "எண்கள் மட்டுமே அनुमতियை"
+          ? "எண்களை மட்டும் உள்ளிடவும்"
           : "Only numbers allowed";
     }
     if (price <= 0) {
       return language === "sinhala"
         ? "මිල 0 ට වැඩි විය යුතුය"
         : language === "tamil"
-          ? "விலை 0 ஐ விட அधिक হોना చाहिए"
+          ? "விலை 0-ஐ விட அதிகமாக இருக்க வேண்டும்"
           : "Price must be greater than 0";
     }
     if (price > 50000) {
       return language === "sinhala"
         ? "මිල ඉතා ඉහළ ය (උපරිම: 1000)"
         : language === "tamil"
-          ? "விலை மிக அधिक है (अधिकतम: 1000)"
+          ? "விலை மிக அதிகமாக உள்ளது (அதிகபட்சம்: 1000)"
           : "Price is too high (Max: 1000)";
     }
     return "";
@@ -180,21 +180,21 @@ const AdminPanelScreen = () => {
       return language === "sinhala"
         ? "සංඛ්‍යා පමණක් භාවිතා කළ හැක"
         : language === "tamil"
-          ? "எண்கள் மட்டுமே அμνუ"
+          ? "எண்கள் மட்டுமே அனுமதி"
           : "Only numbers allowed";
     }
     if (fuel <= 0) {
       return language === "sinhala"
         ? "ඉන්ධන මිල 0 ට වැඩි විය යුතුය"
         : language === "tamil"
-          ? "எரிபொருள் விலை 0 ஐ விட அधिक होना चाहिए"
+          ? "எரிபொருள் விலை 0 ஐ விட அதிகமாக இருக்க வேண்டும்"
           : "Fuel price must be greater than 0";
     }
     if (fuel > 50000) {
       return language === "sinhala"
         ? "ඉන්ධන මිල ඉතා ඉහළ ය"
         : language === "tamil"
-          ? "எரிபொருள் விலை மிக அधिक है"
+          ? "எரிபொருள் விலை மிக அதிகமாக உள்ளது"
           : "Fuel price is too high";
     }
     return "";
@@ -213,21 +213,21 @@ const AdminPanelScreen = () => {
       return language === "sinhala"
         ? "සංඛ්‍යා පමණක් භාවිතා කළ හැක"
         : language === "tamil"
-          ? "எண்கள் மட்டுமே அนตು"
+          ? "எண்கள் மட்டுமே அனுமதி"
           : "Only numbers allowed";
     }
     if (tax < 0) {
       return language === "sinhala"
         ? "බදු සෘණ විය නොහැක"
         : language === "tamil"
-          ? "வரி negativeमो नहीं हो सकता"
+          ? "வரி எதிர்மறையாக இருக்க முடியாது"
           : "Tax cannot be negative";
     }
     if (tax > 100) {
       return language === "sinhala"
         ? "බදු 100% ට වැඩි නොවිය යුතුය"
         : language === "tamil"
-          ? "வரி 100% ஐ விட அधिक नहीं हो सकता"
+          ? "வரி 100% ஐ விட அதிகமாக இருக்க முடியாது"
           : "Tax cannot exceed 100%";
     }
     return "";
@@ -240,7 +240,7 @@ const AdminPanelScreen = () => {
       return language === "sinhala"
         ? "සංඛ්‍යා පමණක් භාවිතා කළ හැක."
         : language === "tamil"
-          ? "எண்கள் மட்டுமே அσν"
+          ? "எண்கள் மட்டுமே அனுமதி"
           : "Only numbers allowed";
     }
     if (week < 1 || week > 52) {
@@ -798,30 +798,31 @@ const AdminPanelScreen = () => {
     <View style={styles.container}>
       {/* Enhanced Header */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
+        <View style={styles.headerBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <ArrowLeft color="#059669" size={22} />
+            <ArrowLeft color="#059669" size={20} />
           </TouchableOpacity>
-        </View>
-        <View style={styles.headerContent}>
+
           <View style={styles.titleRow}>
-            <View style={styles.iconBadge}>
-              <Sparkles size={20} color="#059669" />
-            </View>
             <View style={styles.titleContainer}>
               <Text style={styles.headerSubtitle}>
                 {content[language].subtitle}
               </Text>
               <Text style={styles.headerTitle}>{content[language].title}</Text>
             </View>
+
+            <View style={styles.iconBadge}>
+              <Sparkles size={18} color="#059669" />
+            </View>
           </View>
-          <Text style={styles.headerDescription}>
-            {content[language].description}
-          </Text>
         </View>
+
+        <Text style={styles.headerDescription}>
+          {content[language].description}
+        </Text>
       </View>
 
       <ScrollView
@@ -1311,7 +1312,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: "#FFFFFF",
     paddingTop: 40,
-    paddingBottom: 24,
+    paddingBottom: 18,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -1321,19 +1322,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  headerTop: {
+  headerBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   backButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     backgroundColor: "#F0FDF4",
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 12,
   },
   langButton: {
     backgroundColor: "#F8FAFC",
@@ -1348,28 +1353,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
   },
-  headerContent: {
-    marginTop: 4,
-  },
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    flex: 1,
   },
   iconBadge: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     borderRadius: 12,
     backgroundColor: "#D1FAE5",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginLeft: 12,
+    flexShrink: 0,
   },
   titleContainer: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: "bold",
     color: "#0F172A",
     letterSpacing: -0.3,
@@ -1378,12 +1381,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#059669",
     fontWeight: "600",
-    marginBottom: 2,
+    marginBottom: 1,
   },
   headerDescription: {
     fontSize: 14,
     color: "#64748B",
     lineHeight: 20,
+    marginTop: 12,
   },
   scrollContainer: {
     flex: 1,
@@ -1581,7 +1585,7 @@ const styles = StyleSheet.create({
   footer: {
     height: 20,
   },
-  // ── Historical price card ──────────────────────────────────────────────────
+  // ── Historical price card ────────────────────────────
   histCard: {
     borderColor: "#DBEAFE",
     borderWidth: 1.5,
@@ -1714,7 +1718,7 @@ const styles = StyleSheet.create({
     color: "#065F46",
     fontWeight: "700",
   },
-  // ── Price History Styles ──────────────────────────────────────────────────
+  // ── Price History Styles ───────────────────────
   historyCard: {
     borderColor: "#D1FAE5",
     borderWidth: 1.5,
@@ -1777,7 +1781,7 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: "#EF4444",
   },
-  // ── Edit Modal Styles ──────────────────────────────────────────────────────
+  // ── Edit Modal Styles ───────
   editModalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
