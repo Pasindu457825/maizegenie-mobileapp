@@ -71,6 +71,11 @@ const EditPostScreen = () => {
     currentData.quantity_kg.toFixed(0),
   );
   const [season, setSeason] = useState(currentData.season);
+  const [errors, setErrors] = useState<{
+    seedVariety?: string;
+    pricePerKg?: string;
+    quantityKg?: string;
+  }>({});
 
   // Read-only: district & week are locked to the original forecast context
   const district = currentData.district;
@@ -78,7 +83,7 @@ const EditPostScreen = () => {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // ── i18n ───────────────────────────────────────────────────────────
+
   const T = {
     si: {
       title: "තනතුර සංස්කරණය",
@@ -154,19 +159,90 @@ const EditPostScreen = () => {
   const t = T[language];
 
   // ── Validation ─────────────────────────────────────────────────────
+const getValidationMessages = () => {
+  if (language === "si") {
+    return {
+      seedVarietyRequired: "බීජ ප්‍රභේදය අවශ්‍යයි",
+      seedVarietyTooShort: "බීජ ප්‍රභේදය පැහැදිලිව ඇතුළත් කරන්න",
+
+      priceRequired: "මිල අවශ්‍යයි",
+      priceInvalid: "මිල 0 ට වැඩි සංඛ්‍යාවක් විය යුතුය",
+      priceTooHigh: "මිල ඉතා ඉහළයි",
+
+      quantityRequired: "ප්‍රමාණය අවශ්‍යයි",
+      quantityInvalid: "ප්‍රමාණය 0 ට වැඩි සංඛ්‍යාවක් විය යුතුය",
+      quantityTooHigh: "ප්‍රමාණය ඉතා ඉහළයි",
+    };
+  }
+
+  if (language === "ta") {
+    return {
+      seedVarietyRequired: "விதை வகை தேவை",
+      seedVarietyTooShort: "விதை வகையை தெளிவாக உள்ளிடவும்",
+
+      priceRequired: "விலை தேவை",
+      priceInvalid: "விலை 0-ஐ விட அதிகமான எண்ணாக இருக்க வேண்டும்",
+      priceTooHigh: "விலை மிகவும் அதிகமாக உள்ளது",
+
+      quantityRequired: "அளவு தேவை",
+      quantityInvalid: "அளவு 0-ஐ விட அதிகமான எண்ணாக இருக்க வேண்டும்",
+      quantityTooHigh: "அளவு மிகவும் அதிகமாக உள்ளது",
+    };
+  }
+
+  return {
+    seedVarietyRequired: "Seed variety is required",
+    seedVarietyTooShort: "Enter a clearer seed variety",
+
+    priceRequired: "Price is required",
+    priceInvalid: "Price must be a number greater than 0",
+    priceTooHigh: "Price is too high",
+
+    quantityRequired: "Quantity is required",
+    quantityInvalid: "Quantity must be a number greater than 0",
+    quantityTooHigh: "Quantity is too high",
+  };
+};
   const validate = (): boolean => {
-    if (!seedVariety.trim()) return false;
+    const messages = getValidationMessages();
+    const nextErrors: {
+      seedVariety?: string;
+      pricePerKg?: string;
+      quantityKg?: string;
+    } = {};
+    const trimmedVariety = seedVariety.trim();
     const price = parseFloat(pricePerKg);
-    if (!Number.isFinite(price) || price <= 0) return false;
     const qty = parseFloat(quantityKg);
-    if (!Number.isFinite(qty) || qty <= 0) return false;
-    return true;
+
+    if (!trimmedVariety) {
+      nextErrors.seedVariety = messages.seedVarietyRequired;
+    } else if (trimmedVariety.length < 2) {
+      nextErrors.seedVariety = messages.seedVarietyTooShort;
+    }
+
+    if (!pricePerKg.trim()) {
+      nextErrors.pricePerKg = messages.priceRequired;
+    } else if (!Number.isFinite(price) || price <= 0) {
+      nextErrors.pricePerKg = messages.priceInvalid;
+    } else if (price > 100000) {
+      nextErrors.pricePerKg = messages.priceTooHigh;
+    }
+
+    if (!quantityKg.trim()) {
+      nextErrors.quantityKg = messages.quantityRequired;
+    } else if (!Number.isFinite(qty) || qty <= 0) {
+      nextErrors.quantityKg = messages.quantityInvalid;
+    } else if (qty > 1000000) {
+      nextErrors.quantityKg = messages.quantityTooHigh;
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   // ── Save handler ───────────────────────────────────────────────────
   const handleSave = async () => {
     if (!validate()) {
-      Alert.alert(t.validationErrorTitle, t.validationError);
       return;
     }
 
@@ -227,41 +303,74 @@ const EditPostScreen = () => {
           <View style={styles.formGroup}>
             <Text style={styles.label}>{t.seedVariety}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.seedVariety && styles.inputError]}
               placeholder={t.enterVariety}
               placeholderTextColor="#9CA3AF"
               value={seedVariety}
-              onChangeText={setSeedVariety}
+              onChangeText={(value) => {
+                setSeedVariety(value);
+                if (errors.seedVariety) {
+                  setErrors((current) => ({
+                    ...current,
+                    seedVariety: undefined,
+                  }));
+                }
+              }}
               editable={!isSaving}
             />
+            {errors.seedVariety ? (
+              <Text style={styles.errorText}>{errors.seedVariety}</Text>
+            ) : null}
           </View>
 
           {/* Price per kg */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{t.pricePerKg}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.pricePerKg && styles.inputError]}
               placeholder={t.enterPrice}
               placeholderTextColor="#9CA3AF"
               value={pricePerKg}
-              onChangeText={setPricePerKg}
+              onChangeText={(value) => {
+                setPricePerKg(value);
+                if (errors.pricePerKg) {
+                  setErrors((current) => ({
+                    ...current,
+                    pricePerKg: undefined,
+                  }));
+                }
+              }}
               keyboardType="decimal-pad"
               editable={!isSaving}
             />
+            {errors.pricePerKg ? (
+              <Text style={styles.errorText}>{errors.pricePerKg}</Text>
+            ) : null}
           </View>
 
           {/* Quantity */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{t.quantityKg}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.quantityKg && styles.inputError]}
               placeholder={t.enterQuantity}
               placeholderTextColor="#9CA3AF"
               value={quantityKg}
-              onChangeText={setQuantityKg}
+              onChangeText={(value) => {
+                setQuantityKg(value);
+                if (errors.quantityKg) {
+                  setErrors((current) => ({
+                    ...current,
+                    quantityKg: undefined,
+                  }));
+                }
+              }}
               keyboardType="decimal-pad"
               editable={!isSaving}
             />
+            {errors.quantityKg ? (
+              <Text style={styles.errorText}>{errors.quantityKg}</Text>
+            ) : null}
           </View>
 
           {/* Season toggle */}
@@ -425,6 +534,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 14,
     color: "#1F2937",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#DC2626",
+    marginTop: 2,
   },
   seasonRow: {
     flexDirection: "row",

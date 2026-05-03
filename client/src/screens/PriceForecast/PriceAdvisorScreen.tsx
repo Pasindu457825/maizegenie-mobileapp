@@ -1,5 +1,4 @@
-﻿// client/src/screens/PriceForecast/PriceAdvisorScreen.tsx
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -173,6 +172,13 @@ interface AdvisorFormData {
   };
 }
 
+type AdvisorFormErrors = {
+  district?: string;
+  plantingDateExact?: string;
+  seedVariety?: string;
+  area?: string;
+};
+
 // Dynamic API URL based on platform
 const getApiUrl = () => {
   if (Platform.OS === "android") {
@@ -257,6 +263,30 @@ const toApiLocation = (district: string) => {
   return DISTRICT_TO_API_LOCATION[d] || d; // fallback
 };
 
+const getLocalizedDistrictLabel = (district: string, lang: Language) => {
+  const normalized = toApiLocation(district);
+
+  const labels: Record<string, Record<Language, string>> = {
+    Anuradapura: {
+      en: "Anuradhapura",
+      si: "අනුරාධපුර",
+      ta: "அனுராதபுரம்",
+    },
+    Monaragala: {
+      en: "Monaragala",
+      si: "මොණරාගල",
+      ta: "மொனராகலை",
+    },
+    Tissamaharama: {
+      en: "Tissamaharama",
+      si: "තිස්සමහාරාමය",
+      ta: "திஸ்ஸமாஹாராமை",
+    },
+  };
+
+  return labels[normalized]?.[lang] || district;
+};
+
 const SEED_VARIETIES = [
   "GT 709",
   "GT 200",
@@ -302,6 +332,10 @@ const PriceAdvisorScreen: React.FC = () => {
   const [advisorGuideLoading, setAdvisorGuideLoading] = useState(false);
   const [showAdvisorGuide, setShowAdvisorGuide] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  const scrollViewRef = React.useRef<ScrollView | null>(null);
+  const resultSectionYRef = React.useRef(0);
+  const formSectionYRef = React.useRef(0);
+  const shouldScrollToResultRef = React.useRef(false);
 
   const {
     locationName,
@@ -363,7 +397,7 @@ const PriceAdvisorScreen: React.FC = () => {
       formVariety: "බීජ වර්ගය",
       formArea: "වැවිලි භූමි ප්‍රමාණය (ha / acre)",
       formCost: "මුළු වියදම (රු.)",
-      formYield: "අපේක්ෂිත අස්වැන්න (කි.ග්‍රෑ / ප්‍රමාණ ඒකකය)",
+      formYield: "අපේක්ෂිත අස්වැන්න (කි.ග්‍රෑ / ප්‍රමාණ ඒකකය) විකල්ප*",
       btnRunFullAdvisor: "සම්පූර්ණ වගා උපදෙස් ලබාගන්න",
       noQuestionSelected: "කරුණාකර ප්‍රශ්නයක් තෝරන්න හෝ පෝරමය පුරවන්න.",
       weatherLoading: "කාලගුණ දත්ත ලබාගැනෙමින්...",
@@ -395,7 +429,7 @@ const PriceAdvisorScreen: React.FC = () => {
       q5: "What is an important management practice to obtain a good maize yield?",
       formDistrict: "District",
       formVariety: "Seed Variety",
-      formArea: "Farm Area (ha / acre)",
+      formArea: "Farm Area (ha / acre) Optional*",
       formYield: "Expected Yield (kg / unit area)",
       btnRunFullAdvisor: "Run Full Advisor",
       noQuestionSelected: "Select a question or fill the form to see advice.",
@@ -417,6 +451,7 @@ const PriceAdvisorScreen: React.FC = () => {
   } as const;
 
   const t = T[language];
+  const [formErrors, setFormErrors] = useState<AdvisorFormErrors>({});
 
   const [form, setForm] = useState<AdvisorFormData>({
     district: "",
@@ -446,6 +481,118 @@ const PriceAdvisorScreen: React.FC = () => {
   const [fullAdvisorTag, setFullAdvisorTag] = useState<
     "good" | "warn" | "info" | null
   >(null);
+
+  const getValidationMessage = (
+    field: keyof AdvisorFormErrors,
+    type: "required" | "invalid" = "required",
+  ) => {
+    if (field === "district") {
+      return language === "si"
+        ? "කරුණාකර දිස්ත්‍රික්කය තෝරන්න."
+        : language === "ta"
+          ? "தயவுசெய்து மாவட்டத்தைத் தேர்ந்தெடுக்கவும்."
+          : "Please select a district.";
+    }
+
+    if (field === "plantingDateExact") {
+      return type === "invalid"
+        ? t.dateValidationError
+        : language === "si"
+          ? "කරුණාකර වගා කරන දිනය තෝරන්න."
+          : language === "ta"
+            ? "தயவுசெய்து நட்டு தேதியைத் தேர்ந்தெடுக்கவும்."
+            : "Please select the planting date.";
+    }
+
+    if (field === "seedVariety") {
+      return language === "si"
+        ? "කරුණාකර බීජ වර්ගය තෝරන්න."
+        : language === "ta"
+          ? "தயவுசெய்து விதை வகையைத் தேர்ந்தெடுக்கவும்."
+          : "Please select a seed variety.";
+    }
+
+    if (field === "area") {
+      return type === "invalid"
+        ? language === "si"
+          ? "භූමි ප්‍රමාණය 0 ට වඩා වැඩි වලංගු අගයක් විය යුතුය."
+          : language === "ta"
+            ? "நிலப் பரப்பளவு 0 ஐ விட பெரிய சரியான மதிப்பாக இருக்க வேண்டும்."
+            : "Farm area must be a valid number greater than 0."
+        : language === "si"
+          ? "කරුණාකර භූමි ප්‍රමාණය ඇතුළත් කරන්න."
+          : language === "ta"
+            ? "தயவுசெய்து நிலப் பரப்பளவை உள்ளிடவும்."
+            : "Please enter the farm area.";
+    }
+
+    return "";
+  };
+
+  const clearFieldError = (field: keyof AdvisorFormErrors) => {
+    setFormErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validateAdvisorForm = () => {
+    const errors: AdvisorFormErrors = {};
+    const district = form.district.trim();
+    const plantingDate = form.plantingDateExact.trim();
+    const seedVariety = form.seedVariety.trim();
+    const areaValue = form.area.trim();
+    const areaNumber = Number(areaValue);
+
+    if (!district) {
+      errors.district = getValidationMessage("district");
+    }
+
+    if (!plantingDate) {
+      errors.plantingDateExact = getValidationMessage("plantingDateExact");
+    } else if (isPastDate(plantingDate)) {
+      errors.plantingDateExact = getValidationMessage(
+        "plantingDateExact",
+        "invalid",
+      );
+    }
+
+    if (!seedVariety) {
+      errors.seedVariety = getValidationMessage("seedVariety");
+    }
+
+    if (!areaValue) {
+      errors.area = getValidationMessage("area");
+    } else if (!Number.isFinite(areaNumber) || areaNumber <= 0) {
+      errors.area = getValidationMessage("area", "invalid");
+    }
+
+    setFormErrors(errors);
+    setDateError(errors.plantingDateExact ?? null);
+
+    return Object.keys(errors).length === 0;
+  };
+
+  const scrollToPosition = (y: number) => {
+    scrollViewRef.current?.scrollTo({
+      y: Math.max(y - 16, 0),
+      animated: true,
+    });
+  };
+
+  const scrollToResultSection = () => {
+    setTimeout(() => {
+      scrollToPosition(resultSectionYRef.current);
+    }, 150);
+  };
+
+  const scrollToFormSection = () => {
+    setTimeout(() => {
+      scrollToPosition(formSectionYRef.current);
+    }, 150);
+  };
 
   // Extract best option from backend response (supports multiple shapes)
   const getHarvestBest = (res: any) => {
@@ -478,6 +625,49 @@ const PriceAdvisorScreen: React.FC = () => {
       }),
     ]).start();
   }, [fadeAnim, scaleAnim]);
+
+  useEffect(() => {
+    const hasVisibleResult = Boolean(
+      fullAdvisorText || priceWindowResult || harvestAdvisoryResult,
+    );
+
+    if (
+      shouldScrollToResultRef.current &&
+      hasVisibleResult &&
+      !priceWindowLoading &&
+      !harvestAdvisoryLoading
+    ) {
+      shouldScrollToResultRef.current = false;
+      scrollToResultSection();
+    }
+  }, [
+    fullAdvisorText,
+    priceWindowResult,
+    harvestAdvisoryResult,
+    priceWindowLoading,
+    harvestAdvisoryLoading,
+  ]);
+
+  useEffect(() => {
+    if (selectedQuestion) {
+      handleQuestionPress(selectedQuestion);
+    }
+
+    if (fullAdvisorText) {
+      const { text, tag } = buildExplainableDecision();
+      if (text !== fullAdvisorText) {
+        setFullAdvisorText(text);
+      }
+      if (tag !== fullAdvisorTag) {
+        setFullAdvisorTag(tag);
+      }
+    }
+  }, [language]);
+
+  useEffect(() => {
+    if (!fullAdvisorText || !form.plantingDateExact) return;
+    loadAdvisorGuideForLanguage();
+  }, [language]);
 
   const getMonthLabelFromISO = (iso: string) => {
     if (!iso) return "";
@@ -815,7 +1005,47 @@ const PriceAdvisorScreen: React.FC = () => {
 
   const handleVarietySelect = (variety: string) => {
     setForm((f) => ({ ...f, seedVariety: variety }));
+    clearFieldError("seedVariety");
     setShowVarietyPicker(false);
+  };
+
+  const loadAdvisorGuideForLanguage = async () => {
+    if (!form.plantingDateExact) {
+      setAdvisorGuideResult(null);
+      return;
+    }
+
+    try {
+      setAdvisorGuideLoading(true);
+
+      const apiLocation = toApiLocation(form.district);
+      const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
+
+      const guide = await fetchAdvisorGuide({
+        location: apiLocation,
+        plantingDate: form.plantingDateExact,
+        seedVariety: seed,
+        experience: form.experienceLevel,
+        landSize: form.area || "0",
+        irrigationAvailable: form.hasIrrigation,
+        language: language,
+        preparedness: {
+          seedReady: form.readiness.seeds,
+          waterReady: form.readiness.water,
+          fertilizerReady: form.readiness.fertilizer,
+          storageReady: form.readiness.land,
+          financeReady: form.readiness.capital,
+        },
+      });
+
+      setAdvisorGuideResult(guide);
+      setShowAdvisorGuide(true);
+    } catch (e) {
+      console.log("Advisor guide unavailable:", e);
+      setAdvisorGuideResult(null);
+    } finally {
+      setAdvisorGuideLoading(false);
+    }
   };
 
   const getWeatherIcon = () => {
@@ -896,6 +1126,7 @@ const PriceAdvisorScreen: React.FC = () => {
     const { done, total, percent } = getReadinessScore();
 
     const district = (form.district || "").trim();
+    const districtLabel = getLocalizedDistrictLabel(district, language);
     const month = getMonthLabelFromISO(form.plantingDateExact);
     const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
     const areaNum = parseFloat(form.area || "0") || 0;
@@ -972,10 +1203,10 @@ const PriceAdvisorScreen: React.FC = () => {
     else
       why.push(
         language === "si"
-          ? `${district} දිස්ත්‍රික්කය සඳහා කන්න/කාලගුණ පසුබිම සලකා බැලේ.`
+          ? `${districtLabel} දිස්ත්‍රික්කය සඳහා කන්න/කාලගුණ පසුබිම සලකා බැලේ.`
           : language === "ta"
-            ? `${district} மாவட்டத்திற்கான பருவகால மற்றும் காலநிலை பின்னணி கணக்கில் எடுக்கப்பட்டுள்ளது.`
-            : `Seasonal and climatic context has been considered for the ${district} district.`,
+            ? `${districtLabel} மாவட்டத்திற்கான பருவகால மற்றும் காலநிலை பின்னணி கணக்கில் எடுக்கப்பட்டுள்ளது.`
+            : `Seasonal and climatic context has been considered for the ${districtLabel} district.`,
       );
 
     if (!month)
@@ -1238,7 +1469,7 @@ const PriceAdvisorScreen: React.FC = () => {
     if (key === "major_pests") {
       answer =
         language === "si"
-          ? "බඩ ඉරිඟු වගාවේ ප්‍රධාන පළිබෝධයක් වන්නේ Fall Armyworm (සේනා කීඩෑවා) ය. මෙම කීඩෑවා කොළ සහ කඳ කා ශාකයට දැඩි හානි සිදු කරයි. වගාව නිතර නිරීක්ෂණය කර ආරම්භයේම පාලනය කළහොත් අස්වැන්න ආරක්ෂා කරගත හැක."
+          ? "බඩ ඉරිඟු වගාවේ ප්‍රධාන පළිබෝධයක් වන්නේ Fall Armyworm (සේනා දළඹුවා) ය. මෙම කීඩෑවා කොළ සහ කඳ කා ශාකයට දැඩි හානි සිදු කරයි. වගාව නිතර නිරීක්ෂණය කර ආරම්භයේම පාලනය කළහොත් අස්වැන්න ආරක්ෂා කරගත හැක."
           : language === "ta"
             ? "சோளம் பயிரில் முக்கிய பூச்சி Fall Armyworm (படைப்புழு) ஆகும். இது இலைகள் மற்றும் தண்டுகளை சேதப்படுத்தி செடிக்கு அதிக சேதம் விளைவிக்கிறது. வயலை தொடர்ந்து கண்காணித்து ஆரம்பத்திலேயே கட்டுப்படுத்தினால் அறுவடையை பாதுகாக்கலாம்."
             : "The major pest affecting maize is the Fall Armyworm. It damages leaves and stems and spreads rapidly if not controlled. Regular field monitoring and early control help protect the crop and reduce losses.";
@@ -1248,7 +1479,7 @@ const PriceAdvisorScreen: React.FC = () => {
     if (key === "fertilizers") {
       answer =
         language === "si"
-          ? "බඩ ඉරිඟු වගාවට ප්‍රධානව Urea, TSP සහ MOP පොහොර භාවිතා කරයි. බීජ වපුරන විට TSP සහ MOP යෙදීම ශාක මුල් ශක්තිමත්ව වර්ධනයට උපකාරී වේ. පසුව යුරියා නිසි වේලාවට යෙදීමෙන් ශාක ශක்திமத් வී හොඳ අස්වැන්නක් ලැබේ."
+          ? "බඩ ඉරිඟු වගාවට යුරියා, TSP සහ MOP පොහොර ප්‍රධානව භාවිතා කරයි. බීජ වපුරන විට TSP සහ MOP යෙදීම මුල් වර්ධනයට උපකාරී වන අතර, පසුව යුරියා නිසි වේලාවට යෙදීමෙන් ශාකය ශක්තිමත්ව වර්ධනය වී හොඳ අස්වැන්නක් ලබා දෙයි."
           : language === "ta"
             ? "சோளம் பயிரிடுவதற்கு முக்கியமாக Urea, TSP மற்றும் MOP உரங்கள் பயன்படுத்தப்படுகின்றன. விதைக்கும்போது TSP மற்றும் MOP போடுவது ஆரம்பகால வேர் வளர்ச்சிக்கு உதவுகிறது. பிறகு சரியான நேரத்தில் யூரியா போடுவதால் செடிகள் வலுவாக வளர்ந்து நல்ல விளைச்சல் கிடைக்கும்."
             : "Maize cultivation mainly uses Urea, TSP, and MOP fertilizers. TSP and MOP are applied at planting to support early root growth. Urea applied at later stages helps plants grow strong and produce better yields.";
@@ -1519,6 +1750,13 @@ const PriceAdvisorScreen: React.FC = () => {
   };
 
   const runFullAdvisor = async () => {
+    if (!validateAdvisorForm()) {
+      setShowForm(true);
+      scrollToFormSection();
+      return;
+    }
+
+    shouldScrollToResultRef.current = true;
     const { text, tag } = buildExplainableDecision();
     setFullAdvisorTag(tag);
     setFullAdvisorText(text);
@@ -1573,41 +1811,7 @@ const PriceAdvisorScreen: React.FC = () => {
     }
 
     // 3️⃣ Advisor Guide
-    try {
-      setAdvisorGuideLoading(true);
-
-      if (form.plantingDateExact) {
-        const apiLocation = toApiLocation(form.district);
-        const seed = (form.seedVariety || "Unknown").trim() || "Unknown";
-
-        const guide = await fetchAdvisorGuide({
-          location: apiLocation,
-          plantingDate: form.plantingDateExact,
-          seedVariety: seed,
-          experience: form.experienceLevel,
-          landSize: form.area || "0",
-          irrigationAvailable: form.hasIrrigation,
-          language: language,
-          preparedness: {
-            seedReady: form.readiness.seeds,
-            waterReady: form.readiness.water,
-            fertilizerReady: form.readiness.fertilizer,
-            storageReady: form.readiness.land,
-            financeReady: form.readiness.capital,
-          },
-        });
-
-        setAdvisorGuideResult(guide);
-        setShowAdvisorGuide(true); // open by default
-      } else {
-        setAdvisorGuideResult(null);
-      }
-    } catch (e) {
-      console.log("Advisor guide unavailable:", e);
-      setAdvisorGuideResult(null);
-    } finally {
-      setAdvisorGuideLoading(false);
-    }
+    await loadAdvisorGuideForLanguage();
 
     Animated.parallel([
       Animated.timing(formSlideAnim, {
@@ -1641,7 +1845,9 @@ const PriceAdvisorScreen: React.FC = () => {
         duration: 300,
         useNativeDriver: true,
       }),
-    ]).start();
+    ]).start(() => {
+      scrollToFormSection();
+    });
   };
 
   const handleGoBack = () => navigation.goBack();
@@ -1730,15 +1936,17 @@ const PriceAdvisorScreen: React.FC = () => {
           </View>
 
           <ScrollView style={styles.varietyList}>
-            {DISTRICTS.map((d) => (
-              <TouchableOpacity
-                key={d}
-                style={[
-                  styles.varietyItem,
-                  form.district === d && styles.varietyItemSelected,
-                ]}
-                onPress={() => {
-                  setForm((f) => ({ ...f, district: d }));
+              {DISTRICTS.map((d) => (
+                <TouchableOpacity
+                  key={d}
+                  style={[
+                    styles.varietyItem,
+                    toApiLocation(form.district) === toApiLocation(d) &&
+                      styles.varietyItemSelected,
+                  ]}
+                  onPress={() => {
+                    setForm((f) => ({ ...f, district: d }));
+                    clearFieldError("district");
                   setShowDistrictPicker(false);
                 }}
               >
@@ -2113,6 +2321,7 @@ const PriceAdvisorScreen: React.FC = () => {
       </View>
 
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollContainer}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -2209,7 +2418,12 @@ const PriceAdvisorScreen: React.FC = () => {
             harvestAdvisoryResult ||
             priceWindowLoading ||
             harvestAdvisoryLoading) && (
-            <View style={styles.section}>
+            <View
+              style={styles.section}
+              onLayout={(event) => {
+                resultSectionYRef.current = event.nativeEvent.layout.y;
+              }}
+            >
               <View style={styles.unifiedAdvisorCard}>
                 {/* Header with Icon */}
                 <View style={styles.advisorHeader}>
@@ -2597,7 +2811,12 @@ const PriceAdvisorScreen: React.FC = () => {
           </View>
 
           {/* Full Advisor Form */}
-          <View style={styles.section}>
+          <View
+            style={styles.section}
+            onLayout={(event) => {
+              formSectionYRef.current = event.nativeEvent.layout.y;
+            }}
+          >
             <Text style={styles.sectionTitle}>{t.fullFormTitle}</Text>
 
             {showForm && (
@@ -2611,7 +2830,10 @@ const PriceAdvisorScreen: React.FC = () => {
                   {/* District */}
                   <Text style={styles.inputLabel}>{t.formDistrict}</Text>
                   <TouchableOpacity
-                    style={styles.pickerInput}
+                    style={[
+                      styles.pickerInput,
+                      formErrors.district && styles.inputError,
+                    ]}
                     onPress={() => setShowDistrictPicker(true)}
                   >
                     <Leaf color="#10B981" size={20} />
@@ -2621,7 +2843,9 @@ const PriceAdvisorScreen: React.FC = () => {
                         !form.district && styles.pickerPlaceholder,
                       ]}
                     >
-                      {form.district ||
+                      {form.district
+                        ? getLocalizedDistrictLabel(form.district, language)
+                        :
                         (language === "si"
                           ? "දිස්ත්‍රික්කය තෝරන්න"
                           : language === "ta"
@@ -2629,6 +2853,9 @@ const PriceAdvisorScreen: React.FC = () => {
                             : "Select district")}
                     </Text>
                   </TouchableOpacity>
+                  {formErrors.district && (
+                    <Text style={styles.errorText}>{formErrors.district}</Text>
+                  )}
 
                   {/* Exact Planting Date */}
                   <Text style={styles.inputLabel}>
@@ -2656,6 +2883,7 @@ const PriceAdvisorScreen: React.FC = () => {
                             }));
                           } else {
                             setDateError(null);
+                            clearFieldError("plantingDateExact");
                             setForm((f) => ({
                               ...f,
                               plantingDateExact: selectedDate,
@@ -2754,6 +2982,7 @@ const PriceAdvisorScreen: React.FC = () => {
                                 }));
                               } else {
                                 setDateError(null);
+                                clearFieldError("plantingDateExact");
                                 setForm((f) => ({
                                   ...f,
                                   plantingDateExact: iso,
@@ -2816,19 +3045,28 @@ const PriceAdvisorScreen: React.FC = () => {
                       );
                     })}
                   </View>
+                  {formErrors.seedVariety && (
+                    <Text style={styles.errorText}>
+                      {formErrors.seedVariety}
+                    </Text>
+                  )}
 
                   {/* Land Area */}
                   <Text style={styles.inputLabel}>{t.formArea}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, formErrors.area && styles.inputError]}
                     value={form.area}
-                    onChangeText={(text) =>
-                      setForm((f) => ({ ...f, area: text }))
-                    }
+                    onChangeText={(text) => {
+                      clearFieldError("area");
+                      setForm((f) => ({ ...f, area: text }));
+                    }}
                     keyboardType="numeric"
                     placeholder="2.0"
                     placeholderTextColor="#9CA3AF"
                   />
+                  {formErrors.area && (
+                    <Text style={styles.errorText}>{formErrors.area}</Text>
+                  )}
 
                   {/* Advanced Toggle */}
                   <View style={{ marginTop: 12 }}>
@@ -3240,6 +3478,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#111827",
     backgroundColor: "#F9FAFB",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    borderWidth: 2,
+  },
+  errorText: {
+    color: "#EF4444",
+    fontSize: 12,
+    marginTop: 6,
+    fontWeight: "600",
   },
   pickerInput: {
     borderWidth: 2,

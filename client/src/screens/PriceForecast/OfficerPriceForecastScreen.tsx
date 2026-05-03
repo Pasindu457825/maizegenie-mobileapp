@@ -10,7 +10,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRoute, useNavigation } from "@react-navigation/native";
+import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
 import {
   TrendingUp,
   TrendingDown,
@@ -29,6 +31,19 @@ import {
 } from "lucide-react-native";
 import useUniversalLocation from "../../utils/useUniversalLocation";
 import { Platform } from "react-native";
+
+/* ===============================
+   TYPE DEFINITIONS
+================================ */
+type RootStackParamList = {
+  PriceForecastFormScreen: undefined;
+  WeatherForecastScreen: undefined;
+  PriceAdvisorScreen: { formData: any } | undefined;
+  Notifications: undefined;
+  AdminPanelScreen: undefined;
+  ProAdvisorFollowScreen: { formData: any };
+  MarketPlaceScreen: undefined;
+};
 
 // Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -70,14 +85,29 @@ const getTrendDirection = (weeks: WeekForecast[]) => {
   return "Stable";
 };
 
-const formatRs = (v?: number) => {
-  if (v == null || Number.isNaN(v)) return "-";
-  return `Rs. ${v.toFixed(2)}`;
+const formatRs = (v?: any) => {
+  // Handle null/undefined
+  if (v == null) return "Rs. 0.00";
+
+  // Convert to number
+  const num = Number(v);
+
+  if (!Number.isFinite(num)) return "Rs. 0.00";
+
+  return `Rs. ${num.toFixed(2)}`;
 };
 
-const formatPct = (v?: number) => {
-  if (v == null || Number.isNaN(v)) return "-";
-  return `${Math.round(v)}%`;
+const formatPct = (v?: any) => {
+  // Handle null/undefined
+  if (v == null) return "0%";
+
+  // Convert to number
+  const num = Number(v);
+
+  // Validate the result
+  if (!Number.isFinite(num)) return "0%";
+
+  return `${Math.round(num)}%`;
 };
 
 const getISOWeekRange = (
@@ -213,7 +243,7 @@ export default function OfficerPriceForecastScreen() {
       predictedPrice: "පුරෝකථනය කළ මිල",
       confidence: "විශ්වාසය",
       change: "වෙනස",
-      base: "පදනම",
+      base: "පදනම් සතිය",
       spread: "විහිදීම",
       strong: "ශක්තිමත්",
       moderate: "මධ්‍යස්ථ",
@@ -407,6 +437,12 @@ export default function OfficerPriceForecastScreen() {
   );
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.9));
+  const [bellShakeAnim] = useState(new Animated.Value(0));
+
+  // Notifications and navigation
+  const { unreadCount } = useNotifications();
+  type RootNavProp = StackNavigationProp<RootStackParamList>;
+  const rootNavigation = useNavigation<RootNavProp>();
 
   // DISTRICT WEEKLY WEATHER – replaces GPS-based weather for forecast inputs
   const [districtWeather, setDistrictWeather] = useState<{
@@ -459,6 +495,41 @@ export default function OfficerPriceForecastScreen() {
     }
   };
 
+  // Bell shake animation interpolation
+  const bellRotate = bellShakeAnim.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ["-15deg", "15deg"],
+  });
+
+  // Bell shake animation setup
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bellShakeAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellShakeAnim, {
+          toValue: -1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellShakeAnim, {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bellShakeAnim, {
+          toValue: 0,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.delay(3000),
+      ]),
+    ).start();
+  }, [bellShakeAnim]);
+
   // Kick off district weather fetch as soon as we have form data
   useEffect(() => {
     const district = formData?.district;
@@ -497,6 +568,7 @@ export default function OfficerPriceForecastScreen() {
           const sanitized = String(formData.fuelPrice)
             .replace(/[^0-9.]/g, "")
             .trim();
+
           const parsed = parseFloat(sanitized);
           if (Number.isFinite(parsed)) fuelPriceValue = parsed;
         }
@@ -666,24 +738,6 @@ export default function OfficerPriceForecastScreen() {
     };
   }, [weeks]);
 
-  const riskAssessment = useMemo(() => {
-    if (!weeks.length || !bestWeek) return { downside: 0, upside: 0, ratio: 0 };
-    const firstWeekPrice = weeks[0].rf_price;
-    const bestPrice = bestWeek.rf_price;
-    const worstPrice = Math.min(...weeks.map((w) => w.rf_price));
-
-    const downsideRisk = ((firstWeekPrice - worstPrice) / firstWeekPrice) * 100;
-    const upsidePotential =
-      ((bestPrice - firstWeekPrice) / firstWeekPrice) * 100;
-    const ratio = downsideRisk > 0 ? upsidePotential / downsideRisk : 0;
-
-    return {
-      downside: downsideRisk,
-      upside: upsidePotential,
-      ratio: ratio,
-    };
-  }, [weeks, bestWeek]);
-
   const priceMovementAnalysis = useMemo(() => {
     if (weeks.length < 2) return [];
     return weeks.map((w, idx) => {
@@ -694,6 +748,74 @@ export default function OfficerPriceForecastScreen() {
       return { week: w.week, change, changePercent };
     });
   }, [weeks]);
+
+  const trajectoryMetrics = useMemo(() => {
+    if (!weeks.length) {
+      return {
+        minPrice: 0,
+        maxPrice: 0,
+        scaleMin: 0,
+        scaleMax: 0,
+        scaleRange: 1,
+        weekItems: [] as Array<{
+          week: number;
+          price: number;
+          heightPercent: number;
+          changeFromPrev: number;
+          changePercent: number;
+          isBest: boolean;
+        }>,
+      };
+    }
+
+    const minPrice = Math.min(...weeks.map((w) => w.rf_price));
+    const maxPrice = Math.max(...weeks.map((w) => w.rf_price));
+    const actualRange = maxPrice - minPrice;
+    const paddingBase =
+      actualRange > 0
+        ? Math.max(actualRange * 0.06, 0.002)
+        : Math.max(maxPrice * 0.0004, 0.01);
+    const scaleMin = Math.max(0, minPrice - paddingBase);
+    const scaleMax = maxPrice + paddingBase;
+    const scaleRange = Math.max(
+      scaleMax - scaleMin,
+      Math.max(actualRange, 0.01),
+    );
+
+    const weekItems = weeks.map((w, idx) => {
+      const changeFromPrev =
+        idx === 0 ? 0 : w.rf_price - weeks[idx - 1].rf_price;
+      const changePercent =
+        idx === 0 ? 0 : (changeFromPrev / weeks[idx - 1].rf_price) * 100;
+      const rawHeight = ((w.rf_price - scaleMin) / scaleRange) * 100;
+
+      return {
+        week: w.week,
+        price: w.rf_price,
+        heightPercent: Math.max(rawHeight, 12),
+        changeFromPrev,
+        changePercent,
+        isBest: w.week === bestWeek?.week,
+      };
+    });
+
+    return {
+      minPrice,
+      maxPrice,
+      scaleMin,
+      scaleMax,
+      scaleRange,
+      weekItems,
+    };
+  }, [weeks, bestWeek]);
+
+  const movementScaleMax = useMemo(() => {
+    const maxAbs = Math.max(
+      ...priceMovementAnalysis.map((item) => Math.abs(item.change)),
+      0.01,
+    );
+    return maxAbs;
+  }, [priceMovementAnalysis]);
 
   const confidenceMetrics = useMemo(() => {
     if (!weeks.length) return { min: 0, max: 0, avg: 0, consistency: 0 };
@@ -740,6 +862,155 @@ export default function OfficerPriceForecastScreen() {
     return language === "si" ? "ඉහළ" : language === "ta" ? "உচ்சம்" : "high";
   };
 
+  const renderTrajectoryChart = () => (
+    <View style={styles.chartCard}>
+      <View style={styles.chartHeader}>
+        <View style={styles.chartTitleBlock}>
+          <Text style={styles.chartTitle}>{t.weekTrajectory}</Text>
+          <Text style={styles.chartSubtitle}>
+            {language === "si"
+              ? "කුඩා මිල වෙනස්කම් පැහැදිලිව පෙන්වන සැසඳීම"
+              : language === "ta"
+                ? "சிறிய விலை மாற்றங்களையும் தெளிவாக காட்டும் ஒப்பீடு"
+                : "Scaled comparison that highlights even small price changes"}
+          </Text>
+        </View>
+        <View
+          style={[
+            styles.trendBadge,
+            {
+              backgroundColor:
+                trend === "Upward"
+                  ? "#D1FAE5"
+                  : trend === "Downward"
+                    ? "#FEE2E2"
+                    : "#FEF3C7",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.trendBadgeText,
+              {
+                color:
+                  trend === "Upward"
+                    ? "#047857"
+                    : trend === "Downward"
+                      ? "#DC2626"
+                      : "#92400E",
+              },
+            ]}
+          >
+            {getTrendTranslation()}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.scaleMetaRow}>
+        <View style={styles.scaleMetaChip}>
+          <Text style={styles.scaleMetaLabel}>{t.priceRange}</Text>
+          <Text style={styles.scaleMetaValue}>
+            {formatRs(trajectoryMetrics.minPrice)} -{" "}
+            {formatRs(trajectoryMetrics.maxPrice)}
+          </Text>
+        </View>
+        <View style={styles.scaleMetaChip}>
+          <Text style={styles.scaleMetaLabel}>{t.spread}</Text>
+          <Text style={styles.scaleMetaValue}>
+            Rs. {summaryStats.range.toFixed(2)}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.enhancedChartShell}>
+        <View style={styles.chartScaleColumn}>
+          <Text style={styles.chartScaleText}>
+            {trajectoryMetrics.scaleMax.toFixed(2)}
+          </Text>
+          <Text style={styles.chartScaleText}>
+            {(
+              trajectoryMetrics.scaleMin +
+              trajectoryMetrics.scaleRange / 2
+            ).toFixed(2)}
+          </Text>
+          <Text style={styles.chartScaleText}>
+            {trajectoryMetrics.scaleMin.toFixed(2)}
+          </Text>
+        </View>
+
+        <View style={styles.enhancedChartArea}>
+          <View style={styles.chartGridLineTop} />
+          <View style={styles.chartGridLineMiddle} />
+          <View style={styles.chartGridLineBottom} />
+
+          <View style={styles.enhancedChartColumns}>
+            {trajectoryMetrics.weekItems.map((item, idx) => {
+              const isUp = item.changeFromPrev > 0;
+              const isDown = item.changeFromPrev < 0;
+
+              return (
+                <View key={idx} style={styles.enhancedChartBarContainer}>
+                  <View
+                    style={[
+                      styles.deltaBadge,
+                      item.isBest && styles.deltaBadgeBest,
+                      idx === 0
+                        ? styles.deltaBadgeNeutral
+                        : isUp
+                          ? styles.deltaBadgeUp
+                          : isDown
+                            ? styles.deltaBadgeDown
+                            : styles.deltaBadgeNeutral,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.deltaBadgeText,
+                        idx === 0
+                          ? styles.deltaBadgeTextNeutral
+                          : isUp
+                            ? styles.deltaBadgeTextUp
+                            : isDown
+                              ? styles.deltaBadgeTextDown
+                              : styles.deltaBadgeTextNeutral,
+                      ]}
+                    >
+                      {idx === 0
+                        ? t.base
+                        : `${isUp ? "+" : ""}${item.changeFromPrev.toFixed(2)}`}
+                    </Text>
+                  </View>
+
+                  <Text style={styles.chartValue}>{item.price.toFixed(2)}</Text>
+
+                  <View style={styles.enhancedBarTrack}>
+                    <View
+                      style={[
+                        styles.enhancedBarFill,
+                        item.isBest && styles.enhancedBarFillBest,
+                        {
+                          height: `${item.heightPercent}%`,
+                          backgroundColor: item.isBest ? "#047857" : "#10B981",
+                        },
+                      ]}
+                    />
+                  </View>
+
+                  <Text style={styles.chartLabel}>W{item.week}</Text>
+                  <Text style={styles.chartChangeLabel}>
+                    {idx === 0
+                      ? t.base
+                      : `${item.changePercent > 0 ? "+" : ""}${item.changePercent.toFixed(2)}%`}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
   /* ===============================
      STATES
   ================================ */
@@ -779,9 +1050,21 @@ export default function OfficerPriceForecastScreen() {
           <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Bell size={20} color="#047857" />
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ rotate: bellRotate }] }}>
+            <TouchableOpacity
+              style={styles.headerIconButton}
+              onPress={() => rootNavigation.navigate("Notifications")}
+            >
+              <Bell color="#047857" size={22} />
+              {unreadCount > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
         </View>
       </View>
 
@@ -943,71 +1226,7 @@ export default function OfficerPriceForecastScreen() {
 
               {/* Price Analysis Chart */}
               <Text style={styles.sectionTitle}>📈 {t.priceAnalysis}</Text>
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>{t.weekTrajectory}</Text>
-                  <View
-                    style={[
-                      styles.trendBadge,
-                      {
-                        backgroundColor:
-                          trend === "Upward"
-                            ? "#D1FAE5"
-                            : trend === "Downward"
-                              ? "#FEE2E2"
-                              : "#FEF3C7",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.trendBadgeText,
-                        {
-                          color:
-                            trend === "Upward"
-                              ? "#047857"
-                              : trend === "Downward"
-                                ? "#DC2626"
-                                : "#92400E",
-                        },
-                      ]}
-                    >
-                      {getTrendTranslation()}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Simple line chart visualization */}
-                <View style={styles.chartArea}>
-                  {weeks.map((w, idx) => {
-                    const maxPrice = Math.max(
-                      ...weeks.map((week) => week.rf_price),
-                    );
-                    const minPrice = Math.min(
-                      ...weeks.map((week) => week.rf_price),
-                    );
-                    const height =
-                      ((w.rf_price - minPrice) / (maxPrice - minPrice + 1)) *
-                      120;
-                    return (
-                      <View key={idx} style={styles.chartBarContainer}>
-                        <Text style={styles.chartValue}>
-                          {w.rf_price.toFixed(1)}
-                        </Text>
-                        <View style={styles.chartBar}>
-                          <View
-                            style={[
-                              styles.chartBarFill,
-                              { height: Math.max(height, 20) },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.chartLabel}>W{w.week}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </View>
+              {renderTrajectoryChart()}
 
               {/* Market Intelligence - Summary Cards */}
               <Text style={styles.sectionTitle}>🎯 {t.marketIntel}</Text>
@@ -1068,13 +1287,11 @@ export default function OfficerPriceForecastScreen() {
                       {t.optimalSelling}
                     </Text>
                     <Text style={styles.recommendationText}>
-                      {t.optimalText} {bestWeek?.week}{" "}
                       {language === "si"
-                        ? "මඟින්"
+                        ? `${bestWeek?.week} වන සතියේ ${formatRs(bestWeek?.rf_price)} ක ඉහළම මිලක් අපේක්ෂා වන නිසා, එය හොඳම විකුණුම් අවස්ථාව ලෙස හඳුනාගෙන ඇත.`
                         : language === "ta"
-                          ? "உடன்"
-                          : "with peak price of"}{" "}
-                      {formatRs(bestWeek?.rf_price)}.
+                          ? `${bestWeek?.week} ஆம் வாரத்தில் ${formatRs(bestWeek?.rf_price)} என்ற அதிகபட்ச விலை எதிர்பார்க்கப்படுவதால், அது சிறந்த விற்பனை வாய்ப்பாக அடையாளம் காணப்பட்டுள்ளது.`
+                          : `Best selling opportunity identified in Week ${bestWeek?.week} with peak price of ${formatRs(bestWeek?.rf_price)}.`}
                     </Text>
                   </View>
                 </View>
@@ -1090,6 +1307,12 @@ export default function OfficerPriceForecastScreen() {
               <View style={styles.weeklyContainer}>
                 {weeks.map((w, idx) => {
                   const isBest = w.week === bestWeek?.week;
+                  const changeAmount =
+                    idx === 0 ? 0 : w.rf_price - weeks[idx - 1].rf_price;
+                  const changePercent =
+                    idx === 0
+                      ? 0
+                      : (changeAmount / weeks[idx - 1].rf_price) * 100;
                   return (
                     <View
                       key={idx}
@@ -1116,12 +1339,43 @@ export default function OfficerPriceForecastScreen() {
                       </View>
                       <View style={styles.weekCardBody}>
                         <View style={styles.weekPriceContainer}>
-                          <Text style={styles.weekPriceLabel}>
-                            {t.predictedPrice}
-                          </Text>
-                          <Text style={styles.weekPrice}>
-                            {formatRs(w.rf_price)}
-                          </Text>
+                          <View>
+                            <Text style={styles.weekPriceLabel}>
+                              {t.predictedPrice}
+                            </Text>
+                            <Text style={styles.weekPrice}>
+                              {formatRs(w.rf_price)}
+                            </Text>
+                          </View>
+                          <View
+                            style={[
+                              styles.weekChangePill,
+                              idx === 0
+                                ? styles.weekChangePillNeutral
+                                : changeAmount > 0
+                                  ? styles.weekChangePillUp
+                                  : changeAmount < 0
+                                    ? styles.weekChangePillDown
+                                    : styles.weekChangePillNeutral,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.weekChangePillText,
+                                idx === 0
+                                  ? styles.weekChangePillTextNeutral
+                                  : changeAmount > 0
+                                    ? styles.weekChangePillTextUp
+                                    : changeAmount < 0
+                                      ? styles.weekChangePillTextDown
+                                      : styles.weekChangePillTextNeutral,
+                              ]}
+                            >
+                              {idx === 0
+                                ? t.base
+                                : `${changeAmount > 0 ? "+" : ""}${changePercent.toFixed(2)}%`}
+                            </Text>
+                          </View>
                         </View>
                         <View style={styles.weekStatsRow}>
                           <View style={styles.weekStat}>
@@ -1163,7 +1417,7 @@ export default function OfficerPriceForecastScreen() {
                                   color:
                                     idx === 0
                                       ? "#6B7280"
-                                      : w.rf_price > weeks[idx - 1].rf_price
+                                      : changeAmount > 0
                                         ? "#10B981"
                                         : "#EF4444",
                                 },
@@ -1172,12 +1426,8 @@ export default function OfficerPriceForecastScreen() {
                               {idx === 0
                                 ? t.base
                                 : `${
-                                    w.rf_price > weeks[idx - 1].rf_price
-                                      ? "+"
-                                      : ""
-                                  }${(
-                                    w.rf_price - weeks[idx - 1].rf_price
-                                  ).toFixed(1)}`}
+                                    changeAmount > 0 ? "+" : ""
+                                  }${changeAmount.toFixed(2)}`}
                             </Text>
                           </View>
                         </View>
@@ -1185,74 +1435,6 @@ export default function OfficerPriceForecastScreen() {
                     </View>
                   );
                 })}
-              </View>
-
-              {/* Price Analysis Chart */}
-              <Text style={styles.sectionTitle}>📈 {t.priceAnalysis}</Text>
-              <View style={styles.chartCard}>
-                <View style={styles.chartHeader}>
-                  <Text style={styles.chartTitle}>{t.weekTrajectory}</Text>
-                  <View
-                    style={[
-                      styles.trendBadge,
-                      {
-                        backgroundColor:
-                          trend === "Upward"
-                            ? "#D1FAE5"
-                            : trend === "Downward"
-                              ? "#FEE2E2"
-                              : "#FEF3C7",
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.trendBadgeText,
-                        {
-                          color:
-                            trend === "Upward"
-                              ? "#047857"
-                              : trend === "Downward"
-                                ? "#DC2626"
-                                : "#92400E",
-                        },
-                      ]}
-                    >
-                      {getTrendTranslation()}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Simple line chart visualization */}
-                <View style={styles.chartArea}>
-                  {weeks.map((w, idx) => {
-                    const maxPrice = Math.max(
-                      ...weeks.map((week) => week.rf_price),
-                    );
-                    const minPrice = Math.min(
-                      ...weeks.map((week) => week.rf_price),
-                    );
-                    const height =
-                      ((w.rf_price - minPrice) / (maxPrice - minPrice + 1)) *
-                      120;
-                    return (
-                      <View key={idx} style={styles.chartBarContainer}>
-                        <Text style={styles.chartValue}>
-                          {w.rf_price.toFixed(1)}
-                        </Text>
-                        <View style={styles.chartBar}>
-                          <View
-                            style={[
-                              styles.chartBarFill,
-                              { height: Math.max(height, 20) },
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.chartLabel}>W{w.week}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
               </View>
 
               {/* Market Intelligence - DETAILED */}
@@ -1314,13 +1496,11 @@ export default function OfficerPriceForecastScreen() {
                       {t.optimalSelling}
                     </Text>
                     <Text style={styles.recommendationText}>
-                      {t.optimalText} {bestWeek?.week}{" "}
                       {language === "si"
-                        ? "මඟින්"
+                        ? `${bestWeek?.week} වන සතියේ ${formatRs(bestWeek?.rf_price)} ක ඉහළම මිලක් අපේක්ෂා වන නිසා, එය හොඳම විකුණුම් අවස්ථාව ලෙස හඳුනාගෙන ඇත.`
                         : language === "ta"
-                          ? "உடன்"
-                          : "with peak price of"}{" "}
-                      {formatRs(bestWeek?.rf_price)}.
+                          ? `${bestWeek?.week} ஆம் வாரத்தில் ${formatRs(bestWeek?.rf_price)} என்ற அதிகபட்ச விலை எதிர்பார்க்கப்படுவதால், அது சிறந்த விற்பனை வாய்ப்பாக அடையாளம் காணப்பட்டுள்ளது.`
+                          : `Best selling opportunity identified in Week ${bestWeek?.week} with peak price of ${formatRs(bestWeek?.rf_price)}.`}
                     </Text>
                   </View>
                 </View>
@@ -1407,55 +1587,34 @@ export default function OfficerPriceForecastScreen() {
                 </View>
               </View>
 
-              {/* ADVANCED: Risk Assessment */}
-              <Text style={styles.sectionTitle}>⚠️ {t.riskAssessment}</Text>
-              <View style={styles.riskCard}>
-                <View style={styles.riskRow}>
-                  <View style={styles.riskMetric}>
-                    <Text style={styles.riskLabel}>{t.downside}</Text>
-                    <View style={styles.riskValue}>
-                      <Text style={[styles.riskNumber, { color: "#EF4444" }]}>
-                        {riskAssessment.downside.toFixed(1)}%
-                      </Text>
-                    </View>
-                    <Text style={styles.riskMeta}>Maximum loss risk</Text>
-                  </View>
-                  <View style={styles.riskMetric}>
-                    <Text style={styles.riskLabel}>{t.upside}</Text>
-                    <View style={styles.riskValue}>
-                      <Text style={[styles.riskNumber, { color: "#10B981" }]}>
-                        +{riskAssessment.upside.toFixed(1)}%
-                      </Text>
-                    </View>
-                    <Text style={styles.riskMeta}>Maximum gain potential</Text>
-                  </View>
-                  <View style={styles.riskMetric}>
-                    <Text style={styles.riskLabel}>{t.riskReward}</Text>
-                    <View style={styles.riskValue}>
-                      <Text style={[styles.riskNumber, { color: "#3B82F6" }]}>
-                        {riskAssessment.ratio.toFixed(2)}x
-                      </Text>
-                    </View>
-                    <Text style={styles.riskMeta}>Reward vs risk</Text>
-                  </View>
-                </View>
-              </View>
-
               {/* ADVANCED: Price Movement Analysis */}
               <Text style={styles.sectionTitle}>📈 {t.priceMovement}</Text>
               <View style={styles.movementCard}>
                 {priceMovementAnalysis.map((item, idx) => (
                   <View key={idx} style={styles.movementRow}>
-                    <Text style={styles.movementWeek}>W{item.week}</Text>
-                    <View style={styles.movementBar}>
+                    <View style={styles.movementWeekBlock}>
+                      <Text style={styles.movementWeek}>W{item.week}</Text>
+                      <Text style={styles.movementAmount}>
+                        {item.change > 0 ? "+" : ""}
+                        {item.change.toFixed(2)}
+                      </Text>
+                    </View>
+                    <View style={styles.movementTrack}>
+                      <View style={styles.movementCenterLine} />
                       <View
                         style={[
                           styles.movementFill,
                           {
-                            width: `${Math.abs(item.changePercent) * 10}%`,
-                            backgroundColor:
-                              item.changePercent > 0 ? "#10B981" : "#EF4444",
+                            width: `${Math.max(
+                              (Math.abs(item.change) /
+                                movementScaleMax) *
+                                50,
+                              item.changePercent === 0 ? 0 : 8,
+                            )}%`,
                           },
+                          item.changePercent >= 0
+                            ? styles.movementFillPositive
+                            : styles.movementFillNegative,
                         ]}
                       />
                     </View>
@@ -1463,7 +1622,12 @@ export default function OfficerPriceForecastScreen() {
                       style={[
                         styles.movementValue,
                         {
-                          color: item.changePercent > 0 ? "#10B981" : "#EF4444",
+                          color:
+                            item.changePercent > 0
+                              ? "#10B981"
+                              : item.changePercent < 0
+                                ? "#EF4444"
+                                : "#6B7280",
                         },
                       ]}
                     >
@@ -1552,12 +1716,6 @@ export default function OfficerPriceForecastScreen() {
                   <Text style={styles.metadataLabel}>Weeks Forecast</Text>
                   <Text style={styles.metadataValue}>{weeks.length}</Text>
                 </View>
-                <View style={styles.metadataRow}>
-                  <Text style={styles.metadataLabel}>Fuel Price (Input)</Text>
-                  <Text style={styles.metadataValue}>
-                    {formatRs(formData?.fuelPrice)}
-                  </Text>
-                </View>
               </View>
             </>
           )}
@@ -1621,6 +1779,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#D1FAE5",
+  },
+  headerIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#F0FDF4",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    position: "relative",
+  },
+  badge: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    backgroundColor: "#FCD34D",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+  },
+  badgeText: {
+    color: "#047857",
+    fontSize: 10,
+    fontWeight: "700",
+    textAlign: "center",
   },
   subHeader: {
     backgroundColor: "#FFFFFF",
@@ -1781,13 +1970,24 @@ const styles = StyleSheet.create({
   chartHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
+    alignItems: "flex-start",
+    marginBottom: 16,
+    gap: 12,
+  },
+  chartTitleBlock: {
+    flex: 1,
   },
   chartTitle: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#065F46",
+  },
+  chartSubtitle: {
+    marginTop: 4,
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#6B7280",
+    fontWeight: "500",
   },
   trendBadge: {
     paddingHorizontal: 12,
@@ -1798,42 +1998,173 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "bold",
   },
-  chartArea: {
+  scaleMetaRow: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "flex-end",
-    height: 160,
-    paddingTop: 20,
+    gap: 10,
+    marginBottom: 16,
   },
-  chartBarContainer: {
+  scaleMetaChip: {
+    flex: 1,
+    backgroundColor: "#F8FFFB",
+    borderWidth: 1,
+    borderColor: "#D1FAE5",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  scaleMetaLabel: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  scaleMetaValue: {
+    fontSize: 13,
+    color: "#065F46",
+    fontWeight: "800",
+  },
+  enhancedChartShell: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: 10,
+  },
+  chartScaleColumn: {
+    justifyContent: "space-between",
+    paddingVertical: 8,
+    width: 48,
+  },
+  chartScaleText: {
+    fontSize: 10,
+    color: "#6B7280",
+    fontWeight: "700",
+  },
+  enhancedChartArea: {
+    flex: 1,
+    minHeight: 260,
+    borderRadius: 16,
+    backgroundColor: "#F8FFFB",
+    borderWidth: 1,
+    borderColor: "#DCFCE7",
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 12,
+    position: "relative",
+    overflow: "hidden",
+  },
+  chartGridLineTop: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: "18%",
+    borderTopWidth: 1,
+    borderTopColor: "#D1FAE5",
+    borderStyle: "dashed",
+  },
+  chartGridLineMiddle: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: "50%",
+    borderTopWidth: 1,
+    borderTopColor: "#D1FAE5",
+    borderStyle: "dashed",
+  },
+  chartGridLineBottom: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 48,
+    borderTopWidth: 1,
+    borderTopColor: "#D1FAE5",
+    borderStyle: "dashed",
+  },
+  enhancedChartColumns: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    flex: 1,
+    gap: 10,
+  },
+  enhancedChartBarContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "flex-end",
   },
   chartValue: {
-    fontSize: 11,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "800",
     color: "#047857",
     marginBottom: 6,
   },
-  chartBar: {
-    width: "70%",
-    maxWidth: 50,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    overflow: "hidden",
-    justifyContent: "flex-end",
+  deltaBadge: {
+    minHeight: 28,
+    minWidth: 56,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
   },
-  chartBarFill: {
+  deltaBadgeBest: {
+    borderWidth: 1,
+    borderColor: "#065F46",
+  },
+  deltaBadgeUp: {
+    backgroundColor: "#DCFCE7",
+  },
+  deltaBadgeDown: {
+    backgroundColor: "#FEE2E2",
+  },
+  deltaBadgeNeutral: {
+    backgroundColor: "#F3F4F6",
+  },
+  deltaBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+  },
+  deltaBadgeTextUp: {
+    color: "#047857",
+  },
+  deltaBadgeTextDown: {
+    color: "#B91C1C",
+  },
+  deltaBadgeTextNeutral: {
+    color: "#6B7280",
+  },
+  enhancedBarTrack: {
     width: "100%",
-    backgroundColor: "#10B981",
-    borderRadius: 8,
+    maxWidth: 54,
+    height: 172,
+    borderRadius: 14,
+    backgroundColor: "#E6F8EE",
+    justifyContent: "flex-end",
+    padding: 5,
+    marginBottom: 8,
+  },
+  enhancedBarFill: {
+    width: "100%",
+    borderRadius: 10,
+    minHeight: 18,
+  },
+  enhancedBarFillBest: {
+    shadowColor: "#047857",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
   },
   chartLabel: {
-    fontSize: 11,
+    fontSize: 12,
+    color: "#1F2937",
+    fontWeight: "800",
+  },
+  chartChangeLabel: {
+    marginTop: 4,
+    fontSize: 10,
     color: "#6B7280",
-    marginTop: 8,
-    fontWeight: "600",
+    fontWeight: "700",
+    textAlign: "center",
   },
   weeklyContainer: {
     gap: 16,
@@ -1906,6 +2237,33 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "bold",
     color: "#047857",
+  },
+  weekChangePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+  },
+  weekChangePillUp: {
+    backgroundColor: "#DCFCE7",
+  },
+  weekChangePillDown: {
+    backgroundColor: "#FEE2E2",
+  },
+  weekChangePillNeutral: {
+    backgroundColor: "#F3F4F6",
+  },
+  weekChangePillText: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  weekChangePillTextUp: {
+    color: "#047857",
+  },
+  weekChangePillTextDown: {
+    color: "#B91C1C",
+  },
+  weekChangePillTextNeutral: {
+    color: "#6B7280",
   },
   weekStatsRow: {
     flexDirection: "row",
@@ -2043,82 +2401,72 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     fontStyle: "italic",
   },
-  riskCard: {
+  movementCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: "#FED7AA",
-    marginBottom: 20,
-    shadowColor: "#F59E0B",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  riskRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  riskMetric: {
-    flex: 1,
-    alignItems: "center",
-    paddingHorizontal: 8,
-  },
-  riskLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    fontWeight: "600",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  riskValue: {
-    marginBottom: 8,
-  },
-  riskNumber: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  riskMeta: {
-    fontSize: 10,
-    color: "#9CA3AF",
-    textAlign: "center",
-  },
-  movementCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#D1FAE5",
     marginBottom: 20,
   },
   movementRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  movementWeekBlock: {
+    width: 56,
+    alignItems: "flex-start",
   },
   movementWeek: {
-    width: 35,
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: "800",
     color: "#1F2937",
   },
-  movementBar: {
+  movementAmount: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#6B7280",
+  },
+  movementTrack: {
     flex: 1,
-    height: 24,
+    height: 34,
     backgroundColor: "#F3F4F6",
-    borderRadius: 6,
+    borderRadius: 999,
     overflow: "hidden",
+    position: "relative",
+    justifyContent: "center",
+  },
+  movementCenterLine: {
+    position: "absolute",
+    left: "50%",
+    top: 5,
+    bottom: 5,
+    width: 2,
+    marginLeft: -1,
+    backgroundColor: "#CBD5E1",
+    borderRadius: 999,
   },
   movementFill: {
-    height: "100%",
-    borderRadius: 4,
+    height: 18,
+    borderRadius: 999,
+    position: "absolute",
+    top: 8,
+  },
+  movementFillPositive: {
+    left: "50%",
+    backgroundColor: "#10B981",
+  },
+  movementFillNegative: {
+    right: "50%",
+    backgroundColor: "#EF4444",
   },
   movementValue: {
-    width: 60,
+    width: 68,
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: "800",
     textAlign: "right",
   },
   confidenceCard: {

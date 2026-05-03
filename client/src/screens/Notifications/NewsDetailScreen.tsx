@@ -3,13 +3,13 @@ import {
   Text,
   ActivityIndicator,
   StyleSheet,
-  ScrollView,
   Image,
   Pressable,
   Animated,
   Dimensions,
   StatusBar,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native";
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
@@ -56,14 +56,15 @@ interface NewsDetail {
   source: string;
   district?: string | null;
   created_at: string;
+  updated_at: string;
   url?: string | null;
   image_url?: string | null;
 }
 
-// ✅ Add language type
-type LanguageType = "si" | "en";
+// Add language type
+type LanguageType = "si" | "en" | "ta";
 
-// ✅ Add translations
+// Add translations
 const translations: Record<LanguageType, any> = {
   si: {
     invalidId: "Invalid news id",
@@ -75,7 +76,8 @@ const translations: Record<LanguageType, any> = {
     linkErrorDesc: "මෙම ලින්ක් එක open කරන්න device එකට නොහැක",
     errorOpening: "ලින්ක් එක open කිරීමේදී දෝෂයක් ඇතිවිය",
     loading: "පුවත පූරණය වෙමින්...",
-    date: "දිනය",
+    date: "ප්‍රකාශිත දිනය",
+    updated: "යාවත්කාලීන දිනය",
     source: "මූලාශ්‍රය",
     district: "දිස්ත්‍රික්කය",
     details: "සවිස්තර විස්තරය",
@@ -100,7 +102,8 @@ const translations: Record<LanguageType, any> = {
     linkErrorDesc: "This link cannot be opened on your device",
     errorOpening: "Error opening link",
     loading: "Loading news...",
-    date: "Date",
+    date: "Published Date",
+    updated: "Last Updated",
     source: "Source",
     district: "District",
     details: "Full Details",
@@ -115,13 +118,40 @@ const translations: Record<LanguageType, any> = {
     cultivation: "Cultivation Tips",
     program: "Program",
   },
+  ta: {
+    invalidId: "Invalid news id",
+    fetchError: "செய்திகளைப் பெற முடியவில்லை",
+    notFound: "செய்திகள் கிடைக்கவில்லை",
+    oops: "ஓப்ஸ்!",
+    goBack: "மீண்டு செல்ல",
+    linkError: "இணைப்பைத் திறக்க முடியாது",
+    linkErrorDesc: "இந்த இணைப்பை உங்கள் சாதனத்தில் திறக்க முடியாது",
+    errorOpening: "இணைப்பைத் திறப்பதில் பிழை",
+    loading: "செய்திகளை பதிவிறக்கிக் கொண்டிருக்கிறது...",
+    date: "வெளியிடப்பட்ட தேதி",
+    updated: "கடைசியாக புதுப்பிக்கப்பட்டது",
+    source: "மூல:",
+    district: "மாவட்டம்",
+    details: "முழு விவரங்கள்",
+    readMore: "முழு செய்திகளைப் படிக்கவும்",
+    price: "விலை",
+    weather: "வானிலை",
+    policy: "கொள்கை",
+    alert: "எச்சரிக்கை",
+    pest: "பூச்சைக்கொல்லி",
+    disease: "நோய்",
+    fertilizer: "உரம்",
+    cultivation: "பயிர் சாகுபடி குறிப்புகள்",
+    program: "திட்டம்",
+  },
 };
 
 export default function NewsDetailScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
   const { language: globalLang } = useLanguage();
-  const language: LanguageType = globalLang === "sinhala" ? "si" : "en";
+  const language: LanguageType =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
   const t = translations[language];
 
   const newsId = route.params?.id;
@@ -302,10 +332,22 @@ export default function NewsDetailScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Animated Header with Parallax Image */}
-      <Animated.View style={[styles.header, { height: headerHeight }]}>
-        {/* Header Image Background */}
-        {news.image_url && (
+      {/* FIXED TOP HEADER — Only when NO image */}
+      {!news.image_url && (
+        <SafeAreaView style={styles.topFixedHeader}>
+          <Pressable
+            onPress={() => navigation.goBack()}
+            style={styles.topHeaderBackButton}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1f2937" />
+          </Pressable>
+        </SafeAreaView>
+      )}
+
+      {/* ANIMATED HEADER WITH IMAGE — Only when HAS image */}
+      {news.image_url && (
+        <Animated.View style={[styles.header, { height: headerHeight }]}>
+          {/* Header Image Background */}
           <Animated.View
             style={[
               styles.headerImageContainer,
@@ -322,40 +364,44 @@ export default function NewsDetailScreen() {
             />
             <View style={styles.headerGradient} />
           </Animated.View>
-        )}
 
-        {/* Solid Background for collapsed state */}
-        <Animated.View
-          style={[
-            styles.headerSolidBackground,
-            { opacity: headerBackgroundOpacity },
-          ]}
-        />
-
-        {/* Header Content */}
-        <View style={styles.headerContent}>
-          {/* Back Button — anchored to the left */}
-          <Pressable
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color="#ffffff" />
-          </Pressable>
-
-          {/* Title — absolutely centered, independent of back button */}
+          {/* Solid Background for collapsed state */}
           <Animated.View
             style={[
-              styles.headerTitleContainer,
+              styles.headerSolidBackground,
               { opacity: headerBackgroundOpacity },
             ]}
-            pointerEvents="none"
-          >
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {news.title}
-            </Text>
-          </Animated.View>
-        </View>
-      </Animated.View>
+          />
+
+          {/* Header Content */}
+          <View style={styles.headerContent}>
+            {/* Back Button — anchored to the left, over image */}
+            <Pressable
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <Ionicons name="arrow-back" size={24} color="#ffffff" />
+            </Pressable>
+
+            {/* Title — absolutely centered, independent of back button */}
+            <Animated.View
+              style={[
+                styles.headerTitleContainer,
+                { opacity: headerBackgroundOpacity },
+              ]}
+              pointerEvents="none"
+            >
+              <Text
+                style={styles.headerTitle}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {news.title}
+              </Text>
+            </Animated.View>
+          </View>
+        </Animated.View>
+      )}
 
       {/* Main Content */}
       <Animated.ScrollView
@@ -369,7 +415,7 @@ export default function NewsDetailScreen() {
       >
         {/* Spacer for header */}
         <View
-          style={{ height: news.image_url ? HEADER_MAX_HEIGHT + 20 : 40 }}
+          style={{ height: news.image_url ? HEADER_MAX_HEIGHT + 20 : 12 }}
         />
 
         {/* Content Card with Fade In */}
@@ -390,7 +436,9 @@ export default function NewsDetailScreen() {
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{news.title}</Text>
+          <Text style={styles.title} numberOfLines={0}>
+            {news.title}
+          </Text>
 
           {/* Meta Information Grid */}
           <View style={styles.metaGrid}>
@@ -405,7 +453,7 @@ export default function NewsDetailScreen() {
               </View>
               <View style={styles.metaContent}>
                 <Text style={styles.metaLabel}>{t.date}</Text>
-                <Text style={styles.metaValue}>
+                <Text style={[styles.metaValue, { flexShrink: 1 }]}>
                   {new Date(news.created_at).toLocaleDateString(
                     language === "si" ? "si-LK" : "en-US",
                     {
@@ -414,6 +462,31 @@ export default function NewsDetailScreen() {
                       day: "numeric",
                     },
                   )}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.metaCard}>
+              <View
+                style={[
+                  styles.metaIconContainer,
+                  { backgroundColor: "#e0e7ff" },
+                ]}
+              >
+                <Ionicons name="refresh-outline" size={18} color="#6366f1" />
+              </View>
+              <View style={styles.metaContent}>
+                <Text style={styles.metaLabel}>{t.updated}</Text>
+                <Text style={[styles.metaValue, { flexShrink: 1 }]}>
+                  {new Date(
+                    news.updated_at && news.updated_at !== "1970-01-01T00:00:00"
+                      ? news.updated_at
+                      : news.created_at,
+                  ).toLocaleDateString(language === "si" ? "si-LK" : "en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
                 </Text>
               </View>
             </View>
@@ -451,7 +524,9 @@ export default function NewsDetailScreen() {
                     style={[
                       styles.metaValue,
                       { color: "#16a34a", fontWeight: "700" },
+                      { color: "#16a34a", fontWeight: "700", flexShrink: 1 },
                     ]}
+                    numberOfLines={1}
                   >
                     {news.district}
                   </Text>
@@ -476,7 +551,9 @@ export default function NewsDetailScreen() {
                 </View>
                 <Text style={styles.summaryTitle}>{t.details}</Text>
               </View>
-              <Text style={styles.summary}>{news.summary}</Text>
+              <Text style={styles.summary} numberOfLines={0}>
+                {news.summary}
+              </Text>
             </View>
           )}
 
@@ -561,6 +638,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-start",
   },
   backButton: {
     width: 44,
@@ -573,13 +651,37 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.3)",
     zIndex: 1,
   },
+  topFixedHeader: {
+    backgroundColor: "#ffffff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    height: 60,
+  },
+  topHeaderBackButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#ffffff",
+    borderColor: "#e5e7eb",
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
   headerTitleContainer: {
     position: "absolute",
     left: 0,
     right: 0,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 72, // 44 (button) + 20 (edge padding) + 8 (gap)
+    paddingHorizontal: 72,
   },
   headerTitle: {
     fontSize: 16,
@@ -680,13 +782,11 @@ const styles = StyleSheet.create({
     color: "#9ca3af",
     marginBottom: 2,
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
+    letterSpacing: 0.5,  },
   metaValue: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#374151",
-  },
+    color: "#374151",  },
 
   /* ================= DIVIDER ================= */
   divider: {

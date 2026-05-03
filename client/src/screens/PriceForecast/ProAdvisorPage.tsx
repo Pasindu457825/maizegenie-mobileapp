@@ -390,26 +390,51 @@ const ProAdvisorPage: React.FC = () => {
 
       const advice: ProAdvice = {
         harvestTiming:
-          data.recommended_action ||
-          (language === "si"
-            ? "අස්වැන්න නිසි කාලයට ගබඩා කර විකිණින්න"
+          language === "si"
+            ? data.recommended_action_si ||
+              data.recommended_action ||
+              "අස්වැන්න නිසි කාලයට ගබඩා කර විකිණින්න"
             : language === "ta"
-              ? "சரியான நேரத்தில் அறுவடையை சேமித்து விற்கவும்"
-              : "Store and sell harvest at proper time"),
+              ? data.recommended_action_ta ||
+                data.recommended_action ||
+                "சரியான நேரத்தில் அறுவடையை சேமித்து விற்கவும்"
+              : data.recommended_action_en ||
+                data.recommended_action ||
+                "Store and sell harvest at proper time",
         delayWeeks: data.storage_advice?.duration_weeks || 0,
         storageRequired: (data.storage_advice?.required ?? false) || false,
         storageDuration: data.storage_advice?.duration_weeks || 0,
         storageAdvice:
-          data.storage_advice?.message_si ||
-          (language === "si"
-            ? "වියලි ස්ථානයක් තෝරන්න"
+          language === "si"
+            ? data.storage_advice?.message_si || "වියලි ස්ථානයක් තෝරන්න"
             : language === "ta"
-              ? "வறண்ட இடத்தை தேர்வு செய்யவும்"
-              : "Choose a dry place"),
-        seedGuidance: guide.seed || "",
-        waterGuidance: guide.water || "",
-        fertilizerGuidance: guide.fertilizer || "",
-        financeGuidance: guide.finance || "",
+              ? data.storage_advice?.message_ta ||
+                "வறண்ட இடத்தை தேர்வு செய்யவும்"
+              : data.storage_advice?.message_en || "Choose a dry place",
+        seedGuidance:
+          language === "si"
+            ? guide.seed_si || guide.seed || ""
+            : language === "ta"
+              ? guide.seed_ta || guide.seed || ""
+              : guide.seed_en || guide.seed || "",
+        waterGuidance:
+          language === "si"
+            ? guide.water_si || guide.water || ""
+            : language === "ta"
+              ? guide.water_ta || guide.water || ""
+              : guide.water_en || guide.water || "",
+        fertilizerGuidance:
+          language === "si"
+            ? guide.fertilizer_si || guide.fertilizer || ""
+            : language === "ta"
+              ? guide.fertilizer_ta || guide.fertilizer || ""
+              : guide.fertilizer_en || guide.fertilizer || "",
+        financeGuidance:
+          language === "si"
+            ? guide.finance_si || guide.finance || ""
+            : language === "ta"
+              ? guide.finance_ta || guide.finance || ""
+              : guide.finance_en || guide.finance || "",
         riskFactors: buildRiskFactors(formData, language),
         opportunities: buildOpportunities(formData, language),
         actionItems: buildActionItems(formData, language),
@@ -703,7 +728,6 @@ const ProAdvisorPage: React.FC = () => {
     return actions;
   };
 
-  // Enhanced Section Card with better visuals
   const SectionCard = ({
     title,
     icon,
@@ -859,7 +883,7 @@ const ProAdvisorPage: React.FC = () => {
     );
   };
 
-  // Enhanced Guide Detail Card
+
   const GuideDetailCard = ({
     category,
     title,

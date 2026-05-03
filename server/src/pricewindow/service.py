@@ -41,6 +41,40 @@ LANGUAGE_MESSAGES = {
             "වහාම අස්වැන්න ගෙන විකුනන නිසා ගබඩා අවශ්‍ය නැත."
         ),
     },
+    "ta": {
+        "STRONG": (
+            "கடந்த பல வருடங்களের வரலாற்று தரவு அடிப்படையில், "
+            "இந்த நேரத்தில் அறுவடை செய்யும்போது மக்காச்சோள விலை "
+            "பொதுவாக அதிகமாக இருக்கிறது."
+        ),
+        "MODERATE": (
+            "வரலாற்று தரவு அடிப்படையில், "
+            "இந்த நேரத்தில் விலைகள் பொதுவாக மধ்যம மட்டத்தில் உள்ளன."
+        ),
+        "WEAK": (
+            "வரலாற்று தரவு காட்டுகிறது, இந்த நேரத்தில் அறுவடை செய்யும்போது "
+            "மக்காச்சோள விலை குறைவாக இருக்கும் வாய்ப்பு அधिक உள்ளது."
+        ),
+        "HARVEST_NOW": (
+            "வரலாற்று தரவு அடிப்படையில் இந்த நேரத்தில் அறுவடை செய்யும்போது "
+            "மக்காச்சோள விலை பொதுவாக அதிகமாக இருக்கிறது."
+        ),
+        "DELAY_HARVEST": (
+            "வரலாற்று தரவு அடிப்படையில் {weeks} வாரங்கள் "
+            "அறுவடையை தாமதிட்டு விற்றால் விலை அதிகமாக இருக்கிறது."
+        ),
+        "HARVEST_AND_STORE": (
+            "இந்த நேரத்தில் அறுவடை செய்யும்போது வரலாற்று ரீதியாக விலை குறைவாக உள்ளது. "
+            "சேமித்து பின்னர் நல்ல விலை நேரத்தில் விற்பது பரிந்துரைக்கப்படுகிறது."
+        ),
+        "STORAGE_REQUIRED": (
+            "{weeks} வாரங்கள் அறுவடையை தாமதிடுவதால் "
+            "உலர்ந்த மற்றும் நல்ல காற்றோட்டம் கொண்ட சேமிப்பகத்தைப் பயன்படுத்தவும்."
+        ),
+        "NO_STORAGE": (
+            "உடனே அறுவடை செய்து விற்பதால் சேமிப்பு தேவையில்லை."
+        ),
+    },
     "en": {
         "STRONG": (
             "Based on historical data over several years, "
@@ -293,18 +327,20 @@ def harvest_time_advisory(
 
     action = get_message(language, action_key, weeks=best["delay_weeks"])
     
-    # Storage advice with language
+    # Storage advice with all language support
     if best["delay_weeks"] > 0:
-        storage_msg = get_message(language, "STORAGE_REQUIRED", weeks=best["delay_weeks"])
+        storage_key = "STORAGE_REQUIRED"
     else:
-        storage_msg = get_message(language, "NO_STORAGE")
+        storage_key = "NO_STORAGE"
 
     storage_advice = {
         "required": best["delay_weeks"] > 0,
         "duration_weeks": best["delay_weeks"],
         "reason": "DELAYED_HARVEST" if best["delay_weeks"] > 0 else "IMMEDIATE_SALE",
-        "message": storage_msg,
-        "message_si": get_message("si", "STORAGE_REQUIRED" if best["delay_weeks"] > 0 else "NO_STORAGE", weeks=best["delay_weeks"])
+        "message": get_message(language, storage_key, weeks=best["delay_weeks"]),
+        "message_si": get_message("si", storage_key, weeks=best["delay_weeks"]),
+        "message_ta": get_message("ta", storage_key, weeks=best["delay_weeks"]),
+        "message_en": get_message("en", storage_key, weeks=best["delay_weeks"])
     }
 
     return {
@@ -315,10 +351,15 @@ def harvest_time_advisory(
         "planting_week": planting_week,
         "base_harvest_week": base_harvest_week,
         "recommended_action": action,
+        "recommended_action_si": get_message("si", action_key, weeks=best["delay_weeks"]),
+        "recommended_action_ta": get_message("ta", action_key, weeks=best["delay_weeks"]),
+        "recommended_action_en": get_message("en", action_key, weeks=best["delay_weeks"]),
         "best_harvest_week": best["harvest_week"],
         "signal": best["label"],
         "message": action,
         "message_si": get_message("si", action_key, weeks=best["delay_weeks"]),
+        "message_ta": get_message("ta", action_key, weeks=best["delay_weeks"]),
+        "message_en": get_message("en", action_key, weeks=best["delay_weeks"]),
         "storage_advice": storage_advice,
         "options_checked": options,
         "language": language

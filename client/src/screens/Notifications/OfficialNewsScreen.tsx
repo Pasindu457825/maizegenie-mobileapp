@@ -57,6 +57,7 @@ interface OfficialNews {
   url?: string;
   image_url?: string;
   created_at: string;
+  updated_at: string;
   is_active: boolean;
   is_visible_to_farmers: boolean;
 }
@@ -127,8 +128,8 @@ const translations: Record<LanguageType, any> = {
     all: "All",
   },
   ta: {
-    title: "அதிகாரப்பூர்வ செய்திகள்",
-    search: "தலைப்பு / சுருக்கம் / மாவட்டம் / ஆதாரம் தேடுங்கள்...",
+    title: "செய்திகள்",
+    search: "தலைப்பு / மாவட்டம் தேடுக...",
     filter: "தேடல் & வடிகட்டல்",
     results: "முடிவுகள்",
     reset: "மீட்டமை",
@@ -227,10 +228,18 @@ export default function OfficialNewsScreen() {
           // 👮 Officer: see all active (even hidden)
           return true;
         })
-        .sort(
-          (a: OfficialNews, b: OfficialNews) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        );
+        .sort((a: OfficialNews, b: OfficialNews) => {
+          // Sort by updated_at (descending), fallback to created_at if updated_at is null/invalid
+          const dateB =
+            b.updated_at && b.updated_at !== "1970-01-01T00:00:00"
+              ? new Date(b.updated_at).getTime()
+              : new Date(b.created_at).getTime();
+          const dateA =
+            a.updated_at && a.updated_at !== "1970-01-01T00:00:00"
+              ? new Date(a.updated_at).getTime()
+              : new Date(a.created_at).getTime();
+          return dateB - dateA;
+        });
 
       setNews(data || []);
     } catch (err) {
@@ -504,15 +513,50 @@ export default function OfficialNewsScreen() {
                 </Text>
               </View>
 
-              <Text style={styles.dateText}>
-                {new Date(item.created_at).toLocaleDateString(
-                  language === "si"
-                    ? "si-LK"
+              <View style={{ flexDirection: "column", alignItems: "flex-end" }}>
+                <Text style={styles.dateText}>
+                  {language === "si"
+                    ? "Updated: "
                     : language === "ta"
-                      ? "ta-LK"
-                      : "en-US",
-                )}
-              </Text>
+                      ? "புதுப்பிக்கப்பட்டது: "
+                      : "Updated: "}
+                  {new Date(
+                    item.updated_at && item.updated_at !== "1970-01-01T00:00:00"
+                      ? item.updated_at
+                      : item.created_at,
+                  ).toLocaleDateString(
+                    language === "si"
+                      ? "si-LK"
+                      : language === "ta"
+                        ? "ta-LK"
+                        : "en-US",
+                  )}
+                </Text>
+                {item.updated_at &&
+                  item.updated_at !== "1970-01-01T00:00:00" &&
+                  new Date(item.updated_at).getTime() !==
+                    new Date(item.created_at).getTime() && (
+                    <Text
+                      style={[
+                        styles.dateText,
+                        { fontSize: 11, color: "#9ca3af", marginTop: 2 },
+                      ]}
+                    >
+                      {language === "si"
+                        ? "created: "
+                        : language === "ta"
+                          ? "உ.தி: "
+                          : "Pub: "}
+                      {new Date(item.created_at).toLocaleDateString(
+                        language === "si"
+                          ? "si-LK"
+                          : language === "ta"
+                            ? "ta-LK"
+                            : "en-US",
+                      )}
+                    </Text>
+                  )}
+              </View>
             </View>
 
             {/* TITLE */}
@@ -533,7 +577,7 @@ export default function OfficialNewsScreen() {
                   resizeMode="cover"
                 />
 
-                {/* 👮 Officer-only hidden badge */}
+                {/* 👮 Officer-only hidden badge (ON IMAGE) */}
                 {!item.is_visible_to_farmers && isOfficer && (
                   <View
                     style={{
@@ -555,6 +599,35 @@ export default function OfficialNewsScreen() {
                     </Text>
                   </View>
                 )}
+              </View>
+            )}
+
+            {/* 👮 Officer-only hidden badge (WITHOUT IMAGE) */}
+            {!item.image_url && !item.is_visible_to_farmers && isOfficer && (
+              <View
+                style={{
+                  backgroundColor: "#fecaca",
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  marginBottom: 12,
+                  borderLeftWidth: 4,
+                  borderLeftColor: "#dc2626",
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#991b1b",
+                    fontSize: 12,
+                    fontWeight: "600",
+                  }}
+                >
+                  {language === "si"
+                    ? "🔒 Farmersට Hidden"
+                    : language === "ta"
+                      ? "🔒 விவசாயிகளிடம் மறைக்கப்பட்டது"
+                      : "🔒 Hidden from Farmers"}
+                </Text>
               </View>
             )}
 

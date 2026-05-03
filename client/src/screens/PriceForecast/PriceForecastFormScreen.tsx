@@ -159,9 +159,84 @@ const PriceForecastFormScreen = () => {
   const [labourCost, setLabourCost] = useState("");
   const [otherCosts, setOtherCosts] = useState("");
   const [hasStorage, setHasStorage] = useState(false);
+
+  // Validation errors for numerical fields
+  const [numericalErrors, setNumericalErrors] = useState<{
+    [key: string]: string;
+  }>({});
   // Dropdown state
   const [showDistrictPopup, setShowDistrictPopup] = useState(false);
   const { user } = useApp();
+
+  // Validation function for negative values in numerical fields
+  const validateNumericalField = (
+    fieldName: string,
+    value: string,
+  ): boolean => {
+    if (!value || value.trim() === "") {
+      setNumericalErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+      return true;
+    }
+
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      setNumericalErrors((prev) => ({
+        ...prev,
+        [fieldName]:
+          language === "si"
+            ? "කරුණාකර වලංගු අංකයක් ඇතුළත් කරන්න"
+            : language === "ta"
+              ? "தயவுசெய்து செல்லுபடியாகும் எண்ணை உள்ளிடவும்"
+              : "Please enter a valid number",
+      }));
+      return false;
+    }
+
+    if (numValue < 0) {
+      setNumericalErrors((prev) => ({
+        ...prev,
+        [fieldName]:
+          language === "si"
+            ? "ऋणात्मक अगयन अवसर नञ"
+            : language === "ta"
+              ? "எதிர்மறை மதிப்புகள் அனுமதிக்கப்படவில்லை"
+              : "Negative values are not allowed",
+      }));
+      return false;
+    }
+
+    // Check for zero values for required fields
+    if (
+      numValue === 0 &&
+      (fieldName === "expectedYield" ||
+        fieldName === "farmArea" ||
+        fieldName === "seedCost" ||
+        fieldName === "fertilizerCost" ||
+        fieldName === "labourCost")
+    ) {
+      setNumericalErrors((prev) => ({
+        ...prev,
+        [fieldName]:
+          language === "si"
+            ? "අගය 0 ට වඩා විශාල විය යුතුය"
+            : language === "ta"
+              ? "மதிப்பு 0 ஐ விட அதிகமாக இருக்க வேண்டும்"
+              : "Value must be greater than 0",
+      }));
+      return false;
+    }
+
+    setNumericalErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[fieldName];
+      return newErrors;
+    });
+    return true;
+  };
 
   // District weekly weather (replaces GPS weather for ML model inputs)
   const [districtWeather, setDistrictWeather] = useState<{
@@ -549,14 +624,14 @@ const PriceForecastFormScreen = () => {
     // ---- RAIN ----
     if (c.includes("shower rain") || c.includes("light intensity shower")) {
       return lang === "si"
-        ? "සෙමෙන් වැසි"
+        ? "මද වැසි"
         : lang === "ta"
           ? "இலகுவான மழை"
           : "Light Shower Rain";
     }
     if (c.includes("light rain")) {
       return lang === "si"
-        ? "සැහැල්ලු වැසි"
+        ? "සිහින් වැසි"
         : lang === "ta"
           ? "சிறு மழை"
           : "Light Rain";
@@ -569,13 +644,13 @@ const PriceForecastFormScreen = () => {
           : "Moderate Rain";
     }
     if (c.includes("heavy") && c.includes("rain")) {
-      return lang === "si" ? "බර වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
+      return lang === "si" ? "තද වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
     }
 
     // ---- CLOUDS ----
     if (c.includes("clear")) {
       return lang === "si"
-        ? "පිරිසිදු අහස"
+        ? "පැහැදිලි අහස"
         : lang === "ta"
           ? "தெளிவான வானம்"
           : "Clear Sky";
@@ -896,6 +971,39 @@ const PriceForecastFormScreen = () => {
 
   const handleSubmit = async () => {
     try {
+      // Check for negative values and zero values in numerical fields
+      const fieldsToValidate = [
+        { name: "expectedYield", value: expectedYield, canBeZero: false },
+        { name: "farmArea", value: farmArea, canBeZero: false },
+        { name: "seedCost", value: seedCost, canBeZero: false },
+        { name: "fertilizerCost", value: fertilizerCost, canBeZero: false },
+        { name: "labourCost", value: labourCost, canBeZero: false },
+        { name: "otherCosts", value: otherCosts, canBeZero: true },
+      ];
+
+      let hasInvalidValues = false;
+      fieldsToValidate.forEach(({ name, value, canBeZero }) => {
+        if (value && value.trim() !== "") {
+          const numValue = parseFloat(value);
+          if (numValue < 0 || (numValue === 0 && !canBeZero)) {
+            hasInvalidValues = true;
+            validateNumericalField(name, value);
+          }
+        }
+      });
+
+      if (hasInvalidValues) {
+        Alert.alert(
+          language === "si" ? "දෝෂයකි" : language === "ta" ? "பிழை" : "Error",
+          language === "si"
+            ? "කරුණාකර සියලු උණාත්මක අගයන් සඳහා පරීක්ෂා කරන්න"
+            : language === "ta"
+              ? "தயவுசெய்து அனைத்து எதிர்மறை மதிப்புகளையும் சரிசெய்யவும்"
+              : "Please fix all numerical values",
+        );
+        return;
+      }
+
       // Validation
       if (
         !district ||
@@ -1187,10 +1295,10 @@ const PriceForecastFormScreen = () => {
               <View style={[styles.autoDataCard, { opacity: 0.6 }]}>
                 <Text style={styles.autoDataLabel}>
                   {language === "si"
-                    ? "දැනට පිරිවිතුරු දත්ත අදහස් නොකරයි"
+                    ? "කරුණාකර මිල දත්ත බැලීමට දිස්ත්‍රික්කයක් තෝරන්න"
                     : language === "ta"
-                      ? "பொறுத்தமான விலை தரவு இல்லை"
-                      : "No price data yet"}
+                      ? "விலைத் தரவை பார்க்க மாவட்டத்தை தேர்ந்தெடுக்கவும்"
+                      : "Please select a district to view price data"}
                 </Text>
               </View>
             )}
@@ -1381,38 +1489,71 @@ const PriceForecastFormScreen = () => {
                 {content[language].expectedYield} *
               </Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  numericalErrors.expectedYield && styles.inputError,
+                ]}
                 placeholder="1000"
                 value={expectedYield}
-                onChangeText={setExpectedYield}
+                onChangeText={(text) => {
+                  setExpectedYield(text);
+                  validateNumericalField("expectedYield", text);
+                }}
                 keyboardType="numeric"
                 placeholderTextColor="#9CA3AF"
               />
+              {numericalErrors.expectedYield && (
+                <Text style={styles.errorMessage}>
+                  {numericalErrors.expectedYield}
+                </Text>
+              )}
             </View>
 
             <View style={[styles.formGroup, styles.formGroupHalf]}>
               <Text style={styles.label}>{content[language].farmArea} *</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  numericalErrors.farmArea && styles.inputError,
+                ]}
                 placeholder="2.5"
                 value={farmArea}
-                onChangeText={setFarmArea}
+                onChangeText={(text) => {
+                  setFarmArea(text);
+                  validateNumericalField("farmArea", text);
+                }}
                 keyboardType="numeric"
                 placeholderTextColor="#9CA3AF"
               />
+              {numericalErrors.farmArea && (
+                <Text style={styles.errorMessage}>
+                  {numericalErrors.farmArea}
+                </Text>
+              )}
             </View>
           </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedCost} *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                numericalErrors.seedCost && styles.inputError,
+              ]}
               placeholder="25000"
               value={seedCost}
-              onChangeText={setSeedCost}
+              onChangeText={(text) => {
+                setSeedCost(text);
+                validateNumericalField("seedCost", text);
+              }}
               keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
             />
+            {numericalErrors.seedCost && (
+              <Text style={styles.errorMessage}>
+                {numericalErrors.seedCost}
+              </Text>
+            )}
           </View>
 
           <View style={styles.formGroup}>
@@ -1420,37 +1561,70 @@ const PriceForecastFormScreen = () => {
               {content[language].fertilizerCost} *
             </Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                numericalErrors.fertilizerCost && styles.inputError,
+              ]}
               placeholder="35000"
               value={fertilizerCost}
-              onChangeText={setFertilizerCost}
+              onChangeText={(text) => {
+                setFertilizerCost(text);
+                validateNumericalField("fertilizerCost", text);
+              }}
               keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
             />
+            {numericalErrors.fertilizerCost && (
+              <Text style={styles.errorMessage}>
+                {numericalErrors.fertilizerCost}
+              </Text>
+            )}
           </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].labourCost} *</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                numericalErrors.labourCost && styles.inputError,
+              ]}
               placeholder="40000"
               value={labourCost}
-              onChangeText={setLabourCost}
+              onChangeText={(text) => {
+                setLabourCost(text);
+                validateNumericalField("labourCost", text);
+              }}
               keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
             />
+            {numericalErrors.labourCost && (
+              <Text style={styles.errorMessage}>
+                {numericalErrors.labourCost}
+              </Text>
+            )}
           </View>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].otherCosts}</Text>
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                numericalErrors.otherCosts && styles.inputError,
+              ]}
               placeholder="5000"
               value={otherCosts}
-              onChangeText={setOtherCosts}
+              onChangeText={(text) => {
+                setOtherCosts(text);
+                validateNumericalField("otherCosts", text);
+              }}
               keyboardType="numeric"
               placeholderTextColor="#9CA3AF"
             />
+            {numericalErrors.otherCosts && (
+              <Text style={styles.errorMessage}>
+                {numericalErrors.otherCosts}
+              </Text>
+            )}
           </View>
 
           <View style={styles.switchGroup}>
@@ -1691,6 +1865,17 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  inputError: {
+    borderColor: "#EF4444",
+    backgroundColor: "#FEE2E2",
+  },
+  errorMessage: {
+    color: "#DC2626",
+    fontSize: 12,
+    fontWeight: "600",
+    marginTop: 6,
+    marginLeft: 4,
   },
   switchGroup: {
     flexDirection: "row",
