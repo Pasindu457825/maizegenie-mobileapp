@@ -212,7 +212,7 @@ def predict_yield_service(data: Dict) -> Dict:
         "calendar_event": { "title": str, "date": str },
         "factors": [ { "name": str, "impact": str, "value": float } ],
         "model_version": str,
-        "prediction_method": "ML" | "Rule-Based"
+        "prediction_method": "ml_model" | "rule_based" | "hybrid"
     }
     """
     
@@ -275,7 +275,7 @@ def predict_yield_service(data: Dict) -> Dict:
         },
         "factors": factors,
         "model_version": "Rule-Based_v1.0",
-        "prediction_method": "Rule-Based",
+        "prediction_method": "rule_based",
     }
     
     logger.info(f"✅ Rule-based prediction: {yield_kg_ha:.2f} kg/ha")
