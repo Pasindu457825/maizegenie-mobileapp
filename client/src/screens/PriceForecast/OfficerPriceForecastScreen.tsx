@@ -77,7 +77,6 @@ const formatRs = (v?: any) => {
   // Convert to number
   const num = Number(v);
 
-  // Validate the result
   if (!Number.isFinite(num)) return "Rs. 0.00";
 
   return `Rs. ${num.toFixed(2)}`;
@@ -229,7 +228,7 @@ export default function OfficerPriceForecastScreen() {
       predictedPrice: "පුරෝකථනය කළ මිල",
       confidence: "විශ්වාසය",
       change: "වෙනස",
-      base: "පදනම",
+      base: "පදනම් සතිය",
       spread: "විහිදීම",
       strong: "ශක්තිමත්",
       moderate: "මධ්‍යස්ථ",
@@ -513,6 +512,7 @@ export default function OfficerPriceForecastScreen() {
           const sanitized = String(formData.fuelPrice)
             .replace(/[^0-9.]/g, "")
             .trim();
+
           const parsed = parseFloat(sanitized);
           if (Number.isFinite(parsed)) fuelPriceValue = parsed;
         }
@@ -1084,13 +1084,11 @@ export default function OfficerPriceForecastScreen() {
                       {t.optimalSelling}
                     </Text>
                     <Text style={styles.recommendationText}>
-                      {t.optimalText} {bestWeek?.week}{" "}
                       {language === "si"
-                        ? "මඟින්"
+                        ? `${bestWeek?.week} වන සතියේ ${formatRs(bestWeek?.rf_price)} ක ඉහළම මිලක් අපේක්ෂා වන නිසා, එය හොඳම විකුණුම් අවස්ථාව ලෙස හඳුනාගෙන ඇත.`
                         : language === "ta"
-                          ? "உடன்"
-                          : "with peak price of"}{" "}
-                      {formatRs(bestWeek?.rf_price)}.
+                          ? `${bestWeek?.week} ஆம் வாரத்தில் ${formatRs(bestWeek?.rf_price)} என்ற அதிகபட்ச விலை எதிர்பார்க்கப்படுவதால், அது சிறந்த விற்பனை வாய்ப்பாக அடையாளம் காணப்பட்டுள்ளது.`
+                          : `Best selling opportunity identified in Week ${bestWeek?.week} with peak price of ${formatRs(bestWeek?.rf_price)}.`}
                     </Text>
                   </View>
                 </View>
@@ -1330,13 +1328,11 @@ export default function OfficerPriceForecastScreen() {
                       {t.optimalSelling}
                     </Text>
                     <Text style={styles.recommendationText}>
-                      {t.optimalText} {bestWeek?.week}{" "}
                       {language === "si"
-                        ? "මඟින්"
+                        ? `${bestWeek?.week} වන සතියේ ${formatRs(bestWeek?.rf_price)} ක ඉහළම මිලක් අපේක්ෂා වන නිසා, එය හොඳම විකුණුම් අවස්ථාව ලෙස හඳුනාගෙන ඇත.`
                         : language === "ta"
-                          ? "உடன்"
-                          : "with peak price of"}{" "}
-                      {formatRs(bestWeek?.rf_price)}.
+                          ? `${bestWeek?.week} ஆம் வாரத்தில் ${formatRs(bestWeek?.rf_price)} என்ற அதிகபட்ச விலை எதிர்பார்க்கப்படுவதால், அது சிறந்த விற்பனை வாய்ப்பாக அடையாளம் காணப்பட்டுள்ளது.`
+                          : `Best selling opportunity identified in Week ${bestWeek?.week} with peak price of ${formatRs(bestWeek?.rf_price)}.`}
                     </Text>
                   </View>
                 </View>
@@ -1567,12 +1563,6 @@ export default function OfficerPriceForecastScreen() {
                 <View style={styles.metadataRow}>
                   <Text style={styles.metadataLabel}>Weeks Forecast</Text>
                   <Text style={styles.metadataValue}>{weeks.length}</Text>
-                </View>
-                <View style={styles.metadataRow}>
-                  <Text style={styles.metadataLabel}>Fuel Price (Input)</Text>
-                  <Text style={styles.metadataValue}>
-                    {formatRs(formData?.fuelPrice)}
-                  </Text>
                 </View>
               </View>
             </>
