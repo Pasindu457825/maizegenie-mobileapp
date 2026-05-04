@@ -159,8 +159,26 @@ def build_impact_factors(data: Dict, multipliers: Dict[str, float]) -> List[Dict
 
 def predict_yield_service(data: Dict) -> Dict:
     """
-    Main prediction service. Tries ML model (XGBoost) first, falls back to rule-based.
-    Returns format that matches frontend expectations.
+    Main prediction service with ML-first approach.
+    Returns format that matches frontend expectations EXACTLY.
+    
+    Strategy:
+    1. Try ML model first (XGBoost) - most accurate
+    2. Fallback to rule-based if ML fails
+    3. Return comprehensive prediction with impact factors
+    
+    Frontend expects:
+    {
+        "predicted_yield": float (kg/ha),
+        "predicted_yield_t_ha": float,
+        "confidence": "High" | "Medium" | "Low",
+        "confidence_score": float,
+        "harvest_window": { "start": str, "end": str, "target": str },
+        "calendar_event": { "title": str, "date": str },
+        "factors": [ { "name": str, "impact": str, "value": float } ],
+        "model_version": str,
+        "prediction_method": "ml_model" | "rule_based" | "hybrid"
+    }
     """
     
     if ML_AVAILABLE:
@@ -215,7 +233,7 @@ def predict_yield_service(data: Dict) -> Dict:
         },
         "factors": factors,
         "model_version": "Rule-Based_v1.0",
-        "prediction_method": "Rule-Based",
+        "prediction_method": "rule_based",
     }
     
     logger.info(f"Rule-based prediction: {yield_kg_ha:.2f} kg/ha")
