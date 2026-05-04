@@ -62,8 +62,7 @@ const ProfileScreen = () => {
     pestModel,
     setPestModel,
     refreshProfile,
-  } =
-    useApp();
+  } = useApp();
   const { language, setLanguage } = useLanguage();
   const navigation = useNavigation<any>();
   const [predictions, setPredictions] = useState<any[]>([]);
@@ -476,7 +475,7 @@ Status: ${prediction.status || "Active"}`;
         CommonActions.reset({
           index: 0,
           routes: [{ name: ROUTES.AUTH.LOGIN }],
-        })
+        }),
       );
     }
   };
@@ -494,10 +493,10 @@ Status: ${prediction.status || "Active"}`;
     key: "sinhala" | "english" | "tamil";
     label: string;
   }> = [
-      { key: "sinhala", label: "සිංහල" },
-      { key: "english", label: "English" },
-      { key: "tamil", label: "தமிழ்" },
-    ];
+    { key: "sinhala", label: "සිංහල" },
+    { key: "english", label: "English" },
+    { key: "tamil", label: "தமிழ்" },
+  ];
 
   const getInitials = (name: string) => {
     return name
@@ -588,7 +587,8 @@ Status: ${prediction.status || "Active"}`;
                 </Text>
                 {hasActiveSubscription && user?.subscription_end_date ? (
                   <Text style={styles.subscriptionDate}>
-                    {t.subscriptionEnds}: {formatDate(user.subscription_end_date)}
+                    {t.subscriptionEnds}:{" "}
+                    {formatDate(user.subscription_end_date)}
                   </Text>
                 ) : null}
 
@@ -669,7 +669,7 @@ Status: ${prediction.status || "Active"}`;
           {/* ===== END ADMIN PEST FORUM BUTTON ===== */}
 
           {/* AI Model Selection */}
-          {user?.role === "farmer" && (
+          {(user?.role === "farmer" || user?.role === "officer") && (
             <View style={styles.modelSection}>
               <View style={styles.sectionHeader}>
                 <View style={styles.sectionIconContainer}>
@@ -799,7 +799,9 @@ Status: ${prediction.status || "Active"}`;
                 </View>
                 <View>
                   <Text style={styles.sectionTitle}>{t.pestDetection}</Text>
-                  <Text style={styles.sectionSubtitle}>{t.choosePestModel}</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    {t.choosePestModel}
+                  </Text>
                 </View>
               </View>
 
@@ -1142,10 +1144,14 @@ Status: ${prediction.status || "Active"}`;
       >
         <View style={styles.modalOverlay}>
           <View style={styles.languageModal}>
-            <Text style={styles.languageModalTitle}>{t.subscriptionDetails}</Text>
+            <Text style={styles.languageModalTitle}>
+              {t.subscriptionDetails}
+            </Text>
 
             <View style={styles.subscriptionRow}>
-              <Text style={styles.subscriptionLabel}>{t.subscriptionStatus}</Text>
+              <Text style={styles.subscriptionLabel}>
+                {t.subscriptionStatus}
+              </Text>
               <Text style={styles.subscriptionValue}>
                 {hasActiveSubscription ? t.activeStatus : t.inactiveStatus}
               </Text>
