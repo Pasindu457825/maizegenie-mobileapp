@@ -93,6 +93,7 @@ const MarketPlaceScreen = () => {
   const [quickOfferPrice, setQuickOfferPrice] = useState<string>("");
   const [isSubmittingQuickOffer, setIsSubmittingQuickOffer] = useState(false);
   const [isPublishingNow, setIsPublishingNow] = useState<string | null>(null); // postId being published
+  const soldCount = posts.filter((p) => p.status === "sold").length;
   const [postScope, setPostScope] = useState<"all" | "mine">("all");
   const [showMyOffersOnly, setShowMyOffersOnly] = useState(false);
 
@@ -719,8 +720,8 @@ const MarketPlaceScreen = () => {
               : language === "ta"
                 ? "சுறுசீரானது"
                 : "active"}
-            {posts.length - activeCount > 0
-              ? ` · ${posts.length - activeCount} ${language === "si" ? "විකිණී" : language === "ta" ? "விற்பனை" : "sold"}`
+            {soldCount > 0
+              ? ` · ${soldCount} ${language === "si" ? "විකිණී" : language === "ta" ? "விற்பனை" : "sold"}`
               : ""}
           </Text>
         </View>
