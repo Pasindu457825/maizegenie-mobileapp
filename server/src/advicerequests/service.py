@@ -249,7 +249,7 @@ async def create_advice_request(
         required_fields = {"id", "farmer_id", "request_type", "status", "priority", "created_at"}
         request_data = {k: v for k, v in request_data.items() if v is not None or k in required_fields}
         
-        print(f"📝 Creating advice request with data: {list(request_data.keys())}")
+        print(f"Creating advice request with data: {list(request_data.keys())}")
 
         result = supabase.table("farmer_advice_requests").insert(request_data).execute()
         

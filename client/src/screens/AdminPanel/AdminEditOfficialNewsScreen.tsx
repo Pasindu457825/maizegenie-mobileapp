@@ -12,13 +12,13 @@ import {
   StyleSheet,
   Platform,
   Modal,
-  SafeAreaView,
 } from "react-native";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
 import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
 import { useNavigation } from "@react-navigation/native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Language
 import { useLanguage } from "../../context/LanguageContext";
@@ -94,6 +94,8 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       noImage: "පින්තූරයක් නැත",
       selectCategory: "වර්ගය තෝරන්න",
       loading: "පූරණය වෙමින්...",
+      errorTitle: "දෝෂය",
+      loadError: "පුවත ලබා ගැනීමට නොහැකි විය",
     },
     en: {
       title: "Edit Official News",
@@ -125,6 +127,8 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       noImage: "No image",
       selectCategory: "Select Category",
       loading: "Loading...",
+      errorTitle: "Error",
+      loadError: "Failed to load news",
     },
     ta: {
       title: "அதிகாரப்பூர்வ செய்தியை திருத்து",
@@ -156,6 +160,8 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       noImage: "படம் இல்லை",
       selectCategory: "வகையை தேர்வு செய்யவும்",
       loading: "ஏற்றுகிறது...",
+      errorTitle: "பிழை",
+      loadError: "செய்திகளை ஏற்ற முடியவில்லை",
     },
   };
 
@@ -228,7 +234,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
         setSourceError(null);
         setCategoryError(null);
       } catch (e: any) {
-        Alert.alert("Error", e?.message || "Failed to load news");
+        Alert.alert(t.errorTitle, e?.message || t.loadError);
       } finally {
         if (mounted) setInitialLoading(false);
       }

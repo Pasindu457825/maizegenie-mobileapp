@@ -1,7 +1,8 @@
-import base64
 import os
 from typing import Any, Dict, List
 
+import cv2
+import numpy as np
 from inference_sdk import InferenceHTTPClient
 
 _client: InferenceHTTPClient | None = None
@@ -66,9 +67,12 @@ def predict_pest_premium(
 ) -> Dict[str, Any]:
     client = _get_client()
     model_id = _get_model_id()
-    image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+    img_array = np.frombuffer(image_bytes, np.uint8)
+    img_bgr = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+    if img_bgr is None:
+        raise ValueError("Invalid image")
 
-    result = client.infer(image_b64, model_id=model_id)
+    result = client.infer(img_bgr, model_id=model_id)
     raw_preds: List[Dict[str, Any]] = result.get("predictions", []) or []
 
     effective_conf = max(conf, PREMIUM_MIN_CONFIDENCE)

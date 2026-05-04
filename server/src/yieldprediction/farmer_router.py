@@ -55,14 +55,13 @@ async def predict_yield_farmer(
     Farmers do NOT receive fertilizer schedules - only officers get those.
     """
     try:
-        # ✅ Use authenticated user ID instead of request body
         authenticated_farmer_id = current_user["id"]
         
         print(f"\n{'='*60}")
-        print(f"🌾 FARMER PREDICTION REQUEST")
+        print(f"FARMER PREDICTION REQUEST")
         print(f"{'='*60}")
-        print(f"🔐 Authenticated Farmer ID: {authenticated_farmer_id}")
-        print(f"📧 Email: {current_user.get('email', 'N/A')}")
+        print(f"Authenticated Farmer ID: {authenticated_farmer_id}")
+        print(f"Email: {current_user.get('email', 'N/A')}")
         print(f"District: {request.district}")
         print(f"Season: {request.season}")
         print(f"Variety: {request.variety}")
@@ -83,20 +82,20 @@ async def predict_yield_farmer(
         try:
             # Override farmer_id with authenticated user ID
             input_data = request.model_dump()
-            input_data['farmer_id'] = authenticated_farmer_id  # ✅ Use verified ID
-            input_data['season'] = season_normalized  # ✅ Save normalized season
+            input_data['farmer_id'] = authenticated_farmer_id
+            input_data['season'] = season_normalized
             
-            print(f"🔍 DEBUG: Attempting to save farmer input for farmer_id: {authenticated_farmer_id}")
-            print(f"🔍 DEBUG: Input data keys: {list(input_data.keys())}")
+            print(f"DEBUG: Attempting to save farmer input for farmer_id: {authenticated_farmer_id}")
+            print(f"DEBUG: Input data keys: {list(input_data.keys())}")
             
             farmer_input_id = await save_farmer_input(input_data)
-            print(f"✅ Saved to farmer_inputs table: {farmer_input_id}")
+            print(f"Saved to farmer_inputs table: {farmer_input_id}")
         except Exception as db_error:
-            print(f"❌ DATABASE SAVE FAILED!")
-            print(f"❌ Error type: {type(db_error).__name__}")
-            print(f"❌ Error message: {str(db_error)}")
+            print(f"DATABASE SAVE FAILED!")
+            print(f"Error type: {type(db_error).__name__}")
+            print(f"Error message: {str(db_error)}")
             import traceback
-            print(f"❌ Full traceback:")
+            print(f"Full traceback:")
             traceback.print_exc()
             # Continue with prediction even if DB save fails
             farmer_input_id = generate_uuid()
@@ -107,7 +106,7 @@ async def predict_yield_farmer(
         if request.land_size_unit.lower() == 'hectares':
             # Convert hectares to acres (1 hectare = 2.47105 acres)
             land_size_acres = request.land_size_value * 2.47105
-            print(f"🔄 Converted {request.land_size_value} hectares to {land_size_acres:.2f} acres")
+            print(f"Converted {request.land_size_value} hectares to {land_size_acres:.2f} acres")
         
         # Step 3: Run yield prediction
         try:
@@ -155,7 +154,7 @@ async def predict_yield_farmer(
                 'sunshine_hours': request.sunshine_hours,
             }
             
-            print(f"🔄 Calling prediction service...")
+            print(f"Calling prediction service...")
             result = predict_yield_service(prediction_input)
             predicted_yield = result.get('predicted_yield')  # kg/ha from service
             prediction_method = result.get('prediction_method', 'unknown')
@@ -164,16 +163,16 @@ async def predict_yield_farmer(
             if predicted_yield is None:
                 raise ValueError("Prediction service returned no yield value")
             
-            print(f"📊 Predicted Yield: {predicted_yield:.2f} kg/ha")
-            print(f"🤖 Prediction Method: {prediction_method}")
-            print(f"📦 Model Version: {model_version}")
+            print(f"Predicted Yield: {predicted_yield:.2f} kg/ha")
+            print(f"Prediction Method: {prediction_method}")
+            print(f"Model Version: {model_version}")
             
             # Store full result for response
             ml_factors = result.get('factors', [])
             ml_harvest_window = result.get('harvest_window', {})
             
         except Exception as pred_error:
-            print(f"❌ Prediction error: {pred_error}")
+            print(f"Prediction error: {pred_error}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Prediction failed: {str(pred_error)}"
@@ -185,11 +184,11 @@ async def predict_yield_farmer(
         if weather_data_source == "auto":
             # Auto-filled weather data: 70% base confidence
             confidence_score = 70.0
-            print(f"📊 Confidence: Auto-filled weather data (70% base)")
+            print(f"Confidence: Auto-filled weather data (70% base)")
         else:
             # Manually entered weather data: 70-85% confidence
             confidence_score = 75.0  # Start at 75% for manual entry
-            print(f"📊 Confidence: Manual weather data (75% base)")
+            print(f"Confidence: Manual weather data (75% base)")
             
             # Boost for good conditions (up to 85%)
             if request.soil_condition == 'Good' and request.irrigation_type == 'Irrigated':
@@ -220,7 +219,7 @@ async def predict_yield_farmer(
         else:
             confidence_level = 'Low'
         
-        print(f"✅ Final Confidence: {confidence_score:.1f}% ({confidence_level})")
+        print(f"Final Confidence: {confidence_score:.1f}% ({confidence_level})")
         
         # Calculate yield bounds (±15%)
         yield_lower = predicted_yield * 0.85
@@ -229,10 +228,10 @@ async def predict_yield_farmer(
         # Step 5: Build impact factors
         # Use ML factors if available, otherwise build simplified factors
         if ml_factors and len(ml_factors) > 0:
-            print(f"✅ Using {len(ml_factors)} ML-based impact factors")
+            print(f"Using {len(ml_factors)} ML-based impact factors")
             impact_factors = convert_ml_factors_to_farmer_format(ml_factors)
         else:
-            print(f"⚠️ Using simplified impact factors")
+            print(f"Using simplified impact factors")
             impact_factors = build_farmer_impact_factors(
                 soil_condition=request.soil_condition,
                 irrigation_type=request.irrigation_type,
@@ -288,9 +287,9 @@ async def predict_yield_farmer(
                     'prediction_method': prediction_data.prediction_method
                 }
             )
-            print(f"✅ Saved to yield_predictions table")
+            print(f"Saved to yield_predictions table")
         except Exception as db_error:
-            print(f"⚠️  Prediction save failed: {db_error}")
+            print(f"Prediction save failed: {db_error}")
             # Continue even if DB save fails
         
         # Step 9: Calculate district optimal yield for comparison
@@ -304,8 +303,8 @@ async def predict_yield_farmer(
         # Calculate comparison percentage
         comparison_percentage = ((predicted_yield - district_optimal_yield) / district_optimal_yield) * 100
         
-        print(f"📊 District Optimal: {district_optimal_yield:.2f} kg/ha")
-        print(f"📈 Comparison: {comparison_percentage:+.1f}% vs district optimal")
+        print(f"District Optimal: {district_optimal_yield:.2f} kg/ha")
+        print(f"Comparison: {comparison_percentage:+.1f}% vs district optimal")
         
         # Step 10: Generate summary messages
         yield_tons = prediction_data.predicted_yield_tons_per_ha
@@ -336,10 +335,10 @@ async def predict_yield_farmer(
         
         # Log comparison results
         if variety_comparison:
-            print(f"🌱 Variety suggestion: {variety_comparison['suggested_variety']} "
+            print(f"Variety suggestion: {variety_comparison['suggested_variety']} "
                   f"(+{variety_comparison['yield_increase_percentage']:.1f}%)")
         if irrigation_comparison:
-            print(f"💧 Irrigation suggestion: {irrigation_comparison['suggested_irrigation']} "
+            print(f"Irrigation suggestion: {irrigation_comparison['suggested_irrigation']} "
                   f"(+{irrigation_comparison['yield_increase_percentage']:.1f}%)")
         
         # Step 12: Build response with comparison data
@@ -368,7 +367,7 @@ async def predict_yield_farmer(
         )
         
         print(f"\n{'='*60}")
-        print(f"✅ FARMER PREDICTION COMPLETED")
+        print(f"FARMER PREDICTION COMPLETED")
         print(f"Prediction ID: {prediction_id}")
         print(f"Yield: {yield_tons:.2f} t/ha")
         print(f"Confidence: {confidence_level} ({confidence_score:.1f}%)")
@@ -379,7 +378,7 @@ async def predict_yield_farmer(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"Unexpected error: {e}")
         error_response = PredictionErrorResponse(
             message=f"Yield prediction failed: {str(e)}",
             details={"error_type": type(e).__name__},
@@ -605,7 +604,7 @@ async def get_farmer_prediction_history(
     try:
         farmer_id = current_user["id"]
         
-        print(f"📊 Fetching prediction history for farmer: {farmer_id}")
+        print(f"Fetching prediction history for farmer: {farmer_id}")
         
         # Query database for farmer's predictions
         from core.supabase_client import supabase
@@ -622,9 +621,8 @@ async def get_farmer_prediction_history(
         # Format predictions with shareable text
         formatted_predictions = []
         for pred in predictions:
-            # Debug: Print prediction data to see field names
-            print(f"🔍 DEBUG - Prediction fields: {pred.keys()}")
-            print(f"🔍 DEBUG - Variety value: {pred.get('variety')}")
+            print(f"DEBUG - Prediction fields: {pred.keys()}")
+            print(f"DEBUG - Variety value: {pred.get('variety')}")
             
             # Generate shareable text for officer chat
             shareable_text = generate_shareable_text(pred)
@@ -664,7 +662,7 @@ async def get_farmer_prediction_history(
         }
         
     except Exception as e:
-        print(f"❌ Error fetching prediction history: {e}")
+        print(f"Error fetching prediction history: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch prediction history: {str(e)}"
@@ -680,25 +678,25 @@ def generate_shareable_text(prediction: dict) -> str:
     Returns:
         Formatted text for sharing with agricultural officer
     """
-    text = f"""🌾 Maize Yield Prediction Request
+    text = f"""Maize Yield Prediction Request
 
-📍 Location: {prediction.get('district', 'N/A')}
+Location: {prediction.get('district', 'N/A')}
 {f"   {prediction.get('location', '')}" if prediction.get('location') else ""}
 
-🌱 Crop Details:
-   • Variety: {prediction.get('variety', 'N/A')}
-   • Season: {prediction.get('season', 'N/A')}
-   • Planting Date: {prediction.get('planting_date', 'N/A')}
+Crop Details:
+   - Variety: {prediction.get('variety', 'N/A')}
+   - Season: {prediction.get('season', 'N/A')}
+   - Planting Date: {prediction.get('planting_date', 'N/A')}
 
-🏞️ Farm Details:
-   • Land Size: {prediction.get('land_size_value', 'N/A')} {prediction.get('land_size_unit', '')}
-   • Soil Condition: {prediction.get('soil_condition', 'N/A')}
-   • Irrigation: {prediction.get('irrigation_type', 'N/A')}
-   • Rainfall: {prediction.get('rainfall_condition', 'N/A')}
+Farm Details:
+   - Land Size: {prediction.get('land_size_value', 'N/A')} {prediction.get('land_size_unit', '')}
+   - Soil Condition: {prediction.get('soil_condition', 'N/A')}
+   - Irrigation: {prediction.get('irrigation_type', 'N/A')}
+   - Rainfall: {prediction.get('rainfall_condition', 'N/A')}
 
-📅 Request Date: {prediction.get('created_at', 'N/A')}
+Request Date: {prediction.get('created_at', 'N/A')}
 
-{f"💬 Farmer Message: {prediction.get('farmer_message', '')}" if prediction.get('farmer_message') else ""}
+{f"Farmer Message: {prediction.get('farmer_message', '')}" if prediction.get('farmer_message') else ""}
 
 ---
 I would like guidance on improving my maize yield. Please advise on best practices and recommendations.

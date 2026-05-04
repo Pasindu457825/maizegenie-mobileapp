@@ -81,9 +81,9 @@ const MarketPlaceScreen = () => {
   const [currentUserId, setCurrentUserId] = useState<string>("");
   const [userOffers, setUserOffers] = useState<Map<string, boolean>>(new Map());
   const [activeCount, setActiveCount] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<"not_sold" | "sold">(
-    "not_sold",
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "not_sold" | "sold" | "archived"
+  >("not_sold");
 
   // Quick offer modal state
   const [showQuickOfferModal, setShowQuickOfferModal] = useState(false);
@@ -93,7 +93,8 @@ const MarketPlaceScreen = () => {
   const [quickOfferPrice, setQuickOfferPrice] = useState<string>("");
   const [isSubmittingQuickOffer, setIsSubmittingQuickOffer] = useState(false);
   const [isPublishingNow, setIsPublishingNow] = useState<string | null>(null); // postId being published
-  const [showOwnPostsOnly, setShowOwnPostsOnly] = useState(false);
+  const soldCount = posts.filter((p) => p.status === "sold").length;
+  const [postScope, setPostScope] = useState<"all" | "mine">("all");
   const [showMyOffersOnly, setShowMyOffersOnly] = useState(false);
 
   const content = {
@@ -356,12 +357,14 @@ const MarketPlaceScreen = () => {
             .toLowerCase()
             .includes(searchQuery.toLowerCase()) ||
             post.district.toLowerCase().includes(searchQuery.toLowerCase())) &&
-          // Status filter: "sold" shows only sold; "not_sold" hides sold
+          // Status filter: keep active, sold, and scheduled/archived separate
           (statusFilter === "sold"
             ? post.status === "sold"
-            : post.status !== "sold") &&
-          // Own posts filter: if enabled, show only current user's posts
-          (showOwnPostsOnly ? post.farmer_id === currentUserId : true) &&
+            : statusFilter === "archived"
+              ? post.status === "scheduled"
+              : post.status === "active") &&
+          // Post scope filter
+          (postScope === "mine" ? post.farmer_id === currentUserId : true) &&
           // My offers filter: if enabled, show only posts where user has placed an offer
           (showMyOffersOnly ? userOffers.get(post.id) === true : true),
       )
@@ -372,7 +375,7 @@ const MarketPlaceScreen = () => {
     posts,
     currentUserId,
     statusFilter,
-    showOwnPostsOnly,
+    postScope,
     showMyOffersOnly,
     userOffers,
   ]);
@@ -717,8 +720,8 @@ const MarketPlaceScreen = () => {
               : language === "ta"
                 ? "சுறுசீரானது"
                 : "active"}
-            {posts.length - activeCount > 0
-              ? ` · ${posts.length - activeCount} ${language === "si" ? "විකිණී" : language === "ta" ? "விற்பனை" : "sold"}`
+            {soldCount > 0
+              ? ` · ${soldCount} ${language === "si" ? "විකිණී" : language === "ta" ? "விற்பனை" : "sold"}`
               : ""}
           </Text>
         </View>
@@ -737,15 +740,45 @@ const MarketPlaceScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Status Filter Pills - Horizontal Scrollable */}
+      {/* Filter Pills */}
       <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          scrollEnabled={true}
-          nestedScrollEnabled={false}
-        >
+        <View style={styles.filterRow}>
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              postScope === "all" && styles.filterPillActive,
+            ]}
+            onPress={() => setPostScope("all")}
+          >
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[
+                styles.filterPillText,
+                postScope === "all" && styles.filterPillTextActive,
+              ]}
+            >
+              {content[language].allPosts}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.filterPill,
+              postScope === "mine" && styles.filterPillActive,
+            ]}
+            onPress={() => setPostScope("mine")}
+          >
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              style={[
+                styles.filterPillText,
+                postScope === "mine" && styles.filterPillTextActive,
+              ]}
+            >
+              {content[language].myPosts}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.filterPill,
@@ -793,21 +826,19 @@ const MarketPlaceScreen = () => {
           <TouchableOpacity
             style={[
               styles.filterPill,
-              showOwnPostsOnly && styles.filterPillActive,
+              statusFilter === "archived" && styles.filterPillActive,
             ]}
-            onPress={() => setShowOwnPostsOnly(!showOwnPostsOnly)}
+            onPress={() => setStatusFilter("archived")}
           >
             <Text
               numberOfLines={1}
               ellipsizeMode="tail"
               style={[
                 styles.filterPillText,
-                showOwnPostsOnly && styles.filterPillTextActive,
+                statusFilter === "archived" && styles.filterPillTextActive,
               ]}
             >
-              {showOwnPostsOnly
-                ? content[language].myPosts
-                : content[language].allPosts}
+              {language === "en" ? "Archived" : content[language].scheduled}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -828,7 +859,7 @@ const MarketPlaceScreen = () => {
               {content[language].myOffers}
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </View>
 
       {/* Search */}
@@ -1491,15 +1522,15 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     gap: 8,
     alignItems: "center",
+    flexWrap: "wrap",
   },
   filterContainer: {
-    height: 60,
     backgroundColor: "#F0FDF4",
-    justifyContent: "center",
+    paddingBottom: 4,
   },
   filterPill: {
     height: 40,
-    minWidth: 90,
+    minWidth: 98,
     paddingHorizontal: 14,
     borderRadius: 20,
     borderWidth: 1.5,

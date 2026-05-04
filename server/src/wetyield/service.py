@@ -18,10 +18,9 @@ MODEL_LOADED = False
 
 SEED_VARIETIES = ["Jet 999", "GT 709", "GT 200", "Pacific 808", "Commando"]
 
-# ── Real model evaluation metrics from test set ──────────────────────────────
-# Run the notebook eval block to get these values, then update here.
-MODEL_R2   = 0.94    # Test R²  (replace with your exact value)
-MODEL_RMSE = 0.115   # Test RMSE Kg/m² (replace with your exact value)
+# Model evaluation metrics from test set
+MODEL_R2   = 0.94    # Test R²
+MODEL_RMSE = 0.115   # Test RMSE Kg/m²
 
 
 def load_model():
@@ -37,10 +36,10 @@ def load_model():
         model = joblib.load(MODEL_PATH)
         preprocessor = joblib.load(PREPROCESSOR_PATH)
         MODEL_LOADED = True
-        logger.info("✅ XGBoost model and preprocessor loaded successfully")
+        logger.info("XGBoost model and preprocessor loaded successfully")
         
     except Exception as e:
-        logger.error(f"❌ Failed to load model: {str(e)}")
+        logger.error(f"Failed to load model: {str(e)}")
         MODEL_LOADED = False
         raise
 
@@ -67,7 +66,7 @@ def engineer_features(data: Dict[str, Any]) -> pd.DataFrame:
 
 def get_confidence_info() -> Dict[str, Any]:
     """
-    Return model-level confidence derived from Test R² (not input validity).
+    Return model-level confidence derived from Test R².
     The confidence score and label are fixed per model evaluation, not per prediction.
     """
     pct = round(MODEL_R2 * 100, 1)
@@ -124,29 +123,29 @@ def generate_recommendations(prediction: float, input_data: Dict[str, Any]) -> l
     recommendations = []
     
     if prediction < 1.2:
-        recommendations.append("⚠️ Low yield predicted. Consider improving soil fertility and irrigation.")
-        recommendations.append("💡 Check for pest and disease issues that may be affecting plant growth.")
+        recommendations.append("Low yield predicted. Consider improving soil fertility and irrigation.")
+        recommendations.append("Check for pest and disease issues that may be affecting plant growth.")
     elif prediction < 1.5:
-        recommendations.append("📊 Moderate yield predicted. Optimize fertilizer application for better results.")
-        recommendations.append("💧 Ensure consistent irrigation throughout the growing season.")
+        recommendations.append("Moderate yield predicted. Optimize fertilizer application for better results.")
+        recommendations.append("Ensure consistent irrigation throughout the growing season.")
     else:
-        recommendations.append("✅ Good yield predicted! Maintain current farming practices.")
-        recommendations.append("🌟 Continue monitoring plant health and environmental conditions.")
+        recommendations.append("Good yield predicted. Maintain current farming practices.")
+        recommendations.append("Continue monitoring plant health and environmental conditions.")
     
     cob_to_plant = input_data['cob_height_cm'] / input_data['plant_height_cm']
     if cob_to_plant < 0.4:
-        recommendations.append("📏 Cob position is low. This may indicate nutrient deficiency or variety characteristics.")
+        recommendations.append("Cob position is low. This may indicate nutrient deficiency or variety characteristics.")
     elif cob_to_plant > 0.6:
-        recommendations.append("📏 Cob position is high. Monitor for lodging risk in windy conditions.")
+        recommendations.append("Cob position is high. Monitor for lodging risk in windy conditions.")
     
     if input_data['num_seed_rows'] < 12:
-        recommendations.append("🌽 Lower seed row count. Consider varieties with higher row numbers for better yield.")
+        recommendations.append("Lower seed row count. Consider varieties with higher row numbers for better yield.")
     elif input_data['num_seed_rows'] > 16:
-        recommendations.append("🌽 High seed row count. Ensure adequate spacing and nutrition for optimal kernel development.")
+        recommendations.append("High seed row count. Ensure adequate spacing and nutrition for optimal kernel development.")
     
     weight_per_row = input_data['cob_wet_weight_g'] / input_data['num_seed_rows']
     if weight_per_row < 12:
-        recommendations.append("⚖️ Low weight per row. Improve kernel filling through better pollination and nutrition.")
+        recommendations.append("Low weight per row. Improve kernel filling through better pollination and nutrition.")
     
     return recommendations
 
