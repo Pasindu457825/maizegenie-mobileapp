@@ -1033,6 +1033,12 @@ const PriceForecastScreen = () => {
   const { revenue, profit, margin, totalYield } = calculateProfit();
   const trendAnalysis = getTrendAnalysis();
   const bestWeekProfit = getBestWeekProfitDifference();
+  const weeklyPriceValues = weeklyForecast.map((w) => w.ensemble);
+  const weeklyPriceRange =
+    weeklyPriceValues.length > 0
+      ? Math.max(...weeklyPriceValues) - Math.min(...weeklyPriceValues)
+      : 0;
+  const chartSegments = weeklyPriceRange < 0.04 ? 3 : 4;
 
   // SHOW SELL POPUP after 7 seconds when forecast is ready
   useEffect(() => {
@@ -1333,6 +1339,7 @@ const PriceForecastScreen = () => {
                 }}
                 width={width - 60}
                 height={220}
+                segments={chartSegments}
                 chartConfig={{
                   backgroundColor: "#FFFFFF",
                   backgroundGradientFrom: "#F0FDF4",

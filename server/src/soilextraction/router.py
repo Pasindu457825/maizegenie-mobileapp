@@ -68,7 +68,7 @@ async def extract_soil_data(file: UploadFile = File(...)):
             # --- Quick pre-check: is this a soil report? ---
             quick_text = _quick_extract_pdf_text(content)
             if quick_text and not _is_soil_report_text(quick_text):
-                print(f"⚠️  PDF keyword check failed — not a soil report. Text preview: {quick_text[:300]}")
+                print(f"PDF keyword check failed - not a soil report. Text preview: {quick_text[:300]}")
                 raise HTTPException(
                     status_code=422,
                     detail={
@@ -81,11 +81,10 @@ async def extract_soil_data(file: UploadFile = File(...)):
 
         elif file.content_type and file.content_type.startswith("image/"):
             text = extract_text_from_image(content)
-            print(f"📝 OCR text ({len(text)} chars):\n{text[:800]}")
+            print(f"OCR text ({len(text)} chars):\n{text[:800]}")
 
-            # --- Quick pre-check: is this a soil report? ---
             if text and not _is_soil_report_text(text):
-                print(f"⚠️  Image keyword check failed — not a soil report. Text preview: {text[:300]}")
+                print(f"Image keyword check failed - not a soil report. Text preview: {text[:300]}")
                 raise HTTPException(
                     status_code=422,
                     detail={
@@ -114,7 +113,7 @@ async def extract_soil_data(file: UploadFile = File(...)):
                 }
             )
 
-        print(f"✅ Final result: {extracted_data}")
+        print(f"Final result: {extracted_data}")
         return extracted_data
 
     except HTTPException:
@@ -157,21 +156,21 @@ def extract_from_pdf(content: bytes) -> dict:
     """
     
     # Strategy 1: pdfplumber TABLE extraction
-    print("📊 Strategy 1: Trying pdfplumber table extraction...")
+    print("Strategy 1: Trying pdfplumber table extraction...")
     result = _try_pdfplumber_tables(content)
     if result and len(result) >= 3:
-        print(f"  ✅ Table extraction found {len(result)} fields")
+        print(f"  Table extraction found {len(result)} fields")
         return result
     
     # Strategy 2: pdfplumber TEXT extraction + regex
-    print("📝 Strategy 2: Trying pdfplumber text extraction...")
+    print("Strategy 2: Trying pdfplumber text extraction...")
     result = _try_pdfplumber_text(content)
     if result and len(result) >= 3:
-        print(f"  ✅ Text extraction found {len(result)} fields")
+        print(f"  Text extraction found {len(result)} fields")
         return result
     
-    # Strategy 3: OCR fallback — try multiple OCR strategies and merge results
-    print("🔍 Strategy 3: Falling back to OCR...")
+    # Strategy 3: OCR fallback
+    print("Strategy 3: Falling back to OCR...")
     ocr_texts = _extract_text_via_ocr(content)
     
     if ocr_texts:
@@ -181,10 +180,9 @@ def extract_from_pdf(content: bytes) -> dict:
             if not text.strip():
                 continue
             if idx == 0:
-                print(f"📝 OCR text ({len(text)} chars):\n{text[:800]}")
+                print(f"OCR text ({len(text)} chars):\n{text[:800]}")
             
             values = extract_soil_values(text)
-            # Merge: fill in any missing fields from this strategy
             for key, value in values.items():
                 if key not in merged_result:
                     merged_result[key] = value
@@ -192,7 +190,7 @@ def extract_from_pdf(content: bytes) -> dict:
                         print(f"  [merge from strategy {idx+1}] {key} = {value}")
         
         if merged_result:
-            print(f"  ✅ OCR extraction found {len(merged_result)} fields (merged)")
+            print(f"  OCR extraction found {len(merged_result)} fields (merged)")
             return merged_result
     
     return {}
@@ -364,7 +362,7 @@ def _extract_text_via_ocr(content: bytes) -> str:
             
             # If a single strategy found all fields, no need to try more
             if field_count >= 7:
-                print(f"  ✅ Complete result with {preprocess_name}/{psm_config}")
+                print(f"  Complete result with {preprocess_name}/{psm_config}")
                 break
             
             # Limit to 4 strategies max to avoid slow processing
@@ -537,7 +535,7 @@ def extract_text_from_image(content: bytes) -> str:
                 best_text = text
             
             if field_count >= 4:
-                print(f"  ✅ Good enough with {preprocess_name}/{psm_config}")
+                print(f"  Good enough with {preprocess_name}/{psm_config}")
                 break
         
         return best_text
