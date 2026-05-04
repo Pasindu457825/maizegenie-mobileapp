@@ -52,20 +52,20 @@ async def predict_yield_officer(
         farmer_id = request.farmer_id
         
         print(f"\n{'='*60}")
-        print(f"🌾 OFFICER PREDICTION REQUEST")
+        print(f"OFFICER PREDICTION REQUEST")
         print(f"{'='*60}")
-        print(f"👨‍🌾 Officer ID: {request.officer_id}")
-        print(f"🔖 Prediction Type: {prediction_type.upper()}")
+        print(f"Officer ID: {request.officer_id}")
+        print(f"Prediction Type: {prediction_type.upper()}")
         if farmer_id:
-            print(f"👤 Farmer ID: {farmer_id}")
-        print(f"📍 District: {request.soil_profile.district}")
-        print(f"🌱 Variety: {request.crop_information.seed_variety}")
+            print(f"Farmer ID: {farmer_id}")
+        print(f"District: {request.soil_profile.district}")
+        print(f"Variety: {request.crop_information.seed_variety}")
         print(f"{'='*60}\n")
         
         # Call unified prediction service with ML-first, rule-based fallback
         response = predict_officer_yield(request_data)
         
-        print(f"✅ Officer prediction completed: {response['prediction_id']}")
+        print(f"Officer prediction completed: {response['prediction_id']}")
         print(f"   Method: {response['prediction']['prediction_method']}")
         print(f"   Yield: {response['prediction']['predicted_yield']:.2f} kg/ha")
         
@@ -89,13 +89,12 @@ async def predict_yield_officer(
                 
                 # Save operational prediction to database
                 await save_officer_prediction(db_data, prediction_type="operational")
-                print(f"💾 Operational prediction saved to database")
+                print(f"Operational prediction saved to database")
                 
             except Exception as db_error:
-                print(f"⚠️  Database save failed (non-critical): {db_error}")
-                # Continue even if DB save fails - prediction is still valid
+                print(f"Database save failed (non-critical): {db_error}")
         else:
-            print(f"ℹ️  Experimental prediction - not saved to database")
+            print(f"Experimental prediction - not saved to database")
         
         return response
         

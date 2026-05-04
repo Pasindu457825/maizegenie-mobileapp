@@ -12,7 +12,7 @@ type Result = {
   weatherCondition: string | null;
   weatherIcon: string | null;
 
-  rainfallMm: number | null; // ✅ ADD (no removal)
+  rainfallMm: number | null;
 
   isLoading: boolean;
   error: string | null;
@@ -49,6 +49,7 @@ const SI_DISTRICTS: Record<string, string> = {
 
 type Lang = "si" | "en" | "ta";
 
+//store weather API data
 export default function useUniversalLocation(lang: Lang): Result {
   const [locationName, setLocationName] = useState("Loading...");
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -72,7 +73,12 @@ export default function useUniversalLocation(lang: Lang): Result {
   const clean = (v?: string | null) =>
     v ? v.replace(/District|Province/gi, "").trim() : undefined;
 
-  const toSinhalaDistrict = (d?: string) => (d ? SI_DISTRICTS[d] || d : "");
+  const toSinhalaDistrict = (d?: string) => {
+    if (!d) return "";
+    // Normalize: remove spaces to match keys like "NuwaraEliya"
+    const normalized = d.replace(/\s+/g, "");
+    return SI_DISTRICTS[normalized] || d;
+  };
 
   const fetchWeather = async (lat: number, lon: number) => {
     if (!WEATHER_KEY) return;
@@ -99,7 +105,7 @@ export default function useUniversalLocation(lang: Lang): Result {
         setWeatherIcon(json.weather[0].icon ?? null);
       }
 
-      // ✅ ADD: Rainfall (OpenWeatherMap)
+      // Rainfall (OpenWeatherMap)
       const rain =
         typeof json?.rain?.["1h"] === "number"
           ? json.rain["1h"]
@@ -113,7 +119,7 @@ export default function useUniversalLocation(lang: Lang): Result {
     }
   };
 
-  // 🔥 MAIN LOCATION LOGIC
+  // MAIN LOCATION LOGIC
   useEffect(() => {
     // allow language change to update label only
     if (hasFetchedRef.current && latitude && longitude) {
@@ -125,7 +131,7 @@ export default function useUniversalLocation(lang: Lang): Result {
       setError(null);
 
       try {
-        // 1️⃣ Permission
+        // Permission
         const { status } = await Location.requestForegroundPermissionsAsync();
 
         if (status !== "granted") {
@@ -135,7 +141,7 @@ export default function useUniversalLocation(lang: Lang): Result {
           return;
         }
 
-        // 2️⃣ GPS
+        // GPS
         const pos = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
@@ -148,7 +154,7 @@ export default function useUniversalLocation(lang: Lang): Result {
 
         hasFetchedRef.current = true;
 
-        // 3️⃣ Reverse geocode (OSM)
+        // Reverse geocode (OSM)
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
           {
@@ -167,7 +173,7 @@ export default function useUniversalLocation(lang: Lang): Result {
 
         const district = clean(a.district || a.county || a.state);
 
-        // 4️⃣ Build display name
+        // Build display name
         let display = "";
 
         if (lang === "si") {
@@ -182,7 +188,7 @@ export default function useUniversalLocation(lang: Lang): Result {
 
         setLocationName(display);
 
-        // 5️⃣ Weather
+        // Weather
         await fetchWeather(lat, lon);
 
         setIsLoading(false);
@@ -204,7 +210,7 @@ export default function useUniversalLocation(lang: Lang): Result {
     humidity,
     weatherCondition,
     weatherIcon,
-    rainfallMm, // ✅ ADD
+    rainfallMm,
     isLoading,
     error,
   };

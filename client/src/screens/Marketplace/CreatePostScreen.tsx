@@ -61,66 +61,148 @@ const CreatePostScreen = () => {
   const [seedVariety, setSeedVariety] = useState<string>(
     formData?.seedVariety || "",
   );
+  const [errors, setErrors] = useState<{
+    quantity?: string;
+    seedVariety?: string;
+    price?: string;
+  }>({});
 
-  const content = {
-    si: {
-      title: "අස්වනු විකිණීම",
-      subtitle: "අස්වනු විස්තර ඇතුලු කරන්න",
-      quantity: "ප්‍රමාණය (කි.ග්‍රෑ)",
-      seedVariety: "බීජ ප්‍රභේදය",
-      pricePerKg: "මිල (කි.ග්‍රෑම් එකකට)",
-      district: "දිස්ත්‍රික්කය",
-      week: "සතිය",
-      next: "ඉදිරියට යන්න",
-      cancel: "අවලංගු කරන්න",
-      enterQuantity: "ප්‍රමාණය ඇතුලු කරන්න",
-      enterPrice: "මිල ඇතුලු කරන්න",
-      enterVariety: "බීජ ප්‍රභේදය ඇතුලු කරන්න",
-    },
-    en: {
-      title: "Post Harvest",
-      subtitle: "Enter harvest details",
-      quantity: "Quantity (kg)",
-      seedVariety: "Seed Variety",
-      pricePerKg: "Price (per kg)",
-      district: "District",
-      week: "Week",
-      next: "Next",
-      cancel: "Cancel",
-      enterQuantity: "Enter quantity",
-      enterPrice: "Enter price",
-      enterVariety: "Enter seed variety",
-    },
-    ta: {
-      title: "அறுவடை விற்பனை",
-      subtitle: "அறுவடை விவரங்களை உள்ளிடுக",
-      quantity: "அளவு (கி.கி)",
-      seedVariety: "விதை வகை",
-      pricePerKg: "விலை (கிலோவுக்கு)",
-      district: "மாவட்டம்",
-      week: "வாரம்",
-      next: "அடுத்து",
-      cancel: "ரத்து செய்க",
-      enterQuantity: "அளவை உள்ளிடுக",
-      enterPrice: "விலையை உள்ளிடுக",
-      enterVariety: "விதை வகையை உள்ளிடுக",
-    },
+ const content = {
+  si: {
+    title: "අස්වනු විකිණීම",
+    subtitle: "අස්වනු විස්තර ඇතුළත් කරන්න",
+    quantity: "ප්‍රමාණය (කි.ග්‍රෑ)",
+    seedVariety: "බීජ ප්‍රභේදය",
+    pricePerKg: "මිල (කි.ග්‍රෑම් එකකට)",
+    district: "දිස්ත්‍රික්කය",
+    week: "සතිය",
+    next: "ඉදිරියට යන්න",
+    cancel: "අවලංගු කරන්න",
+    enterQuantity: "ප්‍රමාණය ඇතුළත් කරන්න",
+    enterPrice: "මිල ඇතුළත් කරන්න",
+    enterVariety: "බීජ ප්‍රභේදය ඇතුළත් කරන්න",
+  },
+
+  en: {
+    title: "Post Harvest",
+    subtitle: "Enter harvest details",
+    quantity: "Quantity (kg)",
+    seedVariety: "Seed Variety",
+    pricePerKg: "Price (per kg)",
+    district: "District",
+    week: "Week",
+    next: "Next",
+    cancel: "Cancel",
+    enterQuantity: "Enter quantity",
+    enterPrice: "Enter price",
+    enterVariety: "Enter seed variety",
+  },
+
+  ta: {
+    title: "அறுவடை விற்பனை",
+    subtitle: "அறுவடை விவரங்களை உள்ளிடவும்",
+    quantity: "அளவு (கி.கி.)",
+    seedVariety: "விதை வகை",
+    pricePerKg: "விலை (ஒரு கிலோக்கு)",
+    district: "மாவட்டம்",
+    week: "வாரம்",
+    next: "அடுத்து செல்லவும்",
+    cancel: "ரத்து செய்க",
+    enterQuantity: "அளவை உள்ளிடவும்",
+    enterPrice: "விலையை உள்ளிடவும்",
+    enterVariety: "விதை வகையை உள்ளிடவும்",
+  },
+};
+
+  const getValidationMessages = () => {
+  if (language === "si") {
+    return {
+      quantityRequired: "ප්‍රමාණය අවශ්‍යයි",
+      quantityInvalid: "ප්‍රමාණය 0 ට වැඩි සංඛ්‍යාවක් විය යුතුය",
+      quantityTooHigh: "ප්‍රමාණය ඉතා ඉහළයි",
+
+      varietyRequired: "බීජ ප්‍රභේදය අවශ්‍යයි",
+      varietyTooShort: "බීජ ප්‍රභේදය පැහැදිලිව ඇතුළත් කරන්න",
+
+      priceRequired: "මිල අවශ්‍යයි",
+      priceInvalid: "මිල 0 ට වැඩි සංඛ්‍යාවක් විය යුතුය",
+      priceTooHigh: "මිල ඉතා ඉහළයි",
+    };
+  }
+
+  if (language === "ta") {
+    return {
+      quantityRequired: "அளவு தேவை",
+      quantityInvalid: "அளவு 0-ஐ விட அதிகமான எண்ணாக இருக்க வேண்டும்",
+      quantityTooHigh: "அளவு மிகவும் அதிகமாக உள்ளது",
+
+      varietyRequired: "விதை வகை தேவை",
+      varietyTooShort: "விதை வகையை தெளிவாக உள்ளிடவும்",
+
+      priceRequired: "விலை தேவை",
+      priceInvalid: "விலை 0-ஐ விட அதிகமான எண்ணாக இருக்க வேண்டும்",
+      priceTooHigh: "விலை மிகவும் அதிகமாக உள்ளது",
+    };
+  }
+
+  return {
+    quantityRequired: "Quantity is required",
+    quantityInvalid: "Quantity must be a number greater than 0",
+    quantityTooHigh: "Quantity is too high",
+
+    varietyRequired: "Seed variety is required",
+    varietyTooShort: "Enter a clearer seed variety",
+
+    priceRequired: "Price is required",
+    priceInvalid: "Price must be a number greater than 0",
+    priceTooHigh: "Price is too high",
+  };
+};
+
+  const validateForm = () => {
+    const messages = getValidationMessages();
+    const nextErrors: {
+      quantity?: string;
+      seedVariety?: string;
+      price?: string;
+    } = {};
+    const trimmedVariety = seedVariety.trim();
+    const quantityValue = Number(quantity);
+    const priceValue = Number(price);
+
+    if (!quantity.trim()) {
+      nextErrors.quantity = messages.quantityRequired;
+    } else if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
+      nextErrors.quantity = messages.quantityInvalid;
+    } else if (quantityValue > 1000000) {
+      nextErrors.quantity = messages.quantityTooHigh;
+    }
+
+    if (!trimmedVariety) {
+      nextErrors.seedVariety = messages.varietyRequired;
+    } else if (trimmedVariety.length < 2) {
+      nextErrors.seedVariety = messages.varietyTooShort;
+    }
+
+    if (!price.trim()) {
+      nextErrors.price = messages.priceRequired;
+    } else if (!Number.isFinite(priceValue) || priceValue <= 0) {
+      nextErrors.price = messages.priceInvalid;
+    } else if (priceValue > 100000) {
+      nextErrors.price = messages.priceTooHigh;
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleNext = () => {
-    if (!quantity || !price || !seedVariety) {
-      alert(
-        language === "si"
-          ? "සියලු ක්ෂේත්‍ර පුරවන්න"
-          : language === "ta"
-            ? "அனைத்து புலங்களையும் நிரப்புக"
-            : "Please fill all fields",
-      );
+    if (!validateForm()) {
       return;
     }
 
     const postDraft: PostDraft = {
-      seedVariety,
+      seedVariety: seedVariety.trim(),
       pricePerKg: parseFloat(price),
       quantityKg: parseFloat(quantity),
       district: formData?.district || "Anuradhapura",
@@ -167,38 +249,65 @@ const CreatePostScreen = () => {
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].quantity}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.quantity && styles.inputError]}
               placeholder={content[language].enterQuantity}
               placeholderTextColor="#9CA3AF"
               value={quantity}
-              onChangeText={setQuantity}
+              onChangeText={(value) => {
+                setQuantity(value);
+                if (errors.quantity) {
+                  setErrors((current) => ({ ...current, quantity: undefined }));
+                }
+              }}
               keyboardType="decimal-pad"
             />
+            {errors.quantity ? (
+              <Text style={styles.errorText}>{errors.quantity}</Text>
+            ) : null}
           </View>
 
           {/* Seed Variety Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].seedVariety}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.seedVariety && styles.inputError]}
               placeholder={content[language].enterVariety}
               placeholderTextColor="#9CA3AF"
               value={seedVariety}
-              onChangeText={setSeedVariety}
+              onChangeText={(value) => {
+                setSeedVariety(value);
+                if (errors.seedVariety) {
+                  setErrors((current) => ({
+                    ...current,
+                    seedVariety: undefined,
+                  }));
+                }
+              }}
             />
+            {errors.seedVariety ? (
+              <Text style={styles.errorText}>{errors.seedVariety}</Text>
+            ) : null}
           </View>
 
           {/* Price Input */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>{content[language].pricePerKg}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.price && styles.inputError]}
               placeholder={content[language].enterPrice}
               placeholderTextColor="#9CA3AF"
               value={price}
-              onChangeText={setPrice}
+              onChangeText={(value) => {
+                setPrice(value);
+                if (errors.price) {
+                  setErrors((current) => ({ ...current, price: undefined }));
+                }
+              }}
               keyboardType="decimal-pad"
             />
+            {errors.price ? (
+              <Text style={styles.errorText}>{errors.price}</Text>
+            ) : null}
           </View>
 
           {/* District Display */}
@@ -306,6 +415,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 14,
     color: "#1F2937",
+  },
+  inputError: {
+    borderColor: "#EF4444",
+  },
+  errorText: {
+    fontSize: 12,
+    color: "#DC2626",
+    marginTop: 2,
   },
   readOnlyInput: {
     backgroundColor: "#F0FDF4",

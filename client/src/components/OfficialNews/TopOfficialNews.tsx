@@ -16,9 +16,9 @@ import { useLanguage } from "../../context/LanguageContext";
 import { useApp } from "../../context/AppContext";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
-import { LinearGradient } from 'expo-linear-gradient';
+import { LinearGradient } from "expo-linear-gradient";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.88;
 const CARD_SPACING = 20;
 
@@ -40,6 +40,8 @@ interface NewsItem {
     | "program";
   image_url?: string;
   district?: string | null;
+  created_at: string;
+  updated_at: string;
   is_active: boolean;
   is_visible_to_farmers: boolean;
 }
@@ -167,67 +169,69 @@ export default function TopOfficialNews() {
   // =======================
   const categoryConfig = (cat: string) => {
     const configs: Record<string, any> = {
-      price: { 
-        color: "#059669", 
-        gradient: ["#34d399", "#059669", "#047857"], 
+      price: {
+        color: "#059669",
+        gradient: ["#34d399", "#059669", "#047857"],
         icon: "💰",
-        light: "#d1fae5"
+        light: "#d1fae5",
       },
-      weather: { 
-        color: "#0891b2", 
-        gradient: ["#67e8f9", "#0891b2", "#0e7490"], 
+      weather: {
+        color: "#0891b2",
+        gradient: ["#67e8f9", "#0891b2", "#0e7490"],
         icon: "🌤️",
-        light: "#cffafe"
+        light: "#cffafe",
       },
-      policy: { 
-        color: "#16a34a", 
-        gradient: ["#4ade80", "#16a34a", "#15803d"], 
+      policy: {
+        color: "#16a34a",
+        gradient: ["#4ade80", "#16a34a", "#15803d"],
         icon: "📋",
-        light: "#dcfce7"
+        light: "#dcfce7",
       },
-      alert: { 
-        color: "#ea580c", 
-        gradient: ["#fb923c", "#ea580c", "#c2410c"], 
+      alert: {
+        color: "#ea580c",
+        gradient: ["#fb923c", "#ea580c", "#c2410c"],
         icon: "⚠️",
-        light: "#fed7aa"
+        light: "#fed7aa",
       },
-      pest: { 
-        color: "#b45309", 
-        gradient: ["#fbbf24", "#b45309", "#92400e"], 
+      pest: {
+        color: "#b45309",
+        gradient: ["#fbbf24", "#b45309", "#92400e"],
         icon: "🐛",
-        light: "#fef3c7"
+        light: "#fef3c7",
       },
-      disease: { 
-        color: "#dc2626", 
-        gradient: ["#f87171", "#dc2626", "#991b1b"], 
+      disease: {
+        color: "#dc2626",
+        gradient: ["#f87171", "#dc2626", "#991b1b"],
         icon: "🦠",
-        light: "#fee2e2"
+        light: "#fee2e2",
       },
-      fertilizer: { 
-        color: "#15803d", 
-        gradient: ["#86efac", "#15803d", "#166534"], 
+      fertilizer: {
+        color: "#15803d",
+        gradient: ["#86efac", "#15803d", "#166534"],
         icon: "🌱",
-        light: "#bbf7d0"
+        light: "#bbf7d0",
       },
-      cultivation: { 
-        color: "#0d9488", 
-        gradient: ["#5eead4", "#0d9488", "#0f766e"], 
+      cultivation: {
+        color: "#0d9488",
+        gradient: ["#5eead4", "#0d9488", "#0f766e"],
         icon: "🌾",
-        light: "#ccfbf1"
+        light: "#ccfbf1",
       },
-      program: { 
-        color: "#2563eb", 
-        gradient: ["#60a5fa", "#2563eb", "#1d4ed8"], 
+      program: {
+        color: "#2563eb",
+        gradient: ["#60a5fa", "#2563eb", "#1d4ed8"],
         icon: "📅",
-        light: "#dbeafe"
+        light: "#dbeafe",
       },
     };
-    return configs[cat] || { 
-      color: "#10b981", 
-      gradient: ["#6ee7b7", "#10b981", "#059669"], 
-      icon: "📢",
-      light: "#d1fae5"
-    };
+    return (
+      configs[cat] || {
+        color: "#10b981",
+        gradient: ["#6ee7b7", "#10b981", "#059669"],
+        icon: "📢",
+        light: "#d1fae5",
+      }
+    );
   };
 
   // =======================
@@ -288,7 +292,7 @@ export default function TopOfficialNews() {
         contentContainerStyle={styles.scrollContent}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-          { useNativeDriver: false }
+          { useNativeDriver: false },
         )}
         scrollEventThrottle={16}
       >
@@ -303,19 +307,19 @@ export default function TopOfficialNews() {
           const scale = scrollX.interpolate({
             inputRange,
             outputRange: [0.92, 1, 0.92],
-            extrapolate: 'clamp',
+            extrapolate: "clamp",
           });
 
           const opacity = scrollX.interpolate({
             inputRange,
             outputRange: [0.5, 1, 0.5],
-            extrapolate: 'clamp',
+            extrapolate: "clamp",
           });
 
           const rotateY = scrollX.interpolate({
             inputRange,
-            outputRange: ['-15deg', '0deg', '15deg'],
-            extrapolate: 'clamp',
+            outputRange: ["-15deg", "0deg", "15deg"],
+            extrapolate: "clamp",
           });
 
           return (
@@ -332,10 +336,14 @@ export default function TopOfficialNews() {
               <TouchableOpacity
                 style={styles.card}
                 activeOpacity={0.95}
-                onPress={() => navigation.navigate("NewsDetail", { id: item.id })}
+                onPress={() =>
+                  navigation.navigate("NewsDetail", { id: item.id })
+                }
               >
                 {/* Animated Background Glow */}
-                <View style={[styles.cardGlow, { backgroundColor: config.light }]} />
+                <View
+                  style={[styles.cardGlow, { backgroundColor: config.light }]}
+                />
 
                 {/* NEW Badge with Enhanced Animation */}
                 {index === 0 && (
@@ -369,7 +377,7 @@ export default function TopOfficialNews() {
                         resizeMode="cover"
                       />
                       <LinearGradient
-                        colors={['transparent', 'rgba(0,0,0,0.7)']}
+                        colors={["transparent", "rgba(0,0,0,0.7)"]}
                         style={styles.imageGradient}
                       />
                     </>
@@ -394,7 +402,9 @@ export default function TopOfficialNews() {
                       style={styles.badgeGradient}
                     >
                       <Text style={styles.badgeIcon}>{config.icon}</Text>
-                      <Text style={styles.badgeText}>{t.category[item.category]}</Text>
+                      <Text style={styles.badgeText}>
+                        {t.category[item.category]}
+                      </Text>
                     </LinearGradient>
                   </View>
                 </View>
@@ -408,24 +418,58 @@ export default function TopOfficialNews() {
 
                     {item.district && (
                       <View style={styles.districtContainer}>
-                        <View style={[styles.locationDot, { backgroundColor: config.color }]} />
+                        <View
+                          style={[
+                            styles.locationDot,
+                            { backgroundColor: config.color },
+                          ]}
+                        />
                         <Text style={styles.districtText} numberOfLines={1}>
                           {item.district}
                         </Text>
                       </View>
                     )}
+
+                    {/* Updated Date Display */}
+                    <View style={styles.dateContainer}>
+                      <Text style={[styles.dateText, { color: config.color }]}>
+                        {lang === "si" ? "🔄 Updated: " : "🔄 Updated: "}
+                        {new Date(
+                          item.updated_at &&
+                            item.updated_at !== "1970-01-01T00:00:00"
+                            ? item.updated_at
+                            : item.created_at,
+                        ).toLocaleDateString(lang === "si" ? "si-LK" : "en-US")}
+                      </Text>
+                    </View>
                   </View>
 
                   {/* Modern Read More Button */}
                   <View style={styles.readMoreContainer}>
                     <View style={styles.readMoreLeft}>
-                      <View style={[styles.readMoreDot, { backgroundColor: config.color }]} />
-                      <Text style={[styles.readMoreText, { color: config.color }]}>
+                      <View
+                        style={[
+                          styles.readMoreDot,
+                          { backgroundColor: config.color },
+                        ]}
+                      />
+                      <Text
+                        style={[styles.readMoreText, { color: config.color }]}
+                      >
                         {t.readMore}
                       </Text>
                     </View>
-                    <View style={[styles.readMoreButton, { backgroundColor: config.light }]}>
-                      <Text style={[styles.readMoreArrow, { color: config.color }]}>→</Text>
+                    <View
+                      style={[
+                        styles.readMoreButton,
+                        { backgroundColor: config.light },
+                      ]}
+                    >
+                      <Text
+                        style={[styles.readMoreArrow, { color: config.color }]}
+                      >
+                        →
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -439,7 +483,12 @@ export default function TopOfficialNews() {
                 />
 
                 {/* Corner Decoration */}
-                <View style={[styles.cornerDecoration, { borderTopColor: config.color }]} />
+                <View
+                  style={[
+                    styles.cornerDecoration,
+                    { borderTopColor: config.color },
+                  ]}
+                />
               </TouchableOpacity>
 
               {/* Officer Actions */}
@@ -479,13 +528,13 @@ export default function TopOfficialNews() {
           const dotWidth = scrollX.interpolate({
             inputRange,
             outputRange: [8, 32, 8],
-            extrapolate: 'clamp',
+            extrapolate: "clamp",
           });
 
           const dotOpacity = scrollX.interpolate({
             inputRange,
             outputRange: [0.3, 1, 0.3],
-            extrapolate: 'clamp',
+            extrapolate: "clamp",
           });
 
           return (
@@ -623,7 +672,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    height: 400,
+    height: 430,
     backgroundColor: "#ffffff",
     borderRadius: 28,
     elevation: 16,
@@ -677,7 +726,7 @@ const styles = StyleSheet.create({
   },
   imageContainer: {
     width: "100%",
-    height: 220,
+    height: 205,
     backgroundColor: "#f9fafb",
     position: "relative",
     zIndex: 1,
@@ -741,7 +790,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
-    padding: 24,
+    padding: 20,
     justifyContent: "space-between",
     zIndex: 2,
   },
@@ -776,6 +825,18 @@ const styles = StyleSheet.create({
     color: "#4b5563",
     letterSpacing: 0.3,
   },
+  dateContainer: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    alignSelf: "flex-start",
+  },
+  dateText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
   readMoreContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -805,6 +866,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#2E5E3E",
   },
   readMoreArrow: {
     fontSize: 18,

@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Pressable,
   Platform,
-  Animated,
 } from "react-native";
 import { ArrowLeft, Bell, Trash2, CheckCheck } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -15,7 +14,6 @@ import type { StackNavigationProp } from "@react-navigation/stack";
 import { useLanguage } from "../../context/LanguageContext";
 import { useNotifications } from "../../context/NotificationContext";
 import type { RootStackParamList } from "../../navigation";
-
 
 // Dynamic API URL using .env + Platform detection
 const getApiUrl = () => {
@@ -30,33 +28,86 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-type RootNavProp = StackNavigationProp<
-  RootStackParamList,
-  "Notifications"
->;
+type RootNavProp = StackNavigationProp<RootStackParamList, "Notifications">;
+
+type Language = "si" | "en" | "ta";
+
+interface Translations {
+  [key: string]: {
+    si: string;
+    en: string;
+    ta: string;
+  };
+}
+
+const translations: Translations = {
+  NEW: {
+    si: "අලුත්",
+    en: "NEW",
+    ta: "புதியது",
+  },
+  READ: {
+    si: "කියවා ඇත",
+    en: "Read",
+    ta: "படிக்கப்பட்டுவிட்டது",
+  },
+  DELETE_CONFIRM: {
+    si: "මෙම දැනුම්දීම මකා දැමීමට ඔබට විශ්වාසද?",
+    en: "Are you sure you want to delete this notification?",
+    ta: "இந்த அறிவிப்பை நீக்க நீங்கள் உறுதியாக இருக்கிறீர்களா?",
+  },
+  DELETE_TITLE: {
+    si: "දැනුම්දීම මකන්නද?",
+    en: "Delete notification?",
+    ta: "அறிவிப்பை நீக்கவா?",
+  },
+  CANCEL: {
+    si: "නැහැ",
+    en: "Cancel",
+    ta: "ரத்து செய்",
+  },
+  DELETE: {
+    si: "මකන්න",
+    en: "Delete",
+    ta: "நீக்கு",
+  },
+  NOTIFICATIONS: {
+    si: "දැනුම්දීම්",
+    en: "Notifications",
+    ta: "அறிவிப்புகள்",
+  },
+  ALL: {
+    si: "සියල්ල",
+    en: "All",
+    ta: "எல்லாம்",
+  },
+  NO_NOTIFICATIONS: {
+    si: "දැනුම්දීම් නැත",
+    en: "No Notifications",
+    ta: "அறிவிப்புகள் இல்லை",
+  },
+  NO_NOTIFICATIONS_TEXT: {
+    si: "ඔබට කිසිදු දැනුම්දීමක් නොමැත",
+    en: "You don't have any notifications yet",
+    ta: "உங்களுக்கு இன்னும் அறிவிப்புகள் எதுவும் இல்லை",
+  },
+};
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<RootNavProp>();
-  const { language } = useLanguage();
-  const isSinhala = language === "sinhala";
+  const { language: globalLang } = useLanguage();
+  const language: Language =
+    globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
 
-  const {
-    notifications,
-    markAsRead,
-    markAllAsRead,
-    deleteNotification,
-  } = useNotifications();
+  const { notifications, markAsRead, markAllAsRead, deleteNotification } =
+    useNotifications();
 
   /* =======================
      CONFIRM DELETE (WEB + MOBILE)
   ======================= */
   const confirmDelete = (id: string) => {
     if (Platform.OS === "web") {
-      const ok = window.confirm(
-        isSinhala
-          ? "මෙම දැනුම්දීම මකා දැමීමට ඔබට විශ්වාසද?"
-          : "Are you sure you want to delete this notification?"
-      );
+      const ok = window.confirm(translations.DELETE_CONFIRM[language]);
       if (ok) deleteNotification(id);
       return;
     }
@@ -64,32 +115,25 @@ export default function NotificationsScreen() {
     // Mobile
     import("react-native").then(({ Alert }) => {
       Alert.alert(
-        isSinhala ? "දැනුම්දීම මකන්නද?" : "Delete notification?",
-        isSinhala
-          ? "මෙය මකා දැමීමට ඔබට විශ්වාසද?"
-          : "Are you sure you want to delete this notification?",
+        translations.DELETE_TITLE[language],
+        translations.DELETE_CONFIRM[language],
         [
-          { text: isSinhala ? "නැහැ" : "Cancel", style: "cancel" },
+          { text: translations.CANCEL[language], style: "cancel" },
           {
-            text: isSinhala ? "මකන්න" : "Delete",
+            text: translations.DELETE[language],
             style: "destructive",
             onPress: () => deleteNotification(id),
           },
-        ]
+        ],
       );
     });
   };
 
   const renderItem = ({ item }: any) => (
-    <View
-      style={[
-        styles.card,
-        !item.read && styles.unreadCard,
-      ]}
-    >
+    <View style={[styles.card, !item.read && styles.unreadCard]}>
       {/* Unread indicator dot */}
       {!item.read && <View style={styles.unreadDot} />}
-      
+
       <View style={styles.row}>
         {/* READ AREA */}
         <Pressable
@@ -101,7 +145,7 @@ export default function NotificationsScreen() {
             {!item.read && (
               <View style={styles.newBadge}>
                 <Text style={styles.newBadgeText}>
-                  {isSinhala ? "අලුත්" : "NEW"}
+                  {translations.NEW[language]}
                 </Text>
               </View>
             )}
@@ -115,7 +159,7 @@ export default function NotificationsScreen() {
               <View style={styles.readIndicator}>
                 <CheckCheck size={14} color="#10B981" />
                 <Text style={styles.readText}>
-                  {isSinhala ? "කියවා ඇත" : "Read"}
+                  {translations.READ[language]}
                 </Text>
               </View>
             )}
@@ -124,14 +168,10 @@ export default function NotificationsScreen() {
 
         {/* DELETE BUTTON */}
         <Pressable
-          onPressIn={() => confirmDelete(item.id)}
+          onPress={() => confirmDelete(item.id)}
           style={styles.deleteBtn}
         >
-          <Trash2
-            size={18}
-            color="#EF4444"
-            pointerEvents="none"
-          />
+          <Trash2 size={18} color="#EF4444" pointerEvents="none" />
         </Pressable>
       </View>
     </View>
@@ -144,7 +184,7 @@ export default function NotificationsScreen() {
       {/* HEADER with gradient effect */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
@@ -153,7 +193,7 @@ export default function NotificationsScreen() {
 
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>
-              {isSinhala ? "දැනුම්දීම්" : "Notifications"}
+              {translations.NOTIFICATIONS[language]}
             </Text>
             {unreadCount > 0 && (
               <View style={styles.unreadBadge}>
@@ -163,14 +203,12 @@ export default function NotificationsScreen() {
           </View>
 
           {notifications.some((n) => !n.read) ? (
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={markAllAsRead}
               style={styles.markAllButton}
             >
               <CheckCheck size={16} color="#10B981" />
-              <Text style={styles.clearText}>
-                {isSinhala ? "සියල්ල" : "All"}
-              </Text>
+              <Text style={styles.clearText}>{translations.ALL[language]}</Text>
             </TouchableOpacity>
           ) : (
             <View style={{ width: 60 }} />
@@ -185,12 +223,10 @@ export default function NotificationsScreen() {
             <Bell size={48} color="#10B981" />
           </View>
           <Text style={styles.emptyTitle}>
-            {isSinhala ? "දැනුම්දීම් නැත" : "No Notifications"}
+            {translations.NO_NOTIFICATIONS[language]}
           </Text>
           <Text style={styles.emptyText}>
-            {isSinhala
-              ? "ඔබට කිසිදු දැනුම්දීමක් නොමැත"
-              : "You don't have any notifications yet"}
+            {translations.NO_NOTIFICATIONS_TEXT[language]}
           </Text>
         </View>
       ) : (
@@ -211,9 +247,9 @@ export default function NotificationsScreen() {
 ======================= */
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: "#F0FDF4" 
+  container: {
+    flex: 1,
+    backgroundColor: "#F0FDF4",
   },
 
   header: {

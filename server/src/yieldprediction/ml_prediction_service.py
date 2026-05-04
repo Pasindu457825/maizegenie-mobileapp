@@ -23,7 +23,6 @@ try:
     import xgboost
     from sklearn.base import BaseEstimator
     
-    # Add missing __sklearn_tags__ method to XGBoost classes
     if not hasattr(xgboost.XGBRegressor, '__sklearn_tags__'):
         def _sklearn_tags(self):
             tags = BaseEstimator.__sklearn_tags__(self)
@@ -35,10 +34,8 @@ try:
 except Exception as e:
     logger.warning(f"Could not apply XGBoost compatibility patch: {e}")
 
-# Model path - located in the same directory as this file
 MODEL_PATH = Path(__file__).parent / "best_yield_model_xgb.pkl"
 
-# Global model instance
 _MODEL = None
 _PREPROCESSOR = None
 MODEL_LOADED = False
@@ -52,65 +49,39 @@ def load_model():
         if MODEL_PATH.exists():
             _MODEL = joblib.load(MODEL_PATH)
             MODEL_LOADED = True
-            # Use print for immediate visibility in server logs
-            print(f"✅ XGBoost Yield Prediction model loaded successfully!")
-            logger.info(f"✅ XGBoost model loaded successfully from {MODEL_PATH}")
+            print(f"XGBoost Yield Prediction model loaded successfully")
+            logger.info(f"XGBoost model loaded successfully from {MODEL_PATH}")
             return True
         else:
-            print(f"⚠️ Yield Prediction model file not found at {MODEL_PATH}")
-            logger.warning(f"⚠️ Model file not found at {MODEL_PATH}")
+            print(f"Yield Prediction model file not found at {MODEL_PATH}")
+            logger.warning(f"Model file not found at {MODEL_PATH}")
             return False
     except Exception as e:
-        print(f"❌ Failed to load Yield Prediction model: {e}")
-        logger.error(f"❌ Failed to load model: {e}")
+        print(f"Failed to load Yield Prediction model: {e}")
+        logger.error(f"Failed to load model: {e}")
         MODEL_LOADED = False
         return False
 
 
-# Try to load model on import
 load_model()
 
 
-# ============================================================
-# FEATURE ENGINEERING (Based on notebook)
-# ============================================================
-
 def prepare_features(data: Dict) -> pd.DataFrame:
     """
-    Prepare features for ML model prediction (FARMER endpoint)
-    Based on the training notebook feature engineering
-    
-    Handles simplified farmer input with smart defaults for missing fields.
-    
-    Required fields from farmer:
-    - district, season, planting_date, variety
-    - soil_condition, irrigation_type, rainfall_condition
-    
-    Optional fields (will use smart defaults):
-    - location, soil_type, soil_ph, NPK values, weather data, land_size
+    Prepare features for ML model prediction (FARMER endpoint).
+    Uses smart defaults for missing optional fields.
     """
     
-    # Parse planting date
     planting_date = datetime.fromisoformat(data["planting_date"].split('T')[0])
     
-    # Calculate derived features
     planting_month = planting_date.month
     planting_year = planting_date.year
     planting_dayofyear = planting_date.timetuple().tm_yday
     
-    # Estimate fertilizer timing (based on typical practices)
-    days_to_first_fert = 18  # Average: 14-21 days after planting
-    days_between_ferts = 25  # Average: 21-30 days between applications
+    days_to_first_fert = 18
+    days_between_ferts = 25
     
-    # Smart defaults for NPK based on soil condition
-    # Using training data statistics for more accurate defaults
     soil_condition = data.get("soil_condition", "Medium")
-    
-    # Training data statistics (mean values by soil condition):
-    # Good: N=85, P=20, K=195
-    # Medium: N=75, P=16, K=170  
-    # Poor: N=65, P=12, K=145
-    # These are more realistic than the previous hardcoded values
     
     if soil_condition == "Good":
         default_n, default_p, default_k = 85.0, 20.0, 195.0
@@ -119,31 +90,24 @@ def prepare_features(data: Dict) -> pd.DataFrame:
     else:  # Medium
         default_n, default_p, default_k = 75.0, 16.0, 170.0
     
-    # Get NPK values (use smart defaults if not provided)
     soil_n = float(data.get("soil_nitrogen_n", default_n))
     soil_p = float(data.get("soil_phosphorus_p", default_p))
     soil_k = float(data.get("soil_potassium_k", default_k))
     
-    # Get soil fertility index from data if provided, otherwise calculate it
     if "soil_fertility_index" in data and data["soil_fertility_index"] is not None:
         soil_fertility_index = float(data["soil_fertility_index"])
-        logger.info(f"✅ Using provided soil_fertility_index: {soil_fertility_index:.4f}")
-        print(f"✅ Using provided soil_fertility_index: {soil_fertility_index:.4f}")
+        logger.info(f"Using provided soil_fertility_index: {soil_fertility_index:.4f}")
     else:
-        # Calculate fertility index if not provided
-        n_norm = min(soil_n / 125.0, 1.0)  # Max from training data
+        n_norm = min(soil_n / 125.0, 1.0)
         p_norm = min(soil_p / 31.0, 1.0)
         k_norm = min(soil_k / 305.0, 1.0)
         soil_fertility_index = (n_norm + p_norm + k_norm) / 3.0
-        logger.info(f"🔄 Calculated soil_fertility_index: {soil_fertility_index:.4f}")
-        print(f"🔄 Calculated soil_fertility_index: {soil_fertility_index:.4f}")
+        logger.info(f"Calculated soil_fertility_index: {soil_fertility_index:.4f}")
     
-    # Classify NPK status
     n_status_class = "High" if soil_n > 90 else "Medium" if soil_n > 50 else "Low"
     p_status_class = "High" if soil_p > 20 else "Medium" if soil_p > 10 else "Low"
     k_status_class = "High" if soil_k > 200 else "Medium" if soil_k > 100 else "Low"
     
-    # Smart defaults for weather based on district and season
     district = data.get("district", "Anuradhapura")
     season = data.get("season", "Maha")
     
@@ -157,18 +121,15 @@ def prepare_features(data: Dict) -> pd.DataFrame:
     }
     weather_defaults = district_weather.get(district, district_weather["Anuradhapura"])
     
-    # Season adjustment for rainfall
     if season in ["Maha", "Maha Season"]:
-        rainfall_multiplier = 1.2  # More rain in Maha
+        rainfall_multiplier = 1.2
     else:
-        rainfall_multiplier = 0.8  # Less rain in Yala
+        rainfall_multiplier = 0.8
     
-    # Convert land size to hectares if provided in acres
     land_size_value = data.get("land_size_value", 1.0)
     land_size_acres = data.get("land_size_acres", land_size_value)
-    field_size_ha = land_size_acres / 2.47105  # Convert acres to hectares
+    field_size_ha = land_size_acres / 2.47105
     
-    # Build feature dictionary matching training data
     features = {
         # Categorical features
         "district": district,
@@ -208,7 +169,6 @@ def prepare_features(data: Dict) -> pd.DataFrame:
                 f"soil_cond={soil_condition}, irrigation={features['irrigation_type']}, "
                 f"N={soil_n:.1f}, fertility_idx={soil_fertility_index:.2f}")
     
-    # Create DataFrame with single row
     df = pd.DataFrame([features])
     
     return df
@@ -216,31 +176,21 @@ def prepare_features(data: Dict) -> pd.DataFrame:
 
 def prepare_features_officer(data: Dict) -> pd.DataFrame:
     """
-    Prepare features for ML model prediction (OFFICER endpoint)
-    Officer data has nested structure: soil_profile, climate_data, crop_information
-    
-    Args:
-        data: Nested dictionary with officer endpoint structure
-    
-    Returns:
-        DataFrame with features matching training data format
+    Prepare features for ML model prediction (OFFICER endpoint).
+    Officer data uses nested structure: soil_profile, climate_data, crop_information.
     """
     
-    # Extract from nested structure
     soil = data.get("soil_profile", {})
     climate = data.get("climate_data", {})
     crop = data.get("crop_information", {})
     
-    # Parse planting date
     planting_date_str = crop.get("planting_date", data.get("planting_date", ""))
     planting_date = datetime.fromisoformat(planting_date_str.split('T')[0])
     
-    # Calculate derived features
     planting_month = planting_date.month
     planting_year = planting_date.year
     planting_dayofyear = planting_date.timetuple().tm_yday
     
-    # Get fertilizer timing from data if available
     fert_dates = data.get("fertilizer_dates", {})
     first_fert = fert_dates.get("first_fert_date")
     second_fert = fert_dates.get("second_fert_date")
@@ -264,18 +214,15 @@ def prepare_features_officer(data: Dict) -> pd.DataFrame:
     else:
         days_between_ferts = 25
     
-    # Get NPK values and calculate fertility index
     soil_n = float(soil.get("soil_nitrogen_n", 70.0))
     soil_p = float(soil.get("soil_phosphorus_p", 15.0))
     soil_k = float(soil.get("soil_potassium_k", 160.0))
     
-    # Normalize and calculate fertility index (same as training)
     n_norm = min(soil_n / 125.0, 1.0)
     p_norm = min(soil_p / 31.0, 1.0)
     k_norm = min(soil_k / 305.0, 1.0)
     soil_fertility_index = (n_norm + p_norm + k_norm) / 3.0
     
-    # Build feature dictionary matching training data exactly
     features = {
         # Categorical features
         "district": soil.get("district", "Anuradhapura"),
@@ -311,7 +258,6 @@ def prepare_features_officer(data: Dict) -> pd.DataFrame:
         "days_between_ferts": days_between_ferts,
     }
     
-    # Create DataFrame with single row
     df = pd.DataFrame([features])
     
     logger.info(f"Officer features prepared: variety={features['seed_variety']}, "
@@ -327,12 +273,8 @@ def prepare_features_officer(data: Dict) -> pd.DataFrame:
 
 def predict_yield_ml(data: Dict) -> Tuple[float, float, List[Dict]]:
     """
-    Predict yield using trained XGBoost model
-    
-    Returns:
-        - predicted_yield_t_ha: float
-        - confidence_score: float (0-1)
-        - feature_importances: List[Dict] with top factors
+    Predict yield using trained XGBoost model.
+    Returns (predicted_yield_t_ha, confidence_score, feature_importances).
     """
     
     if not MODEL_LOADED or _MODEL is None:
@@ -346,23 +288,14 @@ def predict_yield_ml(data: Dict) -> Tuple[float, float, List[Dict]]:
         # Model was trained on yield_t_ha, so prediction is in t/ha
         y_pred_raw = _MODEL.predict(X)[0]
         
-        # Log raw prediction for debugging
         logger.info(f"Raw model prediction: {y_pred_raw:.4f} t/ha")
         
-        # No calibration needed - model was trained correctly
-        # Training data: yield_t_ha ranges from 0-6.85 t/ha (mean: 4.72 t/ha)
-        # Apply realistic bounds for Sri Lankan maize
-        # Min: 0.0 t/ha (complete crop failure)
-        # Max: 7.0 t/ha (excellent hybrid varieties with optimal management)
+        # Apply realistic bounds for Sri Lankan maize (0.0 - 7.0 t/ha)
         y_pred = max(0.0, min(y_pred_raw, 7.0))
         
         logger.info(f"Final prediction (after bounds): {y_pred:.4f} t/ha")
         
-        # Calculate confidence based on model's feature importance
-        # Higher confidence if key features are favorable
         confidence_score = calculate_confidence(data, X)
-        
-        # Get top impact factors
         impact_factors = get_top_impact_factors(data, X)
         
         return y_pred, confidence_score, impact_factors
@@ -373,46 +306,31 @@ def predict_yield_ml(data: Dict) -> Tuple[float, float, List[Dict]]:
 
 
 def calculate_confidence(data: Dict, X: pd.DataFrame) -> float:
-    """
-    Calculate prediction confidence based on input data quality
-    """
-    confidence = 0.75  # Base confidence for ML model
+    """Calculate prediction confidence based on input data quality."""
+    confidence = 0.75
     
-    # Boost confidence for GPS data
     if data.get("gps_lat") and data.get("gps_lng"):
         confidence += 0.05
     
-    # Boost for complete soil data
     if all(k in data for k in ["soil_ph", "soil_nitrogen_n", "soil_phosphorus_p", "soil_potassium_k"]):
         confidence += 0.10
     
-    # Boost for weather data
     if all(k in data for k in ["avg_temperature_c", "rainfall_30d_mm", "avg_humidity_pct"]):
         confidence += 0.05
     
-    # Boost for known high-quality varieties
     if data.get("variety") in ["Jet 999", "Pacific 808", "Commando"]:
         confidence += 0.03
     
-    return min(confidence, 0.98)  # Cap at 98%
+    return min(confidence, 0.98)
 
 
 def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
-    """
-    Identify top factors impacting yield prediction
-    Based on model's feature importance from training
-    """
+    """Identify top factors impacting yield prediction based on feature importance."""
     
     factors = []
     
-    # Top features from notebook analysis:
-    # 1. n_status_class (20.3%)
-    # 2. soil_condition (8.2%)
-    # 3. soil_fertility_index (3.5%)
-    # 4. soil_nitrogen_n (2.8%)
-    # 5. irrigation_type (2.5%)
-    
-    # Nitrogen status
+    # Top features: n_status_class (20.3%), soil_condition (8.2%), soil_fertility_index (3.5%),
+    # soil_nitrogen_n (2.8%), irrigation_type (2.5%)
     n_status = X["n_status_class"].values[0]
     factors.append({
         "name": "Nitrogen Status",
@@ -421,7 +339,6 @@ def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.203
     })
     
-    # Soil condition
     soil_cond = X["soil_condition"].values[0]
     factors.append({
         "name": "Soil Condition",
@@ -430,7 +347,6 @@ def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.082
     })
     
-    # Soil fertility
     fertility = X["soil_fertility_index"].values[0]
     factors.append({
         "name": "Soil Fertility Index",
@@ -439,7 +355,6 @@ def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.035
     })
     
-    # Irrigation
     irrigation = X["irrigation_type"].values[0]
     factors.append({
         "name": "Irrigation Type",
@@ -448,7 +363,6 @@ def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.025
     })
     
-    # Variety
     variety = X["seed_variety"].values[0]
     high_yield_varieties = ["Jet 999", "Pacific 808", "Commando", "GT 709"]
     factors.append({
@@ -458,7 +372,6 @@ def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.010
     })
     
-    # Season
     season = X["season"].values[0]
     factors.append({
         "name": "Season",
@@ -470,16 +383,9 @@ def get_top_impact_factors(data: Dict, X: pd.DataFrame) -> List[Dict]:
     return factors
 
 
-# ============================================================
-# HARVEST WINDOW CALCULATION
-# ============================================================
-
 def calculate_harvest_window(planting_date: str, variety: str) -> Dict:
-    """
-    Calculate expected harvest window based on variety maturity period
-    """
+    """Calculate expected harvest window based on variety maturity period."""
     
-    # Maturity periods (days) for different varieties
     VARIETY_MATURITY = {
         "Jet 999": (110, 120),
         "Pacific 808": (105, 115),
@@ -504,24 +410,14 @@ def calculate_harvest_window(planting_date: str, variety: str) -> Dict:
     }
 
 
-# ============================================================
-# MAIN SERVICE FUNCTION
-# ============================================================
-
 def get_ml_prediction(data: Dict) -> Dict:
-    """
-    Main ML prediction service for FARMER endpoint
-    Returns prediction in format expected by frontend
-    """
+    """Main ML prediction service for FARMER endpoint."""
     
     try:
-        # Get ML prediction
         yield_t_ha, confidence_score, impact_factors = predict_yield_ml(data)
         
-        # Convert to kg/ha for frontend
         yield_kg_ha = yield_t_ha * 1000
         
-        # Determine confidence level
         if confidence_score >= 0.85:
             confidence = "High"
         elif confidence_score >= 0.70:
@@ -529,13 +425,11 @@ def get_ml_prediction(data: Dict) -> Dict:
         else:
             confidence = "Low"
         
-        # Calculate harvest window
         harvest_window = calculate_harvest_window(
             data["planting_date"],
             data.get("variety", "Local Variety")
         )
         
-        # Build response - convert numpy types to Python native types for JSON serialization
         response = {
             "predicted_yield": float(round(yield_kg_ha, 2)),
             "predicted_yield_t_ha": float(round(yield_t_ha, 2)),
@@ -560,36 +454,25 @@ def get_ml_prediction(data: Dict) -> Dict:
 
 def predict_yield_ml_officer(data: Dict) -> Tuple[float, float, List[Dict]]:
     """
-    Predict yield using trained XGBoost model for OFFICER endpoint
-    Uses prepare_features_officer for nested data structure
-    
-    Returns:
-        - predicted_yield_t_ha: float
-        - confidence_score: float (0-1)
-        - feature_importances: List[Dict] with top factors
+    Predict yield using trained XGBoost model for OFFICER endpoint.
+    Returns (predicted_yield_t_ha, confidence_score, feature_importances).
     """
     
     if not MODEL_LOADED or _MODEL is None:
         raise RuntimeError("ML model not loaded. Please check model file.")
     
     try:
-        # Prepare features using officer-specific function
         X = prepare_features_officer(data)
         
-        # Make prediction
         y_pred_raw = _MODEL.predict(X)[0]
         
         logger.info(f"Raw model prediction: {y_pred_raw:.4f} t/ha")
         
-        # Apply realistic bounds (no calibration needed)
         y_pred = max(0.0, min(y_pred_raw, 7.0))
         
         logger.info(f"Final prediction (after bounds): {y_pred:.4f} t/ha")
         
-        # Calculate confidence based on model's feature importance
         confidence_score = calculate_confidence_officer(data, X)
-        
-        # Get top impact factors
         impact_factors = get_top_impact_factors_officer(data, X)
         
         return y_pred, confidence_score, impact_factors
@@ -600,22 +483,17 @@ def predict_yield_ml_officer(data: Dict) -> Tuple[float, float, List[Dict]]:
 
 
 def calculate_confidence_officer(data: Dict, X: pd.DataFrame) -> float:
-    """
-    Calculate prediction confidence for officer endpoint
-    """
-    confidence = 0.80  # Base confidence for ML model with officer data
+    """Calculate prediction confidence for officer endpoint."""
+    confidence = 0.80
     
-    # Boost for complete soil data
     soil = data.get("soil_profile", {})
     if all(k in soil for k in ["soil_ph", "soil_nitrogen_n", "soil_phosphorus_p", "soil_potassium_k"]):
         confidence += 0.10
     
-    # Boost for weather data
     climate = data.get("climate_data", {})
     if all(k in climate for k in ["avg_temperature_c", "rainfall_30d_mm", "avg_humidity_pct"]):
         confidence += 0.05
     
-    # Boost for known high-quality varieties
     crop = data.get("crop_information", {})
     if crop.get("seed_variety") in ["Jet 999", "Pacific 808", "Commando", "GT 709"]:
         confidence += 0.03
@@ -624,13 +502,10 @@ def calculate_confidence_officer(data: Dict, X: pd.DataFrame) -> float:
 
 
 def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
-    """
-    Identify top factors impacting yield prediction for officer endpoint
-    """
+    """Identify top factors impacting yield prediction for officer endpoint."""
     
     factors = []
     
-    # Nitrogen status (most important - 20.3%)
     n_status = X["n_status_class"].values[0]
     factors.append({
         "name": "Nitrogen Status",
@@ -639,7 +514,6 @@ def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.203
     })
     
-    # Soil condition (8.2%)
     soil_cond = X["soil_condition"].values[0]
     factors.append({
         "name": "Soil Condition",
@@ -648,7 +522,6 @@ def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.082
     })
     
-    # Soil fertility (3.5%)
     fertility = X["soil_fertility_index"].values[0]
     factors.append({
         "name": "Soil Fertility Index",
@@ -657,7 +530,6 @@ def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.035
     })
     
-    # Irrigation (2.5%)
     irrigation = X["irrigation_type"].values[0]
     factors.append({
         "name": "Irrigation Type",
@@ -666,7 +538,6 @@ def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.025
     })
     
-    # Variety
     variety = X["seed_variety"].values[0]
     high_yield_varieties = ["Jet 999", "Pacific 808", "Commando", "GT 709"]
     factors.append({
@@ -676,7 +547,6 @@ def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
         "importance": 0.010
     })
     
-    # Season
     season = X["season"].values[0]
     factors.append({
         "name": "Season",
@@ -689,36 +559,21 @@ def get_top_impact_factors_officer(data: Dict, X: pd.DataFrame) -> List[Dict]:
 
 
 def get_ml_prediction_officer(data: Dict) -> Optional[Dict]:
-    """
-    Main ML prediction service for OFFICER endpoint
-    Returns prediction in format expected by officer service
-    
-    Args:
-        data: Full nested officer request data
-    
-    Returns:
-        Dict with predicted_yield (kg/ha), confidence_score, and other metadata
-        None if prediction fails
-    """
+    """Main ML prediction service for OFFICER endpoint."""
     
     try:
-        # Get ML prediction using officer-specific function
         yield_t_ha, confidence_score, impact_factors = predict_yield_ml_officer(data)
         
-        # Convert to kg/ha
         yield_kg_ha = yield_t_ha * 1000
         
-        # Get variety for harvest window
         crop = data.get("crop_information", {})
         variety = crop.get("seed_variety", "Local Variety")
         planting_date = crop.get("planting_date", data.get("planting_date", ""))
         
-        # Calculate harvest window
         harvest_window = calculate_harvest_window(planting_date, variety)
         
         logger.info(f"ML prediction successful: {yield_kg_ha:.2f} kg/ha (confidence: {confidence_score:.2f})")
         
-        # Build response
         response = {
             "predicted_yield": float(round(yield_kg_ha, 2)),
             "predicted_yield_t_ha": float(round(yield_t_ha, 2)),

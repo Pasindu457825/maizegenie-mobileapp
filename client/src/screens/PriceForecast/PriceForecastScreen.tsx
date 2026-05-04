@@ -470,7 +470,7 @@ const PriceForecastScreen = () => {
     // ---- RAIN ----
     if (c.includes("shower rain") || c.includes("light intensity shower")) {
       return lang === "si"
-        ? "සෙමෙන් වැසි"
+        ? "මද වැසි"
         : lang === "ta"
           ? "இலேசான தூறல் மழை"
           : "Light Shower Rain";
@@ -484,7 +484,7 @@ const PriceForecastScreen = () => {
     }
     if (c.includes("moderate rain")) {
       return lang === "si"
-        ? "මධ්‍යම වැසි"
+        ? "සිහින් වැසි"
         : lang === "ta"
           ? "மிதமான மழை"
           : "Moderate Rain";
@@ -533,7 +533,7 @@ const PriceForecastScreen = () => {
     // ---- THUNDER ----
     if (c.includes("thunder")) {
       return lang === "si"
-        ? "අකුණු සහිත වැසි"
+        ? "ගිගුරුම් සහිත වැසි"
         : lang === "ta"
           ? "இடியுடன் கூடிய மழை"
           : "Thunderstorm";
@@ -1033,6 +1033,12 @@ const PriceForecastScreen = () => {
   const { revenue, profit, margin, totalYield } = calculateProfit();
   const trendAnalysis = getTrendAnalysis();
   const bestWeekProfit = getBestWeekProfitDifference();
+  const weeklyPriceValues = weeklyForecast.map((w) => w.ensemble);
+  const weeklyPriceRange =
+    weeklyPriceValues.length > 0
+      ? Math.max(...weeklyPriceValues) - Math.min(...weeklyPriceValues)
+      : 0;
+  const chartSegments = weeklyPriceRange < 0.04 ? 3 : 4;
 
   // SHOW SELL POPUP after 7 seconds when forecast is ready
   useEffect(() => {
@@ -1221,7 +1227,7 @@ const PriceForecastScreen = () => {
                       ? "(⏹ நிறுத்த தட்டவும்)"
                       : "(⏹ Tap to stop)"
                   : language === "si"
-                    ? "(▶ ටින්න අසන්න)"
+                    ? "(ඇසීමට ▶ තට්ටු කරන්න)"
                     : language === "ta"
                       ? "(▶ கேட்க தட்டவும்)"
                       : "(Tap ▶ to listen)"}
@@ -1333,11 +1339,12 @@ const PriceForecastScreen = () => {
                 }}
                 width={width - 60}
                 height={220}
+                segments={chartSegments}
                 chartConfig={{
                   backgroundColor: "#FFFFFF",
                   backgroundGradientFrom: "#F0FDF4",
                   backgroundGradientTo: "#FFFFFF",
-                  decimalPlaces: 1,
+                  decimalPlaces: 2,
                   color: (opacity = 1) => trendAnalysis.color,
                   labelColor: (opacity = 1) => `rgba(6, 95, 70, ${opacity})`,
                   style: {

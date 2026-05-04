@@ -134,7 +134,8 @@ const DiseaseIdentificationScreen = () => {
         "බොඳ වූ හෝ දුරින් ගත් ඡායාරූප භාවිතා නොකරන්න",
       ],
       managePrices: "ප්‍රතිකාර මිල කළමනාකරණය",
-      managePricesDesc: "නිලධාරීන්ට පමණක්: බලන්න, එකතු කරන්න, යාවත්කාලීන කරන්න, මකන්න",
+      managePricesDesc:
+        "නිලධාරීන්ට පමණක්: බලන්න, එකතු කරන්න, යාවත්කාලීන කරන්න, මකන්න",
       identifyDisease: "රෝගය හඳුනාගන්න",
       identifyDiseaseDesc: "AI මගින් ඉක්මන් හඳුනාගැනීම",
       openTreatmentPrices: "ප්‍රතිකාර මිල බලන්න",
@@ -241,7 +242,8 @@ const DiseaseIdentificationScreen = () => {
       invalidLeafTitle: "செல்லாத இலைப் படம்",
       invalidLeafSubtitle:
         "இந்தப் படம் மக்காச்சோள இலையாக இருக்காது. தெளிவான மக்காச்சோள இலைப் படத்தைப் பதிவேற்றவும்.",
-      invalidSuggestionsTitle: "சரியான படத்தைப் பதிவேற்றுவதற்கான உதவிக்குறிப்புகள்",
+      invalidSuggestionsTitle:
+        "சரியான படத்தைப் பதிவேற்றுவதற்கான உதவிக்குறிப்புகள்",
       invalidSuggestions: [
         "சேதமடைந்த அல்லது நோயுற்ற மக்காச்சோள இலையை மட்டும் படம்பிடிக்கவும்",
         "நல்ல வெளிச்சம் மற்றும் தெளிவான மையத்தைப் பயன்படுத்தவும்",
@@ -328,14 +330,14 @@ const DiseaseIdentificationScreen = () => {
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
   const soundRef = useRef<Audio.Sound | null>(null);
 
   const requestPermissions = async (
-    type: "camera" | "gallery"
+    type: "camera" | "gallery",
   ): Promise<boolean> => {
     let permissionResult;
 
@@ -354,11 +356,11 @@ const DiseaseIdentificationScreen = () => {
               type === "camera" ? "කැමරා" : "ගැලරි"
             } ප්‍රවේශය ලබා දෙන්න!`
           : language === "ta"
-          ? `தொடர ${
-              type === "camera" ? "கேமரா" : "கேலரி"
-            } அனுமதிகளை வழங்கவும்!`
-          : `Please grant ${type} permissions to continue!`,
-        [{ text: "OK" }]
+            ? `தொடர ${
+                type === "camera" ? "கேமரா" : "கேலரி"
+              } அனுமதிகளை வழங்கவும்!`
+            : `Please grant ${type} permissions to continue!`,
+        [{ text: "OK" }],
       );
       return false;
     }
@@ -442,7 +444,7 @@ const DiseaseIdentificationScreen = () => {
             Accept: "application/json",
           },
           timeout: REQUEST_TIMEOUT,
-        }
+        },
       );
 
       console.log("✅ Response received:", response.data);
@@ -475,8 +477,8 @@ const DiseaseIdentificationScreen = () => {
           language === "si"
             ? "කාලය ඉක්මවී ගියේය! නැවත උත්සාහ කරන්න"
             : language === "ta"
-            ? "நேரம் முடிந்தது! மீண்டும் முயற்சி செய்யவும்"
-            : "Request timeout! Please try again";
+              ? "நேரம் முடிந்தது! மீண்டும் முயற்சி செய்யவும்"
+              : "Request timeout! Please try again";
       } else if (err.response?.data) {
         errorMsg =
           err.response.data.detail ||
@@ -512,7 +514,7 @@ const DiseaseIdentificationScreen = () => {
       try {
         const { sound } = await Audio.Sound.createAsync(
           sinhalaAudioMap[cleanName],
-          { shouldPlay: true }
+          { shouldPlay: true },
         );
 
         sound.setOnPlaybackStatusUpdate((status) => {
@@ -533,16 +535,17 @@ const DiseaseIdentificationScreen = () => {
       language === "si"
         ? `${cleanName} රෝගය හමුවිය`
         : language === "ta"
-        ? `${cleanName} நோய் கண்டறியப்பட்டது`
-        : `${cleanName} disease detected`,
+          ? `${cleanName} நோய் கண்டறியப்பட்டது`
+          : `${cleanName} disease detected`,
       {
-        language: language === "si" ? "si-LK" : language === "ta" ? "ta-IN" : "en-US",
+        language:
+          language === "si" ? "si-LK" : language === "ta" ? "ta-IN" : "en-US",
         rate: 0.9,
         pitch: 1.0,
         onDone: () => {
           setIsSpeaking(false); // ✅ auto-hide STOP when TTS ends
         },
-      }
+      },
     );
   };
 
@@ -559,7 +562,7 @@ const DiseaseIdentificationScreen = () => {
     setImageUri(null);
     setResult(null);
     setError(null);
-    setShowIdentifyOptions(false);
+    setShowIdentifyOptions(true);
     scrollViewRef.current?.scrollTo({ y: 0, animated: true });
   };
 
@@ -615,7 +618,7 @@ const DiseaseIdentificationScreen = () => {
   const isInvalidPrediction =
     result?.predictions?.length === 1 &&
     ["invalid_leaf", "invalid_image"].includes(
-      result.predictions[0].class_name.toLowerCase()
+      result.predictions[0].class_name.toLowerCase(),
     );
 
   const isHealthyPrediction =
@@ -834,7 +837,7 @@ const DiseaseIdentificationScreen = () => {
                       >
                         • {tip}
                       </Text>
-                    )
+                    ),
                   )}
                 </View>
               )}
@@ -865,7 +868,9 @@ const DiseaseIdentificationScreen = () => {
                     {user?.role === "officer" && (
                       <TouchableOpacity
                         style={styles.secondaryHomeAction}
-                        onPress={() => navigation.navigate("TreatmentPricesAdmin")}
+                        onPress={() =>
+                          navigation.navigate("TreatmentPricesAdmin")
+                        }
                         activeOpacity={0.9}
                       >
                         <View style={styles.homeActionIconSecondary}>
@@ -908,8 +913,8 @@ const DiseaseIdentificationScreen = () => {
                         {language === "si"
                           ? "කැමරාවෙන් සෘජුවම ඡායාරූප ගන්න"
                           : language === "ta"
-                          ? "கேமராவிலிருந்து நேரடியாக புகைப்படம் எடுக்கவும்"
-                          : "Take photo directly from camera"}
+                            ? "கேமராவிலிருந்து நேரடியாக புகைப்படம் எடுக்கவும்"
+                            : "Take photo directly from camera"}
                       </Text>
                       <View style={styles.actionArrow}>
                         <ChevronRight size={18} color="#FFFFFF" />
@@ -946,11 +951,14 @@ const DiseaseIdentificationScreen = () => {
                         {language === "si"
                           ? "ගැලරියෙන් පවතින ඡායාරූප තෝරන්න"
                           : language === "ta"
-                          ? "கேலரியில் இருந்து இருக்கும் புகைப்படங்களைத் தேர்ந்தெடுக்கவும்"
-                          : "Choose existing photos from gallery"}
+                            ? "கேலரியில் இருந்து இருக்கும் புகைப்படங்களைத் தேர்ந்தெடுக்கவும்"
+                            : "Choose existing photos from gallery"}
                       </Text>
                       <View
-                        style={[styles.actionArrow, styles.actionArrowSecondary]}
+                        style={[
+                          styles.actionArrow,
+                          styles.actionArrowSecondary,
+                        ]}
                       >
                         <ChevronRight size={18} color="#10B981" />
                       </View>
@@ -1003,8 +1011,8 @@ const DiseaseIdentificationScreen = () => {
                     {language === "si"
                       ? "කරුණාකර රැඳී සිටින්න..."
                       : language === "ta"
-                      ? "தயவுசெய்து காத்திருக்கவும்..."
-                      : "Please wait..."}
+                        ? "தயவுசெய்து காத்திருக்கவும்..."
+                        : "Please wait..."}
                   </Text>
                 </View>
                 <View style={styles.loadingDots}>
@@ -1027,8 +1035,8 @@ const DiseaseIdentificationScreen = () => {
                   {language === "si"
                     ? "දෝෂයක්"
                     : language === "ta"
-                    ? "பிழை"
-                    : "Error"}
+                      ? "பிழை"
+                      : "Error"}
                 </Text>
                 <Text style={styles.errorMessage}>{error}</Text>
                 <TouchableOpacity
@@ -1099,7 +1107,7 @@ const DiseaseIdentificationScreen = () => {
                         >
                           • {tip}
                         </Text>
-                      )
+                      ),
                     )}
                   </View>
 
@@ -1155,8 +1163,8 @@ const DiseaseIdentificationScreen = () => {
                             {language === "si"
                               ? getDiseaseNameSi(primaryPrediction.class_name)
                               : language === "ta"
-                              ? getDiseaseNameTa(primaryPrediction.class_name)
-                              : diseaseName}{" "}
+                                ? getDiseaseNameTa(primaryPrediction.class_name)
+                                : diseaseName}{" "}
                             {content[language].resultTitle}
                           </Text>
                         </View>
@@ -1193,8 +1201,8 @@ const DiseaseIdentificationScreen = () => {
                               {language === "si"
                                 ? "ශබ්දයෙන් අසන්න"
                                 : language === "ta"
-                                ? "கேள்"
-                                : "Listen"}
+                                  ? "கேள்"
+                                  : "Listen"}
                             </Text>
                           </TouchableOpacity>
                         ) : (
@@ -1239,8 +1247,8 @@ const DiseaseIdentificationScreen = () => {
                               {language === "si"
                                 ? "ශබ්දය නවත්වන්න"
                                 : language === "ta"
-                                ? "நிறுத்து"
-                                : "Stop"}
+                                  ? "நிறுத்து"
+                                  : "Stop"}
                             </Text>
                           </TouchableOpacity>
                         )}
@@ -1282,7 +1290,7 @@ const DiseaseIdentificationScreen = () => {
                               styles.severityBadge,
                               {
                                 backgroundColor: getSeverityColor(
-                                  result.severity_label
+                                  result.severity_label,
                                 ),
                                 alignSelf: "center",
                               },
@@ -1297,21 +1305,21 @@ const DiseaseIdentificationScreen = () => {
                                     .includes("high")
                                   ? content.si.high
                                   : result.severity_label
-                                      .toLowerCase()
-                                      .includes("medium")
-                                  ? content.si.medium
-                                  : content.si.low
+                                        .toLowerCase()
+                                        .includes("medium")
+                                    ? content.si.medium
+                                    : content.si.low
                                 : language === "ta"
-                                ? result.severity_label
-                                    .toLowerCase()
-                                    .includes("high")
-                                  ? content.ta.high
-                                  : result.severity_label
+                                  ? result.severity_label
                                       .toLowerCase()
-                                      .includes("medium")
-                                  ? content.ta.medium
-                                  : content.ta.low
-                                : result.severity_label}
+                                      .includes("high")
+                                    ? content.ta.high
+                                    : result.severity_label
+                                          .toLowerCase()
+                                          .includes("medium")
+                                      ? content.ta.medium
+                                      : content.ta.low
+                                  : result.severity_label}
                             </Text>
                           </View>
                         </View>
@@ -1376,8 +1384,8 @@ const DiseaseIdentificationScreen = () => {
                   {language === "si"
                     ? "ඔබේ කොළය සෞඛ්‍ය සම්පන්න තත්ත්වයේ පවතී"
                     : language === "ta"
-                    ? "உங்கள் இலை ஆரோக்கியமான நிலையில் இருப்பதாக தெரிகிறது"
-                    : "Your leaf appears to be in healthy condition"}
+                      ? "உங்கள் இலை ஆரோக்கியமான நிலையில் இருப்பதாக தெரிகிறது"
+                      : "Your leaf appears to be in healthy condition"}
                 </Text>
                 <TouchableOpacity
                   style={styles.healthyButton}

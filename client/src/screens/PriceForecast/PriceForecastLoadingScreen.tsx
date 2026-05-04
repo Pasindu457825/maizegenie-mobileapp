@@ -11,13 +11,9 @@ import {
 import {
   Leaf,
   TrendingUp,
-  Sprout,
   Bell,
   CloudSun,
   MapPin,
-  Droplets,
-  Wind,
-  Thermometer,
   Lightbulb,
 } from "lucide-react-native";
 import {
@@ -52,23 +48,6 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 const { width } = Dimensions.get("window");
-const LOCATION_TRANSLATIONS = {
-  Colombo: "කොළඹ",
-  Gampaha: "ගම්පහ",
-  Kandy: "මහනුවර",
-  Matara: "මාතර",
-  Hambantota: "හම්බන්තොට",
-  Monaragala: "මොණරාගල",
-  Anuradhapura: "අනුරාධපුර",
-  Polonnaruwa: "පොලොන්නරුව",
-  Jaffna: "යාපනය",
-  Kurunegala: "කුරුණෑගල",
-  Puttalam: "පුත්තලම",
-  Badulla: "බදුල්ල",
-  "Nuwara Eliya": "නුවර එලිය",
-};
-type LocationKey = keyof typeof LOCATION_TRANSLATIONS;
-
 type RootStackParamList = {
   PriceForecastFormScreen: undefined;
   WeatherForecastScreen: undefined;
@@ -108,12 +87,12 @@ const PriceForecastLoadingScreen = () => {
 
   // Local navigation for PriceForecastStack
   const localNavigation = useNavigation<NavProp>();
-  const [notifMessages, setNotifMessages] = useState<string[]>([]);
   const { language: globalLang } = useLanguage();
   const language: Language =
     globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
-  const navigation = useNavigation<NavProp>();
   const [progress, setProgress] = useState(0);
+
+  // Store Animation values
   const [fadeAnim] = useState(new Animated.Value(0));
   const [scaleAnim] = useState(new Animated.Value(0.8));
   const [leafAnim] = useState(new Animated.Value(0));
@@ -121,28 +100,22 @@ const PriceForecastLoadingScreen = () => {
   const [pulseAnim] = useState(new Animated.Value(1));
 
   // New animations for header
-  const [headerGradientAnim] = useState(new Animated.Value(0));
   const [bellShakeAnim] = useState(new Animated.Value(0));
   const [locationPulseAnim] = useState(new Animated.Value(1));
 
-  const {
-    locationName,
-    temperature,
-    weatherCondition,
-    weatherIcon,
-    isLoading,
-  } = useUniversalLocation(language);
+  const { locationName, temperature, weatherCondition } =
+    useUniversalLocation(language);
   const { user } = useApp();
 
-  const isFarmer = user?.role === "farmer";
   const isOfficer = user?.role === "officer";
+  const isProUser = Boolean(user?.is_paid_user);
 
   const content: Content = {
     si: {
-      title: "🌱 බිම ගොවිතැන",
-      subtitle: "ස්මාර්ට් කෘෂි තාක්ෂණය",
-      mainText: "ඔබේ ගොවිතැනට",
-      description: "නවීන තාක්ෂණික සහාය",
+      title: "සහ වගා තීරණ සහාය",
+      subtitle: "අනාගත මිල ප්‍රවණතා, වගා කාලය",
+      mainText: "ඉරිඟු මිල අනාවැකිය",
+      description: "සහා ලාභදායී තීරණ සඳහා",
       loading: "පද්ධතිය සූදානම් වෙමින්",
       priceButton: "මිල පුරෝකථනය",
       weatherButton: "කාලගුණය",
@@ -152,10 +125,10 @@ const PriceForecastLoadingScreen = () => {
       weatherDesc: "අද සහ ඉදිරි දින 7 සඳහා පුරෝකථනය",
     },
     en: {
-      title: "🌱 Smart Farming",
-      subtitle: "Agricultural Technology",
-      mainText: "For Your Farm",
-      description: "Modern Tech Support",
+      title: "& Cultivation Decision Support",
+      subtitle: "For future price trends, cultivation timing",
+      mainText: "Corn Price Forecast",
+      description: "and profitable farming decisions",
       loading: "System Preparing",
       priceButton: "Price Forecast",
       weatherButton: "Weather",
@@ -165,10 +138,10 @@ const PriceForecastLoadingScreen = () => {
       weatherDesc: "Today and the Next 7-Day Forecast",
     },
     ta: {
-      title: "🌱 நவீன விவசாயம்",
-      subtitle: "விவசாய தொழில்நுட்பம்",
-      mainText: "உங்கள் பண்ணைக்காக",
-      description: "நவீன தொழில்நுட்ப ஆதரவு",
+      title: "மற்றும் பயிர் முடிவு ஆதரவு",
+      subtitle: "எதிர்கால விலை போக்குகள், பயிரிடும் காலம்",
+      mainText: "சோள விலை முன்னறிவிப்பு",
+      description: "மற்றும் லாபகரமான முடிவுகளுக்காக",
       loading: "அமைப்பு தயாராகிறது",
       priceButton: "விலை மதிப்பீடு",
       weatherButton: "வானிலை",
@@ -250,6 +223,10 @@ const PriceForecastLoadingScreen = () => {
     };
 
     if (districtMap[enName]) return districtMap[enName];
+
+    // Normalize: remove spaces to match keys like "NuwaraEliya"
+    const normalized = enName.replace(/\s+/g, "");
+    if (districtMap[normalized]) return districtMap[normalized];
 
     return rawName;
   };
@@ -342,11 +319,11 @@ const PriceForecastLoadingScreen = () => {
 
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 100) {
+        const newProgress = Math.min(prev + 3, 100);
+        if (newProgress === 100) {
           clearInterval(interval);
-          return 100;
         }
-        return prev + 3;
+        return newProgress;
       });
     }, 80);
 
@@ -373,11 +350,6 @@ const PriceForecastLoadingScreen = () => {
     outputRange: ["-15deg", "15deg"],
   });
 
-  const headerGradientColor = headerGradientAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: ["#059669", "#10B981", "#059669"],
-  });
-
   const handleGetStarted = () => {
     localNavigation.navigate("PriceForecastFormScreen");
   };
@@ -387,13 +359,7 @@ const PriceForecastLoadingScreen = () => {
   };
 
   const handleAdvisor = () => {
-    localNavigation.navigate("PriceAdvisorScreen", {
-      formData: {
-        cropDuration: 14,
-        cost: 45000,
-        yieldKg: 1750,
-      },
-    });
+    localNavigation.navigate("PriceAdvisorScreen");
   };
 
   const handleAddPriceDetails = () => {
@@ -402,6 +368,14 @@ const PriceForecastLoadingScreen = () => {
 
   const handleMarketplace = () => {
     localNavigation.navigate("MarketPlaceScreen");
+  };
+
+  const handleProAdvisorGuidance = () => {
+    localNavigation.navigate("ProAdvisorFollowScreen", {
+      formData: {
+        source: "price-forecast-loading",
+      },
+    });
   };
 
   const getWeatherIcon = (condition: string | null, size: number = 20) => {
@@ -433,13 +407,13 @@ const PriceForecastLoadingScreen = () => {
 
     if (c.includes("shower rain") || c.includes("light intensity shower"))
       return lang === "si"
-        ? "සෙමෙන් වැසි"
+        ? "මද වැසි"
         : lang === "ta"
           ? "இலேசான மழை"
           : "Light Shower Rain";
     if (c.includes("light rain"))
       return lang === "si"
-        ? "සැහැල්ලු වැසි"
+        ? "සිහින් වැසි"
         : lang === "ta"
           ? "சிறு மழை"
           : "Light Rain";
@@ -450,10 +424,10 @@ const PriceForecastLoadingScreen = () => {
           ? "மிதமான மழை"
           : "Moderate Rain";
     if (c.includes("heavy") && c.includes("rain"))
-      return lang === "si" ? "බර වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
+      return lang === "si" ? "තද වැසි" : lang === "ta" ? "கனமழை" : "Heavy Rain";
     if (c.includes("clear"))
       return lang === "si"
-        ? "පිරිසිදු අහස"
+        ? "පැහැදිලි අහස"
         : lang === "ta"
           ? "தெளிவான வானம்"
           : "Clear Sky";
@@ -477,13 +451,13 @@ const PriceForecastLoadingScreen = () => {
           : "Broken Clouds";
     if (c.includes("overcast"))
       return lang === "si"
-        ? "තද වලාකුළු"
+        ? "වලාකුළු පිරි"
         : lang === "ta"
           ? "மேகமூட்டம்"
           : "Overcast Clouds";
     if (c.includes("thunder"))
       return lang === "si"
-        ? "අකුණු සහිත වැසි"
+        ? "ගිගුරුම් සහිත වැසි"
         : lang === "ta"
           ? "இடியுடன் மழை"
           : "Thunderstorm";
@@ -495,10 +469,8 @@ const PriceForecastLoadingScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Enhanced Green Gradient Header */}
-      <Animated.View
-        style={[styles.header, { backgroundColor: headerGradientColor }]}
-      >
+      {/* Header */}
+      <Animated.View style={[styles.header, { backgroundColor: "#059669" }]}>
         {/* Decorative circles */}
         <View style={styles.headerDecorCircle1} />
         <View style={styles.headerDecorCircle2} />
@@ -579,15 +551,6 @@ const PriceForecastLoadingScreen = () => {
       >
         <Leaf color="#10B981" size={40} opacity={0.3} />
       </Animated.View>
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.floatingLeaf2,
-          { transform: [{ translateY: leafTranslate }] },
-        ]}
-      >
-        <Sprout color="#34D399" size={35} opacity={0.3} />
-      </Animated.View>
 
       {/* Main Content */}
       <ScrollView
@@ -613,14 +576,14 @@ const PriceForecastLoadingScreen = () => {
           </Animated.View>
 
           {/* Title Section */}
-          <Text style={styles.subtitle}>{content[language].subtitle}</Text>
           <Text style={styles.mainText}>{content[language].mainText}</Text>
           <Text style={styles.title}>{content[language].title}</Text>
+          <Text style={styles.subtitle}>{content[language].subtitle}</Text>
           <Text style={styles.description}>
             {content[language].description}
           </Text>
 
-          {/* Enhanced Progress Bar */}
+          {/* ........Progress Bar........ */}
           <View style={styles.progressContainer}>
             <View style={styles.progressBar}>
               <Animated.View
@@ -724,6 +687,39 @@ const PriceForecastLoadingScreen = () => {
                   <Text style={styles.arrowText}>→</Text>
                 </View>
               </TouchableOpacity>
+
+              {isProUser && (
+                <TouchableOpacity
+                  style={[styles.featureCard, styles.proAdvisorCard]}
+                  onPress={handleProAdvisorGuidance}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.cardIconContainer}>
+                    <View style={styles.cardIconCircle}>
+                      <Lightbulb color="#047857" size={28} />
+                    </View>
+                  </View>
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>
+                      {language === "si"
+                        ? "Pro Advisor උපදෙස්"
+                        : language === "ta"
+                          ? "Pro Advisor வழிகாட்டுதல்"
+                          : "Pro Advisor Guidance"}
+                    </Text>
+                    <Text style={styles.cardDescription}>
+                      {language === "si"
+                        ? "විශේෂඥ උපදෙස් සහ අනුගමනය කළ යුතු මාර්ගෝපදේශ බලන්න"
+                        : language === "ta"
+                          ? "நிபுணர் வழிகாட்டலையும் பின்பற்ற வேண்டிய வழிமுறைகளையும் பார்க்கவும்"
+                          : "View expert guidance and the steps to follow"}
+                    </Text>
+                  </View>
+                  <View style={styles.cardArrow}>
+                    <Text style={styles.arrowText}>→</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
 
               {isOfficer && (
                 <TouchableOpacity
@@ -979,7 +975,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flexWrap: "nowrap", 
+    flexWrap: "nowrap",
   },
   tempText: {
     fontSize: 15,
@@ -1071,6 +1067,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     letterSpacing: 1,
     textTransform: "uppercase",
+    textAlign: "center",
   },
   mainText: {
     fontSize: 28,
@@ -1143,6 +1140,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 20,
+    minHeight: 116,
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
@@ -1177,6 +1175,7 @@ const styles = StyleSheet.create({
   },
   cardContent: {
     flex: 1,
+    justifyContent: "center",
   },
   cardTitle: {
     fontSize: 18,
@@ -1188,6 +1187,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#6B7280",
     fontWeight: "500",
+    lineHeight: 20,
   },
   cardArrow: {
     width: 32,
