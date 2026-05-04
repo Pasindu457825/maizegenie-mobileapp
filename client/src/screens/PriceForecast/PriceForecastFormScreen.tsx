@@ -124,7 +124,7 @@ const PriceForecastFormScreen = () => {
   type RootNavProp = StackNavigationProp<RootStackParamList>;
   const rootNavigation = useNavigation<RootNavProp>();
   const navigation = useNavigation<NavProp>();
-  // Get global language & convert to "si" | "en"
+  // Get global language & convert to "si" | "en" | "ta"
   const { language: globalLang, setLanguage: setAppLanguage } = useLanguage();
   const language: Language =
     globalLang === "sinhala" ? "si" : globalLang === "tamil" ? "ta" : "en";
@@ -201,7 +201,7 @@ const PriceForecastFormScreen = () => {
         ...prev,
         [fieldName]:
           language === "si"
-            ? "ऋणात्मक अगयन अवसर नञ"
+            ? "ඍණ අගයන් ඇතුළත් කළ නොහැක."
             : language === "ta"
               ? "எதிர்மறை மதிப்புகள் அனுமதிக்கப்படவில்லை"
               : "Negative values are not allowed",
