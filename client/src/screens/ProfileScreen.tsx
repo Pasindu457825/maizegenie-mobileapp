@@ -12,10 +12,11 @@ import {
   Dimensions,
   StatusBar,
   Clipboard,
+  Modal,
 } from "react-native";
 import { useApp } from "../context/AppContext";
 import { getFarmerPredictionHistory } from "../services/yieldPredictionApi";
-import { useNavigation } from "@react-navigation/native";
+import { CommonActions, useNavigation } from "@react-navigation/native";
 import {
   User,
   Calendar,
@@ -35,60 +36,99 @@ import {
   Sparkles,
   Smartphone,
   Cloud,
+  Bug,
+  Crown,
+  TestTube,
+  Lock,
 } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLanguage } from "../context/LanguageContext";
+import { ROUTES } from "../constants";
+import ProUpgradePopup from "../components/ProUpgradePopup";
+
+// ✅ REMOVED: import { PestIdentifyStackParamList } from "../navigation/PestIdentifyStack";
+//    (was causing module-not-found error and was not needed here)
 
 const { width } = Dimensions.get("window");
 
+const PEST_OFFICER_EMAIL = "pestofficer@gmail.com";
+
 const ProfileScreen = () => {
-  const { user, signOut, diseaseModel, setDiseaseModel } = useApp();
+  const {
+    user,
+    signOut,
+    diseaseModel,
+    setDiseaseModel,
+    pestModel,
+    setPestModel,
+    refreshProfile,
+  } =
+    useApp();
   const { language, setLanguage } = useLanguage();
   const navigation = useNavigation<any>();
   const [predictions, setPredictions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showProPopup, setShowProPopup] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // Check if current user is the pest officer admin
+  const isPestOfficer =
+    user?.email?.toLowerCase() === PEST_OFFICER_EMAIL.toLowerCase();
+
   const content = {
     sinhala: {
-      // Header
-      headerTitle: "පැතිකඩ",
+      headerTitle: "විස්තර",
       headerSubtitle: "ඔබේ වගා පුවරුව",
-
-      // Profile Hero
-      profile: "පැතිකඩ",
+      profile: "විස්තර",
       farmer: "ගොවියා",
       officer: "නිලධාරියා",
       location: "ස්ථානය",
       scans: "ස්කෑන්",
-
-      // Disease Detection Section
       diseaseDetection: "රෝග හඳුනාගැනීම",
+      pestDetection: "කෘමි හඳුනාගැනීම",
       chooseAIModel: "AI ආකෘතිය තෝරන්න",
+      choosePestModel: "කෘමි AI ආකෘතිය තෝරන්න",
       standard: "ප්‍රමිතිය",
       standardDesc: "වේගවත් උපාංග-පාදක හඳුනාගැනීම",
       advanced: "උසස්",
       advancedDesc: "මෙව්ව-පාදක උසස් නිරවද්‍යතාව",
+      premium: "ප්‍රිමියම්",
+      premiumDesc: "ගෙවීම් සාමාජිකයින්ට වැඩි කෘමි හඳුනාගැනීම",
       selected: "තෝරාගත්",
       available: "ලබාගත හැකි",
       fast: "වේගවත්",
       offline: "අන්තර්ජාලය නොමැති",
       highAccuracy: "ඉහළ නිරවද්‍යතාව",
-
-      // Settings Section
+      locked: "අගුලු දමා ඇත",
+      paidUser: "Paid User",
+      freeUser: "Free User",
+      subscriptionEnds: "Subscription Ends",
+      adminPestForum: "පළිබෝධ සංසදය",
+      adminPestForumDesc: "පළිබෝධ දත්ත කළමනාකරණය",
       settings: "සැකසුම්",
       managePreferences: "ඔබේ අභිමතයන් කළමනාකරණය කරන්න",
       language: "භාෂාව",
+      chooseLanguage: "භාෂාව තෝරන්න",
+      subscriptions: "දායකත්වය",
+      subscriptionDetails: "දායකත්ව තොරතුරු",
+      subscriptionStatus: "තත්ත්වය",
+      currentPlan: "වත්මන් සැලසුම",
+      paidDate: "ගෙවූ දිනය",
+      lastPaidAmount: "අවසන් ගෙවූ මුදල",
+      activeStatus: "සක්‍රීය",
+      inactiveStatus: "අක්‍රීය",
+      advancedAccess: "Advanced මාදිලි ප්‍රවේශය",
+      unlocked: "අගුළුහැර ඇත",
       notifications: "දැනුම්දීම්",
       enabled: "සක්‍රියයි",
       helpCenter: "උපකාර කේන්ද්‍රය",
       faqSupport: "නිති අසන පැණ සහ උදව්",
-
-      // Recent Predictions
       recentPredictions: "මෑත පුරෝකථන",
       farmingInsights: "ඔබේ වගා අවබෝධතා",
       loadingPredictions: "පුරෝකථන පූරණය වෙමින්...",
@@ -97,16 +137,15 @@ const ProfileScreen = () => {
       maizeCrop: "බඩ ඉරිඟු බෝගය",
       active: "සක්‍රිය",
       shareWithOfficer: "නිලධාරියා සමඟ බෙදාගන්න",
-
-      // Alerts
+      requestSoilTest: "පස් පරීක්ෂණ ඉල්ලීම 🔬",
+      soilTestLocked: "Pro විශේෂාංගය — Upgrade කරන්න",
       copied: "පිටපත් කරන ලදී!",
       copyFailed: "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය",
       logout: "ඉවත්වීම",
       logoutConfirm: "ඔබට ඉවත්වීමට අවශ්‍ය බවට විශ්වාසද?",
       cancel: "අවලංගු කරන්න",
+      close: "වසන්න",
       logoutText: "ඉවත්වීම",
-
-      // Prediction Details
       cropVariety: "බෝග වර්ගය",
       plantingDate: "වැවීම් දිනය",
       landSize: "ඉඩම් ප්‍රමාණය",
@@ -114,40 +153,52 @@ const ProfileScreen = () => {
       status: "තත්ත්වය",
     },
     english: {
-      // Header
       headerTitle: "Profile",
       headerSubtitle: "Your Farming Dashboard",
-
-      // Profile Hero
       profile: "Profile",
       farmer: "Farmer",
       officer: "Officer",
       location: "Location",
       scans: "Scans",
-
-      // Disease Detection Section
       diseaseDetection: "Disease Detection",
+      pestDetection: "Pest Detection",
       chooseAIModel: "Choose your AI model",
+      choosePestModel: "Choose your pest model",
       standard: "Standard",
       standardDesc: "Fast on-device detection",
       advanced: "Advanced",
       advancedDesc: "Cloud-based high accuracy",
+      premium: "Premium",
+      premiumDesc: "Detect more pests for paid members",
       selected: "Selected",
       available: "Available",
       fast: "Fast",
       offline: "Offline",
       highAccuracy: "High Accuracy",
-
-      // Settings Section
+      locked: "Locked",
+      paidUser: "Paid User",
+      freeUser: "Free User",
+      subscriptionEnds: "Subscription Ends",
+      adminPestForum: "Admin Pest Forum",
+      adminPestForumDesc: "Manage pest data & reports",
       settings: "Settings",
       managePreferences: "Manage your preferences",
       language: "Language",
+      chooseLanguage: "Choose Language",
+      subscriptions: "Subscriptions",
+      subscriptionDetails: "Subscription Details",
+      subscriptionStatus: "Status",
+      currentPlan: "Current Plan",
+      paidDate: "Paid Date",
+      lastPaidAmount: "Last Paid Amount",
+      activeStatus: "Active",
+      inactiveStatus: "Inactive",
+      advancedAccess: "Advanced Model Access",
+      unlocked: "Unlocked",
       notifications: "Notifications",
       enabled: "Enabled",
       helpCenter: "Help Center",
       faqSupport: "FAQ & Support",
-
-      // Recent Predictions
       recentPredictions: "Recent Predictions",
       farmingInsights: "Your farming insights",
       loadingPredictions: "Loading predictions...",
@@ -156,30 +207,117 @@ const ProfileScreen = () => {
       maizeCrop: "Maize Crop",
       active: "Active",
       shareWithOfficer: "Share with Officer",
-
-      // Alerts
+      requestSoilTest: "Request Soil Test 🔬",
+      soilTestLocked: "Pro Feature — Upgrade to Request",
       copied: "Copied!",
       copyFailed: "Failed to copy prediction details",
       logout: "Logout",
       logoutConfirm: "Are you sure you want to logout?",
       cancel: "Cancel",
+      close: "Close",
       logoutText: "Logout",
-
-      // Prediction Details
       cropVariety: "Crop Variety",
       plantingDate: "Planting Date",
       landSize: "Land Size",
       season: "Season",
       status: "Status",
     },
+    tamil: {
+      // Header
+      headerTitle: "பக்கத்திறன்",
+      headerSubtitle: "உங்கள் விவசாயத் தகவல்பலகை",
+
+      // Profile Hero
+      profile: "பக்கத்திறன்",
+      farmer: "விவசாயி",
+      officer: "அதிகாரி",
+      location: "இடம்",
+      scans: "ச்கேன்கள்",
+
+      // Disease Detection Section
+      diseaseDetection: "நோய் கண்டறிதல்",
+      pestDetection: "பூச்சி கண்டறிதல்",
+      chooseAIModel: "AI மாதிரியை தேர்வு செய்க",
+      choosePestModel: "பூச்சி AI மாதிரியை தேர்வு செய்க",
+      standard: "தரநிலை",
+      standardDesc: "வேகமான சாதன கண்டறிதல்",
+      advanced: "மேம்பட்டது",
+      advancedDesc: "கிளவுட் அதிக துல்லியம்",
+      premium: "பிரீமியம்",
+      premiumDesc: "கட்டண உறுப்பினர்களுக்கு அதிக பூச்சி கண்டறிதல்",
+      selected: "தேர்ந்தெடுக்கப்பட்டது",
+      available: "கிடைக்கிறது",
+      fast: "வேகமானது",
+      offline: "ஆஃப்லைன்",
+      highAccuracy: "அதிக துல்லியம்",
+      locked: "பூட்டப்பட்டுள்ளது",
+      paidUser: "Paid User",
+      freeUser: "Free User",
+      subscriptionEnds: "Subscription Ends",
+      adminPestForum: "நிர்வாக பூச்சி மன்றம்",
+      adminPestForumDesc: "பூச்சி தரவு மற்றும் அறிக்கைகளை நிர்வகிக்கவும்",
+
+      // Settings Section
+      settings: "அமைப்புகள்",
+      managePreferences: "உங்கள் விருப்பங்களை நிர்வகிக்கவும்",
+      language: "மொழி",
+      chooseLanguage: "மொழியைத் தேர்ந்தெடுக்கவும்",
+      subscriptions: "சந்தா",
+      subscriptionDetails: "சந்தா விவரங்கள்",
+      subscriptionStatus: "நிலை",
+      currentPlan: "தற்போதைய திட்டம்",
+      paidDate: "செலுத்திய தேதி",
+      lastPaidAmount: "கடைசி செலுத்திய தொகை",
+      activeStatus: "செயலில்",
+      inactiveStatus: "செயலற்றது",
+      advancedAccess: "Advanced மாடல் அணுகல்",
+      unlocked: "திறக்கப்பட்டுள்ளது",
+      notifications: "அறிவிப்புகள்",
+      enabled: "செயல்படுத்தப்பட்டது",
+      helpCenter: "உதவி மையம்",
+      faqSupport: "அடிக்கடி கேள்விகள் மற்றும் ஆதரவு",
+
+      // Recent Predictions
+      recentPredictions: "இத்திய மதிப்பீடுகள்",
+      farmingInsights: "உங்கள் விவசாய நுண்ணறிவுகள்",
+      loadingPredictions: "மதிப்பீடுகள் ஏற்றப்படுகின்றன...",
+      noPredictions: "மதிப்பீடுகள் இல்லை",
+      startByCreating:
+        "உங்கள் முதல் விளைச்சல் மதிப்பீட்டை உருவாக்கி தொடங்குங்கள்",
+      maizeCrop: "சோளப் பயிர்",
+      active: "செயல்பாடு",
+      shareWithOfficer: "அதிகாரியுடன் பகிர்ந்துகொள்க",
+      requestSoilTest: "மண் பரிசோதனை கோரிக்கை 🔬",
+      soilTestLocked: "Pro அம்சம் — மேம்படுத்தவும்",
+
+      // Alerts
+      copied: "நகலெடுக்கப்பட்டது!",
+      copyFailed: "மதிப்பீடு விவரங்களை நகலெடுக்க முடியவில்லை",
+      logout: "வெளியேறுக",
+      logoutConfirm: "வெளியேற விரும்புகிறீர்களா?",
+      cancel: "ரத்துசெய்க",
+      close: "மூடு",
+      logoutText: "வெளியேறுக",
+
+      // Prediction Details
+      cropVariety: "பயிர் வகை",
+      plantingDate: "நடு தேதி",
+      landSize: "நில அளவு",
+      season: "பருவகாலம்",
+      status: "நிலை",
+    },
   };
 
   const t = content[language];
+  const hasActiveSubscription =
+    Boolean(user?.is_paid_user) &&
+    Boolean(user?.subscription_end_date) &&
+    new Date(user?.subscription_end_date as string).getTime() > Date.now();
 
   useEffect(() => {
     loadPredictionHistory();
+    void refreshProfile();
 
-    // Entrance animations
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -193,7 +331,6 @@ const ProfileScreen = () => {
       }),
     ]).start();
 
-    // Pulse animation
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
@@ -206,7 +343,7 @@ const ProfileScreen = () => {
           duration: 1500,
           useNativeDriver: true,
         }),
-      ])
+      ]),
     ).start();
   }, []);
 
@@ -219,7 +356,7 @@ const ProfileScreen = () => {
       console.error("Failed to load prediction history:", error);
       Alert.alert(
         "Error",
-        error.message || "Failed to load prediction history"
+        error.message || "Failed to load prediction history",
       );
     } finally {
       setLoading(false);
@@ -251,31 +388,65 @@ const ProfileScreen = () => {
 • Confidence: ${prediction.confidence_level || "N/A"}
 
 Status: ${prediction.status || "Active"}`;
-      
+
       Clipboard.setString(copyText);
       Alert.alert(
-        language === "sinhala" ? "පිටපත් කරන ලදී!" : "Copied!",
-        language === "sinhala" 
+        language === "sinhala"
+          ? "පිටපත් කරන ලදී!"
+          : language === "tamil"
+            ? "நகலெடுக்கப்பட்டது!"
+            : "Copied!",
+        language === "sinhala"
           ? "පුරෝකථන විස්තර පිටපත් කරන ලදී"
-          : "Prediction details copied to clipboard"
+          : language === "tamil"
+            ? "மதிப்பீடு விவரங்கள் நகலெடுக்கப்பட்டது"
+            : "Prediction details copied to clipboard",
       );
     } catch (error) {
       console.error("Copy failed:", error);
       Alert.alert(
-        language === "sinhala" ? "දෝෂයකි" : "Error",
+        language === "sinhala"
+          ? "දෝෂයකි"
+          : language === "tamil"
+            ? "பிழை"
+            : "Error",
         language === "sinhala"
           ? "පුරෝකථන විස්තර පිටපත් කිරීමට අසමත් විය"
-          : "Failed to copy prediction details"
+          : language === "tamil"
+            ? "மதிப்பீடு விவரங்களை நகலெடுக்க முடியவில்லை"
+            : "Failed to copy prediction details",
       );
     }
   };
 
-  const handleShareWithOfficer = (prediction: any) => {
-    const contextMessage = language === "sinhala"
-      ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
-      : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
+  const handleRequestSoilTest = (prediction: any) => {
+    if (!hasActiveSubscription) {
+      setShowProPopup(true);
+      return;
+    }
 
-    // Navigate to main Chat screen with prediction context
+    const soilTestMessage =
+      language === "sinhala"
+        ? `🔬 පස් පරීක්ෂණ ඉල්ලීම\n\n👨‍🌾 ගොවිතැන් විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌽 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\n📋 ඉල්ලීම:\nමගේ ගොවිතැනේ නිල පස් පරීක්ෂණයක් ඉල්ලා සිටිමි. ඉහත පුරෝකථන දත්ත මත පදනම්ව නිවැරදි පස් පරීක්ෂණ නිර්දේශ ලබා ගැනීමට කැමැත්තෙමි. 🙏`
+        : language === "tamil"
+          ? `🔬 மண் பரிசோதனை கோரிக்கை\n\n👨‍🌾 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌽 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\n📋 கோரிக்கை:\nஎன் வயலுக்கு அதிகாரப்பூர்வ மண் பரிசோதனை கோருகிறேன். மேலே உள்ள மதிப்பீட்டு தரவின் அடிப்படையில் சரியான மண் பரிசோதனை பரிந்துரைகளை பெற விரும்புகிறேன். 🙏`
+          : `🔬 Soil Test Request\n\n👨‍🌾 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌽 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\n📋 Request:\nI would like to request an official soil test for my field. Based on the above prediction data, I am seeking proper soil testing recommendations to improve my yield. 🙏`;
+
+    navigation.navigate("Chat", {
+      prefilledMessage: soilTestMessage,
+      context: "soil_test_request",
+      predictionData: prediction,
+    });
+  };
+
+  const handleShareWithOfficer = (prediction: any) => {
+    const contextMessage =
+      language === "sinhala"
+        ? `🌾 බඩ ඉරිඟු අස්වැන්න පුරෝකථන ඉල්ලීම\n\n📝 ගොවි විස්තර:\nනම: ${user?.full_name || "ගොවියා"}\nදිස්ත්‍රික්කය: ${prediction.district}\n\n🌱 බෝග තොරතුරු:\nප්‍රභේදය: ${prediction.variety || "N/A"}\nමහෝත්සවය: ${prediction.season}\nඉඩම් ප්‍රමාණය: ${prediction.land_size || "N/A"}\nවගා කළ දිනය: ${formatDate(prediction.planting_date)}\n\n📊 පුරෝකථනය:\nඅස්වැන්න: ${prediction.predicted_yield || "N/A"} kg/ha\nවිශ්වාසය: ${prediction.confidence_level || "N/A"}\n\nමගේ අස්වැන්න පුරෝකථනය සහ බෝග කළමනාකරණය සම්බන්ධයෙන් කෘෂිකර්ම නිලධාරියෙකුගෙන් උපදෙස් ලබා ගැනීමට කැමැත්තෙමි.`
+        : language === "tamil"
+          ? `🌾 சோள விளைச்சல் மதிப்பீடு கோரிக்கை\n\n📝 விவசாயி விவரங்கள்:\nபெயர்: ${user?.full_name || "விவசாயி"}\nமாவட்டம்: ${prediction.district}\n\n🌱 பயிர் தகவல்:\nவகை: ${prediction.variety || "N/A"}\nபருவம்: ${prediction.season}\nநில அளவு: ${prediction.land_size || "N/A"}\nநடும் தேதி: ${formatDate(prediction.planting_date)}\n\n📊 மதிப்பீடு:\nவிளைச்சல்: ${prediction.predicted_yield || "N/A"} kg/ha\nநம்பகத்தன்மை: ${prediction.confidence_level || "N/A"}\n\nஎன் விளைச்சல் மதிப்பீடு மற்றும் பயிர் மேலாண்மை குறித்து விவசாய அதிகாரியிடம் ஆலோசனை பெற விரும்புகிறேன்.`
+          : `🌾 Maize Yield Prediction Request\n\n📝 Farmer Details:\nName: ${user?.full_name || "Farmer"}\nDistrict: ${prediction.district}\n\n🌱 Crop Information:\nVariety: ${prediction.variety || "N/A"}\nSeason: ${prediction.season}\nLand Size: ${prediction.land_size || "N/A"}\nPlanting Date: ${formatDate(prediction.planting_date)}\n\n📊 Prediction:\nYield: ${prediction.predicted_yield || "N/A"} kg/ha\nConfidence: ${prediction.confidence_level || "N/A"}\n\nI would like to get advice from an Agricultural Officer regarding my yield prediction and crop management.`;
+
     navigation.navigate("Chat", {
       prefilledMessage: contextMessage,
       context: "yield_prediction",
@@ -283,15 +454,31 @@ Status: ${prediction.status || "Active"}`;
     });
   };
 
-  const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: () => signOut(),
-      },
-    ]);
+  const handleAdminPestForum = () => {
+    // Level 0 = tab navigator (BottomNavigator) — navigate directly
+    navigation.navigate("PestIdentifier", {
+      screen: "AdminPestForum",
+    });
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.warn("Logout failed, forcing navigation to login:", error);
+    } finally {
+      const rootNavigation =
+        navigation.getParent()?.getParent() ??
+        navigation.getParent() ??
+        navigation;
+
+      rootNavigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: ROUTES.AUTH.LOGIN }],
+        })
+      );
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -303,9 +490,14 @@ Status: ${prediction.status || "Active"}`;
     });
   };
 
-  const toggleLanguage = () => {
-    setLanguage(language === "sinhala" ? "english" : "sinhala");
-  };
+  const languageOptions: Array<{
+    key: "sinhala" | "english" | "tamil";
+    label: string;
+  }> = [
+      { key: "sinhala", label: "සිංහල" },
+      { key: "english", label: "English" },
+      { key: "tamil", label: "தமிழ்" },
+    ];
 
   const getInitials = (name: string) => {
     return name
@@ -314,6 +506,15 @@ Status: ${prediction.status || "Active"}`;
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const formatPlanName = (plan?: string | null) => {
+    if (!plan) return "Free";
+    return plan
+      .split("_")
+      .filter(Boolean)
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
   };
 
   return (
@@ -382,6 +583,14 @@ Status: ${prediction.status || "Active"}`;
                 <Text style={styles.heroName}>
                   {user?.full_name || t.farmer}
                 </Text>
+                <Text style={styles.subscriptionBadge}>
+                  {hasActiveSubscription ? `${t.paidUser} ✓` : t.freeUser}
+                </Text>
+                {hasActiveSubscription && user?.subscription_end_date ? (
+                  <Text style={styles.subscriptionDate}>
+                    {t.subscriptionEnds}: {formatDate(user.subscription_end_date)}
+                  </Text>
+                ) : null}
 
                 <View style={styles.heroStats}>
                   <View style={styles.heroStatItem}>
@@ -406,11 +615,14 @@ Status: ${prediction.status || "Active"}`;
 
               <TouchableOpacity
                 style={styles.heroLogoutButton}
-                onPress={handleLogout}
+                onPress={() => {
+                  void handleLogout();
+                }}
                 activeOpacity={0.7}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               >
                 <LinearGradient
-                  colors={["rgba(255,255,255,0.2)", "rgba(255,255,255,0.1)"]}
+                  colors={["#ef4444", "#dc2626"]}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.heroLogoutContent}
@@ -420,6 +632,41 @@ Status: ${prediction.status || "Active"}`;
               </TouchableOpacity>
             </LinearGradient>
           </View>
+
+          {/* ===== ADMIN PEST FORUM BUTTON (only for pestofficer@gmail.com) ===== */}
+          {isPestOfficer && (
+            <View style={styles.adminSection}>
+              <TouchableOpacity
+                style={styles.adminPestForumButton}
+                onPress={handleAdminPestForum}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={["#7c3aed", "#5b21b6"]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.adminPestForumGradient}
+                >
+                  <View style={styles.adminBadge}>
+                    <Text style={styles.adminBadgeText}>ADMIN</Text>
+                  </View>
+                  <View style={styles.adminPestForumIconContainer}>
+                    <Bug size={28} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.adminPestForumTextContainer}>
+                    <Text style={styles.adminPestForumTitle}>
+                      {t.adminPestForum}
+                    </Text>
+                    <Text style={styles.adminPestForumDesc}>
+                      {t.adminPestForumDesc}
+                    </Text>
+                  </View>
+                  <ChevronRight size={22} color="rgba(255,255,255,0.8)" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* ===== END ADMIN PEST FORUM BUTTON ===== */}
 
           {/* AI Model Selection */}
           {user?.role === "farmer" && (
@@ -440,7 +687,9 @@ Status: ${prediction.status || "Active"}`;
                     styles.modelCard,
                     diseaseModel === "local" && styles.modelCardActive,
                   ]}
-                  onPress={() => setDiseaseModel("local")}
+                  onPress={() => {
+                    void setDiseaseModel("local");
+                  }}
                   activeOpacity={0.9}
                 >
                   <View style={styles.modelCardHeader}>
@@ -485,7 +734,13 @@ Status: ${prediction.status || "Active"}`;
                     styles.modelCard,
                     diseaseModel === "roboflow" && styles.modelCardActive,
                   ]}
-                  onPress={() => setDiseaseModel("roboflow")}
+                  onPress={() => {
+                    if (hasActiveSubscription) {
+                      void setDiseaseModel("roboflow");
+                      return;
+                    }
+                    navigation.navigate("SubscriptionPlans");
+                  }}
                   activeOpacity={0.9}
                 >
                   <View style={styles.modelCardHeader}>
@@ -517,12 +772,134 @@ Status: ${prediction.status || "Active"}`;
                         ]}
                       />
                       <Text style={styles.statusText}>
-                        {diseaseModel === "roboflow" ? t.selected : t.available}
+                        {diseaseModel === "roboflow"
+                          ? t.selected
+                          : hasActiveSubscription
+                            ? t.available
+                            : t.locked}
                       </Text>
                     </View>
                   </View>
                   <Text style={styles.modelName}>{t.advanced}</Text>
                   <Text style={styles.modelDescription}>{t.advancedDesc}</Text>
+                  <View style={styles.modelFeatures}>
+                    <Text style={styles.modelFeature}>🎯 {t.highAccuracy}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Pest Model Selection */}
+          {user?.role === "farmer" && (
+            <View style={styles.modelSection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionIconContainer}>
+                  <Bug size={20} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.sectionTitle}>{t.pestDetection}</Text>
+                  <Text style={styles.sectionSubtitle}>{t.choosePestModel}</Text>
+                </View>
+              </View>
+
+              <View style={styles.modelSelection}>
+                <TouchableOpacity
+                  style={[
+                    styles.modelCard,
+                    pestModel === "local" && styles.modelCardActive,
+                  ]}
+                  onPress={() => {
+                    void setPestModel("local");
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modelCardHeader}>
+                    <View
+                      style={[
+                        styles.modelIconContainer,
+                        {
+                          backgroundColor:
+                            pestModel === "local" ? "#10b98120" : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <Smartphone
+                        size={24}
+                        color={pestModel === "local" ? "#10b981" : "#64748b"}
+                      />
+                    </View>
+                    <View style={styles.modelStatus}>
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          pestModel === "local"
+                            ? styles.statusActive
+                            : styles.statusInactive,
+                        ]}
+                      />
+                      <Text style={styles.statusText}>
+                        {pestModel === "local" ? t.selected : t.available}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modelName}>{t.standard}</Text>
+                  <Text style={styles.modelDescription}>{t.standardDesc}</Text>
+                  <View style={styles.modelFeatures}>
+                    <Text style={styles.modelFeature}>⚡ {t.fast}</Text>
+                    <Text style={styles.modelFeature}>📱 {t.offline}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modelCard,
+                    pestModel === "premium" && styles.modelCardActive,
+                  ]}
+                  onPress={() => {
+                    if (hasActiveSubscription) {
+                      void setPestModel("premium");
+                      return;
+                    }
+                    navigation.navigate("SubscriptionPlans");
+                  }}
+                  activeOpacity={0.9}
+                >
+                  <View style={styles.modelCardHeader}>
+                    <View
+                      style={[
+                        styles.modelIconContainer,
+                        {
+                          backgroundColor:
+                            pestModel === "premium" ? "#f59e0b20" : "#f1f5f9",
+                        },
+                      ]}
+                    >
+                      <Crown
+                        size={24}
+                        color={pestModel === "premium" ? "#f59e0b" : "#64748b"}
+                      />
+                    </View>
+                    <View style={styles.modelStatus}>
+                      <View
+                        style={[
+                          styles.statusIndicator,
+                          pestModel === "premium"
+                            ? styles.statusActive
+                            : styles.statusInactive,
+                        ]}
+                      />
+                      <Text style={styles.statusText}>
+                        {pestModel === "premium"
+                          ? t.selected
+                          : hasActiveSubscription
+                            ? t.available
+                            : t.locked}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.modelName}>{t.premium}</Text>
+                  <Text style={styles.modelDescription}>{t.premiumDesc}</Text>
                   <View style={styles.modelFeatures}>
                     <Text style={styles.modelFeature}>🎯 {t.highAccuracy}</Text>
                   </View>
@@ -547,7 +924,7 @@ Status: ${prediction.status || "Active"}`;
             <View style={styles.settingsGrid}>
               <TouchableOpacity
                 style={styles.settingCard}
-                onPress={toggleLanguage}
+                onPress={() => setShowLanguageModal(true)}
                 activeOpacity={0.8}
               >
                 <LinearGradient
@@ -559,10 +936,39 @@ Status: ${prediction.status || "Active"}`;
                   </View>
                   <Text style={styles.settingTitle}>{t.language}</Text>
                   <Text style={styles.settingValue}>
-                    {language === "sinhala" ? "සිංහල" : "English"}
+                    {language === "sinhala"
+                      ? "සිංහල"
+                      : language === "tamil"
+                        ? "தமிழ்"
+                        : "English"}
                   </Text>
                   <View style={styles.settingArrow}>
                     <ChevronRight size={16} color="#10b981" />
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.settingCard}
+                activeOpacity={0.8}
+                onPress={() => {
+                  void refreshProfile();
+                  setShowSubscriptionModal(true);
+                }}
+              >
+                <LinearGradient
+                  colors={["#fff7ed", "#ffedd5"]}
+                  style={styles.settingGradient}
+                >
+                  <View style={styles.settingIcon}>
+                    <Crown size={24} color="#f59e0b" />
+                  </View>
+                  <Text style={styles.settingTitle}>{t.subscriptions}</Text>
+                  <Text style={styles.settingValue}>
+                    {hasActiveSubscription ? t.activeStatus : t.inactiveStatus}
+                  </Text>
+                  <View style={styles.settingArrow}>
+                    <ChevronRight size={16} color="#f59e0b" />
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -688,15 +1094,173 @@ Status: ${prediction.status || "Active"}`;
                         {t.shareWithOfficer}
                       </Text>
                     </TouchableOpacity>
+
+                    {/* Soil Test Request Button (Pro Only) */}
+                    <TouchableOpacity
+                      style={[
+                        styles.soilTestAction,
+                        !hasActiveSubscription && styles.soilTestActionLocked,
+                      ]}
+                      onPress={() => handleRequestSoilTest(prediction)}
+                    >
+                      {hasActiveSubscription ? (
+                        <LinearGradient
+                          colors={["#6366f1", "#4f46e5"]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={styles.soilTestGradient}
+                        >
+                          <TestTube size={15} color="#ffffff" />
+                          <Text style={styles.soilTestActionText}>
+                            {t.requestSoilTest}
+                          </Text>
+                        </LinearGradient>
+                      ) : (
+                        <>
+                          <Lock size={14} color="#9ca3af" />
+                          <Text style={styles.soilTestLockedText}>
+                            {t.soilTestLocked}
+                          </Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
                   </TouchableOpacity>
                 ))
               )}
             </View>
           )}
-          {/* Bottom Spacing */}
+
           <View style={styles.bottomSpacer} />
         </Animated.View>
       </ScrollView>
+
+      <Modal
+        visible={showSubscriptionModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSubscriptionModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.languageModal}>
+            <Text style={styles.languageModalTitle}>{t.subscriptionDetails}</Text>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.subscriptionStatus}</Text>
+              <Text style={styles.subscriptionValue}>
+                {hasActiveSubscription ? t.activeStatus : t.inactiveStatus}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.currentPlan}</Text>
+              <Text style={styles.subscriptionValue}>
+                {formatPlanName(user?.subscription_plan)}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.subscriptionEnds}</Text>
+              <Text style={styles.subscriptionValue}>
+                {user?.subscription_end_date
+                  ? formatDate(user.subscription_end_date)
+                  : "-"}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.paidDate}</Text>
+              <Text style={styles.subscriptionValue}>
+                {user?.subscription_start_date
+                  ? formatDate(user.subscription_start_date)
+                  : "-"}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.lastPaidAmount}</Text>
+              <Text style={styles.subscriptionValue}>
+                {typeof user?.last_payment_amount_lkr === "number"
+                  ? `Rs. ${user.last_payment_amount_lkr.toLocaleString()}`
+                  : "-"}
+              </Text>
+            </View>
+
+            <View style={styles.subscriptionRow}>
+              <Text style={styles.subscriptionLabel}>{t.advancedAccess}</Text>
+              <Text style={styles.subscriptionValue}>
+                {hasActiveSubscription ? t.unlocked : t.locked}
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.languageCloseButton}
+              onPress={() => setShowSubscriptionModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.languageCloseButtonText}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={showLanguageModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLanguageModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.languageModal}>
+            <Text style={styles.languageModalTitle}>{t.chooseLanguage}</Text>
+
+            {languageOptions.map((option) => {
+              const isActive = language === option.key;
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  style={[
+                    styles.languageOption,
+                    isActive && styles.languageOptionActive,
+                  ]}
+                  onPress={() => {
+                    setLanguage(option.key);
+                    setShowLanguageModal(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.languageOptionText,
+                      isActive && styles.languageOptionTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                  {isActive && <Text style={styles.languageCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+
+            <TouchableOpacity
+              style={styles.languageCloseButton}
+              onPress={() => setShowLanguageModal(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.languageCloseButtonText}>{t.close}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Pro Upgrade Popup (shown when free user taps locked soil test button) */}
+      <ProUpgradePopup
+        visible={showProPopup}
+        onClose={() => setShowProPopup(false)}
+        onUpgrade={() => {
+          setShowProPopup(false);
+          navigation.navigate("SubscriptionPlans");
+        }}
+      />
     </View>
   );
 };
@@ -706,7 +1270,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f8fafc",
   },
-  // Enhanced Header
   header: {
     paddingTop: 50,
     paddingBottom: 20,
@@ -772,7 +1335,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  // Profile Hero
   profileHeroContainer: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -835,6 +1397,23 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     marginBottom: 4,
+  },
+  subscriptionBadge: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    color: "#ffffff",
+    fontWeight: "700",
+    fontSize: 11,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    marginBottom: 6,
+  },
+  subscriptionDate: {
+    color: "#d1fae5",
+    fontSize: 12,
+    marginBottom: 8,
+    fontWeight: "600",
   },
   heroEmail: {
     fontSize: 13,
@@ -902,7 +1481,65 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#10b981",
   },
-  // Quick Stats
+  // ===== Admin Pest Forum Styles =====
+  adminSection: {
+    paddingHorizontal: 20,
+    marginBottom: 24,
+  },
+  adminPestForumButton: {
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#7c3aed",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  adminPestForumGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    gap: 14,
+  },
+  adminBadge: {
+    position: "absolute",
+    top: 10,
+    right: 44,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  adminBadgeText: {
+    fontSize: 9,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  adminPestForumIconContainer: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  adminPestForumTextContainer: {
+    flex: 1,
+  },
+  adminPestForumTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 3,
+  },
+  adminPestForumDesc: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.8)",
+    fontWeight: "500",
+  },
+  // ===== End Admin Pest Forum Styles =====
   quickStatsSection: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -944,7 +1581,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.9)",
     fontWeight: "600",
   },
-  // Model Selection
   modelSection: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -1048,7 +1684,6 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 8,
   },
-  // Settings Panel
   settingsPanel: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -1096,7 +1731,91 @@ const styles = StyleSheet.create({
     top: 16,
     right: 16,
   },
-  // Predictions Panel
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  languageModal: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  languageModalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#1F2937",
+    marginBottom: 14,
+  },
+  languageOption: {
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  languageOptionActive: {
+    borderColor: "#10B981",
+    backgroundColor: "#ECFDF5",
+  },
+  languageOptionText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  languageOptionTextActive: {
+    color: "#047857",
+  },
+  languageCheck: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#10B981",
+  },
+  languageCloseButton: {
+    marginTop: 4,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  languageCloseButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  subscriptionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f8fafc",
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  subscriptionLabel: {
+    fontSize: 13,
+    color: "#475569",
+    fontWeight: "700",
+  },
+  subscriptionValue: {
+    fontSize: 13,
+    color: "#0f766e",
+    fontWeight: "800",
+  },
   predictionsPanel: {
     paddingHorizontal: 20,
     marginBottom: 24,
@@ -1232,6 +1951,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#FFFFFF",
+  },
+  soilTestAction: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  soilTestActionLocked: {
+    backgroundColor: "#f3f4f6",
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderStyle: "dashed",
+  },
+  soilTestGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    width: "100%",
+  },
+  soilTestActionText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  soilTestLockedText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#9ca3af",
   },
   bottomSpacer: {
     height: 100,

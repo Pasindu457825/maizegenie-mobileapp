@@ -120,6 +120,45 @@ const translations = {
     proFeature11: "👨‍🌾 First-time Farmer Guidance",
     proFeature12: "🎓 Step-by-Step Action Plans",
   },
+  tamil: {
+    title: "Pro Advisor க்கு வரவேற்கிறோம்",
+    subtitle: "உங்கள் விவசாய வெற்றிக்கான சரியான திட்டத்தை தேர்வு செய்யுங்கள்",
+    free: "இலவசம்",
+    pro: "Pro Advisor",
+    lifetime: "வாழ்நாள் முழுவதும்",
+    continueWithFree: "இலவசமாக தொடரவும்",
+    upgradeToPro: "Pro Advisor க்கு மேம்படுத்தவும்",
+    mostPopular: "மிகவும் பிரபலமானது",
+    limitedOffer: "வரையறுக்கப்பட்ட சலுகை",
+    saveAmount: "ரூ. 2,500 சேமிக்கலாம்",
+    originalPrice: "அசல் விலை: ரூ. 4,999",
+    perfectFor: "யாருக்கு ஏற்றது",
+    beginnerFarmers: "புதிய விவசாயிகள்",
+    seriousFarmers: "தொழில்முறை விவசாயிகள்",
+    whatsIncluded: "சேர்க்கப்பட்டவை",
+    proAdvantages: "Pro சிறப்பம்சங்கள்",
+
+    // Free Features
+    freeFeature1: "அடிப்படை மகசூல் கணிப்பு",
+    freeFeature2: "பூச்சி கண்டறிதல்",
+    freeFeature3: "வானிலை தகவல்",
+    freeFeature4: "அடிப்படை உர ஆலோசனை",
+    freeFeature5: "சமூக ஆதரவு",
+
+    // Pro Features
+    proFeature1: "🎯 முழுமையான சாகுபடி திட்டம்",
+    proFeature2: "📊 விரிவான சேமிப்பு வழிகாட்டுதல்",
+    proFeature3: "⏱️ சாகுபடி அட்டவணை",
+    proFeature4: "✓ தயார்நிலை சரிபார்ப்பு",
+    proFeature5: "💰 நிதி திட்டமிடல் வழிகாட்டி",
+    proFeature6: "🌱 விதை & உர நிபுணர் ஆலோசனை",
+    proFeature7: "💧 நீர் மேலாண்மை திட்டம்",
+    proFeature8: "⚠️ அபாயம் & வாய்ப்பு பகுப்பாய்வு",
+    proFeature9: "📈 சந்தை உத்திகள்",
+    proFeature10: "🔬 மண் பரிசோதனை கோரிக்கை",
+    proFeature11: "👨‍🌾 முதல்முறை விவசாயிகளுக்கான வழிகாட்டுதல்",
+    proFeature12: "🎓 படிப்படியான செயல் திட்டங்கள்",
+  },
 };
 
 export default function PricingModal({
@@ -129,7 +168,8 @@ export default function PricingModal({
   onSelectPro,
 }: PricingModalProps) {
   const { language } = useLanguage();
-  const t = translations[language];
+  const t =
+    translations[language as keyof typeof translations] ?? translations.english;
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(height)).current;
@@ -172,7 +212,7 @@ export default function PricingModal({
             duration: 1500,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
 
       // Shimmer animation
@@ -188,7 +228,7 @@ export default function PricingModal({
             duration: 2000,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       ).start();
     } else {
       fadeAnim.setValue(0);
@@ -481,8 +521,8 @@ const ProFeatureItem = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    justifyContent: "center", 
-    alignItems: "center", 
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: "rgba(0,0,0,0.65)",
   },
 
@@ -491,8 +531,8 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.65)",
   },
   modalContainer: {
-    width: "94%", 
-    alignSelf: "center", 
+    width: "94%",
+    alignSelf: "center",
     height: "82%",
     borderRadius: 28,
     backgroundColor: "#fff",
@@ -504,8 +544,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 20,
     paddingBottom: 20,
-    paddingHorizontal: 16, 
-    borderBottomLeftRadius: 28, 
+    paddingHorizontal: 16,
+    borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
 

@@ -14,7 +14,7 @@ import { useLanguage } from "../../context/LanguageContext";
 
 const { width, height } = Dimensions.get("window");
 
-type Language = "sinhala" | "english";
+type Language = "sinhala" | "english" | "tamil";
 
 export default function LanguageSelectScreen({ navigation }: any) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -24,6 +24,8 @@ export default function LanguageSelectScreen({ navigation }: any) {
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const bounceAnim1 = useRef(new Animated.Value(0)).current;
   const bounceAnim2 = useRef(new Animated.Value(0)).current;
+  const slideAnim3 = useRef(new Animated.Value(100)).current;
+  const bounceAnim3 = useRef(new Animated.Value(0)).current;
   const [selectedLang, setSelectedLang] = useState<Language | "">("sinhala");
 
   useEffect(() => {
@@ -50,6 +52,12 @@ export default function LanguageSelectScreen({ navigation }: any) {
         toValue: 0,
         duration: 600,
         delay: 400,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim3, {
+        toValue: 0,
+        duration: 600,
+        delay: 600,
         useNativeDriver: true,
       }),
     ]).start();
@@ -93,18 +101,33 @@ export default function LanguageSelectScreen({ navigation }: any) {
         }),
       ])
     ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(bounceAnim3, {
+          toValue: -8,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(bounceAnim3, {
+          toValue: 0,
+          duration: 1600,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
-const { setLanguage } = useLanguage();
+  const { setLanguage } = useLanguage();
 
-const handleLanguageSelect = (lang: Language) => {
-  setSelectedLang(lang);
-  setLanguage(lang); // GLOBAL UPDATE
+  const handleLanguageSelect = (lang: Language) => {
+    setSelectedLang(lang);
+    setLanguage(lang); // GLOBAL UPDATE
 
-  setTimeout(() => {
-    navigation.replace("Onboarding1"); // ❌ remove params
-  }, 300);
-};
+    setTimeout(() => {
+      navigation.replace("Onboarding1"); // ❌ remove params
+    }, 300);
+  };
 
 
   const spin = rotateAnim.interpolate({
@@ -167,6 +190,7 @@ const handleLanguageSelect = (lang: Language) => {
         >
           <Text style={styles.title}>Choose Your Language</Text>
           <Text style={styles.titleSubtext}>ඔබේ භාෂාව තෝරන්න</Text>
+          <Text style={styles.titleSubtext}>உங்கள் மொழியை தேர்வு செய்யவும்</Text>
 
           {/* ✨ NEW: Decorative line under title */}
           <View style={styles.titleUnderline} />
@@ -281,6 +305,60 @@ const handleLanguageSelect = (lang: Language) => {
               </LinearGradient>
             </TouchableOpacity>
           </Animated.View>
+
+          {/* Tamil Button */}
+          <Animated.View
+            style={[
+              {
+                transform: [
+                  { translateX: slideAnim3 },
+                  { translateY: bounceAnim3 },
+                ],
+              },
+            ]}
+          >
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => handleLanguageSelect("tamil")}
+              style={styles.touchable}
+            >
+              <LinearGradient
+                colors={
+                  selectedLang === "tamil"
+                    ? ["#4f46e5", "#4338ca"]
+                    : ["#6366f1", "#4f46e5"]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[
+                  styles.languageCard,
+                  selectedLang === "tamil" && styles.languageCardSelected,
+                ]}
+              >
+                {/* Shine effect overlay */}
+                <View style={styles.shineOverlay} />
+
+                <View style={styles.cardContent}>
+                  <View style={styles.flagContainer}>
+                    <Text style={styles.flagEmoji}>🇱🇰</Text>
+                  </View>
+                  <View style={styles.languageInfo}>
+                    <Text style={styles.languageText}>தமிழ்</Text>
+                    <Text style={styles.languageSubtext}>Tamil Language</Text>
+                  </View>
+                </View>
+
+                {/* Enhanced checkmark */}
+                <View style={styles.checkmarkContainer}>
+                  {selectedLang === "tamil" ? (
+                    <CheckCircle size={24} color="#ffffff" strokeWidth={2.5} />
+                  ) : (
+                    <View style={styles.uncheckedCircle} />
+                  )}
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
 
         {/* ✨ UPDATED: Info text with enhanced styling */}
@@ -314,7 +392,7 @@ const handleLanguageSelect = (lang: Language) => {
           <View style={styles.featureDivider} />
           <View style={styles.featureItem}>
             <Globe size={16} color="#10b981" />
-            <Text style={styles.featureText}>Bilingual</Text>
+            <Text style={styles.featureText}>Trilingual</Text>
           </View>
           <View style={styles.featureDivider} />
           <View style={styles.featureItem}>

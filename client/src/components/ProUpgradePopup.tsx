@@ -19,6 +19,8 @@ import {
   BarChart3,
   MessageCircle,
   ArrowRight,
+  Camera,
+  Send,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
 
@@ -33,40 +35,60 @@ interface ProUpgradePopupProps {
 // Translations
 const translations = {
   sinhala: {
-    title: "MaizeGenie Pro වෙත උත්ශ්‍රේණි කරන්න",
+    title: "MaizeGenie Pro වෙත Upgrade කරන්න",
     subtitle: "වැඩි විශේෂාංග සහ වාසි ලබා ගන්න",
     limitedOffer: "සීමිත දීමනාව",
-    saveAmount: "50% ඉතිරි කරන්න",
-    originalPrice: "රු. 4,999",
-    proPrice: "රු. 2,499",
-    lifetime: "ජීවිත කාලය සඳහා",
+    monthlyPrice: "රු. 300",
+    annualPrice: "රු. 2,500",
+    perMonth: "මාසිකව",
+    perYear: "වාර්ෂිකව",
     upgradeToPro: "Pro වෙත උත්ශ්‍රේණි කරන්න",
     maybeLater: "පසුව",
-    
+
     // Pro Features
-    feature1: "පස් පරීක්ෂණ ඉල්ලීම",
-    feature2: "AI අස්වැන්න පුරෝකථනය",
-    feature3: "විශේෂඥ උපදෙස්",
-    feature4: "සවිස්තර වාර්තා",
-    feature5: "දැන්වීම් රහිත",
+    feature1: "විශේෂඥ උපදෙස්",
+    feature2: "සවිස්තර වාර්තා",
+    feature3: "පස් පරීක්ෂණ ඉල්ලීම",
+    feature4: "දැන්වීම් රහිත",
+    feature5: "Pro රෝග හඳුනාගැනීම",
+    feature6: "කෘෂිකර්ම නිලධාරීන්ට පින්තූර යැවීම",
   },
   english: {
     title: "Upgrade to MaizeGenie Pro",
     subtitle: "Get access to premium features and benefits",
     limitedOffer: "Limited Offer",
-    saveAmount: "Save 50%",
-    originalPrice: "Rs. 4,999",
-    proPrice: "Rs. 2,499",
-    lifetime: "Lifetime",
+    monthlyPrice: "Rs. 300",
+    annualPrice: "Rs. 2,500",
+    perMonth: "per month",
+    perYear: "per year",
     upgradeToPro: "Upgrade to Pro",
     maybeLater: "Maybe Later",
-    
+
     // Pro Features
-    feature1: "Soil Test Request",
-    feature2: "AI Yield Prediction",
-    feature3: "Expert Consultation",
-    feature4: "Detailed Reports",
-    feature5: "Ad-Free Experience",
+    feature1: "Expert Consultation",
+    feature2: "Detailed Reports",
+    feature3: "Soil Test Request",
+    feature4: "Ad-Free Experience",
+    feature5: "Pro Disease Identification",
+    feature6: "Send Images to Agri Officers",
+  },
+  // Tamil fallback (uses Tamil translations)
+  tamil: {
+    title: "MaizeGenie Pro க்கு மேம்படுத்து",
+    subtitle: "பிரீமியம் அம்சங்கள் மற்றும் நன்மைகளை அணுகுங்கள்",
+    limitedOffer: "வரையறுக்கப்பட்ட சலுகை",
+    monthlyPrice: "ரூ. 300",
+    annualPrice: "ரூ. 2,500",
+    perMonth: "மாதந்தோறும்",
+    perYear: "வருடந்தோறும்",
+    upgradeToPro: "Pro க்கு மேம்படுத்து",
+    maybeLater: "பின்னர்",
+    feature1: "நிபுணர் ஆலோசனை",
+    feature2: "விரிவான அறிக்கைகள்",
+    feature3: "மண் பரிசோதனை கோரிக்கை",
+    feature4: "விளம்பரமில்லா அனுபவம்",
+    feature5: "Pro நோய் அடையாளம்",
+    feature6: "விவசாய அதிகாரிகளுக்கு படங்களை அனுப்புக",
   },
 };
 
@@ -217,21 +239,27 @@ export default function ProUpgradePopup({
 
             {/* Pricing */}
             <View style={styles.pricingContainer}>
-              <Text style={styles.originalPrice}>{t.originalPrice}</Text>
-              <View style={styles.priceRow}>
-                <Text style={styles.proPrice}>{t.proPrice}</Text>
-                <Text style={styles.lifetime}>{t.lifetime}</Text>
+              <View style={styles.pricingOptions}>
+                <View style={styles.priceOption}>
+                  <Text style={styles.priceLabel}>{t.perMonth}</Text>
+                  <Text style={styles.priceAmount}>{t.monthlyPrice}</Text>
+                </View>
+                <View style={styles.priceDivider} />
+                <View style={styles.priceOption}>
+                  <Text style={styles.priceLabel}>{t.perYear}</Text>
+                  <Text style={styles.priceAmount}>{t.annualPrice}</Text>
+                </View>
               </View>
-              <Text style={styles.saveText}>{t.saveAmount}</Text>
             </View>
 
             {/* Features */}
             <View style={styles.featuresContainer}>
-              <FeatureItem icon={TestTube} text={t.feature1} />
+              <FeatureItem icon={MessageCircle} text={t.feature1} />
               <FeatureItem icon={BarChart3} text={t.feature2} />
-              <FeatureItem icon={MessageCircle} text={t.feature3} />
+              <FeatureItem icon={TestTube} text={t.feature3} />
               <FeatureItem icon={Sparkles} text={t.feature4} />
-              <FeatureItem icon={Crown} text={t.feature5} />
+              <FeatureItem icon={Camera} text={t.feature5} />
+              <FeatureItem icon={Send} text={t.feature6} />
             </View>
 
             {/* Upgrade Button */}
@@ -379,37 +407,46 @@ const styles = StyleSheet.create({
   },
 
   pricingContainer: {
-    alignItems: "center",
     marginBottom: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.15)",
   },
-  originalPrice: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.6)",
-    textDecorationLine: "line-through",
-    marginBottom: 4,
-  },
-  priceRow: {
+  pricingOptions: {
     flexDirection: "row",
-    alignItems: "baseline",
-    gap: 8,
-    marginBottom: 4,
+    justifyContent: "space-around",
+    alignItems: "center",
   },
-  proPrice: {
-    fontSize: 36,
+  priceOption: {
+    alignItems: "center",
+    flex: 1,
+  },
+  priceDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+  },
+  priceLabel: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.7)",
+    marginBottom: 6,
+    fontWeight: "600",
+  },
+  priceAmount: {
+    fontSize: 28,
     fontWeight: "900",
     color: "#ffffff",
   },
-  lifetime: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "rgba(255, 255, 255, 0.8)",
+  saveBadge: {
+    marginTop: 6,
+    backgroundColor: "rgba(110, 231, 183, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   saveText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
     color: "#6ee7b7",
   },

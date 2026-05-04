@@ -1,0 +1,25 @@
+# Quick Installation Commands for Soil Data Extraction
+
+## Step 1: Install Python Packages
+cd server
+pip install -r requirements.txt
+
+## Step 2: Install Tesseract OCR (Windows)
+# Download from: https://github.com/UB-Mannheim/tesseract/wiki
+# Run installer: tesseract-ocr-w64-setup-5.3.3.20231005.exe
+# Install to: C:\Program Files\Tesseract-OCR
+# Verify: tesseract --version
+
+## Step 3: Start Backend Server
+cd server
+uvicorn main:app --reload
+
+## Step 4: Test Health Check
+# Open browser: http://127.0.0.1:8000/api/v1/soil-data/health
+# Expected: {"status": "healthy", ...}
+
+## Step 5: Start Frontend
+cd client
+npx expo start
+
+## That's it! Ready to test the upload feature.

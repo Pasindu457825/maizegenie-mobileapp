@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import {
   View,
   Text,
@@ -9,11 +15,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useApp } from "../context/AppContext";
-import {
-  useNavigation,
-  useRoute,
-  useFocusEffect,
-} from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   TrendingUp,
@@ -23,6 +25,7 @@ import {
   BarChart3,
   MessageSquare,
   Bell,
+  MapPin,
 } from "lucide-react-native";
 import { useLanguage } from "../context/LanguageContext";
 import { useNotifications } from "../context/NotificationContext";
@@ -31,7 +34,7 @@ import TopOfficialNews from "../components/OfficialNews/TopOfficialNews";
 const { width } = Dimensions.get("window");
 
 // ✨ Type definition for language
-type LanguageType = "si" | "en";
+type LanguageType = "si" | "en" | "ta";
 
 // ✨ Translations
 const translations: Record<
@@ -114,6 +117,32 @@ const translations: Record<
     development: "Development",
     production: "Production",
   },
+  ta: {
+    welcome: "வரவேற்கிறோம்! 👋",
+    welcomeSubtext: "உங்கள் விவசாயத் தோழன் உதவ தயாராக உள்ளது",
+    chatWithOfficer: "விவசாய அதிகாரியுடன் அரட்டையடிக்க",
+    viewFarmerChats: "விவசாயிகள் அரட்டைகளைப் பார்க்க",
+    cropsTracked: "கண்காணிக்கப்பட்ட பயிர்கள்",
+    priceForecast: "விலை மதிப்பீடுகள்",
+    features: "சேவைகள்",
+    priceForecasting: "💰 விலை மதிப்பீடு",
+    priceDescription: "நிர்ணயிக்கப்பட்ட விலை மதிப்பீடுகளைப் பெறுங்கள்",
+    pestIdentifier: "🐛 பூச்சி அடையாளம்",
+    pestDescription: "பூச்சிகளை உடனடியாக அடையாளம் செய்க",
+    diseaseIdentifier: "🦠 நோய் அடையாளம்",
+    diseaseDescription: "பயிர் நோய்களை கண்டறிக",
+    fertilizerAdvisor: "🌱 உர உபதேசகர்",
+    fertilizerDescription: "உர பரிந்துரைகளைப் பெறுங்கள்",
+    yieldPrediction: "📊 விளைச்சல் மதிப்பீடு",
+    yieldDescription: "உங்கள் பயிர் விளைச்சலை மதிப்பிடுங்கள்",
+    todaysTip: "இன்றைய சிறப்பு குறிப்பு 💡",
+    monitorCrops: "உங்கள் பயிர்களை தொடர்ந்து கண்காணிக்கவும்",
+    monitorDescription:
+      "பூச்சி மற்றும் நோய்களை முன்னதாகவே கண்டறிவது உங்கள் அறுவடையைக் காப்பாற்றும். தினமும் உங்கள் செடிகளை சரிபார்க்கவும்.",
+    farmingCompanion: "உங்கள் விவசாயத் தோழன்",
+    development: "அபிவிருத்தி",
+    production: "உற்பத்தி",
+  },
 };
 
 export default function HomeScreen() {
@@ -124,19 +153,19 @@ export default function HomeScreen() {
 
   // ✅ Ensure language is properly tracked
   const language: LanguageType = useMemo(() => {
-    return lang === "sinhala" ? "si" : "en";
+    return lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
   }, [lang]);
 
   // ✅ Get translations based on language
   const t = useMemo(() => translations[language], [language]);
 
-  // ✨ Animations
-  const fadeAnim = new Animated.Value(0);
-  const slideAnim = new Animated.Value(50);
-  const scaleAnim = new Animated.Value(0.8);
+  // ✨ Stable Animated refs — never recreated across renders
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
-  // ✅ Re-trigger animations when language changes
-  useEffect(() => {
+  // ✅ Helper: reset and play the entrance animation
+  const playAnimation = useCallback(() => {
     fadeAnim.setValue(0);
     slideAnim.setValue(50);
     scaleAnim.setValue(0.8);
@@ -159,6 +188,25 @@ export default function HomeScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+  }, [fadeAnim, slideAnim, scaleAnim]);
+
+  // ✅ Re-play animation on every focus (covers back-navigation + language changes)
+  useFocusEffect(
+    useCallback(() => {
+      playAnimation();
+      // Return a cleanup function to stop any in-flight animations when
+      // the screen loses focus, preventing memory leaks.
+      return () => {
+        fadeAnim.stopAnimation();
+        slideAnim.stopAnimation();
+        scaleAnim.stopAnimation();
+      };
+    }, [playAnimation, fadeAnim, slideAnim, scaleAnim]),
+  );
+
+  // ✅ Also re-trigger when language changes while the screen is already focused
+  useEffect(() => {
+    playAnimation();
   }, [language]);
 
   // ✅ Build features array with language dependency
@@ -186,21 +234,31 @@ export default function HomeScreen() {
         route: "DiseaseIdentifier",
       },
       {
-        icon: AlertCircle,
-        title: t.fertilizerAdvisor,
-        description: t.fertilizerDescription,
-        color: "#f59e0b",
-        route: "FertilizerAdvisor",
-      },
-      {
         icon: BarChart3,
         title: t.yieldPrediction,
         description: t.yieldDescription,
         color: "#8b5cf6",
         route: "PredictYield",
       },
+      {
+        icon: MapPin,
+        title:
+          language === "si"
+            ? "කෘෂිකර්ම කාර්යාල"
+            : language === "ta"
+              ? "விவசாய அலுவலகங்கள்"
+              : "Agriculture Offices",
+        description:
+          language === "si"
+            ? "ආසන්න කෘෂිකර්ම දෙපාර්තමේන්තු සොයන්න"
+            : language === "ta"
+              ? "அருகிலுள்ள விவசாய திணைக்களங்களை கண்டறியுங்கள்"
+              : "Find nearby agriculture departments",
+        color: "#059669",
+        route: "AgricultureDepartmentScreen", // ✅ DIRECT
+      },
     ],
-    [t]
+    [t],
   );
 
   return (
@@ -214,7 +272,7 @@ export default function HomeScreen() {
       >
         <View style={styles.headerContent}>
           <View>
-            <Text style={styles.appTitle}>🌾 MaizeGenie</Text>
+            <Text style={styles.appTitle}>🌱 MaizeGenie</Text>
             <Text style={styles.headerSubtitle}>{t.farmingCompanion}</Text>
           </View>
 

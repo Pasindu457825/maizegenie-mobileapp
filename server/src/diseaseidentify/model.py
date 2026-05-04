@@ -1,16 +1,24 @@
 from functools import lru_cache
 from pathlib import Path
-from ultralytics import YOLO
 import os
+
+try:
+    from ultralytics import YOLO
+    _ULTRALYTICS_AVAILABLE = True
+except ImportError:
+    _ULTRALYTICS_AVAILABLE = False
+    YOLO = None
 
 MODEL_FILENAME = "best.pt"
 
 @lru_cache(maxsize=1)
-def get_model() -> YOLO:
+def get_model():
     """
     Loads the YOLO model once and caches it for reuse.
     Handles model loading errors gracefully.
     """
+    if not _ULTRALYTICS_AVAILABLE:
+        raise RuntimeError("ultralytics package is not installed. Run: pip install ultralytics")
     try:
         # Get the directory containing this file
         current_dir = Path(__file__).parent

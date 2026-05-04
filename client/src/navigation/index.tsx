@@ -23,9 +23,12 @@ import AdminEditOfficialNewsScreen from "@screens/AdminPanel/AdminEditOfficialNe
 
 import PaymentScreen from "../screens/Payment/PaymentScreen";
 import PaymentSuccessScreen from "../screens/Payment/PaymentSuccessScreen";
+import SubscriptionPlansScreen from "../screens/Payment/SubscriptionPlansScreen";
+import SoilTestRequestScreen from "../screens/YieldPrediction/SoilTestRequestScreen";
 import ProAdvisorAdminAddScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminAddScreen";
 import ProAdvisorAdminEditScreen from "@screens/AdminPanel/ProAdvisor/ProAdvisorAdminEditScreen";
-import ProAdvisorFollowScreen from"../screens/PriceForecast/ProAdvisorFollowScreen";
+import ProAdvisorFollowScreen from "../screens/PriceForecast/ProAdvisorFollowScreen";
+import AgricultureDepartmentScreen from "@screens/PriceForecast/AgricultureDepartmentScreen";
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -48,7 +51,9 @@ export type RootStackParamList = {
   Payment: {
     plan?: string;
     amount?: number;
+    billingCycle?: "monthly" | "annual";
   };
+  SubscriptionPlans: undefined;
   PaymentSuccess: {
     orderId?: string;
     amount?: number;
@@ -74,8 +79,9 @@ export type RootStackParamList = {
     advisorId: string;
   };
   ProAdvisorFollowScreen: {
-    formData: any;   
+    formData: any;
   };
+  AgricultureDepartmentScreen: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -94,12 +100,29 @@ export default function RootNavigator() {
       <Stack.Screen name="Onboarding3" component={Onboarding3} />
 
       {/* LOGIN */}
-      <Stack.Screen name={ROUTES.AUTH.LOGIN} component={LoginScreen} />
-      <Stack.Screen name={ROUTES.AUTH.SIGNUP} component={SignupScreen} />
+      <Stack.Screen
+        name={ROUTES.AUTH.LOGIN}
+        component={LoginScreen}
+        options={{
+          animation: "slide_from_left",
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animationTypeForReplace: "push",
+        }}
+      />
+      <Stack.Screen
+        name={ROUTES.AUTH.SIGNUP}
+        component={SignupScreen}
+        options={{
+          animation: "slide_from_right",
+          gestureEnabled: true,
+          fullScreenGestureEnabled: true,
+          animationTypeForReplace: "push",
+        }}
+      />
 
       {/* MAIN TABS */}
       <Stack.Screen name={ROUTES.ROOT.MAIN} component={BottomNavigator} />
-
 
       {/* CHAT SYSTEM */}
       <Stack.Screen name="Chat" component={ChatScreen} />
@@ -144,10 +167,18 @@ export default function RootNavigator() {
         component={ProAdvisorFollowScreen}
       />
 
-
       {/* PAYMENT */}
+      <Stack.Screen name="SubscriptionPlans" component={SubscriptionPlansScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="PaymentSuccess" component={PaymentSuccessScreen} />
+
+      {/* SOIL TEST REQUEST (Pro) */}
+      <Stack.Screen name="SoilTestRequest" component={SoilTestRequestScreen} />
+
+      <Stack.Screen
+        name="AgricultureDepartmentScreen"
+        component={AgricultureDepartmentScreen}
+      />
     </Stack.Navigator>
   );
 }

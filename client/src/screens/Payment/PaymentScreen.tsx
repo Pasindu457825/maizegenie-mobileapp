@@ -1,5 +1,5 @@
 // PaymentScreen.tsx - PayHere Payment Gateway Integration UI
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -21,27 +21,32 @@ import {
 } from "lucide-react-native";
 import { TextInput } from "react-native-paper";
 import { useLanguage } from "../../context/LanguageContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useApp } from "../../context/AppContext";
+import {
+  BillingCycle,
+  confirmCheckout,
+  createCheckout,
+} from "../../services/subscriptionApi";
 
 // Translations
 const translations = {
   sinhala: {
     title: "ගෙවීම් තොරතුරු",
     subtitle: "ඔබේ Pro සාමාජිකත්වය සක්‍රිය කරන්න",
-    
+
     // Order Summary
     orderSummary: "ඇණවුම් සාරාංශය",
     planName: "MaizeGenie Pro - ජීවිත කාලය",
     originalPrice: "මුල් මිල",
     discount: "වට්ටම (50%)",
     totalAmount: "මුළු මුදල",
-    
+
     // Payment Methods
     paymentMethod: "ගෙවීම් ක්‍රමය",
     creditCard: "ක්‍රෙඩිට් / ඩෙබිට් කාඩ්පත",
     bankTransfer: "බැංකු මාරු කිරීම",
     mobileBanking: "ජංගම බැංකු",
-    
+
     // Card Details
     cardNumber: "කාඩ්පත් අංකය",
     cardNumberPlaceholder: "1234 5678 9012 3456",
@@ -51,11 +56,11 @@ const translations = {
     expiryPlaceholder: "MM/YY",
     cvv: "CVV",
     cvvPlaceholder: "123",
-    
+
     // Security
     securePayment: "ආරක්ෂිත ගෙවීම",
     secureText: "ඔබේ ගෙවීම් තොරතුරු SSL සංකේතනය මගින් ආරක්ෂා කර ඇත",
-    
+
     // Features Reminder
     featuresTitle: "Pro සමඟ ඔබට ලැබෙන දේ",
     feature1: "පස් පරීක්ෂණ ඉල්ලීම",
@@ -63,12 +68,12 @@ const translations = {
     feature3: "විශේෂඥ උපදෙස්",
     feature4: "සවිස්තර වාර්තා",
     feature5: "ජීවිත කාල ප්‍රවේශය",
-    
+
     // Buttons
     payNow: "දැන් ගෙවන්න",
     processing: "සැකසෙමින්...",
     cancel: "අවලංගු කරන්න",
-    
+
     // Messages
     successTitle: "ගෙවීම සාර්ථකයි!",
     successMessage: "ඔබේ Pro සාමාජිකත්වය සක්‍රිය කර ඇත. සියලුම විශේෂාංග භුක්ති විඳින්න!",
@@ -79,20 +84,20 @@ const translations = {
   english: {
     title: "Payment Information",
     subtitle: "Activate your Pro membership",
-    
+
     // Order Summary
     orderSummary: "Order Summary",
     planName: "MaizeGenie Pro - Lifetime",
     originalPrice: "Original Price",
     discount: "Discount (50%)",
     totalAmount: "Total Amount",
-    
+
     // Payment Methods
     paymentMethod: "Payment Method",
     creditCard: "Credit / Debit Card",
     bankTransfer: "Bank Transfer",
     mobileBanking: "Mobile Banking",
-    
+
     // Card Details
     cardNumber: "Card Number",
     cardNumberPlaceholder: "1234 5678 9012 3456",
@@ -102,11 +107,11 @@ const translations = {
     expiryPlaceholder: "MM/YY",
     cvv: "CVV",
     cvvPlaceholder: "123",
-    
+
     // Security
     securePayment: "Secure Payment",
     secureText: "Your payment information is protected with SSL encryption",
-    
+
     // Features Reminder
     featuresTitle: "What You Get with Pro",
     feature1: "Soil Test Request",
@@ -114,12 +119,12 @@ const translations = {
     feature3: "Expert Consultation",
     feature4: "Detailed Reports",
     feature5: "Lifetime Access",
-    
+
     // Buttons
     payNow: "Pay Now",
     processing: "Processing...",
     cancel: "Cancel",
-    
+
     // Messages
     successTitle: "Payment Successful!",
     successMessage: "Your Pro membership has been activated. Enjoy all premium features!",
@@ -127,13 +132,71 @@ const translations = {
     errorMessage: "An error occurred while processing payment. Please try again.",
     validationError: "Please fill in all fields correctly",
   },
-};
+  tamil: {
+    title: "கொடுப்பனவு தகவல்கள்",
+    subtitle: "உங்கள் Pro உறுப்பினரை செயல்படுத்துங்கள்",
+
+    // Order Summary
+    orderSummary: "ஆர்டர் சுருக்கம்",
+    planName: "MaizeGenie Pro - வாழ்நாள்",
+    originalPrice: "அசல் விலை",
+    discount: "தள்ளுபடி (50%)",
+    totalAmount: "மொத்த தொகை",
+
+    // Payment Methods
+    paymentMethod: "கொடுப்பனவு முறை",
+    creditCard: "கிரெடிட் / டெபிட் கார்டு",
+    bankTransfer: "வங்கி பரிமாற்றம்",
+    mobileBanking: "மொபைல் வங்கி",
+
+    // Card Details
+    cardNumber: "கார்டு எண்",
+    cardNumberPlaceholder: "1234 5678 9012 3456",
+    cardHolder: "கார்டு உரிமையாளர் பெயர்",
+    cardHolderPlaceholder: "உங்கள் பெயரை உள்ளிடுங்கள்",
+    expiryDate: "காலாவதி தேதி",
+    expiryPlaceholder: "MM/YY",
+    cvv: "CVV",
+    cvvPlaceholder: "123",
+
+    // Security
+    securePayment: "பாதுகாப்பான கொடுப்பனவு",
+    secureText: "உங்கள் கொடுப்பனவு தகவல்கள் SSL குறியாக்கத்தால் பாதுகாக்கப்படுகின்றன",
+
+    // Features Reminder
+    featuresTitle: "Pro உடன் உங்களுக்கு கிடைப்பவை",
+    feature1: "மண் பரிசோதனை கோரிக்கை",
+    feature2: "AI விளைச்சல் கணிப்பு",
+    feature3: "நிபுணர் ஆலோசனை",
+    feature4: "விரிவான அறிக்கைகள்",
+    feature5: "வாழ்நாள் அணுகல்",
+
+    // Buttons
+    payNow: "இப்போது செலுத்தவும்",
+    processing: "செயலாக்கம்...",
+    cancel: "ரத்து செய்",
+
+    // Messages
+    successTitle: "கொடுப்பனவு வெற்றி!",
+    successMessage: "உங்கள் Pro உறுப்பினர் செயல்படுத்தப்பட்டது. அனைத்து சிறப்பம்சங்களையும் அனுபவிக்கவும்!",
+    errorTitle: "கொடுப்பனவு தோல்வி",
+    errorMessage: "கொடுப்பனவு செயலாக்கத்தில் பிழை ஏற்பட்டது. மீண்டும் முயற்சிக்கவும்.",
+    validationError: "அனைத்து புலங்களையும் சரியாக நிரப்பவும்",
+  },
+} as Record<string, any>;
 
 export default function PaymentScreen({ navigation, route }: any) {
+  const { refreshProfile, setDiseaseModel } = useApp();
   const { language } = useLanguage();
   const t = translations[language];
 
-  const { plan = "pro", amount = 2499 } = route.params || {};
+  const {
+    plan = "pro_monthly",
+    amount = 300,
+    billingCycle: routeBillingCycle,
+  } = route.params || {};
+  const billingCycle: BillingCycle =
+    routeBillingCycle || (amount >= 2000 ? "annual" : "monthly");
 
   const [paymentMethod, setPaymentMethod] = useState("card");
   const [cardNumber, setCardNumber] = useState("");
@@ -142,8 +205,8 @@ export default function PaymentScreen({ navigation, route }: any) {
   const [cvv, setCvv] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const originalPrice = 4999;
-  const discount = 2500;
+  const originalPrice = amount;
+  const discount = 0;
   const totalAmount = amount;
 
   const formatCardNumber = (text: string) => {
@@ -189,79 +252,36 @@ export default function PaymentScreen({ navigation, route }: any) {
     setLoading(true);
 
     try {
-      // Get user info
-      const userStr = await AsyncStorage.getItem("user");
-      const user = userStr ? JSON.parse(userStr) : null;
+      const checkout = await createCheckout(billingCycle as BillingCycle);
 
-      // Prepare payment data for PayHere
-      const paymentData = {
-        merchant_id: "YOUR_MERCHANT_ID", // TODO: Replace with actual PayHere merchant ID
-        return_url: "maizegenie://payment/success",
-        cancel_url: "maizegenie://payment/cancel",
-        notify_url: "https://your-backend.com/api/payment/notify",
-        order_id: `PRO_${Date.now()}`,
-        items: "MaizeGenie Pro - Lifetime",
-        currency: "LKR",
-        amount: totalAmount.toFixed(2),
-        first_name: user?.name?.split(" ")[0] || "",
-        last_name: user?.name?.split(" ")[1] || "",
-        email: user?.email || "",
-        phone: user?.phone || "",
-        address: "",
-        city: "",
-        country: "Sri Lanka",
-        // Card details (for PayHere integration)
+      const confirmed = await confirmCheckout({
+        order_id: checkout.order_id,
+        billing_cycle: billingCycle as BillingCycle,
         card_number: cardNumber.replace(/\s/g, ""),
-        card_holder: cardHolder,
+        card_holder: cardHolder.trim(),
         expiry_date: expiryDate,
-        cvv: cvv,
-      };
+        cvv,
+      });
 
-      console.log("Payment Data:", paymentData);
-
-      // TODO: Integrate with PayHere SDK
-      // For now, simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Simulate successful payment
-      const paymentSuccess = true; // This will come from PayHere response
-
-      if (paymentSuccess) {
-        // Save Pro status
-        await AsyncStorage.setItem("userPlan", "pro");
-        await AsyncStorage.setItem("proActivatedAt", new Date().toISOString());
-        await AsyncStorage.setItem("proExpiryDate", "lifetime");
-
-        // Show success message
-        Alert.alert(
-          t.successTitle,
-          t.successMessage,
-          [
-            {
-              text: "OK",
-              onPress: () => {
-                navigation.reset({
-                  index: 0,
-                  routes: [{ name: "Main" }],
-                });
-              },
-            },
-          ]
-        );
-
-        // TODO: Send payment confirmation to backend
-        // await fetch(`${API_URL}/payment/confirm`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ order_id: paymentData.order_id, user_id: user.id })
-        // });
-      } else {
+      if (!confirmed.success) {
         Alert.alert(t.errorTitle, t.errorMessage);
+        return;
       }
 
+      await refreshProfile();
+      await setDiseaseModel("roboflow");
+
+      navigation.replace("PaymentSuccess", {
+        orderId: checkout.order_id,
+        amount: totalAmount,
+        plan,
+      });
     } catch (error) {
       console.error("Payment error:", error);
-      Alert.alert(t.errorTitle, t.errorMessage);
+      Alert.alert(
+        t.errorTitle,
+        error instanceof Error ? error.message : t.errorMessage,
+      );
     } finally {
       setLoading(false);
     }
@@ -302,25 +322,25 @@ export default function PaymentScreen({ navigation, route }: any) {
         {/* Order Summary */}
         <View style={styles.summaryCard}>
           <Text style={styles.sectionTitle}>{t.orderSummary}</Text>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t.planName}</Text>
           </View>
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>{t.originalPrice}</Text>
             <Text style={styles.summaryValue}>රු. {originalPrice.toLocaleString()}</Text>
           </View>
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.discountLabel}>{t.discount}</Text>
             <Text style={styles.discountValue}>- රු. {discount.toLocaleString()}</Text>
           </View>
-          
+
           <View style={styles.divider} />
-          
+
           <View style={styles.summaryRow}>
             <Text style={styles.totalLabel}>{t.totalAmount}</Text>
             <Text style={styles.totalValue}>රු. {totalAmount.toLocaleString()}</Text>
@@ -330,7 +350,7 @@ export default function PaymentScreen({ navigation, route }: any) {
         {/* Payment Method */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t.paymentMethod}</Text>
-          
+
           <TouchableOpacity
             style={[
               styles.methodOption,

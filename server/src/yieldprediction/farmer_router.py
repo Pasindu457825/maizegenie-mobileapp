@@ -21,6 +21,11 @@ try:
     from .ml_prediction_service import MODEL_LOADED as USE_ML
 except ImportError:
     USE_ML = False
+from .comparison_service import (
+    get_variety_comparison,
+    get_irrigation_comparison,
+    calculate_confidence_score
+)
 from src.database.supabase_service_yieldNfert import (
     save_farmer_input,
     save_prediction,
@@ -174,16 +179,39 @@ async def predict_yield_farmer(
                 detail=f"Prediction failed: {str(pred_error)}"
             )
         
-        # Step 4: Calculate confidence
-        confidence_score = 75.0  # Base confidence
+        # Step 4: Calculate confidence based on weather data source
+        weather_data_source = request.weather_data_source or "auto"
         
-        # Adjust based on data quality
-        if request.soil_condition == 'Good' and request.irrigation_type == 'Irrigated':
-            confidence_score += 10
-        elif request.soil_condition == 'Poor' or request.rainfall_condition == 'Low':
-            confidence_score -= 15
+        if weather_data_source == "auto":
+            # Auto-filled weather data: 70% base confidence
+            confidence_score = 70.0
+            print(f"📊 Confidence: Auto-filled weather data (70% base)")
+        else:
+            # Manually entered weather data: 70-85% confidence
+            confidence_score = 75.0  # Start at 75% for manual entry
+            print(f"📊 Confidence: Manual weather data (75% base)")
+            
+            # Boost for good conditions (up to 85%)
+            if request.soil_condition == 'Good' and request.irrigation_type == 'Irrigated':
+                confidence_score += 10
+            elif request.soil_condition == 'Good' or request.irrigation_type == 'Irrigated':
+                confidence_score += 5
+            
+            # Cap at 85% for manual entry
+            confidence_score = min(confidence_score, 85.0)
         
-        confidence_score = max(50, min(95, confidence_score))
+        # Adjust for poor conditions (applies to both auto and manual)
+        if request.soil_condition == 'Poor':
+            confidence_score -= 10
+        if request.rainfall_condition == 'Low' and request.irrigation_type == 'Rainfed':
+            confidence_score -= 8
+        
+        # Ensure confidence stays within bounds
+        # Auto: max 70%, Manual: 70-85%
+        if weather_data_source == "auto":
+            confidence_score = max(50, min(70, confidence_score))
+        else:
+            confidence_score = max(60, min(85, confidence_score))
         
         if confidence_score >= 80:
             confidence_level = 'High'
@@ -191,6 +219,8 @@ async def predict_yield_farmer(
             confidence_level = 'Medium'
         else:
             confidence_level = 'Low'
+        
+        print(f"✅ Final Confidence: {confidence_score:.1f}% ({confidence_level})")
         
         # Calculate yield bounds (±15%)
         yield_lower = predicted_yield * 0.85
@@ -290,7 +320,29 @@ async def predict_yield_farmer(
             summary_english += "Consider soil improvement for better yields."
             summary_sinhala += "වඩා හොඳ අස්වැන්නක් සඳහා පස වැඩිදියුණු කිරීම සලකා බලන්න."
         
-        # Step 11: Build response with comparison data
+        # Step 11: Get variety and irrigation comparisons
+        variety_comparison = get_variety_comparison(
+            current_variety=request.variety,
+            predicted_yield=predicted_yield,
+            district=request.district,
+            soil_condition=request.soil_condition
+        )
+        
+        irrigation_comparison = get_irrigation_comparison(
+            current_irrigation=request.irrigation_type,
+            predicted_yield=predicted_yield,
+            rainfall_condition=request.rainfall_condition
+        )
+        
+        # Log comparison results
+        if variety_comparison:
+            print(f"🌱 Variety suggestion: {variety_comparison['suggested_variety']} "
+                  f"(+{variety_comparison['yield_increase_percentage']:.1f}%)")
+        if irrigation_comparison:
+            print(f"💧 Irrigation suggestion: {irrigation_comparison['suggested_irrigation']} "
+                  f"(+{irrigation_comparison['yield_increase_percentage']:.1f}%)")
+        
+        # Step 12: Build response with comparison data
         response = FarmerPredictionResponse(
             prediction_id=prediction_id,
             farmer_input_id=farmer_input_id,
@@ -310,7 +362,9 @@ async def predict_yield_farmer(
                 'district': request.district,
                 'variety': request.variety,
                 'season': request.season
-            }
+            },
+            variety_comparison=variety_comparison,
+            irrigation_comparison=irrigation_comparison
         )
         
         print(f"\n{'='*60}")

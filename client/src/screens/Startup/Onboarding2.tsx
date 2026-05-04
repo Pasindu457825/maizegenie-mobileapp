@@ -27,7 +27,7 @@ type LanguageType = "sinhala" | "english";
 
 const translations = {
   sinhala: {
-    title: "🌾 ස්මාර්ට් ගොවි මිතුරු",
+    title: "🌽 ස්මාර්ට් ගොවි මිතුරු",
     description: "වගා අස්වැන්න, කාලගුණ, මිල සහ පෝෂක උපදෙස්",
     next: "ආරම්භ කරමු",
     feature1: "🌽 අස්වැන්න පුරෝකථනය",
@@ -36,13 +36,22 @@ const translations = {
     feature4: "💰 මිල තොරතුරු",
   },
   english: {
-    title: "🌾 Smart Farming Assistant",
+    title: "🌽 Smart Farming Assistant",
     description: "Weather, prices, and fertilizer guidance",
     next: "Get Started",
     feature1: "🌽 Yield Prediction",
     feature2: "🌱 Fertilizer Advisory",
     feature3: "☀️ Weather Analysis",
     feature4: "💰 Market Price Info",
+  },
+  tamil: {
+    title: "🌽 திறமையான விவசாய உதவியாளர்",
+    description: "வானிலை, விலைகள் மற்றும் உர வழிகாட்டுதல்",
+    next: "தொடங்குங்கள்",
+    feature1: "🌽 விளைச்சல் மதிப்பீடு",
+    feature2: "🌱 உர ஆலோசனை",
+    feature3: "☀️ வானிலை பகுப்பாய்வு",
+    feature4: "💰 சந்தை விலை தகவல்",
   },
 };
 
@@ -215,7 +224,7 @@ export default function Onboarding2({ navigation, route }: any) {
             style={[styles.statsBadge, { transform: [{ scale: pulseAnim }] }]}
           >
             <Text style={styles.statsIcon}>📊</Text>
-            
+
           </Animated.View>
         </View>
       </Animated.View>

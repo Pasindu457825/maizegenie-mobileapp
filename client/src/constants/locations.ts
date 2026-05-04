@@ -32,11 +32,48 @@ export const DISTRICTS = [
   "Ampara",
   "Anuradhapura",
   "Badulla",
-  "Colombo",
-  "Kalutara",
   "Matale",
   "Monaragala"
 ];
+
+// Sinhala translations for districts
+export const DISTRICTS_SINHALA: Record<string, string> = {
+  "Ampara": "අම්පාර",
+  "Anuradhapura": "අනුරාධපුරය",
+  "Badulla": "බදුල්ල",
+  "Matale": "මාතලේ",
+  "Monaragala": "මොණරාගල"
+};
+
+// Sinhala translations for locations
+export const LOCATIONS_SINHALA: Record<string, Record<string, string>> = {
+  "Ampara": {
+    "Dehiattakandiya": "දෙහිආටකන්දිය",
+    "Maha Oya": "මහ ඔය",
+    "Padiyathalawa": "පදියතලාව"
+  },
+  "Anuradhapura": {
+    "Eppawala": "ඇප්පාවල",
+    "Horowpathana": "හොරොව්පතන",
+    "Kahatagasdigiliya": "කහටගස්දිගිලිය",
+    "Nochchiyagama": "නොච්චියාගම",
+    "Tambuttegama": "තඹුත්තේගම"
+  },
+  "Badulla": {
+    "Mahiyanganaya": "මහියංගනය",
+    "Rideemaliyadda": "රිදීමලියද්ද"
+  },
+  "Matale": {
+    "Dambulla": "දඹුල්ල",
+    "Pelwehera": "පෙල්වෙහෙර"
+  },
+  "Monaragala": {
+    "Buttala": "බුත්තල",
+    "Siyambalanduwa": "සියඹලාන්දුව",
+    "Thanamalwila": "තනමල්විල",
+    "Wellawaya": "වැල්ලවාය"
+  }
+};
 
 export const LOCATIONS_BY_DISTRICT: Record<string, string[]> = {
   "Ampara": [
@@ -54,14 +91,6 @@ export const LOCATIONS_BY_DISTRICT: Record<string, string[]> = {
   "Badulla": [
     "Mahiyanganaya",
     "Rideemaliyadda"
-  ],
-  "Colombo": [
-    "Kaduwela",
-    "Malabe",
-    "Pittugala"
-  ],
-  "Kalutara": [
-    "Panadura"
   ],
   "Matale": [
     "Dambulla",
@@ -134,30 +163,6 @@ export const LOCATION_COORDINATES: Record<string, Record<string, LocationData>> 
       latitude: 7.2000,
       longitude: 81.1500,
       soilTypes: ["Red-Yellow Podzolic", "Reddish Brown Earth"]
-    }
-  },
-  "Colombo": {
-    "Kaduwela": {
-      latitude: 6.9333,
-      longitude: 79.9833,
-      soilTypes: ["Red-Yellow Podzolic", "Alluvial Soil"]
-    },
-    "Malabe": {
-      latitude: 6.9167,
-      longitude: 79.9667,
-      soilTypes: ["Red-Yellow Podzolic", "Lateritic Soil"]
-    },
-    "Pittugala": {
-      latitude: 6.9000,
-      longitude: 79.9500,
-      soilTypes: ["Red-Yellow Podzolic", "Alluvial Soil"]
-    }
-  },
-  "Kalutara": {
-    "Panadura": {
-      latitude: 6.7133,
-      longitude: 79.9025,
-      soilTypes: ["Red-Yellow Podzolic", "Lateritic Soil"]
     }
   },
   "Matale": {

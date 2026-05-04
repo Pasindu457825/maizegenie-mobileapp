@@ -1,14 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     View,
     Text,
     TouchableOpacity,
     StyleSheet,
     ScrollView,
-    Image,
-    Dimensions,
-    NativeScrollEvent,
-    NativeSyntheticEvent,
     Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
@@ -16,27 +12,40 @@ import { ArrowLeft, Sparkles, MessageCircle, AlertCircle } from "lucide-react-na
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
+import ProUpgradePopup from "../../components/ProUpgradePopup";
 
-const { width } = Dimensions.get("window");
-
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 
 const content = {
     si: {
         title: "පොහොර උපදේශ",
         subtitle: "ඔබේ සේවා",
-        nlpAdvisory: "නීති පදනම් පොහොර උපදේශක",
-        nlpDescription: "ස්වභාවික භාෂාවෙන් පොහොර උපදේශ ලබා ගන්න",
+        nlpAdvisory: "ඔබේ පොහොර උපදේශ සහායක",
+        nlpDescription: "දෘශ්‍යමාන ලක්ෂණ මත පදනම්ව පොහොර උපදේශ ලබා ගන්න",
         farmerChat: "කෘෂි නිලධාරියා සමඟ කතා කරන්න",
         farmerChatDescription: "විශේෂඥ උපදේශ සඳහා සජීවී චැට්",
+        knowledgeBank: "පෝෂක මාර්ගෝපදේශ කියවන්න",
+        knowledgeBankDescription: "වගාව සඳහා වැදගත් වන පෝෂක තොරතුරු ලබාගන්න",
     },
     en: {
         title: "Fertilizer Advisory",
         subtitle: "Your Services",
-        nlpAdvisory: "Rule-Based Fertilizer Advisory",
-        nlpDescription: "Get fertilizer advice in natural language",
+        nlpAdvisory: "Your Fertilizer Advisory Assistant",
+        nlpDescription: "Get fertilizer advices on visible signs based",
         farmerChat: "Chat With Agriculture Officer",
         farmerChatDescription: "Live chat for expert advice",
+        knowledgeBank: "Read Fertilizer Guidelines",
+        knowledgeBankDescription: "Get important nutrient information for cultivation",
+    },
+    ta: {
+        title: "உர ஆலோசனை",
+        subtitle: "உங்கள் சேவைகள்",
+        nlpAdvisory: "உங்கள் உர ஆலோசனை உதவியாளர்",
+        nlpDescription: "கண்ணுக்குத் தெரியும் அறிகுறிகளின் அடிப்படையில் உர ஆலோசனை பெறுங்கள்",
+        farmerChat: "விவசாய அதிகாரியுடன் பேசுங்கள்",
+        farmerChatDescription: "நிபுணர் ஆலோசனைக்கான நேரடி அரட்டை",
+        knowledgeBank: "உர வழிகாட்டுதல்களைப் படியுங்கள்",
+        knowledgeBankDescription: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்களைப் பெறுங்கள்",
     },
 };
 
@@ -44,18 +53,30 @@ export default function FertilizerAdvisorLandingScreen() {
     const navigation = useNavigation<any>();
     const { user } = useApp();
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
-    const [activeSlide, setActiveSlide] = useState(0);
-    const scrollViewRef = useRef<ScrollView>(null);
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
+    const [showProPopup, setShowProPopup] = useState(false);
+
+    // Compute active subscription status from user profile
+    const hasActiveSubscription = (() => {
+        if (!user?.is_paid_user) return false;
+        const endRaw = user?.subscription_end_date;
+        if (!endRaw) return false;
+        try {
+            const endDate = new Date(String(endRaw).replace("Z", "+00:00"));
+            return endDate > new Date();
+        } catch {
+            return false;
+        }
+    })();
 
     // Check if user is a farmer
     useEffect(() => {
         if (!user || user.role !== "farmer") {
             Alert.alert(
-                language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
-                language === "si" 
+                language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied",
+                language === "si"
                     ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි."
-                    : "This feature is only available for farmers.",
+                    : language === "ta" ? "இந்த அம்சம் விவசாயிகளுக்கு மட்டுமே." : "This feature is only available for farmers.",
                 [{
                     text: "OK",
                     onPress: () => navigation.goBack()
@@ -85,7 +106,7 @@ export default function FertilizerAdvisorLandingScreen() {
                         </TouchableOpacity>
                         <View style={styles.headerCenter}>
                             <Text style={styles.headerTitle}>
-                                {language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied"}
+                                {language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied"}
                             </Text>
                         </View>
                     </View>
@@ -93,36 +114,26 @@ export default function FertilizerAdvisorLandingScreen() {
                 <View style={styles.accessDeniedContainer}>
                     <AlertCircle color="#ef4444" size={64} />
                     <Text style={styles.accessDeniedTitle}>
-                        {language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied"}
+                        {language === "si" ? "ප්‍රවේශය වසා ඇත" : language === "ta" ? "அணுகல் மறுக்கப்பட்டது" : "Access Denied"}
                     </Text>
                     <Text style={styles.accessDeniedText}>
-                        {language === "si" 
+                        {language === "si"
                             ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි. කරුණාකර ගොවි ගිණුමකින් පුරනය වන්න."
-                            : "This feature is only available for farmers. Please log in with a farmer account."}
+                            : language === "ta" ? "இந்த அம்சம் விவசாயிகளுக்கு மட்டுமே. விவசாயி கணக்கில் உள்நுழையவும்."
+                                : "This feature is only available for farmers. Please log in with a farmer account."}
                     </Text>
                     <TouchableOpacity
                         style={styles.backButtonLarge}
                         onPress={() => navigation.goBack()}
                     >
                         <Text style={styles.backButtonText}>
-                            {language === "si" ? "ආපසු යන්න" : "Go Back"}
+                            {language === "si" ? "ආපසු යන්න" : language === "ta" ? "திரும்பிச் செல்" : "Go Back"}
                         </Text>
                     </TouchableOpacity>
                 </View>
             </View>
         );
     }
-
-    const slides = [
-        require("../../../assets/fert_advices/YaraMila1.jpg"),
-        require("../../../assets/fert_advices/YaraMila2.jpg"),
-    ];
-
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const slideSize = event.nativeEvent.layoutMeasurement.width;
-        const index = Math.round(event.nativeEvent.contentOffset.x / slideSize);
-        setActiveSlide(index);
-    };
 
     return (
         <View style={styles.container}>
@@ -151,42 +162,6 @@ export default function FertilizerAdvisorLandingScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Image Slideshow */}
-                <View style={styles.slideshowContainer}>
-                    <ScrollView
-                        ref={scrollViewRef}
-                        horizontal
-                        pagingEnabled
-                        showsHorizontalScrollIndicator={false}
-                        onScroll={handleScroll}
-                        scrollEventThrottle={16}
-                        style={styles.slideshow}
-                    >
-                        {slides.map((slide, index) => (
-                            <View key={index} style={styles.slide}>
-                                <Image
-                                    source={slide}
-                                    style={styles.slideImage}
-                                    resizeMode="cover"
-                                />
-                            </View>
-                        ))}
-                    </ScrollView>
-
-                    {/* Pagination Dots */}
-                    <View style={styles.pagination}>
-                        {slides.map((_, index) => (
-                            <View
-                                key={index}
-                                style={[
-                                    styles.paginationDot,
-                                    activeSlide === index && styles.paginationDotActive,
-                                ]}
-                            />
-                        ))}
-                    </View>
-                </View>
-
                 {/* Services Section */}
                 <View style={styles.servicesSection}>
                     {/* Rule-Based Advisory Card */}
@@ -242,10 +217,21 @@ export default function FertilizerAdvisorLandingScreen() {
                             </View>
                         </LinearGradient>
                     </TouchableOpacity>
+
                 </View>
 
                 <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Pro Upgrade Popup */}
+            <ProUpgradePopup
+                visible={showProPopup}
+                onClose={() => setShowProPopup(false)}
+                onUpgrade={() => {
+                    setShowProPopup(false);
+                    navigation.navigate("SubscriptionPlans");
+                }}
+            />
         </View>
     );
 }
@@ -256,8 +242,8 @@ const styles = StyleSheet.create({
         backgroundColor: "#F9FAFB",
     },
     header: {
-        paddingTop: 50,
-        paddingBottom: 20,
+        paddingTop: 60,
+        paddingBottom: 32,
         paddingHorizontal: 20,
         borderBottomLeftRadius: 24,
         borderBottomRightRadius: 24,
@@ -273,13 +259,13 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     headerTitle: {
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "700",
         color: "#ffffff",
-        marginBottom: 2,
+        marginBottom: 4,
     },
     headerSubtitle: {
-        fontSize: 13,
+        fontSize: 15,
         color: "#D1FAE5",
     },
     langButton: {
@@ -297,43 +283,12 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
+        paddingHorizontal: 16,
+        paddingTop: 24,
         paddingBottom: 20,
     },
-    slideshowContainer: {
-        marginTop: 16,
-        marginBottom: 24,
-    },
-    slideshow: {
-        height: 240,
-    },
-    slide: {
-        width: width,
-        paddingHorizontal: 16,
-    },
-    slideImage: {
-        width: width - 32,
-        height: 240,
-        borderRadius: 16,
-    },
-    pagination: {
-        flexDirection: "row",
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: 16,
-    },
-    paginationDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: "#D1D5DB",
-        marginHorizontal: 4,
-    },
-    paginationDotActive: {
-        backgroundColor: "#10b981",
-        width: 24,
-    },
     servicesSection: {
-        paddingHorizontal: 16,
+        gap: 16,
     },
     serviceCard: {
         marginBottom: 16,

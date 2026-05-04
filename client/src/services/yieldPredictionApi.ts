@@ -55,6 +55,9 @@ export interface FarmerPredictionRequest {
     max_temperature: number; // Maximum temperature in Celsius
     avg_humidity: number; // Average humidity percentage
     sunshine_hours: number; // Daily sunshine hours
+    
+    // Weather data source tracking
+    weather_data_source?: string; // "auto" or "manual"
 }
 
 // ============================================================

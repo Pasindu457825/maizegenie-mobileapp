@@ -1,52 +1,57 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { View, Text, Image, ScrollView, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { useEffect } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Speech from "expo-speech";
 import { useLanguage } from "../../context/LanguageContext";
 
-type LangKey = "si" | "en";
+type LangKey = "si" | "en" | "ta";
 
 const stages = [
   {
     key: "egg",
-    label: { si: "බිත්තරය", en: "Egg" },
+    label: { si: "බිත්තරය", en: "Egg", ta: "முட்டை" },
     image: require("../../../assets/pest_lifecycle/bollworm/boll_egg.jpg"),
     description: { 
       si: "බොල්වෝම් බිත්තු ඉතා කුඩා, තනිව පත්‍ර, මල් හෝ පලතුරු මත තබනු ලැබේ.", 
-      en: "Bollworm eggs are tiny, laid singly on leaves, buds, or fruits." 
+      en: "Bollworm eggs are tiny, laid singly on leaves, buds, or fruits.",
+      ta: "போல்வோர்ம் முட்டைகள் மிகச் சிறியவை. இலை, மொட்டு அல்லது பழங்களில் தனித்தனியாக இடப்படும்."
     },
     voiceTextEn: "Bollworm eggs are very small and usually laid singly on leaves, buds, or fruits. They are round and white to yellowish in color. Farmers should closely inspect young leaves and buds to find and remove eggs early.",
     voiceTextSi: "බොල්වෝම් බිත්තු ඉතා කුඩායි. ඒවා තනි තනිව පත්‍ර, මල් කෝෂ හෝ පලතුරු මත තැබෙනවා. බිත්තු සුදු හෝ පීච් පැහැයෙන් පෙනෙනවා. ගොවියෝ තරුණ පත්‍ර හා මල් කොට්ටෙන් බිත්තු හඳුනාගෙන ඉවත් කළ යුතුයි."
   },
   {
     key: "larva",
-    label: { si: "කීටයා", en: "Larva" },
+    label: { si: "කීටයා", en: "Larva", ta: "இருவில்" },
     image: require("../../../assets/pest_lifecycle/bollworm/boll_larva.jpg"),
     description: { 
       si: "කීටයා (කූඹියා) පත්‍ර ආහාරයට ගෙන මල් සහ පලතුරු තුළට විදිනවා.", 
-      en: "The larva (caterpillar) feeds on leaves and bores into buds and fruits causing major crop damage." 
+      en: "The larva (caterpillar) feeds on leaves and bores into buds and fruits causing major crop damage.",
+      ta: "இருவில் (புழு) இலைகளைத் தின்று, மொட்டுகள் மற்றும் பழங்களில் துளையிட்டு பெரும் சேதம் உண்டாக்கும்."
     },
     voiceTextEn: "The larva is a caterpillar and this stage causes the most crop damage. Larvae feed on leaves, bore into buds, and also attack fruits and pods. Early detection and timely spraying can protect the harvest.",
     voiceTextSi: "ලාරාව කියන්නේ කූඹියෙක්. මේ අදියරේදී වගා බෙහෙවින් හානි වෙනවා. කූඹියෝ පත්‍ර කමින්, මල් කොට්ට බිඳමින්, පලතුරු හා අංශ බලපායි. ඉක්මනින් හඳුනාගෙන අවශ්‍ය පාලන ක්‍රියාවලි සිදු කළ යුතුයි."
   },
   {
     key: "pupa",
-    label: { si: "පියුපාව", en: "Pupa" },
+    label: { si: "පියුපාව", en: "Pupa", ta: "பூப்பா" },
     image: require("../../../assets/pest_lifecycle/bollworm/boll_pupa.png"),
     description: { 
       si: "පියුපා අවධිය පසෙහි හෝ ශාක සංශේෂයේ සිදු වේ.", 
-      en: "Pupation occurs in the soil or plant debris, where the larva transforms into an adult." 
+      en: "Pupation occurs in the soil or plant debris, where the larva transforms into an adult.",
+      ta: "பூப்பா நிலை மண்ணில் அல்லது தாவர எச்சங்களில் நடைபெறும்; அப்போது இருவில் முழுவயது வண்டாக மாறுகிறது."
     },
     voiceTextEn: "During the pupa stage, the caterpillar goes into the soil or plant debris and changes into an adult moth. There is no feeding or crop damage at this time. Keeping the field clean reduces pupae numbers.",
     voiceTextSi: "පූපා අදියරේදී කූඹියා බිමට හෝ වගා අපද්‍රව්‍ය තුළට යාමෙන් වැඩිහිටි මදුවන්නෙක් වෙන්න වෙනස් වෙනවා. මේ අවධියේ කෑම හෝ හානි සිදුවෙන්නේ නෑ. වගා බිම පිරිසිදුව තබන එක පූපා සංඛ්‍යාව අඩු කරයි."
   },
   {
     key: "adult",
-    label: { si: "වැඩිහිටියා (මදුවා)", en: "Adult (Moth)" },
+    label: { si: "වැඩිහිටියා (මදුවා)", en: "Adult (Moth)", ta: "முழுவயது (வண்டு)" },
     image: require("../../../assets/pest_lifecycle/bollworm/boll_adult.png"),
     description: { 
       si: "වැඩිහිටි මදුවා දුඹුරු පැහැති වන අතර බිත්තර තබයි.", 
-      en: "The adult moth is pale brown. It lays eggs and starts the lifecycle again." 
+      en: "The adult moth is pale brown. It lays eggs and starts the lifecycle again.",
+      ta: "முழுவயது வண்டு வெளிர் பழுப்பு நிறத்தில் இருக்கும். இது முட்டைகள் இடும்; அதனால் வாழ்க்கைச் சுழற்சி மீண்டும் தொடங்கும்."
     },
     voiceTextEn: "The adult bollworm is a pale brown moth. It is active at night, flies to new plants, and lays eggs to restart the life cycle. Light traps and regular field monitoring help manage the pest.",
     voiceTextSi: "වැඩිහිටි බොල්වෝම් මදුවන්නෙක්. පැහැදිලි දුඹුරු පැහැයකින් පෙනෙනවා. රාත්‍රියේ සක්‍රීය වෙයි, වගා වත්තේ පියාසර කරලා නැවතත් බිත්තු තබනවා. ආලෝක පෝෂක යන්ත්‍ර හා පරීක්ෂා කිරීම ප්‍රතිලාභදායකයි."
@@ -56,7 +61,8 @@ const stages = [
 export default function BollwormLifecycleScreen() {
   /* 🌐 GLOBAL LANGUAGE */
   const { language: appLang } = useLanguage();
-  const language: LangKey = appLang === "sinhala" ? "si" : "en";
+  const language: LangKey =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
   /* 📝 TEXT CONTENT */
   const content = {
@@ -76,49 +82,77 @@ export default function BollwormLifecycleScreen() {
       englishBtn: "English",
       stopBtn: "Stop",
     },
+    ta: {
+      headerTitle: "போல்வோர்ம் வாழ்க்கைச் சுழற்சி",
+      headerSubtitle: "பூச்சியின் வளர்ச்சி நிலைகளை புரிந்துகொள்ளுங்கள்",
+      voiceLabel: "விரிவான தகவலை கேளுங்கள்:",
+      sinhalaBtn: "சிங்களம்",
+      englishBtn: "English",
+      stopBtn: "நிறுத்து",
+    },
   };
 
   const [speakingStageKey, setSpeakingStageKey] = useState<string | null>(null);
   const [speakingLang, setSpeakingLang] = useState<"si" | "en" | null>(null);
 
+  useEffect(() => {
+    return () => {
+      Speech.stop();
+    };
+  }, []);
+
   const playNarration = async (stageKey: string, lang: "si" | "en", text: string) => {
-    Speech.stop();
-    setSpeakingStageKey(stageKey);
-    setSpeakingLang(lang);
+    try {
+      await Speech.stop();
+      setSpeakingStageKey(stageKey);
+      setSpeakingLang(lang);
 
-    if (lang === "si") {
-      const voices = await Speech.getAvailableVoicesAsync();
-      const hasSinhala = voices.some(
-        (v) => (v.language?.toLowerCase().includes("si") || v.language?.toLowerCase().includes("sin"))
-      );
-      if (!hasSinhala) {
-        Alert.alert(
-          "Sinhala Voice Not Available",
-          "Sinhala voice is not available on this device. Please enable Sinhala Text-to-Speech in your phone's system settings."
+      if (lang === "si") {
+        const voices = await Speech.getAvailableVoicesAsync();
+        const hasSinhala = voices.some(
+          (v) => (v.language?.toLowerCase().includes("si") || v.language?.toLowerCase().includes("sin"))
         );
-        setSpeakingStageKey(null);
-        setSpeakingLang(null);
-        return;
+        if (!hasSinhala) {
+          Alert.alert(
+            "Sinhala Voice Not Available",
+            "Sinhala voice is not available on this device. Please enable Sinhala Text-to-Speech in your phone's system settings."
+          );
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+          return;
+        }
       }
-    }
 
-    Speech.speak(text, {
-      language: lang === "si" ? "si-LK" : "en-US",
-      rate: 1.0,
-      pitch: 1.0,
-      onDone: () => {
-        setSpeakingStageKey(null);
-        setSpeakingLang(null);
-      },
-      onStopped: () => {
-        setSpeakingStageKey(null);
-        setSpeakingLang(null);
-      }
-    });
+      Speech.speak(text, {
+        language: lang === "si" ? "si-LK" : "en-US",
+        rate: 1.0,
+        pitch: 1.0,
+        onDone: () => {
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+        },
+        onStopped: () => {
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+        },
+        onError: () => {
+          setSpeakingStageKey(null);
+          setSpeakingLang(null);
+          Alert.alert("Speech Error", "Unable to start voice playback on this device.");
+        }
+      });
+    } catch (error) {
+      console.warn("Failed to play Bollworm lifecycle narration:", error);
+      setSpeakingStageKey(null);
+      setSpeakingLang(null);
+      Alert.alert("Speech Error", "Unable to start voice playback on this device.");
+    }
   };
 
   const stopNarration = () => {
-    Speech.stop();
+    Speech.stop().catch((error) => {
+      console.warn("Failed to stop Bollworm lifecycle narration:", error);
+    });
     setSpeakingStageKey(null);
     setSpeakingLang(null);
   };
@@ -398,3 +432,4 @@ const styles = StyleSheet.create({
     height: 20,
   },
 });
+

@@ -49,7 +49,7 @@ type NavProp = StackNavigationProp<YieldPredictionStackParamList>;
 const FarmerAdviceRequestsScreen = () => {
   const navigation = useNavigation<NavProp>();
   const { language: lang } = useLanguage();
-  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" | "ta" = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   // State
   const [requests, setRequests] = useState<AdviceRequest[]>([]);
@@ -111,6 +111,31 @@ const FarmerAdviceRequestsScreen = () => {
       hours: "hours",
       days: "days",
       minutes: "minutes",
+    },
+    ta: {
+      title: "விவசாயி கோரிக்கைகள்",
+      subtitle: "ஆலோசனை கோரிக்கைகளை நிர்வகிக்கவும்",
+      all: "அனைத்தும்",
+      pending: "காத்திருக்கிறது",
+      inProgress: "செயல்பாட்டில்",
+      completed: "முடிவுற்றது",
+      cancelled: "ரத்து செய்யப்பட்டது",
+      noRequests: "கோரிக்கைகள் இல்லை",
+      noRequestsDesc: "விவசாயி ஆலோசனை கோரிக்கைகள் இன்னும் இல்லை",
+      loadMore: "மேலும் எடுக்கவும்",
+      provideAdvice: "ஆலோசனை வழங்குங்கள்",
+      continue: "தொடரவும்",
+      viewDetails: "விரிவுகளை பார்க்கவும்",
+      yieldPrediction: "விளைச்சல் கணிப்பு",
+      kgPerHa: "kg/ha",
+      requestType: "கோரிக்கை வகை",
+      yieldEnhancement: "விளைச்சல் மேம்பாடு",
+      seedVariety: "விதை தேர்வு",
+      both: "இரண்டும்",
+      ago: "முன்",
+      hours: "மணி நேரங்கள்",
+      days: "நாட்கள்",
+      minutes: "நிமிடங்கள்",
     },
   };
 
@@ -324,10 +349,10 @@ const FarmerAdviceRequestsScreen = () => {
                 {request.status === "pending"
                   ? t.pending
                   : request.status === "in_progress"
-                  ? t.inProgress
-                  : request.status === "completed"
-                  ? t.completed
-                  : t.cancelled}
+                    ? t.inProgress
+                    : request.status === "completed"
+                      ? t.completed
+                      : t.cancelled}
               </Text>
             </View>
           </View>

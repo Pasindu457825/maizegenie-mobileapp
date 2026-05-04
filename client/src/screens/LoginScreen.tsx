@@ -16,20 +16,22 @@ import { useApp } from "../context/AppContext";
 import { useRoute } from "@react-navigation/native";
 import { useLanguage } from "../context/LanguageContext";
 import { LinearGradient } from 'expo-linear-gradient';
+import { ROUTES } from "../constants";
 
 const { width, height } = Dimensions.get('window');
 
 // ✨ Type definition for language
-type LanguageType = "si" | "en";
+type LanguageType = "si" | "en" | "ta";
 
 export default function LoginScreen({ navigation, route }: any) {
   const { signIn, loading } = useApp();
 
   const { language: lang } = useLanguage();
-  const language: LanguageType = lang === "sinhala" ? "si" : "en";
+  const language: LanguageType = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [errorText, setErrorText] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideUpAnim] = useState(new Animated.Value(30));
@@ -58,10 +60,12 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: string;
       loginFailed: string;
       invalidCredentials: string;
+      noAccountText: string;
+      createAccountText: string;
     }
   > = {
     si: {
-      welcomeTitle: "ආයුබෝවන් 🌾",
+      welcomeTitle: "ආයුබෝවන් 🌱",
       welcomeSubtitle: "ඔබේ ගොවිතැන් ගමන දිගටම කරගෙන යන්න",
       emailLabel: "ඉමේල් ලිපිනය",
       emailPlaceholder: "your.email@example.com",
@@ -78,9 +82,11 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: "කරුණාකර ඉමේල් සහ මුරපදය ඇතුළු කරන්න.",
       loginFailed: "පිවිසීම අසාර්ථකයි",
       invalidCredentials: "අවලංගු ඉමේල් හෝ මුරපදය",
+      noAccountText: "ගිණුමක් නැද්ද?",
+      createAccountText: "ලියාපදිංචි වන්න",
     },
     en: {
-      welcomeTitle: "Welcome Back 🌾",
+      welcomeTitle: "Welcome Back 🌱",
       welcomeSubtitle: "Continue your farming journey",
       emailLabel: "Email Address",
       emailPlaceholder: "your.email@example.com",
@@ -97,6 +103,29 @@ export default function LoginScreen({ navigation, route }: any) {
       missingFieldsMessage: "Please enter email & password.",
       loginFailed: "Login Failed",
       invalidCredentials: "Invalid email or password",
+      noAccountText: "Don't have an account?",
+      createAccountText: "Register",
+    },
+    ta: {
+      welcomeTitle: "வரவேற்கிறோம் 🌱",
+      welcomeSubtitle: "உங்கள் விவசாயப் பயணத்தை தொடருங்கள்",
+      emailLabel: "மின்னஞ்சல் முகவரி",
+      emailPlaceholder: "your.email@example.com",
+      passwordLabel: "கடவுச்சொல்",
+      passwordPlaceholder: "உங்கள் கடவுச்சொல்லை உள்ளிடுக",
+      loginButton: "உள்நுழைக",
+      signingInButton: "உள்நுழைகிறது...",
+      forgotPassword: "கடவுச்சொல் மறந்துவிட்டீர்களா?",
+      appTitle: "MaizeGenie",
+      appSubtitle: "உங்கள் திறமையான விவசாய தோழன்",
+      empoweringText: "இலங்கை சோள விவசாயிகளுக்காக",
+      madeWithText: "Made with 💚 for our farming community",
+      missingFields: "தவறான தகவல்கள்",
+      missingFieldsMessage: "தயவுசெய்து மின்னஞ்சல் மற்றும் கடவுச்சொல்லை உள்ளிடுக.",
+      loginFailed: "உள்நுழைவு தோல்வியடைந்தது",
+      invalidCredentials: "தவறான மின்னஞ்சல் அல்லது கடவுச்சொல்",
+      noAccountText: "கணக்கு இல்லையா?",
+      createAccountText: "பதிவு செய்யவும்",
     },
   };
 
@@ -137,14 +166,17 @@ export default function LoginScreen({ navigation, route }: any) {
 
   const handleLogin = async () => {
     if (!email || !password) {
+      setErrorText(t.missingFieldsMessage);
       Alert.alert(t.missingFields, t.missingFieldsMessage);
       return;
     }
 
+    setErrorText("");
     const ok = await signIn(email.trim(), password);
     if (ok) {
       navigation.replace("Main");
     } else {
+      setErrorText(t.invalidCredentials);
       Alert.alert(t.loginFailed, t.invalidCredentials);
     }
   };
@@ -152,11 +184,11 @@ export default function LoginScreen({ navigation, route }: any) {
   return (
     <View style={{ flex: 1, backgroundColor: '#0A8754' }}>
       {/* Top curved background with gradient */}
-      <View style={{ 
-        position: 'absolute', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
+      <View style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
         height: height * 0.45,
         backgroundColor: '#0A8754',
       }}>
@@ -170,7 +202,7 @@ export default function LoginScreen({ navigation, route }: any) {
         }}>
           <Text style={{ fontSize: 48, opacity: 0.2 }}>🌽</Text>
         </Animated.View>
-        
+
         <Animated.View style={{
           position: 'absolute',
           top: 80,
@@ -178,7 +210,7 @@ export default function LoginScreen({ navigation, route }: any) {
           opacity: logoAnim,
           transform: [{ translateY: cornAnim2 }]
         }}>
-          <Text style={{ fontSize: 60, opacity: 0.2 }}>🌾</Text>
+          <Text style={{ fontSize: 60, opacity: 0.2 }}>🌽</Text>
         </Animated.View>
 
         {/* Logo and Brand */}
@@ -199,7 +231,7 @@ export default function LoginScreen({ navigation, route }: any) {
             borderWidth: 3,
             borderColor: 'rgba(255, 255, 255, 0.3)',
           }}>
-            <Text style={{ fontSize: 50 }}>🌾</Text>
+            <Text style={{ fontSize: 50 }}>🌽</Text>
           </View>
 
           {/* App Name */}
@@ -296,7 +328,10 @@ export default function LoginScreen({ navigation, route }: any) {
                   <TextInput
                     placeholder={t.emailPlaceholder}
                     value={email}
-                    onChangeText={setEmail}
+                    onChangeText={(value) => {
+                      setEmail(value);
+                      if (errorText) setErrorText("");
+                    }}
                     style={{
                       paddingHorizontal: 16,
                       paddingVertical: 16,
@@ -333,7 +368,10 @@ export default function LoginScreen({ navigation, route }: any) {
                   <TextInput
                     placeholder={t.passwordPlaceholder}
                     value={password}
-                    onChangeText={setPassword}
+                    onChangeText={(value) => {
+                      setPassword(value);
+                      if (errorText) setErrorText("");
+                    }}
                     style={{
                       flex: 1,
                       paddingHorizontal: 16,
@@ -361,7 +399,7 @@ export default function LoginScreen({ navigation, route }: any) {
               </View>
 
               {/* Forgot Password */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ alignSelf: 'flex-end', marginBottom: 24 }}
                 disabled={loading}
               >
@@ -400,12 +438,37 @@ export default function LoginScreen({ navigation, route }: any) {
                   {loading ? t.signingInButton : t.loginButton}
                 </Text>
               </TouchableOpacity>
+              {!!errorText && (
+                <Text
+                  style={{
+                    color: "#DC2626",
+                    marginTop: 10,
+                    textAlign: "center",
+                    fontSize: 12,
+                  }}
+                >
+                  {errorText}
+                </Text>
+              )}
 
               {/* Footer */}
               <View style={{
                 marginTop: 32,
                 alignItems: 'center',
               }}>
+                <View style={{ flexDirection: "row", marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, color: "#6B7280" }}>
+                    {t.noAccountText}{" "}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => navigation.push(ROUTES.AUTH.SIGNUP)}
+                    disabled={loading}
+                  >
+                    <Text style={{ fontSize: 13, color: "#0A8754", fontWeight: "700" }}>
+                      {t.createAccountText}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
                 <Text style={{
                   fontSize: 12,
                   color: '#9CA3AF',

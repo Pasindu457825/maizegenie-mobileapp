@@ -5,7 +5,8 @@ from .model import PriceWindowModel
 from .service import (
     build_recommendation,
     best_planting_window,
-    calculate_harvest_week
+    calculate_harvest_week,
+    get_message
 )
 
 router = APIRouter(
@@ -75,7 +76,7 @@ def recommend_price_window(
 def best_planting(
     location: str = Query(..., description="District / location name"),
     start_week: int = Query(..., ge=1, le=52),
-    duration_weeks: int = Query(14, ge=8, le=20),
+    seed_variety: str = Query("Local Variety", description="Maize seed variety"),
     lookahead_weeks: int = Query(6, ge=2, le=12)
 ):
     """
@@ -87,16 +88,19 @@ def best_planting(
         model=model,
         location=location,
         start_week=start_week,
-        duration_weeks=duration_weeks,
+        seed_variety=seed_variety,
         lookahead_weeks=lookahead_weeks
     )
 
     if best_option is None:
         return {"error": "No suitable planting window found"}
 
+    duration_weeks = SEED_MATURITY_WEEKS.get(seed_variety, 14)
+
     return {
         "location": location,
         "start_week": start_week,
+        "seed_variety": seed_variety,
         "duration_weeks": duration_weeks,
         "lookahead_weeks": lookahead_weeks,
         "best_option": best_option,
@@ -105,7 +109,7 @@ def best_planting(
 
 
 # --------------------------------------------------
-# 3) ✅ UPDATED — Date-based harvest advisory (seed-aware)
+# 3) Date-based harvest advisory (seed-aware)
 # --------------------------------------------------
 @router.get("/by-date")
 def price_window_by_date(
@@ -125,7 +129,7 @@ def price_window_by_date(
     # 1) Date → planting week
     planting_week = date_to_week(planting_date)
 
-    # 2) ✅ Seed-based harvest duration
+    # 2) Seed-based harvest duration
     duration_weeks = SEED_MATURITY_WEEKS.get(seed_variety, 14)
 
     # 3) Base harvest week
@@ -160,26 +164,16 @@ def price_window_by_date(
     # Recommendation logic
     # -------------------------------
     if best["delay_weeks"] == 0 and best["label"] == "STRONG":
-        action = "Harvest now"
-        message_si = (
-            "පසුගිය අවුරුදු ගණනාවක දත්ත අනුව, "
-            "මේ කාලේ harvest වුණාම බඩ ඉරිඟු මිල "
-            "සාමාන්‍යයෙන් වැඩි වෙලා තියෙනවා."
-        )
+        action = get_message("si", "HARVEST_NOW")
+        message_si = get_message("si", "HARVEST_NOW")
 
     elif best["delay_weeks"] > 0:
-        action = f"Delay harvest by {best['delay_weeks']} weeks"
-        message_si = (
-            f"පසුගිය දත්ත අනුව, සති {best['delay_weeks']}ක් පස්සේ "
-            "harvest වුණාම මිල වැඩි වෙලා තියෙන අවස්ථා වැඩියි."
-        )
+        action = get_message("si", "DELAY_HARVEST", weeks=best["delay_weeks"])
+        message_si = get_message("si", "DELAY_HARVEST", weeks=best["delay_weeks"])
 
     else:
-        action = "Harvest and store"
-        message_si = (
-            "මේ කාලේ harvest වුණාම historically මිල අඩුයි. "
-            "ඒ නිසා වහාම විකුනන්න එපා. store කරලා පස්සේ විකුනන්න."
-        )
+        action = get_message("si", "HARVEST_AND_STORE")
+        message_si = get_message("si", "HARVEST_AND_STORE")
 
     # -------------------------------
     # Storage advice
@@ -189,18 +183,14 @@ def price_window_by_date(
             "required": True,
             "duration_weeks": best["delay_weeks"],
             "reason": "DELAYED_HARVEST",
-            "message_si": (
-                f"සති {best['delay_weeks']}ක් පමා කර විකුනන නිසා, "
-                "වියලි සහ හොඳ වායු සරණි සහිත ගබඩාවක් "
-                "භාවිතා කිරීම සුදුසුයි."
-            )
+            "message_si": get_message("si", "STORAGE_REQUIRED", weeks=best["delay_weeks"])
         }
     else:
         storage_advice = {
             "required": False,
             "duration_weeks": 0,
             "reason": "IMMEDIATE_SALE",
-            "message_si": "වහාම harvest කර විකුනන්න පුළුවන්."
+            "message_si": get_message("si", "NO_STORAGE")
         }
 
     # -------------------------------
@@ -244,7 +234,8 @@ def advisor_guide(payload: dict):
         return price_result
 
     # 2) Generate advisor guide (NEW)
-    advisor = generate_advisor_guide(payload, price_result)
+    lang = payload.get("language", "en")
+    advisor = generate_advisor_guide(payload, price_result, language=lang)
 
     # 3) Combine (NO existing keys removed)
     return {

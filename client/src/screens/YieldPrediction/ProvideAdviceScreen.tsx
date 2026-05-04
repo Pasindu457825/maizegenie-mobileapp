@@ -16,7 +16,6 @@ import type { YieldPredictionStackParamList } from "../../navigation/YieldPredic
 import { LinearGradient } from "expo-linear-gradient";
 import {
   ArrowLeft,
-  Calendar,
   Sprout,
   TrendingUp,
   MapPin,
@@ -27,11 +26,13 @@ import {
 import { getAdviceRequest, updateAdviceRequest } from "../../services/adviceRequestApi";
 import type { AdviceRequest } from "../../services/adviceRequestApi";
 import {
-  generateFertilizerPlan,
+  generateFertilizerPlanAsync,
   generateCultivationAdvice,
-  calculateExpectedYield,
+  translateFertilizerPlan,
 } from "../../utils/fertilizerCalculator";
 import type { FertilizerPlan } from "../../utils/fertilizerCalculator";
+import { CORN_VARIETIES } from "../../constants/cornKnowledgeBase";
+import { useLanguage } from "../../context/LanguageContext";
 
 type NavProp = StackNavigationProp<YieldPredictionStackParamList, "ProvideAdviceScreen">;
 
@@ -39,14 +40,14 @@ const ProvideAdviceScreen = () => {
   const navigation = useNavigation<NavProp>();
   const route = useRoute();
   const { requestId } = route.params as { requestId: string };
+  const { language: globalLang } = useLanguage();
+  const language: 'si' | 'en' = globalLang === 'sinhala' ? 'si' : 'en';
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [request, setRequest] = useState<AdviceRequest | null>(null);
   const [fertilizerPlan, setFertilizerPlan] = useState<FertilizerPlan | null>(null);
   const [cultivationAdvice, setCultivationAdvice] = useState<any>(null);
-  const [expectedYield, setExpectedYield] = useState<any>(null);
-  const [language, setLanguage] = useState<'si' | 'en'>('si');
 
   // Editable fields
   const [officerResponse, setOfficerResponse] = useState("");
@@ -64,13 +65,6 @@ const ProvideAdviceScreen = () => {
     basalApplication: language === 'si' ? 'මූලික යෙදීම' : 'Basal Application',
     firstTopDressing: language === 'si' ? 'පළමු ඉහළ පොහොර යෙදීම' : 'First Top Dressing',
     secondTopDressing: language === 'si' ? 'දෙවන ඉහළ පොහොර යෙදීම' : 'Second Top Dressing',
-    organicFertilizer: language === 'si' ? 'කාබනික පොහොර (විකල්ප)' : 'Organic Fertilizer (Optional)',
-    compost: language === 'si' ? 'කොම්පෝස්ට්' : 'Compost',
-    totalNutrients: language === 'si' ? 'මුළු පෝෂ්‍ය පදාර්ථ' : 'Total Nutrients',
-    expectedYieldImprovement: language === 'si' ? 'අපේක්ෂිත අස්වැන්න වැඩිදියුණු කිරීම' : 'Expected Yield Improvement',
-    baseline: language === 'si' ? 'මූලික රේඛාව (පොහොර නොමැතිව)' : 'Baseline (no fertilizer)',
-    withFertilizer: language === 'si' ? 'DOA පොහොර සමඟ' : 'With DOA fertilizer',
-    improvement: language === 'si' ? 'වැඩිදියුණු කිරීම' : 'Improvement',
     cultivationTips: language === 'si' ? 'වගා උපදෙස්' : 'Cultivation Tips',
     yourResponse: language === 'si' ? 'ගොවියාට ඔබේ ප්‍රතිචාරය' : 'Your Response to Farmer',
     required: language === 'si' ? 'අවශ්‍යයි' : 'Required',
@@ -104,7 +98,8 @@ const ProvideAdviceScreen = () => {
 
       // Generate fertilizer plan if we have the required data
       if (data.variety && data.land_size_ha && data.planting_date) {
-        const plan = generateFertilizerPlan({
+        // Use async version that fetches from Supabase first, falls back to hardcoded
+        const plan = await generateFertilizerPlanAsync({
           variety: data.variety,
           land_size_ha: data.land_size_ha,
           planting_date: data.planting_date,
@@ -113,33 +108,26 @@ const ProvideAdviceScreen = () => {
           irrigation_type: data.irrigation_type,
           rainfall_condition: data.rainfall_condition,
           predicted_yield_kg_ha: data.predicted_yield_kg_ha,
-          include_organic: true,
+          include_organic: false,
         });
-        setFertilizerPlan(plan);
+        // Translate fertilizer plan timings to Sinhala if needed
+        const translatedPlan = translateFertilizerPlan(plan, language);
+        setFertilizerPlan(translatedPlan);
 
-        // Generate cultivation advice
+        // Generate cultivation advice (in selected language)
         const advice = generateCultivationAdvice({
           variety: data.variety,
           land_size_ha: data.land_size_ha,
           planting_date: data.planting_date,
           district: data.district,
           predicted_yield_kg_ha: data.predicted_yield_kg_ha,
+          language: language,
         });
         setCultivationAdvice(advice);
 
-        // Calculate expected yield improvement
-        const yieldCalc = calculateExpectedYield({
-          variety: data.variety,
-          land_size_ha: data.land_size_ha,
-          planting_date: data.planting_date,
-          predicted_yield_kg_ha: data.predicted_yield_kg_ha,
-        });
-        setExpectedYield(yieldCalc);
-
-        // Pre-fill officer response with summary
-        setOfficerResponse(
-          `Based on your ${data.variety} cultivation on ${data.land_size_ha} hectares, I recommend following the DOA fertilizer program outlined below. This should help you achieve a yield of ${yieldCalc.with_fertilizer} tons/ha (improvement of ${yieldCalc.improvement_percentage}% over baseline).`
-        );
+        // Build purpose-driven officer response based on request_type
+        const responseText = buildOfficerResponse(data);
+        setOfficerResponse(responseText);
       }
     } catch (error: any) {
       console.error("Failed to load request:", error);
@@ -147,6 +135,115 @@ const ProvideAdviceScreen = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  /**
+   * Build a purpose-driven officer response based on request_type.
+   * - yield_enhancement: If yield is already good → maintain advice; if not → enhancement advice
+   * - seed_variety: Recommend only the single best variety; if farmer already uses it → confirm
+   * - both: Combine both
+   */
+  const buildOfficerResponse = (data: AdviceRequest): string => {
+    const variety = data.variety || 'Unknown';
+    const landHa = data.land_size_ha || 0;
+    const predictedYieldKgHa = data.predicted_yield_kg_ha;
+    const requestType = data.request_type;
+    const varietyInfo = CORN_VARIETIES[variety];
+    const si = language === 'si';
+
+    const parts: string[] = [];
+
+    // ── Yield Enhancement Section ──
+    if (requestType === 'yield_enhancement' || requestType === 'both') {
+      let yieldSection = si
+        ? `ඔබ ඔබේ අස්වැන්න වැඩි කර ගැනීම සඳහා උපදෙස් ඉල්ලා ඇත.`
+        : `You requested advice to enhance your yield.`;
+
+      if (predictedYieldKgHa && varietyInfo) {
+        const predictedTonHa = predictedYieldKgHa / 1000;
+        const avgPotential = varietyInfo.yieldPotential.average;
+        const maxPotential = varietyInfo.yieldPotential.max;
+        const totalPredicted = (predictedTonHa * landHa).toFixed(2);
+
+        yieldSection += si
+          ? `\n\n📊 ඔබේ පෙර අනාවැකි අස්වැන්න: ${predictedTonHa.toFixed(2)} ටොන්/හෙක්ටයාරයට (මුළු: ${totalPredicted} ටොන්, හෙක්ටයාර ${landHa} සඳහා).`
+          : `\n\n📊 Your previous predicted yield: ${predictedTonHa.toFixed(2)} tons/ha (total: ${totalPredicted} tons for ${landHa} ha).`;
+
+        if (predictedTonHa >= avgPotential) {
+          // Yield is already good → maintain advice
+          yieldSection += si
+            ? `\n\n✅ ඔබේ අස්වැන්න දැනටමත් හොඳ මට්ටමක පවතී! ${variety} ප්‍රභේදයේ සාමාන්‍ය අස්වැන්න ${avgPotential} ටොන්/හෙක්ටයාරයට වන අතර ඔබේ අනාවැකි අස්වැන්න ඊට වඩා වැඩිය.`
+            : `\n\n✅ Your yield is already at a good level! The average potential for ${variety} is ${avgPotential} tons/ha, and your predicted yield exceeds that.`;
+          yieldSection += si
+            ? `\n\n🌱 ඔබේ වර්තමාන අස්වැන්න පවත්වා ගැනීම සඳහා පහත පොහොර සැලැස්ම අනුගමනය කරන්න. නිසි කළමනාකරණයෙන් උපරිම අස්වැන්න ${maxPotential} ටොන්/හෙක්ටයාරයට දක්වා ලඟා විය හැකිය.`
+            : `\n\n🌱 To maintain your current yield, follow the fertilizer plan below. With proper management, you can reach up to ${maxPotential} tons/ha.`;
+        } else {
+          // Yield needs improvement → enhancement advice
+          const gapTonHa = (avgPotential - predictedTonHa).toFixed(2);
+          yieldSection += si
+            ? `\n\n⬆️ ඔබේ අස්වැන්න තවත් වැඩි කර ගත හැකිය. ${variety} ප්‍රභේදයේ සාමාන්‍ය අස්වැන්න ${avgPotential} ටොන්/හෙක්ටයාරයට වන අතර ඔබේ අනාවැකි අස්වැන්නට වඩා ${gapTonHa} ටොන් වැඩිය.`
+            : `\n\n⬆️ Your yield can be improved further. The average potential for ${variety} is ${avgPotential} tons/ha, which is ${gapTonHa} tons more than your predicted yield.`;
+          yieldSection += si
+            ? `\n\n🌱 පහත පොහොර සැලැස්ම නිවැරදිව යෙදීමෙන් ඔබට ඔබේ අස්වැන්න ${avgPotential}-${maxPotential} ටොන්/හෙක්ටයාරයට දක්වා වැඩි කර ගත හැකිය. කරුණාකර පොහොර සැලැස්ම ප්‍රවේශමෙන් අනුගමනය කරන්න.`
+            : `\n\n🌱 By correctly applying the fertilizer plan below, you can enhance your yield to ${avgPotential}-${maxPotential} tons/ha. Please follow the fertilizer schedule carefully.`;
+        }
+      } else {
+        yieldSection += si
+          ? `\n\nපහත කෘෂි දෙපාර්තමේන්තු පොහොර සැලැස්ම ඔබේ ${variety} වගාව සඳහා හෙක්ටයාර ${landHa} ඉඩමේ නිර්දේශ කර ඇත. කරුණාකර යෙදීමේ වේලාවන් ප්‍රවේශමෙන් අනුගමනය කරන්න.`
+          : `\n\nThe DOA fertilizer plan below is recommended for your ${variety} cultivation on ${landHa} ha. Please follow the application timings carefully.`;
+      }
+      parts.push(yieldSection);
+    }
+
+    // ── Seed Variety Section ──
+    if (requestType === 'seed_variety' || requestType === 'both') {
+      let seedSection = si
+        ? `ඔබ හොඳම බීජ ප්‍රභේදය තෝරා ගැනීම සඳහා උපදෙස් ඉල්ලා ඇත.`
+        : `You requested advice to choose the best seed variety.`;
+
+      if (varietyInfo) {
+        // Find the single best variety by average yield potential (excluding local)
+        const allVarieties = Object.entries(CORN_VARIETIES)
+          .filter(([_, v]) => v.type !== 'local')
+          .sort((a, b) => b[1].yieldPotential.average - a[1].yieldPotential.average);
+        const bestVariety = allVarieties[0];
+
+        if (bestVariety[0] === variety) {
+          // Farmer already using the best variety
+          seedSection += si
+            ? `\n\n✅ ඔබේ තෝරා ගැනීම නිවැරදිය! ${variety} යනු ශ්‍රී ලංකාවේ ඉහළම අස්වැන්නක් ලබා දෙන ප්‍රභේදයයි (සාමාන්‍ය අස්වැන්න: ${varietyInfo.yieldPotential.average} ටොන්/හෙක්ටයාරයට). ඔබ දැනටමත් හොඳම ප්‍රභේදය භාවිතා කරයි.`
+            : `\n\n✅ Your choice is correct! ${variety} is the highest-yielding variety in Sri Lanka (avg yield: ${varietyInfo.yieldPotential.average} tons/ha). You are already using the best variety.`;
+        } else {
+          // Recommend only the single best variety
+          const best = bestVariety[1];
+          seedSection += si
+            ? `\n\nඔබේ වර්තමාන ප්‍රභේදය ${variety} වන අතර එහි සාමාන්‍ය අස්වැන්න ${varietyInfo.yieldPotential.average} ටොන්/හෙක්ටයාරයට වේ.`
+            : `\n\nYour current variety is ${variety} with an average yield of ${varietyInfo.yieldPotential.average} tons/ha.`;
+
+          seedSection += si
+            ? `\n\n🏆 නිර්දේශිත හොඳම ප්‍රභේදය: ${bestVariety[0]}\n  • සාමාන්‍ය අස්වැන්න: ${best.yieldPotential.average} ටොන්/හෙක්ටයාරයට\n  • අස්වැන්න පරාසය: ${best.yieldPotential.min}-${best.yieldPotential.max} ටොන්/හෙක්ටයාරයට\n  • වර්ධන කාලය: දින ${best.growthDuration}`
+            : `\n\n🏆 Recommended best variety: ${bestVariety[0]}\n  • Average yield: ${best.yieldPotential.average} tons/ha\n  • Yield range: ${best.yieldPotential.min}-${best.yieldPotential.max} tons/ha\n  • Growth duration: ${best.growthDuration} days`;
+
+          seedSection += si
+            ? `\n\n💡 ${bestVariety[0]} ප්‍රභේදයට මාරු වීමෙන් ඔබේ අස්වැන්න ${(best.yieldPotential.average - varietyInfo.yieldPotential.average).toFixed(1)} ටොන්/හෙක්ටයාරයට කින් වැඩි කර ගත හැකිය.`
+            : `\n\n💡 By switching to ${bestVariety[0]}, you could increase your yield by ${(best.yieldPotential.average - varietyInfo.yieldPotential.average).toFixed(1)} tons/ha.`;
+        }
+      } else {
+        seedSection += si
+          ? `\n\nඔබේ ප්‍රභේදය "${variety}" අපගේ දත්ත සමුදායේ හමු නොවීය. කරුණාකර ඔබේ කෘෂි නිලධාරියා අමතන්න.`
+          : `\n\nYour variety "${variety}" was not found in our database. Please contact your agriculture officer.`;
+      }
+      parts.push(seedSection);
+    }
+
+    // Fallback if no request type matched
+    if (parts.length === 0) {
+      return si
+        ? `ඔබේ ${variety} වගාව හෙක්ටයාර ${landHa} ඉඩමේ සඳහා කෘෂි දෙපාර්තමේන්තු පොහොර සැලැස්ම පහත දැක්වේ.`
+        : `The DOA fertilizer plan for your ${variety} cultivation on ${landHa} ha is shown below.`;
+    }
+
+    return parts.join('\n\n─────────────────────\n\n');
   };
 
   const showAlert = (title: string, message: string) => {
@@ -167,17 +264,12 @@ const ProvideAdviceScreen = () => {
       setSubmitting(true);
 
       // Prepare cultivation advice text
-      const cultivationText = customAdvice.trim() || 
+      const cultivationText = customAdvice.trim() ||
         (cultivationAdvice ? [
           ...cultivationAdvice.variety_specific,
           ...cultivationAdvice.general_tips,
           ...cultivationAdvice.yield_improvement,
         ].join('\n• ') : '');
-
-      // Prepare expected yield improvement text
-      const yieldText = expectedYield
-        ? `Expected yield with fertilizer: ${expectedYield.with_fertilizer} t/ha (${expectedYield.improvement_percentage}% improvement). Optimal yield potential: ${expectedYield.optimal_yield} t/ha with excellent management.`
-        : '';
 
       await updateAdviceRequest(requestId, {
         status: 'completed',
@@ -185,7 +277,6 @@ const ProvideAdviceScreen = () => {
         officer_notes: officerNotes || undefined,
         fertilizer_plan: fertilizerPlan || undefined,
         cultivation_advice: cultivationText || undefined,
-        expected_yield_improvement: yieldText || undefined,
       });
 
       showAlert(
@@ -242,6 +333,18 @@ const ProvideAdviceScreen = () => {
         {/* Farmer Request Summary */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t.farmerRequest}</Text>
+
+          {/* Request Type Badge */}
+          <View style={styles.requestTypeBadge}>
+            <Text style={styles.requestTypeText}>
+              {request.request_type === 'yield_enhancement'
+                ? (language === 'si' ? '📈 අස්වැන්න වැඩි කිරීම' : '📈 Yield Enhancement')
+                : request.request_type === 'seed_variety'
+                ? (language === 'si' ? '🌱 හොඳම බීජ ප්‍රභේදය' : '🌱 Best Seed Variety')
+                : (language === 'si' ? '📈🌱 අස්වැන්න + බීජ ප්‍රභේදය' : '📈🌱 Yield + Seed Variety')}
+            </Text>
+          </View>
+
           <View style={styles.summaryRow}>
             <Sprout size={16} color="#6B7280" />
             <Text style={styles.summaryText}>{t.variety}: {request.variety || 'N/A'}</Text>
@@ -258,6 +361,16 @@ const ProvideAdviceScreen = () => {
               {t.land}: {request.land_size_ha?.toFixed(2) || 'N/A'} ha
             </Text>
           </View>
+          {request.predicted_yield_kg_ha && (
+            <View style={styles.predictedYieldBox}>
+              <Text style={styles.predictedYieldLabel}>
+                {language === 'si' ? '📊 පෙර අනාවැකි අස්වැන්න' : '📊 Previous Predicted Yield'}
+              </Text>
+              <Text style={styles.predictedYieldValue}>
+                {(request.predicted_yield_kg_ha / 1000).toFixed(2)} t/ha ({request.predicted_yield_kg_ha.toFixed(0)} kg/ha)
+              </Text>
+            </View>
+          )}
           {request.farmer_message && (
             <View style={styles.messageBox}>
               <Text style={styles.messageLabel}>{t.message}:</Text>
@@ -306,52 +419,6 @@ const ProvideAdviceScreen = () => {
               <Text style={styles.fertilizerNote}>{fertilizerPlan.top_dress_2.timing}</Text>
             </View>
 
-            {/* Organic Recommendations */}
-            {fertilizerPlan.organic && (
-              <View style={styles.organicSection}>
-                <Text style={styles.organicTitle}>{t.organicFertilizer}</Text>
-                <Text style={styles.organicAmount}>
-                  {t.compost}: {fertilizerPlan.organic.compost_tons} tons
-                </Text>
-                <Text style={styles.organicNote}>{fertilizerPlan.organic.timing}</Text>
-              </View>
-            )}
-
-            {/* Total Nutrients */}
-            <View style={styles.nutrientSummary}>
-              <Text style={styles.nutrientTitle}>{t.totalNutrients}:</Text>
-              <Text style={styles.nutrientText}>
-                N: {fertilizerPlan.total_nutrients.nitrogen_kg} kg | 
-                P: {fertilizerPlan.total_nutrients.phosphorus_kg} kg | 
-                K: {fertilizerPlan.total_nutrients.potassium_kg} kg
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Expected Yield Improvement */}
-        {expectedYield && (
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <TrendingUp size={20} color="#16A34A" />
-              <Text style={styles.cardTitle}>{t.expectedYieldImprovement}</Text>
-            </View>
-            <View style={styles.yieldRow}>
-              <Text style={styles.yieldLabel}>{t.baseline}:</Text>
-              <Text style={styles.yieldValue}>{expectedYield.baseline_yield} t/ha</Text>
-            </View>
-            <View style={styles.yieldRow}>
-              <Text style={styles.yieldLabel}>{t.withFertilizer}:</Text>
-              <Text style={[styles.yieldValue, styles.yieldHighlight]}>
-                {expectedYield.with_fertilizer} t/ha
-              </Text>
-            </View>
-            <View style={styles.yieldRow}>
-              <Text style={styles.yieldLabel}>{t.improvement}:</Text>
-              <Text style={[styles.yieldValue, styles.yieldImprovement]}>
-                +{expectedYield.improvement_percentage}%
-              </Text>
-            </View>
           </View>
         )}
 
@@ -589,68 +656,39 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontStyle: "italic",
   },
-  organicSection: {
-    backgroundColor: "#FEF3C7",
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  organicTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    color: "#92400E",
-    marginBottom: 4,
-  },
-  organicAmount: {
-    fontSize: 14,
-    color: "#78350F",
-    marginBottom: 4,
-  },
-  organicNote: {
-    fontSize: 12,
-    color: "#92400E",
-    fontStyle: "italic",
-  },
-  nutrientSummary: {
+  requestTypeBadge: {
     backgroundColor: "#EFF6FF",
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  requestTypeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#1E40AF",
+  },
+  predictedYieldBox: {
+    backgroundColor: "#FEF3C7",
+    padding: 10,
     borderRadius: 8,
     marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#F59E0B",
   },
-  nutrientTitle: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#1E40AF",
-    marginBottom: 4,
-  },
-  nutrientText: {
-    fontSize: 13,
-    color: "#1E3A8A",
-  },
-  yieldRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  yieldLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  yieldValue: {
-    fontSize: 14,
+  predictedYieldLabel: {
+    fontSize: 12,
     fontWeight: "600",
-    color: "#111827",
+    color: "#92400E",
+    marginBottom: 2,
   },
-  yieldHighlight: {
-    color: "#16A34A",
+  predictedYieldValue: {
     fontSize: 16,
-  },
-  yieldImprovement: {
-    color: "#16A34A",
-    fontSize: 15,
+    fontWeight: "bold",
+    color: "#78350F",
   },
   tipText: {
     fontSize: 13,

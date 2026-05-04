@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import Constants from "expo-constants";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
@@ -30,12 +31,13 @@ import {
 } from "lucide-react-native";
 import { useLanguage } from "../../context/LanguageContext";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
+type LocalizedText = { si: string; en: string; ta?: string };
 
 type TodoItem = {
   id: number;
-  title: { si: string; en: string };
-  desc: { si: string; en: string };
+  title: LocalizedText;
+  desc: LocalizedText;
   done: boolean;
   date: Date | null;
   notificationId?: string | null;
@@ -44,22 +46,25 @@ type TodoItem = {
 type PreventionStep = {
   key: string;
   icon: React.ReactNode;
-  title: { si: string; en: string };
-  description: { si: string; en: string };
-  why: { si: string; en: string };
+  title: LocalizedText;
+  description: LocalizedText;
+  why: LocalizedText;
 };
 
 const TODO_STORAGE_KEY = "ASIAN_CORN_BORER_TODO_STATE_V1";
+const IS_EXPO_GO = Constants.appOwnership === "expo";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => {
-    return {
-      shouldShowAlert: true,
-      shouldPlaySound: false,
-      shouldSetBadge: false,
-    } as Notifications.NotificationBehavior;
-  },
-});
+if (!IS_EXPO_GO) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => {
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      } as Notifications.NotificationBehavior;
+    },
+  });
+}
 
 function formatDate(d: Date) {
   const yyyy = d.getFullYear();
@@ -80,6 +85,7 @@ function buildGoogleCalendarURL(title: string, details: string, date: Date) {
 }
 
 async function ensureNotificationPermission(): Promise<boolean> {
+  if (IS_EXPO_GO) return false;
   const settings = await Notifications.getPermissionsAsync();
   if (settings.status === "granted") return true;
 
@@ -95,7 +101,11 @@ function atCustomTime(dateOnly: Date, timeOfDay: Date) {
 
 export default function AsianCornBorerControl() {
   const { language: appLang } = useLanguage();
-  const language: Language = appLang === "sinhala" ? "si" : "en";
+  const language: Language =
+    appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
+  const tr = (si: string, en: string, ta: string) =>
+    language === "si" ? si : language === "ta" ? ta : en;
+  const localize = (value: LocalizedText) => value[language] ?? value.en;
 
   const [todoMode, setTodoMode] = useState<boolean>(false);
   const [expandedInfo, setExpandedInfo] = useState<boolean>(true);
@@ -113,14 +123,17 @@ export default function AsianCornBorerControl() {
         title: {
           si: "ඉක්මන් ක්ෂේත්‍ර පරීක්ෂාව (පළමු දින)",
           en: "Immediate Field Inspection (First Days)",
+        ta: "உடனடி வயல் பரிசோதனை (முதல் நாட்கள்)",
         },
         description: {
           si: "බඩ ඉරිඟු කඳ, පත්‍ර සහ whorl පරීක්ෂා කර Asian Corn Borer larva හා කුහර (boreholes) හඳුනාගන්න. Sawdust වැනි frass දැකිය හැකි අතර උදේ හෝ සවස් වේලාවන්හි පරීක්ෂා කිරීම වඩාත් සුදුසුය.",
           en: "Inspect maize stems, leaves, and whorl to detect Asian Corn Borer larvae and boreholes. Look for sawdust-like frass. Early morning or late evening scouting is most effective.",
+        ta: "மக்காச்சோள தண்டு, இலை மற்றும் whorl பகுதிகளைப் பரிசோதித்து Asian Corn Borer இருவில் மற்றும் துளைகளை கண்டறியவும். sawdust போன்ற frass-ஐ கவனிக்கவும். அதிகாலை அல்லது மாலை நேர கண்காணிப்பு சிறந்தது.",
         },
         why: {
           si: "Larva කඳ තුළට ගැඹුරු වීමට පෙර හඳුනාගැනීම කඳ කැඩීම (lodging) සහ අස්වැන්න අඩුවීම වළක්වයි.",
           en: "Early detection before larvae bore deep into stems prevents lodging and yield loss.",
+        ta: "இருவில் தண்டிற்குள் ஆழமாக செல்வதற்கு முன் ஆரம்ப கண்டறிதல் lodging மற்றும் விளைச்சல் இழப்பைத் தடுக்கும்.",
         },
       },
       {
@@ -129,14 +142,17 @@ export default function AsianCornBorerControl() {
         title: {
           si: "යාන්ත්‍රික හා ජෛව පාලනය (දින කිහිපය තුළ)",
           en: "Mechanical & Biological Control (Next Few Days)",
+        ta: "இயந்திர மற்றும் உயிரியல் கட்டுப்பாடு (அடுத்த சில நாட்கள்)",
         },
         description: {
           si: "ආසාදිත කඳ කොටස් කපා ඉවත් කර විනාශ කරන්න. Trichogramma parasitoids, Neem-based ජෛව පාලන ක්‍රම සහ pheromone traps භාවිතා කර මදුරු (moths) ගණන අඩු කරන්න.",
           en: "Cut and destroy infested stem parts. Use Trichogramma parasitoids, neem-based biopesticides, and pheromone traps to reduce adult moth populations.",
+        ta: "பாதிக்கப்பட்ட தண்டு பகுதிகளை வெட்டி அழிக்கவும். Trichogramma parasitoids, நீம் அடிப்படையிலான உயிரியல் மருந்துகள் மற்றும் pheromone traps பயன்படுத்தி முழுவயது வண்டு எண்ணிக்கையை குறைக்கவும்.",
         },
         why: {
           si: "ආසාදිත කොටස් ඉවත් කිරීම larva වැඩිවීම නවත්වයි. ජෛව පාලනය IPM ක්‍රමයට අනුකූල වන අතර පරිසර හානි අඩු කරයි.",
           en: "Removing infested parts stops larval development. Biological control is IPM-compliant and reduces environmental harm.",
+        ta: "பாதிக்கப்பட்ட பகுதிகளை அகற்றுவது இருவில் வளர்ச்சியை நிறுத்தும். உயிரியல் கட்டுப்பாடு IPM முறைக்கு ஏற்பவும் சுற்றுச்சூழல் சேதத்தை குறைப்பதிலும் உதவும்.",
         },
       },
       {
@@ -145,14 +161,17 @@ export default function AsianCornBorerControl() {
         title: {
           si: "බෝග පිරිසිදුකම සහ ආරක්ෂාව",
           en: "Crop Sanitation & Protection",
+        ta: "பயிர் சுத்தம் மற்றும் பாதுகாப்பு",
         },
         description: {
           si: "ආසාදිත ශාක කොටස් ඉවත් කර නිසි ලෙස විනාශ කරන්න. කුඹුර පිරිසිදු තත්ත්වයේ තබා ගන්න. පැල ඉතිරි කොටස් කුඹුරේ තැබීමෙන් වළකින්න.",
           en: "Remove and properly destroy infected plant parts. Maintain field sanitation and avoid leaving plant residues in the field.",
+        ta: "தொற்றிய தாவர பகுதிகளை அகற்றி முறையாக அழிக்கவும். வயல் சுத்தத்தைப் பேணவும்; தாவர எச்சங்களை வயலில் விட வேண்டாம்.",
         },
         why: {
           si: "ශාක ඉතිරි කොටස් තුළ කෘමීන් රැඳී සිටිය හැක. පිරිසිදුකම නැවත ආසාදනය අඩු කරයි.",
           en: "Pests can persist in crop residues. Sanitation reduces reinfestation.",
+        ta: "பயிர் எச்சங்களில் பூச்சிகள் நீடிக்கலாம். சுத்தம் மீண்டும் தாக்குதலைக் குறைக்கும்.",
         },
       },
       {
@@ -161,14 +180,17 @@ export default function AsianCornBorerControl() {
         title: {
           si: "රසායනික පාලනය (දැනුවත් කිරීම පමණි)",
           en: "Chemical Control (Awareness Only)",
+        ta: "இரசாயன கட்டுப்பாடு (விழிப்புணர்வுக்கு மட்டும்)",
         },
         description: {
           si: "දැඩි හානියක් පවතින බව පෙනී යන අවස්ථාවලදී පමණක් කෘෂි උපදේශකයෙකුගෙන්/නිල ආයතනයකින් උපදේශනය ලබා ගන්න. අධික රසායනික භාවිතයෙන් වළකින්න.",
           en: "Only if severe damage is observed, seek official guidance from agricultural officers/authorities. Avoid excessive chemical use.",
+        ta: "கடுமையான சேதம் ஏற்பட்டால் மட்டுமே வேளாண் அதிகாரிகளின் ஆலோசனையைப் பெறவும். அதிக இரசாயனப் பயன்பாட்டைத் தவிர்க்கவும்.",
         },
         why: {
           si: "අධික රසායනික භාවිතය පරිසරයට හානි කරයි සහ කෘමීන්ට resistance ඇති විය හැක. ඒ නිසා මෙය awareness ලෙස පමණයි.",
           en: "Overuse can harm the environment and lead to pesticide resistance. Hence this is provided as awareness only.",
+        ta: "அதிகப்படியான பயன்பாடு சுற்றுச்சூழலுக்கு சேதம் செய்து பூச்சிக்கொல்லி எதிர்ப்பை ஏற்படுத்தலாம். ஆகவே இது விழிப்புணர்வுக்காக மட்டுமே.",
         },
       },
       {
@@ -177,14 +199,17 @@ export default function AsianCornBorerControl() {
         title: {
           si: "අනාගත වැළැක්වීම (ඊළඟ වගා කාලය)",
           en: "Future Prevention (Next Season)",
+        ta: "எதிர்காலத் தடுப்பு (அடுத்த பருவம்)",
         },
         description: {
           si: "වගා කාලය අවසානයේ ආසාදිත ශාක කොටස් ඉවත් කර විනාශ කරන්න. වගා මාරු කිරීම සහ ක්ෂේත්‍ර කළමනාකරණය මඟින් ආසාදන අවම කළ හැක.",
           en: "Destroy infected crop residues after harvest. Crop rotation and good field management reduce future infestations.",
+        ta: "அறுவடை பின் பாதிக்கப்பட்ட பயிர் எச்சங்களை அழிக்கவும். பயிர் மாறுதல் மற்றும் நல்ல வயல் மேலாண்மை எதிர்கால தாக்குதலை குறைக்கும்.",
         },
         why: {
           si: "අනාගත ආසාදන අඩු කළහොත් පාලන වියදම් අඩුවේ. Preventive practices long-term solution එකක්.",
           en: "Reducing future infestations lowers control costs. Preventive practices provide long-term protection.",
+        ta: "எதிர்கால தாக்குதலைக் குறைப்பது கட்டுப்பாட்டு செலவை குறைக்கும். தடுப்பு நடைமுறைகள் நீண்டகால பாதுகாப்பை வழங்கும்.",
         },
       },
     ],
@@ -197,10 +222,12 @@ export default function AsianCornBorerControl() {
       title: {
         si: "කඳේ කුහර සහ sawdust පරීක්ෂා කරන්න",
         en: "Check stem boreholes and frass",
+        ta: "தண்டு துளைகள் மற்றும் frass பரிசோதிக்கவும்",
       },
       desc: {
         si: "Asian Corn Borer larva කඳ තුළ සිටින ලකුණු හඳුනාගන්න.",
         en: "Identify signs of Asian Corn Borer inside stems.",
+        ta: "தண்டுகளின் உள்ளே Asian Corn Borer இருப்பதற்கான அறிகுறிகளை கண்டறியவும்.",
       },
       done: false,
       date: null,
@@ -211,10 +238,12 @@ export default function AsianCornBorerControl() {
       title: {
         si: "ආසාදිත කඳ කොටස් ඉවත් කරන්න",
         en: "Remove infested stem parts",
+        ta: "பாதிக்கப்பட்ட தண்டு பகுதிகளை அகற்றவும்",
       },
       desc: {
         si: "කපා ඉවත් කිරීමෙන් larva වැඩිවීම නවතයි.",
         en: "Cutting and removal stops larvae development.",
+        ta: "வெட்டி அகற்றுவது இருவில் வளர்ச்சியைத் தடுக்கும்.",
       },
       done: false,
       date: null,
@@ -225,10 +254,12 @@ export default function AsianCornBorerControl() {
       title: {
         si: "ජෛව පාලන ක්‍රම (Trichogramma/Traps) සකස් කරන්න",
         en: "Set up biological control (Trichogramma/Traps)",
+        ta: "உயிரியல் கட்டுப்பாடு அமைக்கவும் (Trichogramma/Traps)",
       },
       desc: {
         si: "Trichogramma parasitoids සහ pheromone traps භාවිතා කිරීමෙන් moth ගණන අඩු වේ.",
         en: "Trichogramma parasitoids and pheromone traps reduce moth population.",
+        ta: "Trichogramma parasitoids மற்றும் pheromone traps பயன்படுத்தி வண்டு எண்ணிக்கையை குறைக்கலாம்.",
       },
       done: false,
       date: null,
@@ -239,10 +270,12 @@ export default function AsianCornBorerControl() {
       title: {
         si: "දින 5කින් නැවත පරීක්ෂා කරන්න",
         en: "Re-check after 5 days",
+        ta: "5 நாட்களுக்கு பின் மீண்டும் பரிசோதிக்கவும்",
       },
       desc: {
         si: "නැවත ආසාදනය පරීක්ෂා කිරීම අත්‍යවශ්‍යයි.",
         en: "Follow-up inspection is essential.",
+        ta: "தொடர்ச்சி பரிசோதனை அவசியம்.",
       },
       done: false,
       date: null,
@@ -325,14 +358,16 @@ export default function AsianCornBorerControl() {
 
   const resetTodos = () => {
     Alert.alert(
-      language === "si" ? "Reset කරන්නද?" : "Reset?",
-      language === "si"
-        ? "To-Do ලැයිස්තුව නැවත ආරම්භ කරන්නද?"
-        : "Reset the To-Do planner?",
+      tr("Reset කරන්නද?", "Reset?", "மீட்டமைக்கவா?"),
+      tr(
+        "To-Do ලැයිස්තුව නැවත ආරම්භ කරන්නද?",
+        "Reset the To-Do planner?",
+        "To-Do திட்டத்தை மீட்டமைக்கவா?"
+      ),
       [
-        { text: language === "si" ? "නැහැ" : "No", style: "cancel" },
+        { text: tr("නැහැ", "No", "இல்லை"), style: "cancel" },
         {
-          text: language === "si" ? "ඔව්" : "Yes",
+          text: tr("ඔව්", "Yes", "ஆம்"),
           style: "destructive",
           onPress: async () => {
             const ids = todos
@@ -362,18 +397,20 @@ export default function AsianCornBorerControl() {
     const withDates = todos.filter((t) => t.date);
     if (withDates.length === 0) {
       Alert.alert(
-        language === "si" ? "දිනයක් නැහැ" : "No dates",
-        language === "si"
-          ? "Calendar එකට එක් කිරීමට පෙර To-Do වලට දිනයක් තෝරන්න."
-          : "Please select dates for tasks before adding to Google Calendar."
+        tr("දිනයක් නැහැ", "No dates", "தேதி இல்லை"),
+        tr(
+          "Calendar එකට එක් කිරීමට පෙර To-Do වලට දිනයක් තෝරන්න.",
+          "Please select dates for tasks before adding to Google Calendar.",
+          "Google Calendar-க்கு சேர்ப்பதற்கு முன் பணிகளுக்கான தேதியை தேர்வு செய்யவும்."
+        )
       );
       return;
     }
 
     for (const t of withDates) {
       const url = buildGoogleCalendarURL(
-        t.title[language],
-        t.desc[language],
+        localize(t.title),
+        localize(t.desc),
         t.date as Date
       );
       await Linking.openURL(url);
@@ -384,10 +421,12 @@ export default function AsianCornBorerControl() {
     const ok = await ensureNotificationPermission();
     if (!ok) {
       Alert.alert(
-        language === "si" ? "Permission නැහැ" : "Permission denied",
-        language === "si"
-          ? "Reminders සක්‍රීය කිරීමට Notification permission අවශ්‍යයි."
-          : "Notification permission is required to enable reminders."
+        tr("Permission නැහැ", "Permission denied", "அனுமதி இல்லை"),
+        tr(
+          "Reminders සක්‍රීය කිරීමට Notification permission අවශ්‍යයි.",
+          "Notification permission is required to enable reminders.",
+          "நினைவூட்டல்களை செயல்படுத்த அறிவிப்பு அனுமதி தேவை."
+        )
       );
       return;
     }
@@ -396,10 +435,12 @@ export default function AsianCornBorerControl() {
 
     if (schedulable.length === 0) {
       Alert.alert(
-        language === "si" ? "Reminders නැහැ" : "Nothing to schedule",
-        language === "si"
-          ? "Date දාපු tasks නැතිවෙන්නත් පුළුවන්, නැත්නම් tasks Done වෙලා තියෙන්නත් පුළුවන්."
-          : "No dated tasks found, or tasks are already completed."
+        tr("Reminders නැහැ", "Nothing to schedule", "நினைவூட்ட ஒன்றுமில்லை"),
+        tr(
+          "Date දාපු tasks නැතිවෙන්නත් පුළුවන්, නැත්නම් tasks Done වෙලා තියෙන්නත් පුළුවන්.",
+          "No dated tasks found, or tasks are already completed.",
+          "தேதி உள்ள பணிகள் இல்லை, அல்லது பணிகள் ஏற்கனவே முடிக்கப்பட்டுள்ளன."
+        )
       );
       return;
     }
@@ -425,9 +466,8 @@ export default function AsianCornBorerControl() {
 
       const nid = await Notifications.scheduleNotificationAsync({
         content: {
-          title:
-            language === "si" ? "MaizeGenie Reminder" : "MaizeGenie Reminder",
-          body: t.title[language],
+          title: "MaizeGenie Reminder",
+          body: localize(t.title),
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
@@ -449,10 +489,12 @@ export default function AsianCornBorerControl() {
       reminderTime.getMinutes()
     ).padStart(2, "0")}`;
     Alert.alert(
-      language === "si" ? "Reminders සකස් වුනා" : "Reminders scheduled",
-      language === "si"
-        ? `Date දාපු tasks වලට ${timeStr} reminder එකක් set කළා.`
-        : `Scheduled ${timeStr} reminders for dated tasks.`
+      tr("Reminders සකස් වුනා", "Reminders scheduled", "நினைவூட்டல்கள் அமைக்கப்பட்டன"),
+      tr(
+        `Date දාපු tasks වලට ${timeStr} reminder එකක් set කළා.`,
+        `Scheduled ${timeStr} reminders for dated tasks.`,
+        `தேதியிட்ட பணிகளுக்கு ${timeStr} நேர நினைவூட்டல் அமைக்கப்பட்டது.`
+      )
     );
   };
 
@@ -473,14 +515,10 @@ export default function AsianCornBorerControl() {
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerTitle}>
-              {language === "si"
-                ? "Asian Corn Borer පාලන හා වැළැක්වීම"
-                : "Asian Corn Borer Control & Prevention"}
+              {tr("Asian Corn Borer පාලන හා වැළැක්වීම", "Asian Corn Borer Control & Prevention", "ஆசியன் கார்ன் போரர் கட்டுப்பாடு மற்றும் தடுப்பு")}
             </Text>
             <Text style={styles.headerSubtitle}>
-              {language === "si"
-                ? "YOLO හඳුනාගැනීමෙන් පසු IPM මත පදනම් වූ ක්‍රියාමාර්ග"
-                : "IPM-based actions after YOLO detection"}
+              {tr("YOLO හඳුනාගැනීමෙන් පසු IPM මත පදනම් වූ ක්‍රියාමාර්ග", "IPM-based actions after YOLO detection", "YOLO கண்டறிதலுக்குப் பிறகு IPM அடிப்படையிலான செயல்கள்")}
             </Text>
           </View>
         </View>
@@ -496,7 +534,7 @@ export default function AsianCornBorerControl() {
           >
             <Info size={18} color={!todoMode ? "#ffffff" : "#10ad79"} />
             <Text style={[styles.modeText, !todoMode && styles.modeTextActive]}>
-              {language === "si" ? "මඟ පෙන්වීම" : "Guidance"}
+              {tr("මඟ පෙන්වීම", "Guidance", "வழிகாட்டல்")}
             </Text>
           </TouchableOpacity>
 
@@ -507,7 +545,7 @@ export default function AsianCornBorerControl() {
           >
             <CalendarCheck size={18} color={todoMode ? "#ffffff" : "#10ad79"} />
             <Text style={[styles.modeText, todoMode && styles.modeTextActive]}>
-              {language === "si" ? "To-Do සැලසුම" : "To-Do Planner"}
+              {tr("To-Do සැලසුම", "To-Do Planner", "To-Do திட்டம்")}
             </Text>
           </TouchableOpacity>
         </View>
@@ -532,9 +570,7 @@ export default function AsianCornBorerControl() {
                     <Info size={20} color="#10ad79" />
                   </View>
                   <Text style={styles.infoSectionTitle}>
-                    {language === "si"
-                      ? "විස්තර / තොරතුරු"
-                      : "Information & Context"}
+                    {tr("විස්තර / තොරතුරු", "Information & Context", "தகவல் மற்றும் பின்னணி")}
                   </Text>
                 </View>
                 {expandedInfo ? (
@@ -548,12 +584,14 @@ export default function AsianCornBorerControl() {
                 <View style={styles.infoContent}>
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si" ? "කෘමි හැඳින්වීම" : "Pest Overview"}
+                      {tr("කෘමි හැඳින්වීම", "Pest Overview", "பூச்சி அறிமுகம்")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "Asian Corn Borer (Ostrinia furnacalis) යනු බඩ ඉරිඟු වගාවට දැඩි හානි කරන ආක්‍රමණශීලී කෘමියකි. මෙය කඳ තුළට විවර වීම, කඳ කැඩීම (lodging) සහ වේගවත් ව්‍යාප්තිය හේතුවෙන් අස්වැන්නට දැඩි හානි සිදු කරයි."
-                        : "Asian Corn Borer (Ostrinia furnacalis) is an invasive pest that severely damages maize through stem boring, lodging, and rapid spread."}
+                      {tr(
+                        "Asian Corn Borer (Ostrinia furnacalis) යනු බඩ ඉරිඟු වගාවට දැඩි හානි කරන ආක්‍රමණශීලී කෘමියකි. මෙය කඳ තුළට විවර වීම, කඳ කැඩීම (lodging) සහ වේගවත් ව්‍යාප්තිය හේතුවෙන් අස්වැන්නට දැඩි හානි සිදු කරයි.",
+                        "Asian Corn Borer (Ostrinia furnacalis) is an invasive pest that severely damages maize through stem boring, lodging, and rapid spread.",
+                        "Asian Corn Borer (Ostrinia furnacalis) மக்காச்சோளத்தில் தண்டு துளைத்தல், தண்டு சாய்வு (lodging) மற்றும் வேகமான பரவலால் கடுமையான சேதத்தை உண்டாக்கும் ஆக்கிரமிப்பு பூச்சி."
+                      )}
                     </Text>
                   </View>
 
@@ -561,14 +599,14 @@ export default function AsianCornBorerControl() {
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si"
-                        ? "ඉක්මන් ක්‍රියා අවශ්‍ය ඇයි?"
-                        : "Why early action matters"}
+                      {tr("ඉක්මන් ක්‍රියා අවශ්‍ය ඇයි?", "Why early action matters", "ஆரம்ப நடவடிக்கை ஏன் முக்கியம்?")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "Larva කඳ තුළට ගැඹුරු වීමට පෙර පාලනය නොකළහොත් කඳ කැඩීම සහ අස්වැන්න අඩුවීම වැඩිවේ."
-                        : "If larvae are not controlled before boring deep into stems, lodging and yield loss increase significantly."}
+                      {tr(
+                        "Larva කඳ තුළට ගැඹුරු වීමට පෙර පාලනය නොකළහොත් කඳ කැඩීම සහ අස්වැන්න අඩුවීම වැඩිවේ.",
+                        "If larvae are not controlled before boring deep into stems, lodging and yield loss increase significantly.",
+                        "இருவில் தண்டிற்குள் ஆழமாக செல்வதற்கு முன் கட்டுப்படுத்தாவிட்டால் தண்டு சாய்வும் விளைச்சல் இழப்பும் அதிகரிக்கும்."
+                      )}
                     </Text>
                   </View>
 
@@ -576,12 +614,14 @@ export default function AsianCornBorerControl() {
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si" ? "IPM සංකල්පය" : "IPM concept"}
+                      {tr("IPM සංකල්පය", "IPM concept", "IPM கருத்து")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "මෙය Integrated Pest Management (IPM) මත පදනම් වේ: යාන්ත්‍රික + ජෛව + සංස්කෘතික ක්‍රම මුල් කරගෙන, අවශ්‍ය වූ විට පමණක් රසායනික උපදේශනය ලබා ගැනීම."
-                        : "This follows Integrated Pest Management (IPM): prioritize mechanical, biological, and cultural control, while seeking chemical guidance only when necessary."}
+                      {tr(
+                        "මෙය Integrated Pest Management (IPM) මත පදනම් වේ: යාන්ත්‍රික + ජෛව + සංස්කෘතික ක්‍රම මුල් කරගෙන, අවශ්‍ය වූ විට පමණක් රසායනික උපදේශනය ලබා ගැනීම.",
+                        "This follows Integrated Pest Management (IPM): prioritize mechanical, biological, and cultural control, while seeking chemical guidance only when necessary.",
+                        "இது ஒருங்கிணைந்த பூச்சி மேலாண்மை (IPM) முறையை பின்பற்றுகிறது: இயந்திர, உயிரியல் மற்றும் பயிர் மேலாண்மை முறைகளை முன்னுரிமை அளித்து, அவசியமானபோது மட்டுமே இரசாயன ஆலோசனையைப் பெறவும்."
+                      )}
                     </Text>
                   </View>
 
@@ -589,14 +629,14 @@ export default function AsianCornBorerControl() {
 
                   <View style={styles.infoItem}>
                     <Text style={styles.infoHeading}>
-                      {language === "si"
-                        ? "රසායනික දැනුවත් කිරීම"
-                        : "Chemical awareness"}
+                      {tr("රසායනික දැනුවත් කිරීම", "Chemical awareness", "இரசாயன விழிப்புணர்வு")}
                     </Text>
                     <Text style={styles.infoText}>
-                      {language === "si"
-                        ? "අධික රසායනික භාවිතය පරිසරයට හානි කළ හැකි අතර කෘමීන්ට resistance ඇති විය හැක. ඒ නිසා මෙය awareness ලෙස පමණයි."
-                        : "Overuse of chemicals can harm the environment and cause pesticide resistance. Therefore, this module provides awareness only."}
+                      {tr(
+                        "අධික රසායනික භාවිතය පරිසරයට හානි කළ හැකි අතර කෘමීන්ට resistance ඇති විය හැක. ඒ නිසා මෙය awareness ලෙස පමණයි.",
+                        "Overuse of chemicals can harm the environment and cause pesticide resistance. Therefore, this module provides awareness only.",
+                        "அதிக இரசாயன பயன்பாடு சுற்றுச்சூழலுக்கு சேதம் செய்து பூச்சிகளில் எதிர்ப்பு திறன் உருவாகக் கூடும். ஆகவே இது விழிப்புணர்விற்காக மட்டுமே வழங்கப்படுகிறது."
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -606,14 +646,10 @@ export default function AsianCornBorerControl() {
             {/* IPM Steps */}
             <View style={styles.stepsHeader}>
               <Text style={styles.stepsTitle}>
-                {language === "si"
-                  ? "IPM පියවර (Step-by-step)"
-                  : "IPM Steps (Step-by-step)"}
+                {tr("IPM පියවර (Step-by-step)", "IPM Steps (Step-by-step)", "IPM படிகள் (படிப்படியாக)")}
               </Text>
               <Text style={styles.stepsSubtitle}>
-                {language === "si"
-                  ? "පියවරෙන් පියවර ක්‍රියාමාර්ග"
-                  : "Follow these steps sequentially"}
+                {tr("පියවරෙන් පියවර ක්‍රියාමාර්ග", "Follow these steps sequentially", "இந்த படிகளை வரிசையாக பின்பற்றவும்")}
               </Text>
             </View>
 
@@ -624,17 +660,17 @@ export default function AsianCornBorerControl() {
                 </View>
                 <View style={styles.stepIconContainer}>{step.icon}</View>
                 <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>{step.title[language]}</Text>
+                  <Text style={styles.stepTitle}>{localize(step.title)}</Text>
                   <Text style={styles.stepDescription}>
-                    {step.description[language]}
+                    {localize(step.description)}
                   </Text>
                   <View style={styles.whyContainer}>
                     <View style={styles.whyBadge}>
                       <Text style={styles.whyBadgeText}>
-                        {language === "si" ? "හේතුව" : "Why"}
+                        {tr("හේතුව", "Why", "ஏன்")}
                       </Text>
                     </View>
-                    <Text style={styles.whyText}>{step.why[language]}</Text>
+                    <Text style={styles.whyText}>{localize(step.why)}</Text>
                   </View>
                 </View>
               </View>
@@ -650,12 +686,10 @@ export default function AsianCornBorerControl() {
               <View style={styles.todoHeaderTop}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.todoMainTitle}>
-                    {language === "si" ? "To-Do සැලසුම" : "To-Do Planner"}
+                    {tr("To-Do සැලසුම", "To-Do Planner", "To-Do திட்டம்")}
                   </Text>
                   <Text style={styles.todoMainSubtitle}>
-                    {language === "si"
-                      ? "Date දාගෙන Done ලෙස ලකුණු කරන්න"
-                      : "Assign dates and mark tasks as done"}
+                    {tr("Date දාගෙන Done ලෙස ලකුණු කරන්න", "Assign dates and mark tasks as done", "தேதிகளை சேர்த்து பணிகளை முடித்ததாக குறியிடவும்")}
                   </Text>
                 </View>
                 <View style={styles.progressCircle}>
@@ -682,7 +716,7 @@ export default function AsianCornBorerControl() {
                   <Clock size={20} color="#10ad79" />
                 </View>
                 <Text style={styles.timePickerLabel}>
-                  {language === "si" ? "Reminder වේලාව" : "Reminder Time"}
+                  {tr("Reminder වේලාව", "Reminder Time", "நினைவூட்ட நேரம்")}
                 </Text>
               </View>
               <TouchableOpacity
@@ -721,9 +755,7 @@ export default function AsianCornBorerControl() {
               >
                 <Calendar size={18} color="#ffffff" />
                 <Text style={styles.calendarButtonText}>
-                  {language === "si"
-                    ? "Google Calendar"
-                    : "Add to Calendar"}
+                  {tr("Google Calendar", "Add to Calendar", "காலெண்டரில் சேர்க்க")}
                 </Text>
               </TouchableOpacity>
 
@@ -734,7 +766,7 @@ export default function AsianCornBorerControl() {
               >
                 <Bell size={18} color="#ffffff" />
                 <Text style={styles.reminderButtonText}>
-                  {language === "si" ? "Reminders" : "Set Reminders"}
+                  {tr("Reminders", "Set Reminders", "நினைவூட்டல்கள் அமைக்க")}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -746,7 +778,7 @@ export default function AsianCornBorerControl() {
               activeOpacity={0.8}
             >
               <Text style={styles.resetButtonText}>
-                {language === "si" ? "Reset To-Do" : "Reset To-Do"}
+                {tr("Reset To-Do", "Reset To-Do", "To-Do மீட்டமை")}
               </Text>
             </TouchableOpacity>
 
@@ -777,12 +809,12 @@ export default function AsianCornBorerControl() {
                         todo.done && styles.todoTitleDone,
                       ]}
                     >
-                      {todo.title[language]}
+                      {localize(todo.title)}
                     </Text>
                   </View>
 
                   <Text style={[styles.todoDesc, todo.done && styles.todoDescDone]}>
-                    {todo.desc[language]}
+                    {localize(todo.desc)}
                   </Text>
 
                   <TouchableOpacity
@@ -794,9 +826,7 @@ export default function AsianCornBorerControl() {
                     <Text style={styles.dateButtonText}>
                       {todo.date
                         ? formatDate(todo.date)
-                        : language === "si"
-                        ? "දිනය තෝරන්න"
-                        : "Select date"}
+                        : tr("දිනය තෝරන්න", "Select date", "தேதி தேர்வு செய்க")}
                     </Text>
                   </TouchableOpacity>
 
@@ -822,13 +852,11 @@ export default function AsianCornBorerControl() {
               <View style={styles.infoNoteHeader}>
                 <Info size={16} color="#10ad79" />
                 <Text style={styles.infoNoteTitle}>
-                  {language === "si" ? "සටහන" : "Note"}
+                  {tr("සටහන", "Note", "குறிப்பு")}
                 </Text>
               </View>
               <Text style={styles.infoNoteText}>
-                {language === "si"
-                  ? "Calendar එකට add කරන්නේ date දාපු tasks පමණයි. Reminders ඔබ තෝරපු වේලාවට set වෙනවා (date future එකක් නම්)."
-                  : "Only dated tasks are added to Calendar. Reminders are scheduled at your chosen time (only for future dates)."}
+                {tr("Calendar එකට add කරන්නේ date දාපු tasks පමණයි. Reminders ඔබ තෝරපු වේලාවට set වෙනවා (date future එකක් නම්).", "Only dated tasks are added to Calendar. Reminders are scheduled at your chosen time (only for future dates).", "தேதி கொடுத்த பணிகளே காலெண்டரில் சேர்க்கப்படும். நினைவூட்டல்கள் நீங்கள் தேர்ந்த நேரத்தில் (எதிர்கால தேதிகளுக்கு மட்டும்) அமைக்கப்படும்.")}
               </Text>
             </View>
           </>
@@ -1379,3 +1407,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 });
+
+

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+﻿import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  SafeAreaView,
 } from "react-native";
 import axios from "axios";
 import * as ImagePicker from "expo-image-picker";
@@ -19,7 +20,7 @@ import { API_BASE } from "../../services/api";
 import { supabase } from "../../lib/supabase";
 import { useNavigation } from "@react-navigation/native";
 
-// 🌐 Language
+// Language
 import { useLanguage } from "../../context/LanguageContext";
 
 // Icons
@@ -36,15 +37,32 @@ import {
   EyeOff,
 } from "lucide-react-native";
 
+// Dynamic API URL using .env + Platform detection
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    // Real Android Device → Uses .env
+    return process.env.EXPO_PUBLIC_API_BASE;
+  } else if (Platform.OS === "ios") {
+    // iOS simulator
+    return "http://localhost:8000";
+  } else {
+    // Expo Web fallback
+    return "http://localhost:8000";
+  }
+};
+
+const API_URL = getApiUrl();
+
 export default function AdminEditOfficialNewsScreen({ route }: any) {
   const { newsId } = route.params;
   const navigation = useNavigation();
   const { language } = useLanguage();
 
   // UI language
-  const uiLang: "si" | "en" = language === "sinhala" ? "si" : "en";
+  const uiLang: "si" | "en" | "ta" =
+    language === "sinhala" ? "si" : language === "tamil" ? "ta" : "en";
 
-  // 🌐 Bilingual text
+  // Bilingual text
   const content = {
     si: {
       title: "නිල ප්‍රවෘත්ති සංස්කරණය",
@@ -108,23 +126,59 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       selectCategory: "Select Category",
       loading: "Loading...",
     },
+    ta: {
+      title: "அதிகாரப்பூர்வ செய்தியை திருத்து",
+      subtitle: "அதிகாரப்பூர்வ அறிவிப்புகளை புதுப்பிக்கவும்",
+      newsTitle: "தலைப்பு",
+      summary: "சுருக்கம்",
+      category: "வகை",
+      source: "மூலம்",
+      url: "அதிகாரப்பூர்வ மூல URL",
+      district: "மாவட்டம்",
+      update: "புதுப்பிக்கவும்",
+      delete: "நீக்கவும்",
+      back: "பின்னால்",
+      error: "தேவையான புலங்கள் காணவில்லை",
+      success: "அதிகாரப்பூர்வ செய்தி வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
+      deleteSuccess: "அதிகாரப்பூர்வ செய்தி நீக்கப்பட்டது",
+      imageLabel: "படம்",
+      optional: "(விருப்பமானது)",
+      required: "*",
+      selectImage: "படம் தேர்வு செய்யவும்",
+      changeImage: "படத்தை மாற்றவும்",
+      updating: "புதுப்பிக்கிறது...",
+      deleting: "நீக்குகிறது...",
+      visibility: "தெரிவுநிலை",
+      visibleToFarmers: "விவசாயிகளுக்கு தெரியும்",
+      visibilityHint: "விவசாயி ஊட்டத்தில் இருந்து மறைக்க அணைக்கவும்",
+      confirmDelete: "இந்த செய்தியை நீக்க விரும்புகிறீர்களா?",
+      cancel: "ரத்து செய்",
+      noImage: "படம் இல்லை",
+      selectCategory: "வகையை தேர்வு செய்யவும்",
+      loading: "ஏற்றுகிறது...",
+    },
   };
 
   const CATEGORY_OPTIONS = [
-    { value: "price", si: "මිල", en: "Price" },
-    { value: "weather", si: "කාලගුණය", en: "Weather" },
-    { value: "policy", si: "ප්‍රතිපත්ති", en: "Policy" },
-    { value: "alert", si: "අනතුරු ඇඟවීම", en: "Alert" },
-    { value: "pest", si: "පළිබෝධ", en: "Pest" },
-    { value: "disease", si: "රෝග", en: "Disease" },
-    { value: "fertilizer", si: "පොහොර", en: "Fertilizer" },
-    { value: "cultivation", si: "වගා උපදෙස්", en: "Cultivation" },
-    { value: "program", si: "වැඩසටහන්", en: "Program" },
+    { value: "price", si: "මිල", en: "Price", ta: "விலை" },
+    { value: "weather", si: "කාලගුණය", en: "Weather", ta: "வானிலை" },
+    { value: "policy", si: "ප්‍රතිපත්ති", en: "Policy", ta: "கொள்கை" },
+    { value: "alert", si: "අනතුරු ඇඟවීම", en: "Alert", ta: "எச்சரிக்கை" },
+    { value: "pest", si: "පළිබෝධ", en: "Pest", ta: "பூச்சி" },
+    { value: "disease", si: "රෝග", en: "Disease", ta: "நோய்" },
+    { value: "fertilizer", si: "පොහොර", en: "Fertilizer", ta: "உரம்" },
+    {
+      value: "cultivation",
+      si: "වගා උපදෙස්",
+      en: "Cultivation",
+      ta: "பயிர்ச்செய்கை",
+    },
+    { value: "program", si: "වැඩසටහන්", en: "Program", ta: "திட்டம்" },
   ];
 
   const t = content[uiLang];
 
-  // 📝 Form state
+  // Form state
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [category, setCategory] = useState("");
@@ -247,9 +301,15 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   const updateNews = async () => {
     let hasError = false;
 
-    // 🔴 Title validation
+    // Title validation
     if (!title.trim()) {
-      setTitleError(uiLang === "si" ? "ශීර්ෂය අවශ්‍යයි" : "Title is required");
+      setTitleError(
+        uiLang === "si"
+          ? "ශීර්ෂය අවශ්‍යයි"
+          : uiLang === "ta"
+            ? "தலைப்பு தேவை"
+            : "Title is required",
+      );
       hasError = true;
 
       titleRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
@@ -258,10 +318,14 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       return;
     }
 
-    // 🔴 Category validation
+    // Category validation
     if (!category) {
       setCategoryError(
-        uiLang === "si" ? "වර්ගය තෝරන්න" : "Category is required"
+        uiLang === "si"
+          ? "වර්ගය තෝරන්න"
+          : uiLang === "ta"
+            ? "வகை தேவை"
+            : "Category is required",
       );
 
       categoryRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
@@ -270,10 +334,14 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       return;
     }
 
-    // 🔴 Source validation
+    // Source validation
     if (!source.trim()) {
       setSourceError(
-        uiLang === "si" ? "මූලාශ්‍රය අවශ්‍යයි" : "Source is required"
+        uiLang === "si"
+          ? "මූලාශ්‍රය අවශ්‍යයි"
+          : uiLang === "ta"
+            ? "மூலம் தேவை"
+            : "Source is required",
       );
 
       sourceRef.current?.measureLayout(scrollRef.current as any, (_, y) => {
@@ -307,7 +375,7 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       console.log("❌ RESPONSE:", e?.response?.data);
       Alert.alert(
         "Error",
-        e?.response?.data?.detail || "Failed to update news"
+        e?.response?.data?.detail || "Failed to update news",
       );
     } finally {
       setLoading(false);
@@ -324,8 +392,12 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
       setLoading(true);
       await axios.delete(`${API_BASE}/official-news/admin/${newsId}`);
       Alert.alert(
-        uiLang === "si" ? "මකා දමන ලදී" : "Deleted",
-        t.deleteSuccess
+        uiLang === "si"
+          ? "මකා දමන ලදී"
+          : uiLang === "ta"
+            ? "நீக்கப்பட்டது"
+            : "Deleted",
+        t.deleteSuccess,
       );
       navigation.goBack();
     } catch (e: any) {
@@ -349,21 +421,23 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
   return (
     <View style={styles.wrapper}>
       {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <ArrowLeft size={22} color="#E8F5E9" />
-          </TouchableOpacity>
+      <SafeAreaView style={{ backgroundColor: "#2E7D32" }}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.backButton}
+            >
+              <ArrowLeft size={22} color="#E8F5E9" />
+            </TouchableOpacity>
 
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>{t.title}</Text>
-            <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>{t.title}</Text>
+              <Text style={styles.headerSubtitle}>{t.subtitle}</Text>
+            </View>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
 
       {/* FORM */}
       <ScrollView
@@ -398,7 +472,11 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
                 </View>
                 <Text style={styles.placeholderText}>{t.selectImage}</Text>
                 <Text style={styles.placeholderSubtext}>
-                  {uiLang === "si" ? "5MB දක්වා" : "Max 5MB"}
+                  {uiLang === "si"
+                    ? "5MB දක්වා"
+                    : uiLang === "ta"
+                      ? "அதிகபட்சம் 5MB"
+                      : "Max 5MB"}
                 </Text>
               </View>
             )}
@@ -484,8 +562,10 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
               {category
                 ? CATEGORY_OPTIONS.find((c) => c.value === category)?.[uiLang]
                 : uiLang === "si"
-                ? "-- වර්ගය තෝරන්න --"
-                : "-- Select Category --"}
+                  ? "-- වර්ගය තෝරන්න --"
+                  : uiLang === "ta"
+                    ? "-- வகையை தேர்ந்தெடுக்கவும் --"
+                    : "-- Select Category --"}
             </Text>
 
             <Tag size={18} color="#2E7D32" />
@@ -637,7 +717,11 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
                     activeOpacity={0.85}
                   >
                     <Text style={styles.optionText}>
-                      {uiLang === "si" ? item.si : item.en}
+                      {uiLang === "si"
+                        ? item.si
+                        : uiLang === "ta"
+                          ? item.ta
+                          : item.en}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -667,7 +751,9 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
               <Text style={styles.successSubtitle}>
                 {uiLang === "si"
                   ? "ගොවීන්ට දැන් මෙම යාවත්කාලීන දැනුම්දීම් දෘශ්‍යමාන වේ"
-                  : "This update is now visible to farmers"}
+                  : uiLang === "ta"
+                    ? "இந்த தகவல் இப்போது விவசாயிகளுக்கு தெரியும்"
+                    : "This update is now visible to farmers"}
               </Text>
 
               <TouchableOpacity
@@ -688,7 +774,12 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
         <Modal visible={showDeleteModal} transparent animationType="fade">
           <View style={styles.successOverlay}>
             <View style={styles.successCard}>
-              <View style={[styles.successIconCircle, { backgroundColor: "#FFEBEE" }]}>
+              <View
+                style={[
+                  styles.successIconCircle,
+                  { backgroundColor: "#FFEBEE" },
+                ]}
+              >
                 <Trash2 size={34} color="#C62828" />
               </View>
 
@@ -697,7 +788,9 @@ export default function AdminEditOfficialNewsScreen({ route }: any) {
               <Text style={styles.successSubtitle}>
                 {uiLang === "si"
                   ? "මෙම ක්‍රියාව ආපසු හැරවිය නොහැක"
-                  : "This action cannot be undone"}
+                  : uiLang === "ta"
+                    ? "இந்த செயல் திரும்ப முடியாது"
+                    : "This action cannot be undone"}
               </Text>
 
               <View style={styles.modalActions}>
@@ -731,7 +824,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F1F8E9",
   },
   header: {
-    paddingTop: Platform.OS === "ios" ? 52 : 18,
+    paddingTop: 36,
     paddingBottom: 16,
     paddingHorizontal: 16,
     backgroundColor: "#2E7D32",

@@ -55,6 +55,7 @@ const translations: Record<
     title: string;
     more: string;
     new: string;
+    readMore: string;
     category: Record<NewsItem["category"], string>;
   }
 > = {
@@ -62,6 +63,7 @@ const translations: Record<
     title: "නිල පුවත්",
     more: "තව",
     new: "අලුත්",
+    readMore: "තව කියවන්න",
     category: {
       price: "මිල",
       weather: "කාලගුණය",
@@ -78,6 +80,7 @@ const translations: Record<
     title: "Official News",
     more: "More",
     new: "NEW",
+    readMore: "Read more",
     category: {
       price: "Price",
       weather: "Weather",
@@ -418,7 +421,7 @@ export default function TopOfficialNews() {
                     <View style={styles.readMoreLeft}>
                       <View style={[styles.readMoreDot, { backgroundColor: config.color }]} />
                       <Text style={[styles.readMoreText, { color: config.color }]}>
-                        තව කියවන්න
+                        {t.readMore}
                       </Text>
                     </View>
                     <View style={[styles.readMoreButton, { backgroundColor: config.light }]}>

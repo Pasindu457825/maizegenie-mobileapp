@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -39,8 +39,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import {
   sriLankanTreatments,
   generalTreatments,
+  buildTreatmentsWithDynamicPrices,
+  buildGeneralTreatmentsWithDynamicPrices,
 } from "../../data/diseases/treatments";
-import { SriLankanTreatment } from "../../data/diseases/treatments/treatmentTypes";
+import {
+  SriLankanTreatment,
+  TreatmentsData,
+} from "../../data/diseases/treatments/treatmentTypes";
+import { fetchTreatmentPriceOverrides } from "../../services/diseaseTreatmentPriceApi";
 
 // 🌐 LANGUAGE CONTEXT
 import { useLanguage } from "../../context/LanguageContext";
@@ -64,6 +70,8 @@ interface Prediction {
   class_id: number;
   class_name: string;
   confidence: number;
+  box_xyxy?: number[];
+  impact_boxes?: number[][];
 }
 
 export default function SeverityDetailsScreen({ route }: Props) {
@@ -74,12 +82,13 @@ export default function SeverityDetailsScreen({ route }: Props) {
     predictions,
     diseaseNameEn,
     diseaseNameSi,
+    diseaseNameTa,
   } = route.params;
   const navigation = useNavigation<NavProp>();
 
   // 🌐 GLOBAL LANGUAGE (sinhala/english)
   const { language: lang, setLanguage } = useLanguage();
-  const language = lang === "sinhala" ? "si" : "en";
+  const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   // 🌐 TRANSLATION CONTENT
   const content = {
@@ -203,6 +212,66 @@ export default function SeverityDetailsScreen({ route }: Props) {
       severityMediumPrefix: "For Moderate Infection",
       severityHighPrefix: "For High Infection",
     },
+    ta: {
+      back: "பின்செல்",
+      header: "தாவர சுகாதார நிலை",
+      mild: "உங்கள் ஆலை நல்ல நிலையில் உள்ளது. நோயின் லேசான அறிகுறிகள் கண்டறியப்பட்டுள்ளன.",
+      moderate: "உங்கள் ஆலைக்கு கவனம் தேவை. நோய் மிதமாக பரவுகிறது.",
+      severe:
+        "எச்சரிக்கை! கடுமையான தொற்று நிலைகள் கண்டறியப்பட்டுள்ளன. உடனடியாக நடவடிக்கை தேவை.",
+      viewDetails: "முழு நோய் விவரங்களைக் காண்க",
+      plantSeverity: "இலை நோய் தொற்று நிலை",
+      severityAnalysis: "தற்போதைய தீவிர நிலை",
+      infectionLevel: "தொற்று நிலை",
+      nextSteps: "அடுத்த படிகள்",
+      viewDiseaseInfo: "நோய் தகவலைக் காண்க",
+      recommendations: "பரிந்துரைகள்",
+      takeAction: "நடவடிக்கை எடு",
+      monitoring: "கண்காணிப்பு",
+      severityLevel: "தீவிர நிலை",
+      healthy: "ஆரோக்கியமானது",
+      lowRisk: "குறைந்த ஆபத்து",
+      mediumRisk: "நடுத்தர ஆபத்து",
+      highRisk: "அதிக ஆபத்து",
+
+      // Treatment section translations
+      treatmentGuide: "இலங்கையில் கிடைக்கும் சிகிச்சைகள்",
+      availableInSL: "இலங்கையில் கிடைக்கும் தயாரிப்புகள்",
+      howToUse: "எப்படி பயன்படுத்துவது",
+      dosage: "மருந்தளவு மற்றும் கலவை",
+      applicationSchedule: "விண்ணப்ப அட்டவணை",
+      frequency: "அதிர்வெண்",
+      duration: "காலம்",
+      bestTime: "சிறந்த நேரம்",
+      safetyPrecautions: "பாதுகாப்பு முன்னெச்சரிக்கைகள்",
+      whereToBuy: "எங்கே வாங்குவது",
+      costEstimate: "மதிப்பீட்டு செலவு (LKR)",
+      spraySchedule: "தெளிப்பு அட்டவணை",
+      immediateAction: "உடனடி நடவடிக்கை",
+      followUpTreatment: "தொடர் சிகிச்சை",
+      preventionTips: "மீண்டும் தொற்று ஏற்படுவதைத் தடுக்கவும்",
+      organicOptions: "கரிம தீர்வுகள்",
+      chemicalOptions: "இரசாயன தீர்வுகள்",
+      recommendedForSeverity: "தீவிர நிலைக்கான தீர்வுகள்",
+      stepByStepGuide: "படிப்படியான வழிகாட்டி",
+      day: "நாள்",
+      days: "நாட்கள்",
+      weeks: "வாரங்கள்",
+      repeat: "மீண்டும் செய்யவும்",
+      morning: "காலை",
+      evening: "மாலை",
+      avoidRain: "மழையைத் தவிர்க்கவும்",
+      protectiveGear: "பாதுகாப்பு கியர் பயன்படுத்தவும்",
+      storeProperly: "சரியாக சேமிக்கவும்",
+      forDisease: "க்கு",
+      effectiveAgainst: "எதிராக பயனுள்ளதாக இருக்கும்",
+      fungalDiseases: "பூஞ்சை நோய்கள்",
+      bacterialDiseases: "பாக்டீரியா நோய்கள்",
+      viralDiseases: "வைரஸ் நோய்கள்",
+      severityLowPrefix: "குறைந்த தொற்றுக்கு",
+      severityMediumPrefix: "மிதமான தொற்றுக்கு",
+      severityHighPrefix: "அதிக தொற்றுக்கு",
+    },
   };
 
   const getSeverityUI = (label: string) => {
@@ -229,6 +298,38 @@ export default function SeverityDetailsScreen({ route }: Props) {
   };
 
   const severityUI = getSeverityUI(severity_label);
+  const [treatmentsData, setTreatmentsData] =
+    useState<TreatmentsData>(sriLankanTreatments);
+  const [generalTreatmentsData, setGeneralTreatmentsData] =
+    useState<SriLankanTreatment[]>(generalTreatments);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const hydrateDynamicTreatmentPrices = async () => {
+      try {
+        const overrides = await fetchTreatmentPriceOverrides();
+
+        if (!isMounted) return;
+
+        setTreatmentsData(buildTreatmentsWithDynamicPrices(overrides));
+        setGeneralTreatmentsData(
+          buildGeneralTreatmentsWithDynamicPrices(overrides)
+        );
+      } catch (error) {
+        console.log(
+          "Dynamic treatment prices unavailable; using hardcoded defaults.",
+          error
+        );
+      }
+    };
+
+    hydrateDynamicTreatmentPrices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const displaySeverityLabel =
     language === "si"
@@ -237,6 +338,12 @@ export default function SeverityDetailsScreen({ route }: Props) {
         : severityUI.level === "medium"
         ? content.si.mediumRisk
         : content.si.highRisk
+      : language === "ta"
+      ? severityUI.level === "low"
+        ? content.ta.lowRisk
+        : severityUI.level === "medium"
+        ? content.ta.mediumRisk
+        : content.ta.highRisk
       : severity_label;
 
   const statusText =
@@ -274,29 +381,70 @@ export default function SeverityDetailsScreen({ route }: Props) {
 
     // 1️⃣ No prediction
     if (!primaryPrediction) {
-      return splitByType(generalTreatments);
+      return splitByType(generalTreatmentsData);
     }
-
-    const formattedName = formatDiseaseName(
-      primaryPrediction.class_name
-    ).toLowerCase();
 
     const normalize = (s: string) =>
       s.toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
 
     const normalizedName = normalize(primaryPrediction.class_name);
 
-    const matchedKey = Object.keys(sriLankanTreatments).find(
+    // Healthy outputs should not show treatment recommendations.
+    if (normalizedName.includes("health") || normalizedName.includes("healthy")) {
+      return { chemical: [], organic: [] };
+    }
+
+    const inferCanonicalDiseaseKey = (name: string): string | null => {
+      const n = normalize(name);
+
+      const aliasMap: Record<string, string> = {
+        // Roboflow-normalized outputs
+        "gray spot": "gray spot",
+        "gray leaf spot": "gray spot",
+        "grey spot": "gray spot",
+        "grey leaf spot": "gray spot",
+        "common rust": "common rust",
+        blight: "leaf blight",
+        "leaf blight": "leaf blight",
+        "northern leaf blight": "leaf blight",
+      };
+
+      if (aliasMap[n]) return aliasMap[n];
+      if (n.includes("blight")) return "leaf blight";
+      if (n.includes("rust")) return "common rust";
+      if (n.includes("gray") && n.includes("spot")) return "gray spot";
+      if (n.includes("grey") && n.includes("spot")) return "gray spot";
+      return null;
+    };
+
+    const matchedKey = Object.keys(treatmentsData).find(
       (key) => normalize(key) === normalizedName
     );
 
     // 2️⃣ Disease-specific treatments
     if (matchedKey) {
-      return splitByType(sriLankanTreatments[matchedKey]);
+      return splitByType(treatmentsData[matchedKey]);
+    }
+
+    const inferredKey = inferCanonicalDiseaseKey(normalizedName);
+    if (inferredKey && treatmentsData[inferredKey]) {
+      return splitByType(treatmentsData[inferredKey]);
+    }
+
+    const partialKey = Object.keys(treatmentsData).find((key) => {
+      const normalizedKey = normalize(key);
+      return (
+        normalizedName.includes(normalizedKey) ||
+        normalizedKey.includes(normalizedName)
+      );
+    });
+
+    if (partialKey) {
+      return splitByType(treatmentsData[partialKey]);
     }
 
     // 3️⃣ Fallback
-    return splitByType(generalTreatments);
+    return splitByType(generalTreatmentsData);
   };
 
   const filterBySeverity = (list: SriLankanTreatment[]) => {
@@ -344,12 +492,140 @@ export default function SeverityDetailsScreen({ route }: Props) {
       diseaseNameLower.includes("blight") ||
       diseaseNameLower.includes("rust")
     ) {
-      return language === "si" ? "දිලීර රෝග" : "Fungal diseases";
+      return language === "si"
+        ? "දිලීර රෝග"
+        : language === "ta"
+        ? "பூஞ்சை நோய்கள்"
+        : "Fungal diseases";
     }
-    return language === "si" ? "ශාක රෝග" : "Plant diseases";
+    return language === "si"
+      ? "ශාක රෝග"
+      : language === "ta"
+      ? "தாவர நோய்கள்"
+      : "Plant diseases";
   };
 
   const diseaseType = getDiseaseType();
+  const formatLocalizedPrice = (value: string) => {
+    const trimmed = value?.trim?.() ?? "";
+    if (!trimmed) return "-";
+
+    if (/(^|\s)(rs\.?|රු\.?|ரூ\.?)/i.test(trimmed)) {
+      return trimmed;
+    }
+
+    const prefix =
+      language === "si" ? "රු. " : language === "ta" ? "ரூ. " : "Rs. ";
+    return `${prefix}${trimmed}`;
+  };
+  const [displayImageSize, setDisplayImageSize] = useState({
+    width: 0,
+    height: 0,
+  });
+  const [sourceImageSize, setSourceImageSize] = useState({
+    width: 0,
+    height: 0,
+  });
+  const previewResizeMode: "cover" = "cover";
+
+  useEffect(() => {
+    if (!image) return;
+    Image.getSize(
+      image,
+      (width, height) => setSourceImageSize({ width, height }),
+      () => setSourceImageSize({ width: 0, height: 0 })
+    );
+  }, [image]);
+
+  const impactBoxes = useMemo(() => {
+    if (
+      !displayImageSize.width ||
+      !displayImageSize.height ||
+      !sourceImageSize.width ||
+      !sourceImageSize.height
+    ) {
+      return [];
+    }
+
+    const displayW = displayImageSize.width;
+    const displayH = displayImageSize.height;
+    const sourceW = sourceImageSize.width;
+    const sourceH = sourceImageSize.height;
+
+    const scale =
+      previewResizeMode === "cover"
+        ? Math.max(displayW / sourceW, displayH / sourceH)
+        : Math.min(displayW / sourceW, displayH / sourceH);
+    const renderedW = sourceW * scale;
+    const renderedH = sourceH * scale;
+    const offsetX = (displayW - renderedW) / 2;
+    const offsetY = (displayH - renderedH) / 2;
+
+    const projectX = (x: number) => x * scale + offsetX;
+    const projectY = (y: number) => y * scale + offsetY;
+
+    return predictions
+      .flatMap((prediction, predIndex) => {
+        const rawImpactBoxes = Array.isArray(prediction.impact_boxes)
+          ? prediction.impact_boxes
+          : [];
+
+        return rawImpactBoxes.map((box, boxIndex) => {
+          if (!Array.isArray(box) || box.length < 4) return null;
+
+          const [x1, y1, x2, y2] = box.map(Number);
+          if ([x1, y1, x2, y2].some((v) => !Number.isFinite(v))) return null;
+
+          const left = Math.max(
+            0,
+            Math.min(displayW, projectX(Math.min(x1, x2)))
+          );
+          const top = Math.max(
+            0,
+            Math.min(displayH, projectY(Math.min(y1, y2)))
+          );
+          const right = Math.max(
+            0,
+            Math.min(displayW, projectX(Math.max(x1, x2)))
+          );
+          const bottom = Math.max(
+            0,
+            Math.min(displayH, projectY(Math.max(y1, y2)))
+          );
+          const width = right - left;
+          const height = bottom - top;
+
+          if (width <= 1 || height <= 1) return null;
+
+          // Guard against accidental full-image boxes from noisy masks.
+          if (
+            width > displayW * 0.8 ||
+            height > displayH * 0.8
+          ) {
+            return null;
+          }
+
+          return {
+            key: `impact-box-${predIndex}-${boxIndex}`,
+            left,
+            top,
+            width,
+            height,
+          };
+        });
+      })
+      .filter(
+        (
+          box
+        ): box is {
+          key: string;
+          left: number;
+          top: number;
+          width: number;
+          height: number;
+        } => box !== null
+      );
+  }, [displayImageSize, predictions, previewResizeMode, sourceImageSize]);
 
   return (
     <View style={styles.container}>
@@ -390,12 +666,35 @@ export default function SeverityDetailsScreen({ route }: Props) {
         {image && (
           <View style={styles.imageSection}>
             <View style={styles.imageCard}>
-              <Image
-                source={{ uri: image }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-              <View style={styles.imageOverlay}></View>
+              <View
+                style={styles.imageContainer}
+                onLayout={(event) => {
+                  const { width, height } = event.nativeEvent.layout;
+                  setDisplayImageSize({ width, height });
+                }}
+              >
+                <Image
+                  source={{ uri: image }}
+                  style={styles.imagePreview}
+                  resizeMode={previewResizeMode}
+                />
+                <View pointerEvents="none" style={styles.imageOverlay}>
+                  {impactBoxes.map((box) => (
+                    <View
+                      key={box.key}
+                      style={[
+                        styles.impactBox,
+                        {
+                          left: box.left,
+                          top: box.top,
+                          width: box.width,
+                          height: box.height,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -410,6 +709,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                   ? `${diseaseNameSi || diseaseName} රෝගය ${
                       content.si.forDisease
                     }`
+                  : language === "ta"
+                  ? `${diseaseNameTa || diseaseName} ${content.ta.forDisease}`
                   : `${content.en.forDisease} ${
                       diseaseNameEn || diseaseName
                     } disease`}
@@ -528,6 +829,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               >
                 {language === "si"
                   ? "පත්‍රයෙන් හානි වී ඇති ප්‍රතිශතය"
+                  : language === "ta"
+                  ? " பாதிக்கப்பட்ட இலை பகுதி"
                   : "Leaf Area Affected"}
               </Text>
 
@@ -711,7 +1014,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.chemicalText]}
                         >
-                          {treatment.schedule.frequency}
+                          {treatment.schedule.frequency[language]}
                         </Text>
                       </View>
 
@@ -727,7 +1030,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.chemicalText]}
                         >
-                          {treatment.schedule.duration}
+                          {treatment.schedule.duration[language]}
                         </Text>
                       </View>
 
@@ -743,7 +1046,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.chemicalText]}
                         >
-                          {treatment.schedule.bestTime}
+                          {treatment.schedule.bestTime[language]}
                         </Text>
                       </View>
                     </View>
@@ -791,7 +1094,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.chemicalCost]}>
-                        {treatment.costEstimate}
+                        {formatLocalizedPrice(treatment.costEstimate[language])}
                       </Text>
                     </View>
                   </View>
@@ -819,6 +1122,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
                 <Text style={styles.treatmentSubtitle}>
                   {language === "si"
                     ? "ආරක්ෂිත හා පරිසර හිතකර"
+                    : language === "ta"
+                    ? "பாதுகாப்பான மற்றும் சூழல் நட்பு"
                     : "Safe & Environment Friendly"}
                 </Text>
               </View>
@@ -897,7 +1202,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.organicText]}
                         >
-                          {treatment.schedule.frequency}
+                          {treatment.schedule.frequency[language]}
                         </Text>
                       </View>
 
@@ -913,7 +1218,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.organicText]}
                         >
-                          {treatment.schedule.duration}
+                          {treatment.schedule.duration[language]}
                         </Text>
                       </View>
 
@@ -929,7 +1234,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         <Text
                           style={[styles.scheduleValue, styles.organicText]}
                         >
-                          {treatment.schedule.bestTime}
+                          {treatment.schedule.bestTime[language]}
                         </Text>
                       </View>
                     </View>
@@ -975,7 +1280,7 @@ export default function SeverityDetailsScreen({ route }: Props) {
                         {content[language].costEstimate}
                       </Text>
                       <Text style={[styles.costValue, styles.organicCost]}>
-                        {treatment.costEstimate}
+                        {formatLocalizedPrice(treatment.costEstimate[language])}
                       </Text>
                     </View>
                   </View>
@@ -1002,6 +1307,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Text style={styles.recommendationText}>
                 {language === "si"
                   ? "ඉහත කාලසටහනට අනුව ස්ප්‍රේ කිරිමේ කිරීම ආරම්භ කරන්න"
+                  : language === "ta"
+                  ? "மேலே உள்ள அட்டவணைப்படி தெளிக்கத் தொடங்குங்கள்"
                   : "Start spraying according to the above schedule"}
               </Text>
             </View>
@@ -1012,6 +1319,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Text style={styles.recommendationText}>
                 {language === "si"
                   ? "සුරක්ෂිත ඇඳුම් හා උපකරණ භාවිත කරන්න"
+                  : language === "ta"
+                  ? "பாதுகாப்பு ஆடை மற்றும் உபகரணங்களைப் பயன்படுத்தவும்"
                   : "Use safety clothing and equipment"}
               </Text>
             </View>
@@ -1022,6 +1331,8 @@ export default function SeverityDetailsScreen({ route }: Props) {
               <Text style={styles.recommendationText}>
                 {language === "si"
                   ? "සතියකට වරක් පැලේ ප්‍රගතිය නිරීක්ෂණය කරන්න"
+                  : language === "ta"
+                  ? "வாரந்தோறும் தாவரத்தின் முன்னேற்றத்தைக் கண்காணிக்கவும்"
                   : "Monitor plant progress weekly"}
               </Text>
             </View>
@@ -1134,9 +1445,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  imagePreview: {
+  imageContainer: {
     width: "100%",
     height: 220,
+    position: "relative",
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
   },
   imageOverlay: {
     position: "absolute",
@@ -1144,8 +1460,13 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: "flex-end",
-    padding: 16,
+  },
+  impactBox: {
+    position: "absolute",
+    borderWidth: 2,
+    borderColor: "#EF4444",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderRadius: 4,
   },
   imageLabel: {
     flexDirection: "row",

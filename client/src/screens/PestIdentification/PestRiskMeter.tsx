@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { LinearGradient } from "expo-linear-gradient";
@@ -25,8 +25,8 @@ const riskData = {
       June: "Low",
       July: "Low",
       August: "Low",
-      September: "Low",
-      October: "Medium",
+      September: "Medium",
+      October: "High",
       November: "High",
       December: "High"
     },
@@ -39,12 +39,82 @@ const riskData = {
       June: "Low",
       July: "Low",
       August: "Low",
-      September: "Low",
-      October: "Medium",
+      September: "Medium",
+      October: "High",
       November: "High",
       December: "High"
     },
     Ampara: {
+      January: "High",
+      February: "Medium",
+      March: "Low",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Monaragala: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Badulla: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Polonnaruwa: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Matale: {
+      January: "High",
+      February: "High",
+      March: "Medium",
+      April: "Low",
+      May: "Low",
+      June: "Low",
+      July: "Low",
+      August: "Low",
+      September: "Medium",
+      October: "High",
+      November: "High",
+      December: "High"
+    },
+    Hambantota: {
       January: "Medium",
       February: "Medium",
       March: "Low",
@@ -53,193 +123,104 @@ const riskData = {
       June: "Low",
       July: "Low",
       August: "Low",
-      September: "Low",
+      September: "Medium",
       October: "High",
       November: "High",
       December: "High"
-    }
-  },
-
-  bollworm: {
-    Kurunegala: {
-      January: "Medium",
-      February: "High",
-      March: "High",
-      April: "Medium",
-      May: "Low",
-      June: "Low",
-      July: "Low",
-      August: "Medium",
-      September: "High",
-      October: "High",
-      November: "Medium",
-      December: "Medium"
-    },
-    Anuradhapura: {
-      January: "Medium",
-      February: "Medium",
-      March: "High",
-      April: "High",
-      May: "Medium",
-      June: "Low",
-      July: "Low",
-      August: "Medium",
-      September: "High",
-      October: "High",
-      November: "Medium",
-      December: "Medium"
-    },
-    Ampara: {
-      January: "Low",
-      February: "Low",
-      March: "Medium",
-      April: "High",
-      May: "High",
-      June: "Medium",
-      July: "Low",
-      August: "Medium",
-      September: "High",
-      October: "Medium",
-      November: "Low",
-      December: "Low"
-    }
-  },
-
-  asiancornborer: {
-    Kurunegala: {
-      January: "Medium",
-      February: "High",
-      March: "High",
-      April: "Medium",
-      May: "Medium",
-      June: "Low",
-      July: "Low",
-      August: "Low",
-      September: "Medium",
-      October: "High",
-      November: "High",
-      December: "Medium"
-    },
-    Anuradhapura: {
-      January: "Medium",
-      February: "Medium",
-      March: "High",
-      April: "High",
-      May: "Medium",
-      June: "Low",
-      July: "Low",
-      August: "Low",
-      September: "Medium",
-      October: "High",
-      November: "High",
-      December: "Medium"
-    },
-    Ampara: {
-      January: "Low",
-      February: "Medium",
-      March: "Medium",
-      April: "High",
-      May: "High",
-      June: "Medium",
-      July: "Low",
-      August: "Low",
-      September: "Medium",
-      October: "High",
-      November: "High",
-      December: "Medium"
     }
   }
 };
 
 const pestNames = {
-  fallarmyworm: { en: "Fall Armyworm", si: "හමුදා පණුවා" },
-  bollworm: { en: "Bollworm", si: "බෝල් පණුවා" },
-  asiancornborer: { en: "Asian Corn Borer", si: "ආසියානු ඉරිඟු සිදුරු පණුවා" }
+  fallarmyworm: { en: "Fall Armyworm", si: "සේනා දළඹුවා", ta: "பால் ஆர்மிவோர்ம்" }
 };
-
 const districts = {
-  Kurunegala: { en: "Kurunegala", si: "කුරුණෑගල" },
-  Anuradhapura: { en: "Anuradhapura", si: "අනුරාධපුරය" },
-  Ampara: { en: "Ampara", si: "අම්පාර" }
+  Kurunegala: { en: "Kurunegala", si: "කුරුණෑගල", ta: "குருநாகல்" },
+  Anuradhapura: { en: "Anuradhapura", si: "අනුරාධපුරය", ta: "அனுராதபுரம்" },
+  Ampara: { en: "Ampara", si: "අම්පාර", ta: "அம்பாறை" },
+  Monaragala: { en: "Monaragala", si: "මොණරාගල", ta: "மொணராகலை" },
+  Badulla: { en: "Badulla", si: "බදුල්ල", ta: "பதுளை" },
+  Polonnaruwa: { en: "Polonnaruwa", si: "පොළොන්නරුව", ta: "பொலன்னறுவை" },
+  Matale: { en: "Matale", si: "මාතලේ", ta: "மாத்தளை" },
+  Hambantota: { en: "Hambantota", si: "හම්බන්තොට", ta: "ஹம்பாந்தோட்டை" }
 };
-
 const months = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
 
 const monthTranslations = {
-  January: { en: "January", si: "ජනවාරි" },
-  February: { en: "February", si: "පෙබරවාරි" },
-  March: { en: "March", si: "මාර්තු" },
-  April: { en: "April", si: "අප්‍රේල්" },
-  May: { en: "May", si: "මැයි" },
-  June: { en: "June", si: "ජූනි" },
-  July: { en: "July", si: "ජූලි" },
-  August: { en: "August", si: "අගෝස්තු" },
-  September: { en: "September", si: "සැප්තැම්බර්" },
-  October: { en: "October", si: "ඔක්තෝබර්" },
-  November: { en: "November", si: "නොවැම්බර්" },
-  December: { en: "December", si: "දෙසැම්බර්" }
+  January: { en: "January", si: "ජනවාරි", ta: "ஜனவரி" },
+  February: { en: "February", si: "පෙබරවාරි", ta: "பிப்ரவரி" },
+  March: { en: "March", si: "මාර්තු", ta: "மார்ச்" },
+  April: { en: "April", si: "අප්‍රේල්", ta: "ஏப்ரல்" },
+  May: { en: "May", si: "මැයි", ta: "மே" },
+  June: { en: "June", si: "ජූනි", ta: "ஜூன்" },
+  July: { en: "July", si: "ජූලි", ta: "ஜூலை" },
+  August: { en: "August", si: "අගෝස්තු", ta: "ஆகஸ்ட்" },
+  September: { en: "September", si: "සැප්තැම්බර්", ta: "செப்டம்பர்" },
+  October: { en: "October", si: "ඔක්තෝබර්", ta: "அக்டோபர்" },
+  November: { en: "November", si: "නොවැම්බර්", ta: "நவம்பர்" },
+  December: { en: "December", si: "දෙසැම්බර්", ta: "டிசம்பர்" }
 };
-
 const riskLevels = {
-  High: { 
-    color: "#ef4444", 
-    label: { en: "High Risk", si: "ඉහළ අවදානම" }, 
-    percentage: 85 
+  High: {
+    color: "#ef4444",
+    label: { en: "High Risk", si: "ඉහළ අවදානම", ta: "உயர் அபாயம்" },
+    percentage: 85
   },
-  Medium: { 
-    color: "#f59e0b", 
-    label: { en: "Medium Risk", si: "මධ්‍යම අවදානම" }, 
-    percentage: 50 
+  Medium: {
+    color: "#f59e0b",
+    label: { en: "Medium Risk", si: "මධ්‍යම අවදානම", ta: "மிதமான அபாயம்" },
+    percentage: 50
   },
-  Low: { 
-    color: "#10b981", 
-    label: { en: "Low Risk", si: "අඩු අවදානම" }, 
-    percentage: 20 
+  Low: {
+    color: "#10b981",
+    label: { en: "Low Risk", si: "අඩු අවදානම", ta: "குறைந்த அபாயம்" },
+    percentage: 20
   },
-  Unknown: { 
-    color: "#6b7280", 
-    label: { en: "Unknown", si: "නොදනී" }, 
-    percentage: 0 
+  Unknown: {
+    color: "#6b7280",
+    label: { en: "Unknown", si: "නොදනී", ta: "தெரியாது" },
+    percentage: 0
   }
 };
-
 const riskMessages = {
   High: {
     en: "High risk detected! Monitor your field frequently and implement control measures immediately.",
-    si: "ඉහළ අවදානම! වගාව නිතර පරීක්ෂා කරන්න හා පාලනය ඉක්මනින් අරඹන්න."
+    si: "ඉහළ අවදානම! වගාව නිතර පරීක්ෂා කරන්න හා පාලනය ඉක්මනින් අරඹන්න.",
+    ta: "உயர் அபாயம் கண்டறியப்பட்டது! உங்கள் வயலை அடிக்கடி கண்காணித்து உடனடியாக கட்டுப்பாட்டு நடவடிக்கைகளை தொடங்குங்கள்."
   },
   Medium: {
     en: "Medium risk level. Regular monitoring recommended. Apply controls if pest activity increases.",
-    si: "මධ්‍යම අවදානම. වගාව පරීක්ෂා කර අවශ්‍යනම් පාලනය කරන්න."
+    si: "මධ්‍යම අවදානම. වගාව පරීක්ෂා කර අවශ්‍යනම් පාලනය කරන්න.",
+    ta: "மிதமான அபாய நிலை. முறையான கண்காணிப்பு பரிந்துரைக்கப்படுகிறது. பூச்சி செயல்பாடு அதிகரித்தால் கட்டுப்பாடு செய்யுங்கள்."
   },
   Low: {
     en: "Low risk level. Continue routine monitoring and maintain preventive measures.",
-    si: "අඩු අවදානම. සාමාන්‍ය පරිදි පරීක්ෂා කරන්න."
+    si: "අඩු අවදානම. සාමාන්‍ය පරිදි පරීක්ෂා කරන්න.",
+    ta: "குறைந்த அபாய நிலை. வழக்கமான கண்காணிப்பைத் தொடரவும், தடுப்பு நடவடிக்கைகளைப் பேணவும்."
   },
   Unknown: {
     en: "No data available for this selection. Please try different parameters.",
-    si: "මෙම තේරීම සඳහා දත්ත නොමැත."
+    si: "මෙම තේරීම සඳහා දත්ත නොමැත.",
+    ta: "இந்த தேர்வுக்கான தரவு இல்லை. வேறு அளவுருக்களை முயற்சிக்கவும்."
   }
 };
-
 const labels = {
-  title: { en: "Pest Risk Assessment", si: "කෘමි අවදානම් තක්සේරුව" },
-  subtitle: { en: "Real-time Risk Analysis", si: "තත්‍ය කාලීන අවදානම් විශ්ලේෂණය" },
-  pestType: { en: "Pest Type", si: "කෘමි වර්ගය" },
-  district: { en: "District", si: "දිස්ත්‍රික්කය" },
-  month: { en: "Month", si: "මාසය" },
-  riskLevel: { en: "Current Risk Level", si: "වර්තමාන අවදානම් මට්ටම" },
-  recommendation: { en: "Recommendation", si: "නිර්දේශය" },
-  lastUpdated: { en: "Last updated", si: "අවසන් යාවත්කාලීන" },
-  low: { en: "Low", si: "අඩු" },
-  medium: { en: "Medium", si: "මධ්‍යම" },
-  high: { en: "High", si: "ඉහළ" },
-  selectParameters: { en: "Select Parameters", si: "පරාමිති තෝරන්න" }
+  title: { en: "Pest Risk Assessment", si: "කෘමි අවදානම් තක්සේරුව", ta: "பூச்சி அபாய மதிப்பீடு" },
+  subtitle: { en: "Real-time Risk Analysis", si: "තත්‍ය කාලීන අවදානම් විශ්ලේෂණය", ta: "நேரடி அபாய பகுப்பாய்வு" },
+  pestType: { en: "Pest Type", si: "කෘමි වර්ගය", ta: "பூச்சி வகை" },
+  district: { en: "District", si: "දිස්ත්‍රික්කය", ta: "மாவட்டம்" },
+  month: { en: "Month", si: "මාසය", ta: "மாதம்" },
+  riskLevel: { en: "Current Risk Level", si: "වර්තමාන අවදානම් මට්ටම", ta: "தற்போதைய அபாய நிலை" },
+  recommendation: { en: "Recommendation", si: "නිර්දේශය", ta: "பரிந்துரை" },
+  lastUpdated: { en: "Last updated", si: "අවසන් යාවත්කාලීන", ta: "கடைசியாக புதுப்பிக்கப்பட்டது" },
+  low: { en: "Low", si: "අඩු", ta: "குறைவு" },
+  medium: { en: "Medium", si: "මධ්‍යම", ta: "மிதமான" },
+  high: { en: "High", si: "ඉහළ", ta: "உயர்" },
+  selectParameters: { en: "Select Parameters", si: "පරාමිති තෝරන්න", ta: "அளவுருக்களை தேர்வு செய்க" }
 };
-
 // Speedometer Gauge Component
 const SpeedometerGauge = ({ percentage, color }: { percentage: number; color: string }) => {
   const size = 280;
@@ -371,7 +352,7 @@ export default function PestRiskMeter() {
   const [month, setMonth] = useState(currentMonth);
 
   const { language: appLang } = useLanguage();
-  const language = appLang === "sinhala" ? "si" : "en";
+  const language = appLang === "sinhala" ? "si" : appLang === "tamil" ? "ta" : "en";
 
   const getRisk = (): "High" | "Medium" | "Low" | "Unknown" => {
     try {

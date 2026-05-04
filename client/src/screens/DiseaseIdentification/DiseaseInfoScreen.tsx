@@ -9,7 +9,6 @@ import {
 } from "react-native";
 import {
   ArrowLeft,
-  Sparkles,
   AlertCircle,
   Thermometer,
   Droplets,
@@ -69,6 +68,17 @@ const DISEASE_INFO: Record<
       prevention: string[];
       severity: "අඩු" | "මධ්‍යම" | "ඉහළ";
       spreadRate: "මන්දගාමී" | "මධ්‍යම" | "වේගවත්";
+    };
+    ta: {
+      name: string;
+      overview: string;
+      symptoms: string[];
+      causes: string[];
+      conditions: string[];
+      management: string[];
+      prevention: string[];
+      severity: "குறைவு" | "நடுத்தரம்" | "அதிகம்";
+      spreadRate: "மெதுவாக" | "மிதமான" | "வேகமாக";
     };
   }
 > = {
@@ -148,6 +158,43 @@ const DISEASE_INFO: Record<
       severity: "මධ්‍යම",
       spreadRate: "වේගවත්",
     },
+    ta: {
+      name: "பொதுவான ரச்ட் நோய்",
+      overview:
+        "பொதுவான ரச்ட் நோய் *Puccinia sorghi* என்ற பூஞ்சையால் ஏற்படுகிறது. ஈரப்பதமும் குளிர்ச்சியும் உள்ள சூழலில் இது வேகமாகப் பரவி, ஒளிச்சேர்க்கையை குறைத்து விளைச்சலை பாதிக்கிறது.",
+      symptoms: [
+        "இலைகளில் செம்மஞ்சள்-பழுப்பு உயர்ந்த புள்ளிகள்",
+        "புண்களைச் சுற்றி மஞ்சள் வளையங்கள்",
+        "பிந்தைய நிலையில் கருப்பு கடினமான விதணுக்கள்",
+        "இலைகள் முன்கூட்டியே உலர்தல்",
+      ],
+      causes: [
+        "காற்றில் பரவும் பூஞ்சை விதணுக்கள்",
+        "அதிக ஈரப்பதமுள்ள சூழல்",
+        "அடர்த்தியான நட்டம்",
+        "மாசடைந்த கருவிகள்",
+      ],
+      conditions: [
+        "குளிர்ச்சியான வெப்பநிலை (16–24°C)",
+        "6+ மணி நேரம் இலை மேற்பரப்பில் ஈரப்பதம்",
+        "காலை பனி நீடித்திருத்தல்",
+        "நிழலான வயல் சூழல்",
+      ],
+      management: [
+        "முதல் அறிகுறிகள் தெரிந்தவுடன் பூஞ்சைக் கொல்லி தெளிக்கவும்",
+        "ரச்ட் எதிர்ப்பு கொண்ட மக்காச்சோள வகைகளைப் பயன்படுத்தவும்",
+        "கடுமையாக பாதித்த இலைகளை அகற்றவும்",
+        "செடிகள் இடையிலான இடைவெளியை அதிகரிக்கவும்",
+      ],
+      prevention: [
+        "2-3 ஆண்டுகளுக்கு ஒருமுறை பயிர் மாற்றத்தை நடைமுறைப்படுத்தவும்",
+        "செடிகளை மிக நெருக்கமாக நட்டல் தவிர்க்கவும்",
+        "பாதிக்கப்பட்ட பயிர் எச்சங்களை அழிக்கவும்",
+        "சான்றளிக்கப்பட்ட நோய் இல்லா விதைகளைப் பயன்படுத்தவும்",
+      ],
+      severity: "நடுத்தரம்",
+      spreadRate: "வேகமாக",
+    },
   },
 
   blight: {
@@ -225,6 +272,43 @@ const DISEASE_INFO: Record<
       ],
       severity: "ඉහළ",
       spreadRate: "වේගවත්",
+    },
+    ta: {
+      name: "இலை ப்ளைட் நோய்",
+      overview:
+        "இலை ப்ளைட் நோய் வேகமாகப் பரவி, ஒளிச்சேர்க்கையை மிகவும் குறைக்கிறது. இதனால் செடியின் அமைப்பும் விளைச்சல் திறனும் பலவீனமடைகிறது.",
+      symptoms: [
+        "இலைகளில் பெரிய ஒழுங்கற்ற பழுப்பு புண்கள்",
+        "இலை சுருட்டல் மற்றும் விரைவான உலர்தல்",
+        "புள்ளிகளைச் சுற்றி கருமையான பரவும் எல்லைகள்",
+        "கடுமையான நிலையில் முழு இலை சரிவு",
+      ],
+      causes: [
+        "முந்தைய பயிரிலிருந்து பூஞ்சை எச்சங்கள்",
+        "மழைத்துளி சிதறல் மூலம் பரவல்",
+        "குறைந்த காற்றோட்டம்",
+        "தொற்றுற்ற நட்டு பொருட்கள்",
+      ],
+      conditions: [
+        "சூடான வானிலை (25-30°C)",
+        "அடிக்கடி மழை அல்லது பாசனம்",
+        "காலை பனி சேர்தல்",
+        "அதிக ஈரப்பத காலங்கள்",
+      ],
+      management: [
+        "சிறந்த காற்றோட்டத்திற்காக செடிகள் இடைவெளியை அதிகரிக்கவும்",
+        "ஆரம்பத்திலேயே அமைப்பு பூஞ்சைக் கொல்லி தெளிக்கவும்",
+        "தொற்றுற்ற செடி எச்சங்களை அழிக்கவும்",
+        "செம்பு அடிப்படையிலான பூஞ்சைக் கொல்லி பயன்படுத்தவும்",
+      ],
+      prevention: [
+        "சான்றளிக்கப்பட்ட சுத்தமான விதைகளைப் பயன்படுத்தவும்",
+        "3 ஆண்டு பயிர் மாற்றத்தை நடைமுறைப்படுத்தவும்",
+        "அதிக நைட்ரஜன் உரத்தைத் தவிர்க்கவும்",
+        "தன்னிச்சையாக வளரும் செடிகளை அகற்றவும்",
+      ],
+      severity: "அதிகம்",
+      spreadRate: "வேகமாக",
     },
   },
 
@@ -304,6 +388,43 @@ const DISEASE_INFO: Record<
       severity: "ඉහළ",
       spreadRate: "මධ්‍යම",
     },
+    ta: {
+      name: "சாம்பல் இலை புள்ளி நோய்",
+      overview:
+        "சாம்பல் இலை புள்ளி நோய் மக்காச்சோள இலைகளை கடுமையாக சேதப்படுத்தி, ஒளிச்சேர்க்கை பரப்பை குறைத்து உணர்திறன் அதிகமான வகைகளில் குறிப்பிடத்தக்க விளைச்சல் இழப்பை ஏற்படுத்துகிறது.",
+      symptoms: [
+        "நரம்புகளுக்கு இடையில் நீளமான செவ்வக சாம்பல் புண்கள்",
+        "இலை நரம்புகளின் திசையில் இணைப்பட்ட புண் வடிவங்கள்",
+        "கீழ் இலைகள் முதலில் உலர்ந்து சாகுதல்",
+        "ஈரப்பத நிலையில் புண்கள் பெரிதாகுதல்",
+      ],
+      causes: [
+        "பயிர் எச்சங்களில் உள்ள பூஞ்சை விதணுக்கள்",
+        "அதிக ஈரப்பத சூழல்",
+        "தொடர்ச்சியான மக்காச்சோள பயிரிடல்",
+        "உணர்திறன் அதிகமான கலப்பு வகைகள்",
+      ],
+      conditions: [
+        "90% க்கும் மேற்பட்ட தொடர்ச்சியான ஈரப்பதம்",
+        "பனியுடன் கூடிய சூடான இரவுகள்",
+        "அடர்த்தியான செடி மூடி",
+        "குறைந்த காற்று இயக்கம்",
+      ],
+      management: [
+        "எதிர்ப்பு கொண்ட கலப்பு வகைகளை நட்டிடவும்",
+        "தாசல் உருவாகும் கட்டத்துக்கு முன் பூஞ்சைக் கொல்லி தெளிக்கவும்",
+        "அறுவடைக்குப் பிறகு தொற்றுற்ற பயிர் எச்சங்களை அழிக்கவும்",
+        "இலைமூலம் பூஞ்சைக் கொல்லி தெளிப்புகளைப் பயன்படுத்தவும்",
+      ],
+      prevention: [
+        "வருடகால பயிர் மாற்றத்தை அதிதொகுதி அல்லாத பயிர்களுடன் செய்யவும்",
+        "மேல்நோக்கி பாசன முறைகளைத் தவிர்க்கவும்",
+        "செடி மூடி அடர்த்தியை குறைக்கவும்",
+        "ஆரம்ப கண்டறிதலுக்காக வயல்களை முறையாக கண்காணிக்கவும்",
+      ],
+      severity: "அதிகம்",
+      spreadRate: "மிதமான",
+    },
   },
 };
 
@@ -312,9 +433,9 @@ export default function DiseaseInfoScreen({ route }: Props) {
   const navigation = useNavigation<NavProp>();
   const { predictions, severity_label } = route.params;
 
-  // 🌐 GLOBAL LANGUAGE (sinhala / english)
+  // 🌐 GLOBAL LANGUAGE (sinhala / tamil / english)
   const { language: lang, setLanguage } = useLanguage();
-  const language = lang === "sinhala" ? "si" : "en";
+  const language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
   const getSeverityUI = (label: string) => {
     const l = label.toLowerCase();
@@ -329,6 +450,21 @@ export default function DiseaseInfoScreen({ route }: Props) {
 
   const severityUI = getSeverityUI(severity_label);
 
+  const uniquePredictions = React.useMemo(() => {
+    if (!predictions?.length) return [];
+
+    const byDisease = new Map<string, (typeof predictions)[number]>();
+    for (const prediction of predictions) {
+      const normalizedKey = prediction.class_name.toLowerCase().replace(/ /g, "_");
+      const existing = byDisease.get(normalizedKey);
+      if (!existing || prediction.confidence > existing.confidence) {
+        byDisease.set(normalizedKey, prediction);
+      }
+    }
+
+    return Array.from(byDisease.values());
+  }, [predictions]);
+
   // 🌐 UI TRANSLATIONS
   const content = {
     si: {
@@ -342,7 +478,6 @@ export default function DiseaseInfoScreen({ route }: Props) {
       management: "කළමනාකරණ නිර්දේශ",
       prevention: "රෝග වැළැක්වීමේ උපදෙස්",
       diseaseInfo: "රෝග තොරතුරු",
-      aiAnalysis: "AI විශ්ලේෂණය",
       location: "ස්ථානය",
       status: "තත්ත්වය",
       severityLevel: "දැඩි මට්ටම",
@@ -371,7 +506,6 @@ export default function DiseaseInfoScreen({ route }: Props) {
       management: "Management Recommendations",
       prevention: "Prevention Tips",
       diseaseInfo: "Disease Information",
-      aiAnalysis: "AI Analysis",
       location: "Location",
       status: "Status",
       severityLevel: "Severity Level",
@@ -389,21 +523,61 @@ export default function DiseaseInfoScreen({ route }: Props) {
       moderateSpread: "Moderate",
       rapidSpread: "Rapid",
     },
+    ta: {
+      back: "பின்செல்",
+      contactOfficer: "விவசாய அலுவலரை தொடர்புகொள்ளவும்",
+      header: "நோய் தகவல்",
+      overview: "மேலோட்டம்",
+      symptoms: "அறிகுறிகள்",
+      causes: "காரணங்கள்",
+      conditions: "சாதகமான சூழ்நிலைகள்",
+      management: "மேலாண்மை பரிந்துரைகள்",
+      prevention: "தடுப்பு குறிப்புகள்",
+      diseaseInfo: "நோய் தகவல்",
+      location: "இடம்",
+      status: "நிலை",
+      severityLevel: "தீவிர நிலை",
+      spreadRate: "பரவல் வீதி",
+      immediateAction: "உடனடி நடவடிக்கை",
+      monitoring: "கண்காணிப்பு",
+      treatment: "சிகிச்சை",
+      detection: "கண்டறிதல்",
+      viewChat: "உரையாடலை தொடங்கு",
+      riskAssessment: "ஆபத்து மதிப்பீடு",
+      lowRisk: "குறைந்த ஆபத்து",
+      mediumRisk: "நடுத்தர ஆபத்து",
+      highRisk: "அதிக ஆபத்து",
+      slowSpread: "மெதுவாக",
+      moderateSpread: "மிதமான",
+      rapidSpread: "வேகமாக",
+    },
   };
 
   // Get color for severity
   const getSeverityColor = (severity: string) => {
     const sev = severity.toLowerCase();
-    if (sev.includes("low") || sev.includes("අඩු")) return "#10B981";
-    if (sev.includes("medium") || sev.includes("මධ්‍යම")) return "#F59E0B";
+    if (sev.includes("low") || sev.includes("අඩු") || sev.includes("குறை"))
+      return "#10B981";
+    if (
+      sev.includes("medium") ||
+      sev.includes("මධ්‍යම") ||
+      sev.includes("நடுத்த")
+    )
+      return "#F59E0B";
     return "#EF4444";
   };
 
   // Get color for spread rate
   const getSpreadColor = (rate: string) => {
     const r = rate.toLowerCase();
-    if (r.includes("slow") || r.includes("මන්දගාමී")) return "#10B981";
-    if (r.includes("moderate") || r.includes("මධ්‍යම")) return "#F59E0B";
+    if (r.includes("slow") || r.includes("මන්දගාමී") || r.includes("மெது"))
+      return "#10B981";
+    if (
+      r.includes("moderate") ||
+      r.includes("මධ්‍යම") ||
+      r.includes("மித")
+    )
+      return "#F59E0B";
     return "#EF4444";
   };
 
@@ -431,12 +605,6 @@ export default function DiseaseInfoScreen({ route }: Props) {
           <Text style={styles.headerTitle}>
             {content[language].diseaseInfo}
           </Text>
-          <View style={styles.headerSubtitleContainer}>
-            <Sparkles size={12} color="#D1FAE5" />
-            <Text style={styles.headerSubtitle}>
-              {content[language].aiAnalysis}
-            </Text>
-          </View>
         </View>
 
         <TouchableOpacity style={styles.headerIcon} activeOpacity={0.7}>
@@ -452,7 +620,7 @@ export default function DiseaseInfoScreen({ route }: Props) {
         {/* Chat Assistant Button */}
 
         {/* Disease Information */}
-        {predictions?.map((p, i) => {
+        {uniquePredictions.map((p, i) => {
           const key = p.class_name.toLowerCase().replace(/ /g, "_");
           const disease = DISEASE_INFO[key]?.[language];
 
@@ -469,7 +637,11 @@ export default function DiseaseInfoScreen({ route }: Props) {
                   <Text style={styles.diseaseName}>{disease.name}</Text>
                   <Text style={styles.confidenceText}>
                     {Math.round(p.confidence * 100)}%{" "}
-                    {language === "si" ? "නිරවද්‍යතාව" : "Confidence"}
+                    {language === "si"
+                      ? "නිරවද්‍යතාව"
+                      : language === "ta"
+                      ? "நம்பிக்கை"
+                      : "Confidence"}
                   </Text>
                 </View>
               </View>

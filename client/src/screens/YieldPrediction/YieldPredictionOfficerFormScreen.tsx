@@ -29,7 +29,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Archive } from "lucide-react-native";
 
-type Language = "si" | "en";
+type Language = "si" | "en" | "ta";
 type NavProp = StackNavigationProp<
     YieldPredictionStackParamList,
     "YieldPredictionOfficerFormScreen"
@@ -70,27 +70,27 @@ const SOIL_TYPES = [
 ];
 
 const getSoilConditions = (language: Language) => [
-    { label: language === "si" ? "හොඳ" : "Good", value: "Good" },
-    { label: language === "si" ? "මධ්‍යම" : "Medium", value: "Medium" },
-    { label: language === "si" ? "දුර්වල" : "Poor", value: "Poor" },
+    { label: language === "si" ? "හොඳ" : language === "ta" ? "நல்லது" : "Good", value: "Good" },
+    { label: language === "si" ? "මධ්‍යම" : language === "ta" ? "நடுத்தரம்" : "Medium", value: "Medium" },
+    { label: language === "si" ? "දුර්වල" : language === "ta" ? "மோசமானது" : "Poor", value: "Poor" },
 ];
 
 const getNPKStatus = (language: Language) => [
-    { label: language === "si" ? "ඉහළ" : "High", value: "High" },
-    { label: language === "si" ? "මධ්‍යම" : "Medium", value: "Medium" },
-    { label: language === "si" ? "අඩු" : "Low", value: "Low" },
+    { label: language === "si" ? "ඉහළ" : language === "ta" ? "உயர்ந்தது" : "High", value: "High" },
+    { label: language === "si" ? "මධ්‍යම" : language === "ta" ? "நடுத்தரம்" : "Medium", value: "Medium" },
+    { label: language === "si" ? "අඩු" : language === "ta" ? "குறைவு" : "Low", value: "Low" },
 ];
 
 const getIrrigationTypes = (language: Language) => [
-    { label: language === "si" ? "වාරිමාර්ග" : "Irrigated", value: "Irrigated" },
-    { label: language === "si" ? "මිශ්‍ර" : "Mixed", value: "Mixed" },
-    { label: language === "si" ? "වැසි මත යැපෙන" : "Rainfed", value: "Rainfed" },
+    { label: language === "si" ? "වාරිමාර්ග" : language === "ta" ? "நீர்பாசனம்" : "Irrigated", value: "Irrigated" },
+    { label: language === "si" ? "මිශ්‍ර" : language === "ta" ? "கலப்பு" : "Mixed", value: "Mixed" },
+    { label: language === "si" ? "වැසි මත යැපෙන" : language === "ta" ? "மழைநீர் அடிப்படை" : "Rainfed", value: "Rainfed" },
 ];
 
 const getRainfallConditions = (language: Language) => [
-    { label: language === "si" ? "ඉහළ" : "High", value: "High" },
-    { label: language === "si" ? "සාමාන්‍ය" : "Normal", value: "Normal" },
-    { label: language === "si" ? "අඩු" : "Low", value: "Low" },
+    { label: language === "si" ? "ඉහළ" : language === "ta" ? "உயர்ந்தது" : "High", value: "High" },
+    { label: language === "si" ? "සාමාන්‍ය" : language === "ta" ? "சாதாரணம்" : "Normal", value: "Normal" },
+    { label: language === "si" ? "අඩු" : language === "ta" ? "குறைவு" : "Low", value: "Low" },
 ];
 
 const getSeedVarieties = (language: Language) => [
@@ -99,12 +99,12 @@ const getSeedVarieties = (language: Language) => [
     { label: "GT 709", value: "GT 709" },
     { label: "GT200", value: "GT200" },
     { label: "Commando", value: "Commando" },
-    { label: language === "si" ? "දේශීය ප්‍රභේදය" : "Local Variety", value: "Local Variety" },
+    { label: language === "si" ? "දේශීය ප්‍රභේදය" : language === "ta" ? "உள்ளூர் வகை" : "Local Variety", value: "Local Variety" },
 ];
 
 const getSeasons = (language: Language) => [
-    { label: language === "si" ? "මහ" : "Maha", value: "Maha" },
-    { label: language === "si" ? "යල" : "Yala", value: "Yala" },
+    { label: language === "si" ? "මහ" : language === "ta" ? "மகா" : "Maha", value: "Maha" },
+    { label: language === "si" ? "යල" : language === "ta" ? "யாலா" : "Yala", value: "Yala" },
 ];
 
 const YieldPredictionOfficerFormScreenNew = () => {
@@ -113,7 +113,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
     const { role } = route.params as { role: "farmer" | "officer" };
 
     const { language: lang } = useLanguage();
-    const language: Language = lang === "sinhala" ? "si" : "en";
+    const language: Language = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
 
     // Step management
     const [currentStep, setCurrentStep] = useState(1);
@@ -388,22 +388,64 @@ const YieldPredictionOfficerFormScreenNew = () => {
             required: "Required",
             optional: "Optional",
         },
+        ta: {
+            title: "விளைச்சல் கணிப்பு",
+            subtitle: "தொழில்முனை/மேம்பட்ட பகுப்பாய்வு - விவசாய அதிகாரி",
+            step: "படி",
+            of: "இல்",
+            next: "அடுத்தது",
+            previous: "முந்தையது",
+            submit: "சமர்ப்பிக்கவும்",
+            locationSoil: "இடம் மற்றும் மண் விவரங்கள்",
+            district: "மாவட்டம்",
+            location: "இடம்",
+            soilType: "மண் வகை",
+            soilCondition: "மண் நிலை",
+            soilPh: "மண் pH",
+            soilNitrogen: "மண் நைட்ரஜன் (N)",
+            soilPhosphorus: "மண் பாஸ்பரஸ் (P)",
+            soilPotassium: "மண் பொட்டாசியம் (K)",
+            fertilityIndex: "மண் வளமை குறியீடு",
+            nStatus: "N நிலை",
+            pStatus: "P நிலை",
+            kStatus: "K நிலை",
+            climateData: "காலநிலை தரவுகள்",
+            irrigation: "நீர்பாசன வகை",
+            rainfallCondition: "மழையளவு நிலை",
+            rainfall30d: "30 நாள் மழையளவு (mm)",
+            seasonalRainfall: "பருவகால மழையளவு (mm)",
+            avgTemp: "சராசரி வெப்பநிலை (°C)",
+            maxTemp: "அதிகபட்ச வெப்பநிலை (°C)",
+            humidity: "சராசரி ஈரப்பதன்மை (%)",
+            sunshine: "சூரிய ஒளி மணி நேரங்கள்",
+            cultivationInfo: "பயிர் தகவல்கள்",
+            variety: "விதை வகை",
+            plantingDate: "நடுகை திகதி",
+            season: "பருவகாலம்",
+            fieldSize: "நில அளவு",
+            fieldSizeUnit: "அலகு",
+            firstFert: "முதல் உர திகதி",
+            secondFert: "இரண்டாவது உர திகதி",
+            select: "தேர்வுசெய்க",
+            required: "தேவை",
+            optional: "விருப்பமானது",
+        },
     };
 
     const validateStep1 = () => {
         if (
-            !district ||
-            !location ||
-            !soilType ||
-            !soilCondition ||
-            !soilPh ||
-            !soilNitrogen ||
-            !soilPhosphorus ||
-            !soilPotassium ||
-            !soilFertilityIndex ||
-            !nStatusClass ||
-            !pStatusClass ||
-            !kStatusClass
+            !district || district.trim() === "" ||
+            !location || location.trim() === "" ||
+            !soilType || soilType.trim() === "" ||
+            !soilCondition || soilCondition.trim() === "" ||
+            !soilPh || soilPh.trim() === "" ||
+            !soilNitrogen || soilNitrogen.trim() === "" ||
+            !soilPhosphorus || soilPhosphorus.trim() === "" ||
+            !soilPotassium || soilPotassium.trim() === "" ||
+            !soilFertilityIndex || soilFertilityIndex.trim() === "" ||
+            !nStatusClass || nStatusClass.trim() === "" ||
+            !pStatusClass || pStatusClass.trim() === "" ||
+            !kStatusClass || kStatusClass.trim() === ""
         ) {
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
@@ -413,19 +455,65 @@ const YieldPredictionOfficerFormScreenNew = () => {
             );
             return false;
         }
+
+        const ph = parseFloat(soilPh.trim());
+        if (isNaN(ph) || !isFinite(ph) || ph < 0 || ph > 14) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "පස් pH 0-14 අතර විය යුතුය" : "Soil pH must be between 0-14"
+            );
+            return false;
+        }
+
+        const nitrogen = parseFloat(soilNitrogen.trim());
+        if (isNaN(nitrogen) || !isFinite(nitrogen) || nitrogen < 0 || nitrogen > 1000) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "නයිට්‍රජන් අගය වලංගු නොවේ" : "Invalid nitrogen value"
+            );
+            return false;
+        }
+
+        const phosphorus = parseFloat(soilPhosphorus.trim());
+        if (isNaN(phosphorus) || !isFinite(phosphorus) || phosphorus < 0 || phosphorus > 1000) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "පොස්පරස් අගය වලංගු නොවේ" : "Invalid phosphorus value"
+            );
+            return false;
+        }
+
+        const potassium = parseFloat(soilPotassium.trim());
+        if (isNaN(potassium) || !isFinite(potassium) || potassium < 0 || potassium > 1000) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "පොටෑසියම් අගය වලංගු නොවේ" : "Invalid potassium value"
+            );
+            return false;
+        }
+
+        const fertility = parseFloat(soilFertilityIndex.trim());
+        if (isNaN(fertility) || !isFinite(fertility) || fertility < 0 || fertility > 1) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "සාරවත් දර්ශකය 0-1 අතර විය යුතුය" : "Fertility index must be between 0-1"
+            );
+            return false;
+        }
+
         return true;
     };
 
     const validateStep2 = () => {
         if (
-            !irrigationType ||
-            !rainfallCondition ||
-            !rainfall30d ||
-            !seasonalRainfall ||
-            !avgTemperature ||
-            !maxTemperature ||
-            !avgHumidity ||
-            !sunshineHours
+            !irrigationType || irrigationType.trim() === "" ||
+            !rainfallCondition || rainfallCondition.trim() === "" ||
+            !rainfall30d || rainfall30d.trim() === "" ||
+            !seasonalRainfall || seasonalRainfall.trim() === "" ||
+            !avgTemperature || avgTemperature.trim() === "" ||
+            !maxTemperature || maxTemperature.trim() === "" ||
+            !avgHumidity || avgHumidity.trim() === "" ||
+            !sunshineHours || sunshineHours.trim() === ""
         ) {
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
@@ -435,11 +523,74 @@ const YieldPredictionOfficerFormScreenNew = () => {
             );
             return false;
         }
+
+        const rain30 = parseFloat(rainfall30d.trim());
+        if (isNaN(rain30) || !isFinite(rain30) || rain30 < 0 || rain30 > 5000) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "30 දින වර්ෂාපතනය වලංගු නොවේ" : "Invalid 30-day rainfall"
+            );
+            return false;
+        }
+
+        const seasonRain = parseFloat(seasonalRainfall.trim());
+        if (isNaN(seasonRain) || !isFinite(seasonRain) || seasonRain < 0 || seasonRain > 10000) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "සෘතුමය වර්ෂාපතනය වලංගු නොවේ" : "Invalid seasonal rainfall"
+            );
+            return false;
+        }
+
+        const avgTemp = parseFloat(avgTemperature.trim());
+        if (isNaN(avgTemp) || !isFinite(avgTemp) || avgTemp < -10 || avgTemp > 60) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "සාමාන්‍ය උෂ්ණත්වය වලංගු නොවේ" : "Invalid average temperature"
+            );
+            return false;
+        }
+
+        const maxTemp = parseFloat(maxTemperature.trim());
+        if (isNaN(maxTemp) || !isFinite(maxTemp) || maxTemp < -10 || maxTemp > 60) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "උපරිම උෂ්ණත්වය වලංගු නොවේ" : "Invalid maximum temperature"
+            );
+            return false;
+        }
+
+        if (maxTemp < avgTemp) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "උපරිම උෂ්ණත්වය සාමාන්‍ය උෂ්ණත්වයට වඩා වැඩි විය යුතුය" : "Maximum temperature must be greater than average temperature"
+            );
+            return false;
+        }
+
+        const humidity = parseFloat(avgHumidity.trim());
+        if (isNaN(humidity) || !isFinite(humidity) || humidity < 0 || humidity > 100) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "ආර්ද්‍රතාවය 0-100% අතර විය යුතුය" : "Humidity must be between 0-100%"
+            );
+            return false;
+        }
+
+        const sunshine = parseFloat(sunshineHours.trim());
+        if (isNaN(sunshine) || !isFinite(sunshine) || sunshine < 0 || sunshine > 24) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "හිරු එළිය 0-24 පැය අතර විය යුතුය" : "Sunshine hours must be between 0-24"
+            );
+            return false;
+        }
+
         return true;
     };
 
     const validateStep3 = () => {
-        if (!seedVariety || !plantingDate || !season || !fieldSizeHa) {
+        if (!seedVariety || seedVariety.trim() === "" || !plantingDate || plantingDate.trim() === "" || !season || season.trim() === "" || !fieldSizeHa || fieldSizeHa.trim() === "") {
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si"
@@ -448,19 +599,27 @@ const YieldPredictionOfficerFormScreenNew = () => {
             );
             return false;
         }
-        
-        // Validate field size is greater than 0
-        const fieldSize = parseFloat(fieldSizeHa);
-        if (isNaN(fieldSize) || fieldSize <= 0) {
+
+        const fieldSize = parseFloat(fieldSizeHa.trim());
+        if (isNaN(fieldSize) || !isFinite(fieldSize) || fieldSize <= 0 || fieldSize > 10000) {
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si"
                     ? "ඉඩම් ප්‍රමාණය 0 ට වඩා වැඩි විය යුතුය"
-                    : "Field size must be greater than 0"
+                    : "Field size must be greater than 0 and less than 10000"
             );
             return false;
         }
-        
+
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(plantingDate.trim())) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "වගා දිනය YYYY-MM-DD ආකෘතියෙන් විය යුතුය" : "Planting date must be in YYYY-MM-DD format"
+            );
+            return false;
+        }
+
         return true;
     };
 
@@ -484,7 +643,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
     };
 
     const handleSubmit = async () => {
-        if (!firstFertDate) {
+        if (!firstFertDate || firstFertDate.trim() === "") {
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
                 language === "si"
@@ -494,50 +653,74 @@ const YieldPredictionOfficerFormScreenNew = () => {
             return;
         }
 
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(firstFertDate.trim())) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "පළමු පොහොර දිනය YYYY-MM-DD ආකෘතියෙන් විය යුතුය" : "First fertilizer date must be in YYYY-MM-DD format"
+            );
+            return;
+        }
+
+        if (secondFertDate && secondFertDate.trim() !== "" && !dateRegex.test(secondFertDate.trim())) {
+            Alert.alert(
+                language === "si" ? "දෝෂයකි" : "Error",
+                language === "si" ? "දෙවන පොහොර දිනය YYYY-MM-DD ආකෘතියෙන් විය යුතුය" : "Second fertilizer date must be in YYYY-MM-DD format"
+            );
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
-            // Extract planting month from date
-            const plantingMonth = parseInt(plantingDate.split("-")[1]);
+            const plantingDateParts = plantingDate.trim().split("-");
+            if (plantingDateParts.length !== 3) {
+                throw new Error("Invalid planting date format");
+            }
+            const plantingMonth = parseInt(plantingDateParts[1], 10);
+            if (isNaN(plantingMonth) || plantingMonth < 1 || plantingMonth > 12) {
+                throw new Error("Invalid planting month");
+            }
+
+            const fieldSizeValue = parseFloat(fieldSizeHa.trim());
+            const fieldSizeInHa = fieldSizeUnit === "Acres" ? fieldSizeValue * 0.404686 : fieldSizeValue;
 
             const payload = {
                 officer_id: "officer_123",
                 soil_profile: {
-                    district,
-                    location,
-                    soil_type: soilType,
-                    soil_condition: soilCondition,
-                    soil_ph: parseFloat(soilPh),
-                    soil_nitrogen_n: parseFloat(soilNitrogen),
-                    soil_phosphorus_p: parseFloat(soilPhosphorus),
-                    soil_potassium_k: parseFloat(soilPotassium),
-                    soil_fertility_index: parseFloat(soilFertilityIndex),
-                    n_status_class: nStatusClass,
-                    p_status_class: pStatusClass,
-                    k_status_class: kStatusClass,
+                    district: district.trim(),
+                    location: location.trim(),
+                    soil_type: soilType.trim(),
+                    soil_condition: soilCondition.trim(),
+                    soil_ph: parseFloat(soilPh.trim()),
+                    soil_nitrogen_n: parseFloat(soilNitrogen.trim()),
+                    soil_phosphorus_p: parseFloat(soilPhosphorus.trim()),
+                    soil_potassium_k: parseFloat(soilPotassium.trim()),
+                    soil_fertility_index: parseFloat(soilFertilityIndex.trim()),
+                    n_status_class: nStatusClass.trim(),
+                    p_status_class: pStatusClass.trim(),
+                    k_status_class: kStatusClass.trim(),
                 },
                 climate_data: {
-                    irrigation_type: irrigationType,
-                    rainfall_condition: rainfallCondition,
-                    rainfall_30d_mm: parseFloat(rainfall30d),
-                    seasonal_rainfall_mm: parseFloat(seasonalRainfall),
-                    avg_temperature_c: parseFloat(avgTemperature),
-                    max_temperature_c: parseFloat(maxTemperature),
-                    avg_humidity_pct: parseFloat(avgHumidity),
-                    sunshine_hours: parseFloat(sunshineHours),
+                    irrigation_type: irrigationType.trim(),
+                    rainfall_condition: rainfallCondition.trim(),
+                    rainfall_30d_mm: parseFloat(rainfall30d.trim()),
+                    seasonal_rainfall_mm: parseFloat(seasonalRainfall.trim()),
+                    avg_temperature_c: parseFloat(avgTemperature.trim()),
+                    max_temperature_c: parseFloat(maxTemperature.trim()),
+                    avg_humidity_pct: parseFloat(avgHumidity.trim()),
+                    sunshine_hours: parseFloat(sunshineHours.trim()),
                 },
                 crop_information: {
-                    seed_variety: seedVariety,
-                    planting_date: plantingDate,
+                    seed_variety: seedVariety.trim(),
+                    planting_date: plantingDate.trim(),
                     planting_month: plantingMonth,
-                    season,
-                    field_size_ha: fieldSizeUnit === "Acres" 
-                        ? parseFloat(fieldSizeHa) * 0.404686 
-                        : parseFloat(fieldSizeHa),
+                    season: season.trim(),
+                    field_size_ha: fieldSizeInHa,
                 },
                 fertilizer_dates: {
-                    first_fert_date: firstFertDate,
-                    second_fert_date: secondFertDate || null,
+                    first_fert_date: firstFertDate.trim(),
+                    second_fert_date: secondFertDate && secondFertDate.trim() !== "" ? secondFertDate.trim() : null,
                 },
             };
 
@@ -554,7 +737,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
             if (response.ok) {
                 navigation.navigate("YieldPredictionOfficerResultsScreen", {
                     data: result,
-                    language,
+                    language: language === "ta" ? "en" : language,
                     requestData: payload, // Pass original request for report generation
                 });
             } else {
@@ -563,7 +746,7 @@ const YieldPredictionOfficerFormScreenNew = () => {
                 if (result.detail) {
                     if (Array.isArray(result.detail)) {
                         // FastAPI validation errors are arrays
-                        errorMessage = result.detail.map((err: any) => 
+                        errorMessage = result.detail.map((err: any) =>
                             err.msg || err.message || JSON.stringify(err)
                         ).join(", ");
                     } else if (typeof result.detail === "string") {
@@ -572,19 +755,18 @@ const YieldPredictionOfficerFormScreenNew = () => {
                         errorMessage = JSON.stringify(result.detail);
                     }
                 }
-                
+
                 Alert.alert(
                     language === "si" ? "දෝෂයකි" : "Error",
                     errorMessage
                 );
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Prediction error:", error);
+            const errorMessage = error?.message || error?.toString() || (language === "si" ? "පුරෝකථනය අසාර්ථක විය" : "Prediction failed. Please try again.");
             Alert.alert(
                 language === "si" ? "දෝෂයකි" : "Error",
-                language === "si"
-                    ? "පුරෝකථනය අසාර්ථක විය"
-                    : "Prediction failed. Please try again."
+                errorMessage
             );
         } finally {
             setIsSubmitting(false);
@@ -675,9 +857,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="6.5"
                     value={soilPh}
-                    onChangeText={setSoilPh}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSoilPh(sanitized);
+                        }
+                    }}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={5}
                 />
             </View>
 
@@ -687,9 +875,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="85"
                     value={soilNitrogen}
-                    onChangeText={setSoilNitrogen}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSoilNitrogen(sanitized);
+                        }
+                    }}
                     keyboardType="numeric"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -699,9 +893,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="20"
                     value={soilPhosphorus}
-                    onChangeText={setSoilPhosphorus}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSoilPhosphorus(sanitized);
+                        }
+                    }}
                     keyboardType="numeric"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -711,9 +911,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="190"
                     value={soilPotassium}
-                    onChangeText={setSoilPotassium}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSoilPotassium(sanitized);
+                        }
+                    }}
                     keyboardType="numeric"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -723,9 +929,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="0.72"
                     value={soilFertilityIndex}
-                    onChangeText={setSoilFertilityIndex}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSoilFertilityIndex(sanitized);
+                        }
+                    }}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={5}
                 />
             </View>
 
@@ -779,9 +991,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="150"
                     value={rainfall30d}
-                    onChangeText={setRainfall30d}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setRainfall30d(sanitized);
+                        }
+                    }}
                     keyboardType="numeric"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -791,9 +1009,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="1200"
                     value={seasonalRainfall}
-                    onChangeText={setSeasonalRainfall}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSeasonalRainfall(sanitized);
+                        }
+                    }}
                     keyboardType="numeric"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -803,9 +1027,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="28"
                     value={avgTemperature}
-                    onChangeText={setAvgTemperature}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.-]/g, '');
+                        if (sanitized.split('.').length <= 2 && sanitized.split('-').length <= 2) {
+                            setAvgTemperature(sanitized);
+                        }
+                    }}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -815,9 +1045,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="34"
                     value={maxTemperature}
-                    onChangeText={setMaxTemperature}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.-]/g, '');
+                        if (sanitized.split('.').length <= 2 && sanitized.split('-').length <= 2) {
+                            setMaxTemperature(sanitized);
+                        }
+                    }}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={6}
                 />
             </View>
 
@@ -827,9 +1063,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="75"
                     value={avgHumidity}
-                    onChangeText={setAvgHumidity}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setAvgHumidity(sanitized);
+                        }
+                    }}
                     keyboardType="numeric"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={5}
                 />
             </View>
 
@@ -839,9 +1081,15 @@ const YieldPredictionOfficerFormScreenNew = () => {
                     style={styles.input}
                     placeholder="8.5"
                     value={sunshineHours}
-                    onChangeText={setSunshineHours}
+                    onChangeText={(text) => {
+                        const sanitized = text.replace(/[^0-9.]/g, '');
+                        if (sanitized.split('.').length <= 2) {
+                            setSunshineHours(sanitized);
+                        }
+                    }}
                     keyboardType="decimal-pad"
                     placeholderTextColor="#9CA3AF"
+                    maxLength={5}
                 />
             </View>
         </View>

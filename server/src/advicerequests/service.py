@@ -24,6 +24,181 @@ def get_current_timestamp() -> str:
 
 
 # ============================================================
+# NOTIFICATION HELPERS
+# ============================================================
+
+def send_notification_to_user(
+    user_id: str,
+    title: str,
+    message: str,
+    notification_type: str = "message",
+    metadata: Optional[Dict[str, Any]] = None
+) -> bool:
+    """
+    Send a notification to a specific user.
+    Uses direct REST API call with service key to bypass RLS.
+    Falls back to inserting without metadata if column doesn't exist.
+    """
+    import requests as http_requests
+    from core.config import settings
+    
+    try:
+        if metadata is None:
+            metadata = {}
+
+        insert_data = {
+            "id": generate_uuid(),
+            "user_id": user_id,
+            "title": title,
+            "message": message,
+            "type": notification_type,
+            "read": False,
+            "created_at": get_current_timestamp(),
+        }
+
+        # Direct REST API call with service key bypasses RLS
+        url = f"{settings.SUPABASE_URL}/rest/v1/notifications"
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+        }
+
+        # Try with metadata first
+        data_with_meta = {**insert_data, "metadata": metadata} if metadata else insert_data
+        
+        print(f"📤 Sending notification to {user_id} via REST API...")
+        print(f"   URL: {url}")
+        print(f"   Type: {notification_type}")
+        
+        resp = http_requests.post(url, json=data_with_meta, headers=headers)
+        
+        if resp.status_code in (200, 201):
+            print(f"✅ Notification sent to user {user_id}")
+            return True
+        
+        # If failed with metadata, try without (metadata column might not exist)
+        if metadata and resp.status_code in (400, 404):
+            print(f"⚠️ Retrying without metadata field... ({resp.status_code}: {resp.text})")
+            resp2 = http_requests.post(url, json=insert_data, headers=headers)
+            if resp2.status_code in (200, 201):
+                print(f"✅ Notification sent to user {user_id} (without metadata)")
+                return True
+            else:
+                print(f"❌ Failed to send notification to {user_id}: {resp2.status_code} {resp2.text}")
+                return False
+        
+        print(f"❌ Failed to send notification to {user_id}: {resp.status_code} {resp.text}")
+        return False
+    except Exception as e:
+        print(f"❌ Exception sending notification to {user_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def notify_officers_new_request(
+    request_id: str,
+    request_type: str,
+    district: Optional[str] = None
+):
+    """Send notification to all officers about a new advice request"""
+    try:
+        result = supabase.table("profiles").select("id").eq("role", "officer").execute()
+        officers = result.data or []
+
+        type_label = {
+            "yield_enhancement": "Yield Enhancement",
+            "seed_variety": "Seed Variety Selection",
+            "both": "Yield Enhancement & Seed Variety",
+        }.get(request_type, request_type)
+
+        title = "🌾 New Advice Request"
+        message = f"A farmer has requested advice on {type_label}"
+        if district:
+            message += f" from {district}"
+        message += ". Please review and respond."
+
+        count = 0
+        for officer in officers:
+            if send_notification_to_user(
+                officer["id"], title, message, "message",
+                {"request_id": request_id, "request_type": request_type, "notification_category": "advice_request"}
+            ):
+                count += 1
+
+        print(f"🔔 Notified {count}/{len(officers)} officers about request {request_id}")
+    except Exception as e:
+        print(f"⚠️ Failed to notify officers: {e}")
+
+
+def notify_farmer_advice_completed(
+    farmer_id: str,
+    request_id: str,
+    request_type: str
+):
+    """Send notification to farmer that advice has been provided"""
+    try:
+        # Fetch farmer's language preference
+        farmer_lang = "en"  # Default to English
+        try:
+            farmer_result = supabase.table("profiles").select("language").eq("id", farmer_id).execute()
+            if farmer_result.data and len(farmer_result.data) > 0:
+                farmer_lang = farmer_result.data[0].get("language", "en")
+                # Map language codes: sinhala -> si, tamil -> ta, english -> en
+                if farmer_lang == "sinhala":
+                    farmer_lang = "si"
+                elif farmer_lang == "tamil":
+                    farmer_lang = "ta"
+                else:
+                    farmer_lang = "en"
+        except Exception as lang_err:
+            print(f"⚠️ Could not fetch farmer language, using English: {lang_err}")
+        
+        # Notification content in different languages
+        notifications = {
+            "si": {
+                "title": "✅ උපදේශ ලැබුණි",
+                "yield_enhancement": "අස්වැන්න වැඩිදියුණු කිරීම",
+                "seed_variety": "බීජ ප්‍රභේද තෝරා ගැනීම",
+                "both": "අස්වැන්න වැඩිදියුණු කිරීම සහ බීජ ප්‍රභේද",
+                "message_template": "කෘෂිකර්ම නිලධාරියෙක් ඔබේ {} උපදේශ ඉල්ලීමට ප්‍රතිචාර දක්වා ඇත. දැන් විස්තර පරීක්ෂා කරන්න!"
+            },
+            "ta": {
+                "title": "✅ ஆலோசனை பெறப்பட்டது",
+                "yield_enhancement": "விளைச்சல் மேம்பாடு",
+                "seed_variety": "விதை வகை தேர்வு",
+                "both": "விளைச்சல் மேம்பாடு மற்றும் விதை வகை",
+                "message_template": "ஒரு விவசாய அதிகாரி உங்கள் {} ஆலோசனை கோரிக்கைக்கு பதிலளித்துள்ளார். இப்போது விவரங்களைச் சரிபார்க்கவும்!"
+            },
+            "en": {
+                "title": "✅ Advice Received",
+                "yield_enhancement": "Yield Enhancement",
+                "seed_variety": "Seed Variety Selection",
+                "both": "Yield Enhancement & Seed Variety",
+                "message_template": "An agriculture officer has responded to your {} advice request. Check the details now!"
+            }
+        }
+        
+        # Get notification content for farmer's language
+        notif_content = notifications.get(farmer_lang, notifications["en"])
+        type_label = notif_content.get(request_type, request_type)
+        message = notif_content["message_template"].format(type_label)
+
+        send_notification_to_user(
+            farmer_id,
+            notif_content["title"],
+            message,
+            "message",
+            {"request_id": request_id, "request_type": request_type, "notification_category": "advice_request"}
+        )
+        print(f"🔔 Notified farmer {farmer_id} about completed request {request_id} in language: {farmer_lang}")
+    except Exception as e:
+        print(f"⚠️ Failed to notify farmer: {e}")
+
+
+# ============================================================
 # CREATE OPERATIONS
 # ============================================================
 

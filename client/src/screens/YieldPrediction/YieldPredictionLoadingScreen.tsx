@@ -12,7 +12,8 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { StackNavigationProp } from "@react-navigation/stack";
 import type { YieldPredictionStackParamList } from "../../navigation/YieldPredictionStack";
-import { Leaf, Users, Package, ArrowLeft, Sparkles, TestTube } from "lucide-react-native";
+import { Leaf, Users, Package, ArrowLeft, Sparkles, TestTube, BookOpen, MessageCircle, Edit3 } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useApp } from "../../context/AppContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -31,18 +32,32 @@ type NavProp = StackNavigationProp<
 const YieldPredictionLoadingScreen = () => {
   const navigation = useNavigation<NavProp>();
   const { language: lang } = useLanguage();
-  const language: "si" | "en" = lang === "sinhala" ? "si" : "en";
+  const language: "si" | "en" | "ta" = lang === "sinhala" ? "si" : lang === "tamil" ? "ta" : "en";
   const [fadeAnim] = useState(new Animated.Value(0));
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [scaleAnim] = useState(new Animated.Value(0.9));
   const [showProPopup, setShowProPopup] = useState(false);
   const [showSoilTestModal, setShowSoilTestModal] = useState(false);
   const [showImportanceModal, setShowImportanceModal] = useState(false);
+  const [pulseAnim] = useState(new Animated.Value(1));
   const { user } = useApp();
 
   // Role-based authentication using Supabase user data
   const isFarmer = user?.role === "farmer";
   const isOfficer = user?.role === "officer";
+
+  // Compute active subscription status from user profile
+  const hasActiveSubscription = (() => {
+    if (!user?.is_paid_user) return false;
+    const endRaw = user?.subscription_end_date;
+    if (!endRaw) return false;
+    try {
+      const endDate = new Date(String(endRaw).replace("Z", "+00:00"));
+      return endDate > new Date();
+    } catch {
+      return false;
+    }
+  })();
 
   useEffect(() => {
     Animated.parallel([
@@ -57,16 +72,36 @@ const YieldPredictionLoadingScreen = () => {
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Pulse animation for intro icon
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.15,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
   }, []);
 
   const content = {
     si: {
       title: "අස්වැන්න පුරෝකථනය සහ පොහොර උපදේශන",
       subtitle: "",
+      introFarmer: "ඔබේ වගාවේ සාර්ථකත්වය සඳහා ස්මාර්ට් විසඳුම්",
+      introOfficer: "ඔබේ දැනුම භාවිතයෙන් ගොවීන්ට විශේෂඥ මාර්ගෝපදේශ සහ වගා තීරණ වැඩිදියුණු කරන්න.",
       servicesTitle: "අපගේ සේවාවන්",
       startTitle: "පුරෝකථනය ආරම්භ කරන්න",
+      wetWeightPrediction: "තෙත් බර අස්වැන්න පුරෝකථනය",
+      wetWeightPredictionDesc: "AI මාදිලිය භාවිතයෙන් පාලිත තෙත් බර අස්වැන්න පුරෝකථනය කරන්න",
       startDesc: "ඔබේ අස්වැන්න පහසුවෙන් පුරෝකථනය කරන්න",
-      farmerForecastTitle: "දළ පුරෝකථනය",
+      farmerForecastTitle: "අස්වැන්න පුරෝකථනය",
       farmerForecastDesc: "ඉක්මන් සහ සරල අස්වැන්න පුරෝකථනය",
       officerForecastTitle: "වෘත්තීය/උසස් විශ්ලේෂණය",
       officerForecastDesc: "සවිස්තරාත්මක සහ ගැඹුරු අස්වැන්න විශ්ලේෂණය",
@@ -76,19 +111,33 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendationDesc: "ගොවීන්ට පොහොර උපදේශ ලබා දෙන්න",
       farmerRequests: "ගොවි ඉල්ලීම්",
       farmerRequestsDesc: "ගොවීන්ගේ උපදේශ ඉල්ලීම් බලන්න",
+      chatWithFarmers: "ගොවීන් සමඟ කතා කරන්න",
+      chatWithFarmersDesc: "ගොවීන්ට සජීවී උපදේශ සපයන්න",
+      editFertilizerPlans: "පොහොර සැලසුම් සංස්කරණය",
+      editFertilizerPlansDesc: "පොහොර සැලසුම් සංස්කරණය කරන්න",
       myAdviceRequests: "මගේ උපදේශ ඉල්ලීම්",
       myAdviceRequestsDesc: "නිලධාරීන්ගෙන් ලැබුණු උපදේශ බලන්න",
       comingSoon: "ඉදිරි දිනවල",
       soilTestTitle: "පස් පරීක්ෂණ ඉල්ලීම",
-      soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න - ආසන්නතම කෘෂිකර්ම නිලධාරියා සම්බන්ධ කරගන්න",
+      soilTestDesc: "ඔබේ ඉඩමට පස් පරීක්ෂණයක් ඉල්ලන්න",
+      fertilizerAssistant: "ඔබේ පොහොර උපදේශ සහායක",
+      fertilizerAssistantDesc: "දෘශ්‍යමාන ලක්ෂණ මත පදනම්ව පොහොර උපදේශ ලබා ගන්න",
+      fertilizerGuide: "පොහොර මාර්ගෝපදේශ",
+      fertilizerGuideDesc: "පොහොර උපදේශ සහ මාර්ගෝපදේශ ලබා ගන්න",
+      knowledgeBank: "පෝෂක මාර්ගෝපදේශ",
+      knowledgeBankDesc: "වගාව සඳහා වැදගත් වන පෝෂක තොරතුරු ලබාගන්න",
     },
     en: {
       title: "Yield Prediction and Fertilizer Advisory",
       subtitle: "",
+      introFarmer: "Know your harvest and apply the best fertilizer plan",
+      introOfficer: "Support farmers with expert guidance and improve cultivation decisions using data.",
       servicesTitle: "Our Services",
       startTitle: "Start Prediction",
       startDesc: "Get your yield prediction quickly",
-      farmerForecastTitle: "Gross Forecast",
+      wetWeightPrediction: "Wet Weight Yield Prediction",
+      wetWeightPredictionDesc: "Predict controlled wet weight yield using AI model",
+      farmerForecastTitle: "Harvest Forecast",
       farmerForecastDesc: "Quick and simple yield prediction",
       officerForecastTitle: "Professional/Advanced Analysis",
       officerForecastDesc: "Detailed and deep yield analysis",
@@ -98,11 +147,57 @@ const YieldPredictionLoadingScreen = () => {
       fertilizerRecommendationDesc: "Provide fertilizer advice to farmers",
       farmerRequests: "Farmer Requests",
       farmerRequestsDesc: "View farmer advice requests with yield predictions",
+      chatWithFarmers: "Chat With Farmers",
+      chatWithFarmersDesc: "Provide live advice to farmers",
+      editFertilizerPlans: "Edit Fertilizer Plans",
+      editFertilizerPlansDesc: "Manage and update fertilizer plans",
       myAdviceRequests: "My Advice Requests",
       myAdviceRequestsDesc: "View advice received from officers",
       comingSoon: "Coming soon",
       soilTestTitle: "Request Soil Testing",
-      soilTestDesc: "Request a soil test for your land - Contact nearest agri officer",
+      soilTestDesc: "Request a soil test for your land",
+      fertilizerAssistant: "Your Fertilizer Advisory Assistant",
+      fertilizerAssistantDesc: "Get fertilizer advices on visible signs based",
+      fertilizerGuide: "Fertilizer Guide",
+      fertilizerGuideDesc: "Access fertilizer advice and guidelines",
+      knowledgeBank: "Fertilizer Guidelines",
+      knowledgeBankDesc: "Get important nutrient information for cultivation",
+    },
+    ta: {
+      title: "விளைச்சல் கணிப்பு மற்றும் உர ஆலோசனை",
+      subtitle: "",
+      introFarmer: "உங்கள் பயிர் வெற்றிக்கான ஸ்மார்ட் தீர்வுகள்",
+      introOfficer: "தரவைப் பயன்படுத்தி விவசாயிகளுக்கு நிபுணர் வழிகாட்டுதல் மற்றும் சாகுபடி முடிவுகளை மேம்படுத்துங்கள்.",
+      servicesTitle: "எங்கள் சேவைகள்",
+      startTitle: "கணிப்பை தொடங்குங்கள்",
+      startDesc: "உங்கள் விளைச்சலை விரைவாக கணிக்கவும்",
+      wetWeightPrediction: "ஈரமான எடை விளைச்சல் கணிப்பு",
+      wetWeightPredictionDesc: "AI மாதிரியைப் பயன்படுத்தி கட்டுப்படுத்தப்பட்ட ஈரமான எடை விளைச்சலை கணிக்கவும்",
+      farmerForecastTitle: "பொது கணிப்பு",
+      farmerForecastDesc: "விரைவான மற்றும் எளிய விளைச்சல் கணிப்பு",
+      officerForecastTitle: "தொழில்முனை/மேம்பட்ட பகுப்பாய்வு",
+      officerForecastDesc: "விரிவான மற்றும் ஆழமான விளைச்சல் பகுப்பாய்வு",
+      fertilizerTitle: "உர ஆலோசனைகள்",
+      fertilizerDesc: "தனிப்பயனாட்ட உர பரிந்துரைகளை பெறுங்கள்",
+      fertilizerRecommendation: "உர பரிந்துரை",
+      fertilizerRecommendationDesc: "விவசாயிகளுக்கு உர ஆலோசனை வழங்குங்கள்",
+      farmerRequests: "விவசாயி கோரிக்கைகள்",
+      farmerRequestsDesc: "விவசாயிகளின் ஆலோசனை கோரிக்கைகளை பார்க்கவும்",
+      chatWithFarmers: "விவசாயிகளுடன் பேசுங்கள்",
+      chatWithFarmersDesc: "விவசாயிகளுக்கு நேரடி ஆலோசனை வழங்குங்கள்",
+      editFertilizerPlans: "உர திட்டங்களை திருத்துக",
+      editFertilizerPlansDesc: "உர திட்டங்களை நிர்வகிக்கவும் புதுப்பிக்கவும்",
+      myAdviceRequests: "என் ஆலோசனை கோரிக்கைகள்",
+      myAdviceRequestsDesc: "அதிகாரிகளிடமிருந்து பெற்ற ஆலோசனைகளை பார்க்கவும்",
+      comingSoon: "விரைவில்",
+      soilTestTitle: "மண் பரிசோதனை கோரிக்கை",
+      soilTestDesc: "உங்கள் நிலத்திற்கு மண் பரிசோதனையை கோருங்கள்",
+      fertilizerAssistant: "உங்கள் உர ஆலோசனை உதவியாளர்",
+      fertilizerAssistantDesc: "கண்ணுக்குத் தெரியும் அறிகுறிகளின் அடிப்படையில் உர ஆலோசனை பெறுங்கள்",
+      fertilizerGuide: "உர வழிகாட்டி",
+      fertilizerGuideDesc: "உர ஆலோசனை மற்றும் வழிகாட்டுதல்களை அணுகவும்",
+      knowledgeBank: "உர வழிகாட்டுதல்கள்",
+      knowledgeBankDesc: "பயிர்ச்செய்கைக்கான முக்கிய ஊட்டச்சத்து தகவல்களைப் பெறுங்கள்",
     },
   };
 
@@ -112,7 +207,7 @@ const YieldPredictionLoadingScreen = () => {
 
   const handleConfirmProceed = () => {
     setShowConfirmationModal(false);
-    navigation.navigate("YieldPredictionOfficerFormScreen", { language });
+    navigation.navigate("YieldPredictionOfficerFormScreen", { language: language === "ta" ? "en" : language });
   };
 
   const handleRoleSelect = (role: "farmer" | "officer") => {
@@ -120,7 +215,7 @@ const YieldPredictionLoadingScreen = () => {
     if (!user) {
       Alert.alert(
         language === "si" ? "දෝෂයකි" : "Error",
-        language === "si" 
+        language === "si"
           ? "කරුණාකර පළමුව පුරනය වන්න"
           : "Please log in first"
       );
@@ -130,7 +225,7 @@ const YieldPredictionLoadingScreen = () => {
     if (role === "farmer" && user.role !== "farmer") {
       Alert.alert(
         language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
-        language === "si" 
+        language === "si"
           ? "මෙම විශේෂාංගය ගොවීන් සඳහා පමණි"
           : "This feature is only available for farmers"
       );
@@ -140,7 +235,7 @@ const YieldPredictionLoadingScreen = () => {
     if (role === "officer" && user.role !== "officer") {
       Alert.alert(
         language === "si" ? "ප්‍රවේශය වසා ඇත" : "Access Denied",
-        language === "si" 
+        language === "si"
           ? "මෙම විශේෂාංගය නිලධාරීන් සඳහා පමණි"
           : "This feature is only available for officers"
       );
@@ -167,7 +262,7 @@ const YieldPredictionLoadingScreen = () => {
 
   const handleSoilTestConfirm = () => {
     setShowSoilTestModal(false);
-    navigation.navigate("YieldPredictionFormScreen", { role: "farmer", language });
+    navigation.navigate("YieldPredictionFormScreen", { role: "farmer", language: language === "ta" ? "en" : language });
   };
 
   const handleComingSoon = (feature: string) => {
@@ -212,239 +307,250 @@ const YieldPredictionLoadingScreen = () => {
             { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
           ]}
         >
-          {/* Decorative Corn Icon */}
-          <View style={styles.iconSection}>
-            <View style={styles.iconWrapper}>
-              <LinearGradient
-                colors={["#10b981", "#059669"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.iconCircle}
-              >
-                <Text style={styles.cornIcon}>🌽</Text>
-              </LinearGradient>
-              <View style={[styles.iconRing, styles.iconRing1]} />
-              <View style={[styles.iconRing, styles.iconRing2]} />
-              <View style={[styles.iconRing, styles.iconRing3]} />
-            </View>
-            <Text style={styles.servicesTitle}>{content[language].servicesTitle}</Text>
+          {/* Introduction Section */}
+          <View style={styles.introSection}>
+            <Animated.View style={[styles.introIconWrapper, { transform: [{ scale: pulseAnim }] }]}>
+              <Text style={styles.introIcon}>🌽</Text>
+            </Animated.View>
+            <Text style={styles.introText}>
+              {isFarmer ? content[language].introFarmer : content[language].introOfficer}
+            </Text>
           </View>
 
           {/* Action Cards */}
           <View style={styles.roleContainer}>
-          {isFarmer ? (
-            <>
-              {/* Card 1: Start Prediction */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => handleRoleSelect("farmer")}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#ECFDF5", "#D1FAE5"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
+            {isFarmer ? (
+              <>
+                {/* Card 1: Start Prediction */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => handleRoleSelect("farmer")}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.roleIconCircle}>
-                    <Leaf color="#10b981" size={32} />
-                  </View>
-                  <View style={styles.roleContent}>
-                    <Text style={styles.roleTitle}>
-                      {content[language].farmerForecastTitle}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].farmerForecastDesc}
-                    </Text>
-                  </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Card 2: Fertilizer Advices */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => navigation.navigate("FertilizerAdvisorLanding")}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#EFF6FF", "#DBEAFE"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
-                >
-                  <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
-                    <Package color="#3b82f6" size={32} />
-                  </View>
-                  <View style={styles.roleContent}>
-                    <Text style={styles.roleTitle}>
-                      {content[language].fertilizerTitle}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].fertilizerDesc}
-                    </Text>
-                  </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Card 3: My Advice Requests */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => navigation.navigate("MyAdviceRequestsScreen")}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#FEF3C7", "#FDE68A"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
-                >
-                  <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
-                    <Users color="#f59e0b" size={32} />
-                  </View>
-                  <View style={styles.roleContent}>
-                    <Text style={styles.roleTitle}>
-                      {content[language].myAdviceRequests}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].myAdviceRequestsDesc}
-                    </Text>
-                  </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* Card 4: Soil Test Request (Pro Feature) */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => setShowProPopup(true)}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#F3E8FF", "#E9D5FF"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
-                >
-                  <View style={[styles.roleIconCircle, { backgroundColor: "#E9D5FF" }]}>
-                    <TestTube color="#9333ea" size={32} />
-                  </View>
-                  <View style={styles.roleContent}>
-                    <View style={styles.proFeatureBadge}>
-                      <Sparkles size={12} color="#9333ea" />
-                      <Text style={styles.proFeatureText}>Pro</Text>
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#D1FAE5" }]}>
+                      <Leaf color="#10b981" size={28} />
                     </View>
-                    <Text style={styles.roleTitle}>
-                      {content[language].soilTestTitle}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].soilTestDesc}
-                    </Text>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].farmerForecastTitle}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].farmerForecastDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
                   </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </>
-          ) : (
-            <>
-              {/* Card 1: Start Prediction */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => handleRoleSelect("officer")}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#ECFDF5", "#D1FAE5"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
-                >
-                  <View style={styles.roleIconCircle}>
-                    <Leaf color="#10b981" size={32} />
-                  </View>
-                  <View style={styles.roleContent}>
-                    <Text style={styles.roleTitle}>
-                      {content[language].officerForecastTitle}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].officerForecastDesc}
-                    </Text>
-                  </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              {/* Card 2: Fertilizer Recommendation */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => navigation.navigate("FertilizerAdvisorOfficerLanding")}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#EFF6FF", "#DBEAFE"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
+                {/* Card 2: My Advice Requests */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("MyAdviceRequestsScreen")}
+                  activeOpacity={0.8}
                 >
-                  <View style={[styles.roleIconCircle, { backgroundColor: "#DBEAFE" }]}>
-                    <Package color="#3b82f6" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FDE68A" }]}>
+                      <Users color="#f59e0b" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].myAdviceRequests}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].myAdviceRequestsDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
                   </View>
-                  <View style={styles.roleContent}>
-                    <Text style={styles.roleTitle}>
-                      {content[language].fertilizerRecommendation}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].fertilizerRecommendationDesc}
-                    </Text>
-                  </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              {/* Card 3: Farmer Requests */}
-              <TouchableOpacity
-                style={styles.roleCard}
-                onPress={() => navigation.navigate("FarmerAdviceRequestsScreen")}
-                activeOpacity={0.7}
-              >
-                <LinearGradient
-                  colors={["#FEF3C7", "#FDE68A"]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.roleCardGradient}
+                {/* Card 3: Soil Test Request (Pro Feature) */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => {
+                    if (hasActiveSubscription) {
+                      navigation.navigate("SoilTestRequest");
+                    } else {
+                      setShowProPopup(true);
+                    }
+                  }}
+                  activeOpacity={0.8}
                 >
-                  <View style={[styles.roleIconCircle, { backgroundColor: "#FDE68A" }]}>
-                    <Users color="#D97706" size={32} />
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#E9D5FF" }]}>
+                      <TestTube color="#9333ea" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <View style={styles.proFeatureBadge}>
+                        <Sparkles size={10} color="#9333ea" />
+                        <Text style={styles.proFeatureText}>Pro</Text>
+                      </View>
+                      <Text style={styles.modernTitle}>
+                        {content[language].soilTestTitle}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].soilTestDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
                   </View>
-                  <View style={styles.roleContent}>
-                    <Text style={styles.roleTitle}>
-                      {content[language].farmerRequests}
-                    </Text>
-                    <Text style={styles.roleDesc}>
-                      {content[language].farmerRequestsDesc}
-                    </Text>
+                </TouchableOpacity>
+
+                {/* Card 4: Fertilizer Guide */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("FertilizerGuideMain" as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FEF3C7" }]}>
+                      <Package color="#f59e0b" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].fertilizerGuide}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].fertilizerGuideDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
                   </View>
-                  <View style={styles.roleArrow}>
-                    <Text style={styles.roleArrowText}>→</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {/* Card 1: Officer Forecast */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => handleRoleSelect("officer")}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#D1FAE5" }]}>
+                      <Leaf color="#10b981" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].officerForecastTitle}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].officerForecastDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
                   </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+                </TouchableOpacity>
+
+                {/* Card 2: Wet Weight Prediction (Officer Only) */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("WetWeightPredictionForm")}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#DBEAFE" }]}>
+                      <Ionicons name="stats-chart-outline" size={28} color="#3b82f6" />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].wetWeightPrediction}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].wetWeightPredictionDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Card 3: Farmer Requests */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("FarmerAdviceRequestsScreen")}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FDE68A" }]}>
+                      <Users color="#D97706" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].farmerRequests}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].farmerRequestsDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Card 4: Edit Fertilizer Plans */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("EditFertilizerPlans")}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#E9D5FF" }]}>
+                      <Edit3 color="#9333ea" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].editFertilizerPlans}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].editFertilizerPlansDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Card 5: Chat With Farmers (last) */}
+                <TouchableOpacity
+                  style={styles.roleCard}
+                  onPress={() => navigation.navigate("OfficerRooms" as any)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.modernCardContent}>
+                    <View style={[styles.modernIconCircle, { backgroundColor: "#FFEDD5" }]}>
+                      <MessageCircle color="#ea580c" size={28} />
+                    </View>
+                    <View style={styles.modernTextContent}>
+                      <Text style={styles.modernTitle}>
+                        {content[language].chatWithFarmers}
+                      </Text>
+                      <Text style={styles.modernDesc}>
+                        {content[language].chatWithFarmersDesc}
+                      </Text>
+                    </View>
+                    <View style={styles.modernArrow}>
+                      <Text style={styles.modernArrowText}>→</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
         </Animated.View>
       </ScrollView>
 
@@ -453,7 +559,7 @@ const YieldPredictionLoadingScreen = () => {
         visible={showConfirmationModal}
         onClose={() => setShowConfirmationModal(false)}
         onConfirm={handleConfirmProceed}
-        language={language}
+        language={language === "ta" ? "en" : language}
       />
 
       {/* Pro Upgrade Popup */}
@@ -472,7 +578,7 @@ const YieldPredictionLoadingScreen = () => {
         onClose={() => setShowSoilTestModal(false)}
         onConfirm={handleSoilTestConfirm}
         onNoData={showSoilTestImportanceMessage}
-        language={language}
+        language={language === "ta" ? "en" : language}
       />
 
       {/* Soil Test Importance Modal */}
@@ -481,9 +587,13 @@ const YieldPredictionLoadingScreen = () => {
         onClose={() => setShowImportanceModal(false)}
         onRequestSoilTest={() => {
           setShowImportanceModal(false);
-          setShowProPopup(true);
+          if (hasActiveSubscription) {
+            navigation.navigate("SoilTestRequest");
+          } else {
+            setShowProPopup(true);
+          }
         }}
-        language={language}
+        language={language === "ta" ? "en" : language}
       />
     </View>
   );
@@ -492,7 +602,7 @@ const YieldPredictionLoadingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#F5F5F5",
   },
   header: {
     paddingTop: 50,
@@ -533,6 +643,24 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     flex: 1,
     justifyContent: "center",
+  },
+  introSection: {
+    alignItems: "center",
+    marginBottom: 24,
+    paddingVertical: 16,
+  },
+  introIconWrapper: {
+    marginBottom: 8,
+  },
+  introIcon: {
+    fontSize: 36,
+  },
+  introText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#374151",
+    textAlign: "center",
+    letterSpacing: 0.2,
   },
   iconSection: {
     alignItems: "center",
@@ -592,26 +720,64 @@ const styles = StyleSheet.create({
     borderColor: "#a7f3d0",
   },
   roleContainer: {
-    gap: 20,
+    gap: 16,
     maxWidth: 500,
     width: "100%",
     alignSelf: "center",
   },
   roleCard: {
-    borderRadius: 20,
-    overflow: "hidden",
+    borderRadius: 24,
+    backgroundColor: "#ffffff",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
     marginBottom: 4,
   },
-  roleCardGradient: {
+  modernCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 26,
-    minHeight: 130,
+    padding: 20,
+    minHeight: 110,
+  },
+  modernIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  modernTextContent: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  modernTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 4,
+    letterSpacing: 0.1,
+  },
+  modernDesc: {
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 18,
+    letterSpacing: 0,
+  },
+  modernArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modernArrowText: {
+    fontSize: 18,
+    color: "#374151",
+    fontWeight: "600",
   },
   roleIconCircle: {
     width: 68,
@@ -665,19 +831,23 @@ const styles = StyleSheet.create({
   proFeatureBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "rgba(245, 158, 11, 0.15)",
+    gap: 3,
+    backgroundColor: "rgba(147, 51, 234, 0.12)",
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
     alignSelf: "flex-start",
-    marginBottom: 6,
+    marginBottom: 4,
   },
   proFeatureText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#f59e0b",
-    letterSpacing: 0.5,
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#9333ea",
+    letterSpacing: 0.3,
+  },
+  blueSparkles: {
+    fontSize: 28,
+    color: "#3b82f6",
   },
 });
 

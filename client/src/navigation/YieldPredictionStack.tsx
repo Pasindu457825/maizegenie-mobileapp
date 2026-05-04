@@ -20,11 +20,31 @@ import FertilizerAdvisorOfficerLandingScreen from "../screens/FertilizerAdvisor/
 import OfficerAdvisoryInputScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryInputScreen";
 import OfficerAdvisoryResultsScreen from "../screens/FertilizerAdvisor/RuleBasedAdviceHelperOfficer/OfficerAdvisoryResultsScreen";
 
+// Knowledge Bank Screens
+import KnowledgeBankMainScreen from "../screens/FertilizerAdvisor/KnowledgeBank/KnowledgeBankMainScreen";
+import NutrientDeficiencyScreen from "../screens/FertilizerAdvisor/KnowledgeBank/NutrientDeficiencyScreen";
+
 // Advice Requests Screen
 import FarmerAdviceRequestsScreen from "../screens/YieldPrediction/FarmerAdviceRequestsScreen";
 import ViewAdviceRequestDetailsScreen from "../screens/YieldPrediction/ViewAdviceRequestDetailsScreen";
 import ProvideAdviceScreen from "../screens/YieldPrediction/ProvideAdviceScreen";
 import MyAdviceRequestsScreen from "../screens/YieldPrediction/MyAdviceRequestsScreen";
+
+// Soil Test Request Screen
+import SoilTestRequestScreen from "../screens/YieldPrediction/SoilTestRequestScreen";
+
+// Edit Fertilizer Plans Screens
+import EditFertilizerPlansScreen from "../screens/YieldPrediction/EditFertilizerPlansScreen";
+import EditFertilizerPlanDetailScreen from "../screens/YieldPrediction/EditFertilizerPlanDetailScreen";
+
+// Wet Weight Prediction Screens (Officer Only)
+import WetWeightPredictionFormScreen from "../screens/YieldPrediction/WetWeightPredictionFormScreen";
+import WetWeightPredictionResultsScreen from "../screens/YieldPrediction/WetWeightPredictionResultsScreen";
+import WetWeightVarietyComparisonScreen from "../screens/YieldPrediction/WetWeightVarietyComparisonScreen";
+import WetWeightTrialHistoryScreen from "../screens/YieldPrediction/WetWeightTrialHistoryScreen";
+
+// Fertilizer Guide Screen
+import FertilizerGuideMainScreen from "../screens/YieldPrediction/FertilizerGuideMain";
 
 export type YieldPredictionStackParamList = {
   YieldPredictionLoadingScreen: undefined;
@@ -50,10 +70,41 @@ export type YieldPredictionStackParamList = {
   RuleBasedAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
   OfficerAdvisoryInputScreen: undefined;
   OfficerAdvisoryResultsScreen: { data: any; language: 'si' | 'en' };
+  KnowledgeBankMain: undefined;
+  NutrientDeficiency: undefined;
   FarmerAdviceRequestsScreen: undefined;
   ViewAdviceRequestDetailsScreen: { requestId: string };
   ProvideAdviceScreen: { requestId: string };
   MyAdviceRequestsScreen: undefined;
+  SoilTestRequest: undefined;
+  EditFertilizerPlans: undefined;
+  EditFertilizerPlanDetail: { plan: any; isFromSupabase?: boolean };
+  WetWeightPredictionForm: undefined;
+  WetWeightPredictionResults: {
+    data: any;
+    meta?: {
+      trial_name?: string;
+      field_block_id?: string;
+      replicate_number?: string;
+      plot_number?: number;
+      plot_area_m2?: number;
+      seed_variety?: string;
+    };
+  };
+  WetWeightVarietyComparison: {
+    baseInputs: {
+      cob_height_cm: number;
+      plant_height_cm: number;
+      cob_wet_weight_g: number;
+      cob_length_cm: number;
+      num_seed_rows: number;
+      plot_area_m2?: number;
+    };
+    currentVariety: string;
+    currentResult: number;
+  };
+  WetWeightTrialHistory: undefined;
+  FertilizerGuideMain: undefined;
 };
 
 const Stack = createNativeStackNavigator<YieldPredictionStackParamList>();
@@ -109,6 +160,14 @@ export default function YieldPredictionStack() {
         component={OfficerAdvisoryResultsScreen}
       />
       <Stack.Screen
+        name="KnowledgeBankMain"
+        component={KnowledgeBankMainScreen}
+      />
+      <Stack.Screen
+        name="NutrientDeficiency"
+        component={NutrientDeficiencyScreen}
+      />
+      <Stack.Screen
         name="FarmerAdviceRequestsScreen"
         component={FarmerAdviceRequestsScreen}
       />
@@ -123,6 +182,38 @@ export default function YieldPredictionStack() {
       <Stack.Screen
         name="MyAdviceRequestsScreen"
         component={MyAdviceRequestsScreen}
+      />
+      <Stack.Screen
+        name="SoilTestRequest"
+        component={SoilTestRequestScreen}
+      />
+      <Stack.Screen
+        name="EditFertilizerPlans"
+        component={EditFertilizerPlansScreen}
+      />
+      <Stack.Screen
+        name="EditFertilizerPlanDetail"
+        component={EditFertilizerPlanDetailScreen}
+      />
+      <Stack.Screen
+        name="WetWeightPredictionForm"
+        component={WetWeightPredictionFormScreen}
+      />
+      <Stack.Screen
+        name="WetWeightPredictionResults"
+        component={WetWeightPredictionResultsScreen}
+      />
+      <Stack.Screen
+        name="WetWeightVarietyComparison"
+        component={WetWeightVarietyComparisonScreen}
+      />
+      <Stack.Screen
+        name="WetWeightTrialHistory"
+        component={WetWeightTrialHistoryScreen}
+      />
+      <Stack.Screen
+        name="FertilizerGuideMain"
+        component={FertilizerGuideMainScreen}
       />
     </Stack.Navigator>
   );

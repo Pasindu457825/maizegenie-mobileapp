@@ -4,94 +4,23 @@ from src.priceforecast.weather_service import weather_predictor
 import pandas as pd
 import numpy as np
 
-# 🔥 NEW: Supabase client import
+# Supabase client import
 from src.database.supabase_client import supabase
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 # ============================================================
-# 1) GET LATEST PRICE CONFIG  (Now using Supabase)
+# NOTE: Price endpoints have been converted to district-specific
+# The /price-data endpoints that handled global prices have been
+# removed. All price data is now stored directly in the maize_prices
+# table with fuel_price and import_tax fields, managed through
+# the mobile app's Supabase integration.
 # ============================================================
-@router.get("/price-data")
-def get_price_data():
-    try:
-        result = (
-            supabase
-            .from_("price_config")
-            .select("*")
-            .order("updated_at", desc=True)
-            .limit(1)
-            .execute()
-        )
-
-        if result.data and len(result.data) > 0:
-            row = result.data[0]
-
-            # Convert snake_case → camelCase for frontend
-            formatted = {
-                "fuelPrice": row["fuel_price"],
-                "importTax": row["import_tax"],
-                "farmGatePrice": row["farm_gate_price"],
-                "lastUpdated": row["updated_at"],
-            }
-
-            return {"success": True, "data": formatted}
-
-        # Default if table empty
-        return {
-            "success": True,
-            "data": {
-                "fuelPrice": 380.0,
-                "importTax": 25.0,
-                "farmGatePrice": 115.0,
-                "lastUpdated": None
-            }
-        }
-
-    except Exception as e:
-        return {"success": False, "error": str(e)}
 
 
 # ============================================================
-# 2) INSERT NEW PRICE CONFIG (Now using Supabase)
-# ============================================================
-@router.post("/price-data")
-def update_price_data(req: dict):
-    required = ["fuelPrice", "importTax", "farmGatePrice"]
-    if not all(k in req for k in required):
-        raise HTTPException(status_code=400, detail="Missing required fields")
-
-    try:
-        timestamp = datetime.utcnow().isoformat()
-
-        insert_data = {
-            "fuel_price": req["fuelPrice"],
-            "import_tax": req["importTax"],
-            "farm_gate_price": req["farmGatePrice"],
-            "updated_at": timestamp,
-        }
-
-        supabase.from_("price_config").insert(insert_data).execute()
-
-        # 🔥 IMPORTANT: return camelCase so frontend updates properly
-        return {
-            "success": True,
-            "message": "Saved!",
-            "data": {
-                "fuelPrice": req["fuelPrice"],
-                "importTax": req["importTax"],
-                "farmGatePrice": req["farmGatePrice"],
-                "lastUpdated": timestamp,
-            },
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============================================================
-# 3) WEATHER PREDICTION – NEXT 7 DAYS  (UNCHANGED)
+# WEATHER PREDICTION – NEXT 7 DAYS
 # ============================================================
 @router.post("/weather/predict")
 def predict_weather(body: dict):
