@@ -302,7 +302,7 @@ const AdminPanelScreen = () => {
     setHistWeek(prevWeek.toString());
   }, []);
 
-  // No need to fetch global prices anymore - all prices are district-specific
+  // all prices are district-specific
 
   const handleAddHistoricalPrice = async () => {
     // Validate all fields

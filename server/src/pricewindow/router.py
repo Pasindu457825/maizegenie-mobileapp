@@ -5,8 +5,6 @@ from .model import PriceWindowModel
 from .service import (
     build_recommendation,
     best_planting_window,
-    calculate_harvest_week,
-    get_message,
     harvest_time_advisory,
 )
 
@@ -21,7 +19,7 @@ router = APIRouter(
 model = PriceWindowModel()
 
 # --------------------------------------------------
-# ✅ NEW — Seed maturity (weeks) mapping
+# Seed maturity (weeks) mapping
 # --------------------------------------------------
 SEED_MATURITY_WEEKS = {
     "GT 709": 16,
@@ -44,7 +42,7 @@ def date_to_week(date_str: str) -> int:
 
 
 # --------------------------------------------------
-# 1) Single planting recommendation (UNCHANGED)
+# 1) Single planting recommendation
 # --------------------------------------------------
 @router.get("/recommend")
 def recommend_price_window(
@@ -71,7 +69,7 @@ def recommend_price_window(
 
 
 # --------------------------------------------------
-# 2) Best planting week finder (UNCHANGED)
+# 2) Best planting week finder
 # --------------------------------------------------
 @router.get("/best-planting")
 def best_planting(
@@ -141,7 +139,7 @@ def price_window_by_date(
     return result
 
 # --------------------------------------------------
-# 4) ➕ NEW — Advisor Guide (EXPLANATION LAYER ONLY)
+# 4) Advisor Guide (EXPLANATION LAYER ONLY)
 # --------------------------------------------------
 @router.post("/advisor-guide")
 def advisor_guide(payload: dict):
@@ -163,11 +161,11 @@ def advisor_guide(payload: dict):
     if "error" in price_result:
         return price_result
 
-    # 2) Generate advisor guide (NEW)
+    # 2) Generate advisor guide 
     lang = payload.get("language", "en")
     advisor = generate_advisor_guide(payload, price_result, language=lang)
 
-    # 3) Combine (NO existing keys removed)
+    # 3) Combine 
     return {
         **price_result,
         "advisor_guide": advisor

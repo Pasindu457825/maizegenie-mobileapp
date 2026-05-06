@@ -4,6 +4,7 @@
     "strict": true,
     "jsx": "react-native",
     "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@components/*": ["src/components/*"],
@@ -11,8 +12,15 @@
       "@services/*": ["src/services/*"],
       "@utils/*": ["src/utils/*"],
       "@theme/*": ["src/theme/*"],
-       "@lib/*": ["src/lib/*"]
+      "@lib/*": ["src/lib/*"]
     }
   },
-  "include": ["src", "App.tsx", "index.ts", "global.css", "nativewind-env.d.ts", "app.config.js"]
+  "include": [
+    "src",
+    "App.tsx",
+    "index.ts",
+    "global.css",
+    "nativewind-env.d.ts",
+    "app.config.js"
+  ]
 }

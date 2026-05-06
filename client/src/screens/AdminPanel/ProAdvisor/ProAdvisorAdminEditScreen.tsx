@@ -314,7 +314,7 @@ export default function ProAdvisorAdminEditScreen() {
   );
 }
 
-/* ================= STYLES (SAME AS ADD) ================= */
+/* ================= STYLES ================= */
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: "#F0FDF4" },
   loader: { flex: 1, justifyContent: "center", alignItems: "center" },

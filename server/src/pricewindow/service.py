@@ -220,7 +220,7 @@ def build_recommendation(
         "confidence": confidence,
         "high_price_score": float(row["HighPriceScore"]),
         "message": msg,
-        "message_si": get_message("si", label),  # Keep for backward compatibility
+        "message_si": get_message("si", label), 
         "language": language
     }
 

@@ -31,10 +31,10 @@ warnings.filterwarnings(
 router = APIRouter(prefix="/api/price-forecast", tags=["Price Forecast"])
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_YEAR = 2020  # MUST match retraining
+BASE_YEAR = 2010
 
 # =====================================================
-# LOAD GB (TUNED) MODEL - NEW VERSION
+# LOAD GB (TUNED) MODEL
 # =====================================================
 try:
     gb_model = joblib.load(os.path.join(BASE_DIR, "GB_tuned_delta_model.pkl"))
@@ -274,11 +274,9 @@ class PriceForecastResponse(BaseModel):
 # =====================================================
 def normalize_if_needed(req: PriceForecastRequest):
     if req.last_price < 5:
-        req.last_price *= 1000
+        req.last_price *= 10
     if req.fuel_price < 5:
-        req.fuel_price *= 1000
-    if req.rainfall < 5:
-        req.rainfall *= 100
+        req.fuel_price *= 10
     return req
 
 
